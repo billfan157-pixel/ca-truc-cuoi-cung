@@ -59,12 +59,74 @@ namespace CTCC.Editor
             Lit("Ceramic", 1f, 1f, 1f, maps: "Ceramic", bump: 0.35f, ao: 0.72f);
             Lit("EnamelBlue", 0.14f, 0.27f, 0.42f, maps: "Ceramic", tint: true, bump: 0.28f, ao: 0.70f);
             Lit("Paper", 0.80f, 0.75f, 0.60f, smooth: 0.14f);
-            Lit("KraftPaper", 0.62f, 0.50f, 0.32f, smooth: 0.16f);
+            Lit("KraftPaper", 1f, 1f, 1f, maps: "KraftPaper", bump: 0.28f, ao: 0.70f);
             Lit("PlasticIvory", 0.76f, 0.73f, 0.61f, smooth: 0.44f);
             Lit("RedPaint", 0.58f, 0.13f, 0.11f, metal: 0.18f, smooth: 0.52f);
             Lit("GreenOxygen", 0.17f, 0.40f, 0.27f, maps: "PaintedMetalB", tint: true, bump: 0.35f, ao: 0.72f);
             Lit("SlipperYellow", 0.76f, 0.70f, 0.48f, smooth: 0.26f);
             Lit("ReedMat", 0.68f, 0.60f, 0.39f, maps: "CottonOld", tint: true, bump: 0.85f, ao: 0.85f);
+
+            // M2 Exterior, ER & Character PBR Materials
+            Lit("WetAsphalt", 1f, 1f, 1f, maps: "WetAsphalt", bump: 0.65f, ao: 0.82f);
+            Lit("ExteriorFacade", 1f, 1f, 1f, maps: "ExteriorFacade", bump: 0.50f, ao: 0.82f);
+            Lit("WeatheredBrick", 1f, 1f, 1f, maps: "WeatheredBrick", bump: 0.78f, ao: 0.85f);
+            Lit("TerrazzoBench", 1f, 1f, 1f, maps: "TerrazzoBench", bump: 0.38f, ao: 0.76f);
+            Lit("MotorbikePaint", 0.24f, 0.055f, 0.068f, metal: 0.48f, smooth: 0.78f);
+
+            Lit("CrimsonGlow", 0.88f, 0.14f, 0.12f, smooth: 0.60f);
+            Mat("CrimsonGlow").SetColor("_EmissionColor", new Color(0.95f, 0.16f, 0.12f) * 2.6f);
+            Mat("CrimsonGlow").EnableKeyword("_EMISSION");
+            EditorUtility.SetDirty(Mat("CrimsonGlow"));
+
+            Lit("WarmGlow", 0.98f, 0.80f, 0.48f, smooth: 0.70f);
+            Mat("WarmGlow").SetColor("_EmissionColor", new Color(1.0f, 0.78f, 0.42f) * 2.8f);
+            Mat("WarmGlow").EnableKeyword("_EMISSION");
+            EditorUtility.SetDirty(Mat("WarmGlow"));
+
+            Lit("MonitorScreen", 1f, 1f, 1f, smooth: 0.65f);
+            if (art)
+            {
+                Mat("MonitorScreen").SetTexture("_BaseMap", Tex("MonitorECG"));
+                Mat("MonitorScreen").SetTexture("_EmissionMap", Tex("MonitorECG"));
+                Mat("MonitorScreen").SetColor("_EmissionColor", new Color(0.68f, 1.0f, 0.82f) * 1.35f);
+                Mat("MonitorScreen").EnableKeyword("_EMISSION");
+                EditorUtility.SetDirty(Mat("MonitorScreen"));
+            }
+
+            // Character PBR Materials (Lan, Gatekeeper, Bé An)
+            Lit("NurseBlouse", 1f, 1f, 1f, maps: "NurseBlouse", bump: 0.26f, ao: 0.72f);
+            Lit("NurseTrim", 0.24f, 0.45f, 0.44f, smooth: 0.20f);
+            Lit("DarkTrouser", 1f, 1f, 1f, maps: "DarkTrouser", bump: 0.32f, ao: 0.76f);
+            Lit("LanSkin", 1f, 1f, 1f, maps: "LanSkin", bump: 0.18f, ao: 0.65f);
+            Lit("LanLip", 0.60f, 0.34f, 0.31f, smooth: 0.42f);
+            Lit("LanHair", 1f, 1f, 1f, maps: "LanHair", bump: 0.40f, ao: 0.75f);
+            Lit("LanEyeWhite", 0.88f, 0.86f, 0.84f, smooth: 0.82f);
+            Lit("LanIris", 0.14f, 0.09f, 0.06f, smooth: 0.88f);
+            Lit("LanBadgeMat", 1f, 1f, 1f, smooth: 0.50f);
+            if (art)
+            {
+                Mat("LanBadgeMat").SetTexture("_BaseMap", Tex("LanBadge"));
+                EditorUtility.SetDirty(Mat("LanBadgeMat"));
+            }
+            Lit("CharredBlouse", 1f, 1f, 1f, maps: "CharredBlouse", bump: 0.55f, ao: 0.84f);
+            Lit("ObscuredFace", 1f, 1f, 1f, maps: "ObscuredFace", bump: 0.28f, ao: 0.85f);
+            Lit("AnCotton", 1f, 1f, 1f, maps: "AnCotton", bump: 0.28f, ao: 0.70f);
+            Lit("AnSkin", 0.76f, 0.68f, 0.62f, smooth: 0.26f);
+
+            var appShader = Shader.Find("CTCC/ApparitionSoft");
+            if (appShader != null)
+            {
+                var appMat = MaterialAsset("AnApparitionMat", appShader);
+                appMat.SetColor("_BaseColor", new Color(0.76f, 0.88f, 0.86f, 1f));
+                appMat.SetColor("_RimColor", new Color(0.72f, 0.96f, 0.92f, 1f));
+                appMat.SetFloat("_RimPower", 2.35f);
+                appMat.SetFloat("_Alpha", 0f);
+                EditorUtility.SetDirty(appMat);
+            }
+            else
+            {
+                materials["AnApparitionMat"] = Mat("AnCotton");
+            }
 
             Lit("Exterior", 0.58f, 0.60f, 0.58f, maps: "PlasterR", tint: true, bump: 0.48f, ao: 0.82f);
             Lit("Bay", 0.85f, 0.90f, 0.84f, maps: "DadoB", tint: true, bump: 0.25f, ao: 0.68f);
@@ -109,7 +171,7 @@ namespace CTCC.Editor
                     materials["RainGlassR"] = Mat("Glass");
                 }
 
-                // Tropical courtyard tree alpha-clip wind-sway foliage shader
+                // Tropical courtyard tree & elephant-ear shrub alpha-clip wind-sway foliage shaders
                 var leafShader = Shader.Find("CTCC/TropicalFoliage");
                 if (leafShader != null)
                 {
@@ -121,22 +183,40 @@ namespace CTCC.Editor
                     lf.SetFloat("_WindAmp", 0.055f);
                     lf.SetFloat("_Wetness", 0.62f);
                     EditorUtility.SetDirty(lf);
+
+                    var sh = MaterialAsset("TropicalShrub", leafShader);
+                    sh.SetTexture("_BaseMap", Tex("TropicalShrub_Color"));
+                    sh.SetColor("_BaseColor", new Color(0.84f, 0.94f, 0.80f, 1f));
+                    sh.SetFloat("_Cutoff", 0.35f);
+                    sh.SetFloat("_WindSpeed", 1.45f);
+                    sh.SetFloat("_WindAmp", 0.042f);
+                    sh.SetFloat("_Wetness", 0.70f);
+                    EditorUtility.SetDirty(sh);
                 }
                 else
                 {
                     Lit("TropicalLeaf", 0.18f, 0.29f, 0.19f, smooth: 0.42f, twoSided: true);
+                    Lit("TropicalShrub", 0.17f, 0.33f, 0.18f, smooth: 0.48f, twoSided: true);
                 }
 
                 foreach (string name in new[]
                 {
                     "Room101", "Welcome", "Emergency", "Station", "FileA", "FileB", "FileC",
                     "Demolition", "Staff", "Store", "Socket1", "Socket2", "Socket3", "Socket4",
-                    "F101", "ObsCard", "BedList", "Transfer", "Drawing", "WardRules", "ChartCard"
+                    "F101", "ObsCard", "BedList", "Transfer", "Drawing", "WardRules", "ChartCard",
+                    "Sign_EmergencyBox", "Sign_KhuBClosed", "Sign_ReceptionWindow", "Sign_HospitalGate",
+                    "Calendar2005", "MonitorECG"
                 })
                 {
-                    var m = Lit(name, 1f, 1f, 1f, smooth: name == "Room101" || name == "Welcome" || name == "Emergency" ? 0.42f : 0.16f, twoSided: true);
+                    var m = Lit(name, 1f, 1f, 1f, smooth: name is "Room101" or "Welcome" or "Emergency" or "Sign_HospitalGate" or "Sign_ReceptionWindow" ? 0.42f : 0.16f, twoSided: true);
                     m.SetTexture("_BaseMap", Tex(name));
                     m.SetColor("_BaseColor", Color.white);
+                    if (name == "Sign_EmergencyBox")
+                    {
+                        m.SetTexture("_EmissionMap", Tex(name));
+                        m.SetColor("_EmissionColor", new Color(0.95f, 0.24f, 0.18f) * 1.85f);
+                        m.EnableKeyword("_EMISSION");
+                    }
                     EditorUtility.SetDirty(m);
                 }
 
@@ -169,11 +249,12 @@ namespace CTCC.Editor
                 bool normal = path.EndsWith("_Normal.png", StringComparison.Ordinal);
                 bool mask = path.EndsWith("_Mask.png", StringComparison.Ordinal);
                 bool repeat = path.EndsWith("_Color.png", StringComparison.Ordinal) || normal || mask;
-                bool leaf = path.EndsWith("TropicalLeaf_Color.png", StringComparison.Ordinal);
+                bool leaf = path.EndsWith("TropicalLeaf_Color.png", StringComparison.Ordinal) ||
+                            path.EndsWith("TropicalShrub_Color.png", StringComparison.Ordinal);
                 string family = Path.GetFileNameWithoutExtension(path).Split('_')[0];
-                bool stream = repeat && !leaf && family is not ("WaterRun" or "PaintLoss" or "DampFloor" or "RustRun" or "WallBaseGrime");
+                bool stream = repeat && !leaf && family is not ("WaterRun" or "PaintLoss" or "DampFloor" or "RustRun" or "WallBaseGrime" or "LanSkin" or "LanHair" or "ObscuredFace");
                 var wantedType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
-                var wrap = repeat && !leaf ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
+                var wrap = repeat && !leaf && family != "LanSkin" ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
                 bool wantAlpha = !repeat || leaf;
                 if (importer.textureType == wantedType && importer.sRGBTexture == !mask &&
                     importer.wrapMode == wrap && importer.anisoLevel == 8 && importer.maxTextureSize == 2048 &&
@@ -195,19 +276,49 @@ namespace CTCC.Editor
                 string path = f.Replace('\\', '/');
                 var importer = AssetImporter.GetAtPath(path) as ModelImporter;
                 if (importer == null) continue;
+                bool isCharacter = Path.GetFileName(path).StartsWith("CTCC_CHR_", StringComparison.Ordinal);
                 bool needReadable = path.EndsWith("CTCC_ENV_CurtainAssembly.fbx", StringComparison.Ordinal);
-                if (importer.importAnimation == false && importer.importTangents == ModelImporterTangents.CalculateMikk &&
-                    importer.generateSecondaryUV == true && importer.isReadable == needReadable)
-                    continue;
-                importer.importBlendShapes = false;
-                importer.importAnimation = false;
-                importer.importCameras = false;
-                importer.importLights = false;
-                importer.isReadable = needReadable;
-                importer.importNormals = ModelImporterNormals.Import;
-                importer.importTangents = ModelImporterTangents.CalculateMikk;
-                importer.generateSecondaryUV = true;
-                importer.SaveAndReimport();
+
+                if (isCharacter)
+                {
+                    if (importer.importBlendShapes && importer.importAnimation &&
+                        importer.animationType == ModelImporterAnimationType.Generic &&
+                        importer.importTangents == ModelImporterTangents.CalculateMikk)
+                        continue;
+                    importer.importBlendShapes = true;
+                    importer.importAnimation = true;
+                    importer.animationType = ModelImporterAnimationType.Generic;
+                    importer.importCameras = false;
+                    importer.importLights = false;
+                    importer.isReadable = false;
+                    importer.importNormals = ModelImporterNormals.Import;
+                    importer.importTangents = ModelImporterTangents.CalculateMikk;
+                    importer.generateSecondaryUV = false;
+                    // Loop all embedded character clips smoothly (Idle, StalkWalk, TalkGesture, etc.)
+                    var defaultClips = importer.defaultClipAnimations;
+                    if (defaultClips != null && defaultClips.Length > 0)
+                    {
+                        foreach (var clip in defaultClips)
+                            clip.loopTime = !clip.name.Contains("Handover") && !clip.name.Contains("TurnFade");
+                        importer.clipAnimations = defaultClips;
+                    }
+                    importer.SaveAndReimport();
+                }
+                else
+                {
+                    if (importer.importAnimation == false && importer.importTangents == ModelImporterTangents.CalculateMikk &&
+                        importer.generateSecondaryUV == true && importer.isReadable == needReadable)
+                        continue;
+                    importer.importBlendShapes = false;
+                    importer.importAnimation = false;
+                    importer.importCameras = false;
+                    importer.importLights = false;
+                    importer.isReadable = needReadable;
+                    importer.importNormals = ModelImporterNormals.Import;
+                    importer.importTangents = ModelImporterTangents.CalculateMikk;
+                    importer.generateSecondaryUV = true;
+                    importer.SaveAndReimport();
+                }
             }
         }
 
@@ -330,7 +441,7 @@ namespace CTCC.Editor
         {
             var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
             q.name = name;
-            q.transform.SetParent(parent == null ? permanent : parent, false);
+            q.transform.SetParent(ResolveParent(parent, position), false);
             q.transform.localPosition = position;
             q.transform.localRotation = normal.y > 0.95f
                 ? Quaternion.Euler(90, 0, 0)
@@ -347,7 +458,7 @@ namespace CTCC.Editor
             float depth = 0.22f, Transform parent = null, float opacity = 1.0f, float rollDeg = 0f)
         {
             if (!art || !decalMaterials.TryGetValue(decalKey, out var mat)) return;
-            var go = Group(name, parent == null ? permanent : parent, position).gameObject;
+            var go = Group(name, ResolveParent(parent, position), position).gameObject;
             // DecalProjector projects along local +Z, so point +Z into the receiving surface (-surfaceNormal)
             Vector3 up = Mathf.Abs(surfaceNormal.y) > 0.92f ? Vector3.forward : Vector3.up;
             go.transform.localRotation = Quaternion.LookRotation(-surfaceNormal, up) * Quaternion.Euler(0, 0, rollDeg);
@@ -364,23 +475,23 @@ namespace CTCC.Editor
         private void Sign(string name, string map, Vector3 position, Vector3 normal, Vector2 scale, Transform parent = null, bool metalBacking = true)
         {
             if (!art) return;
-            Transform root = parent == null ? permanent : parent;
+            Transform root = ResolveParent(parent, position);
+            bool isPermRoot = parent == null || parent == permanent || (multiScene && zones.Values.Any(z => z.permanent == root));
             if (metalBacking)
             {
                 var plate = PlaceBlenderModel("CTCC_ENV_EnamelSignPlate", root, position - normal * 0.002f, 0f,
                     pairRB: false, castShadows: false);
-                // Inside wrapped holder, EnamelSignPlate front screws point along holder local +Z -> align +Z with +normal!
                 plate.transform.localRotation = Quaternion.LookRotation(normal, Vector3.up);
                 plate.transform.localScale = new Vector3(scale.x, scale.y / 0.38f, 1f);
-                if (root == permanent) staticArchitecture.Add(plate);
+                if (isPermRoot) staticArchitecture.Add(plate);
             }
             var q = Flat(name, map, position + normal * 0.004f, normal, scale * 0.96f, root);
-            if (root == permanent) staticArchitecture.Add(q);
+            if (isPermRoot) staticArchitecture.Add(q);
         }
 
         private GameObject CapsuleTarget(string id, string title, Vector3 position, Vector3 size, Transform parent = null)
         {
-            var marker = Group(id, parent == null ? permanent : parent, position).gameObject;
+            var marker = Group(id, ResolveParent(parent, position), position).gameObject;
             marker.layer = HospitalScene.InteractLayer;
             var trigger = marker.AddComponent<BoxCollider>();
             trigger.size = size;
@@ -402,7 +513,7 @@ namespace CTCC.Editor
             if (prefab == null) throw new InvalidOperationException("Missing Blender FBX asset: " + fbxName);
 
             var holder = new GameObject(fbxName);
-            holder.transform.SetParent(parent, false);
+            holder.transform.SetParent(ResolveParent(parent, localPos), false);
             holder.transform.localPosition = localPos;
             holder.transform.localRotation = Quaternion.Euler(0f, 180f + yawDeg, 0f);
             if (scale.HasValue) holder.transform.localScale = scale.Value;
@@ -431,7 +542,7 @@ namespace CTCC.Editor
                 rend.sharedMaterials = realMats;
                 if (pairRB && differs)
                 {
-                    world.finishes.Add(new LayerFinish
+                    AddFinish(new LayerFinish
                     {
                         renderer = rend,
                         realMaterials = realMats,
@@ -440,6 +551,61 @@ namespace CTCC.Editor
                 }
             }
             return holder;
+        }
+
+        /// <summary>
+        /// Instantiates a rigged, blendshaped, animated Blender 4.5 character FBX (Lan, Gatekeeper, Bé An),
+        /// remaps SkinnedMeshRenderer PBR materials cleanly, and binds all embedded FBX AnimationClips to CharacterActor!
+        /// </summary>
+        private CharacterActor PlaceCharacterActor(string fbxName, Transform parent, Vector3 localPos, float yawDeg,
+            string charId, bool isApparition = false, bool enableBlink = true, bool enableLipSync = true)
+        {
+            string fbxPath = Models + fbxName + ".fbx";
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
+            if (prefab == null) throw new InvalidOperationException("Missing Blender character FBX: " + fbxName);
+
+            var holder = new GameObject(fbxName + " · " + charId);
+            holder.transform.SetParent(parent, false);
+            holder.transform.localPosition = localPos;
+            holder.transform.localRotation = Quaternion.Euler(0f, yawDeg, 0f);
+
+            var inst = (GameObject)PrefabUtility.InstantiatePrefab(prefab, holder.transform);
+            inst.transform.localPosition = Vector3.zero;
+            // Blender characters face -Y (in Unity local -Z after FBX import), so 180 yaw faces +Z forward cleanly!
+            inst.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+
+            foreach (var smr in inst.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                smr.updateWhenOffscreen = true;
+                smr.shadowCastingMode = isApparition ? ShadowCastingMode.Off : ShadowCastingMode.On;
+                var orig = smr.sharedMaterials;
+                var remapped = new Material[orig.Length];
+                for (int i = 0; i < orig.Length; i++)
+                {
+                    if (isApparition)
+                        remapped[i] = Mat("AnApparitionMat");
+                    else
+                    {
+                        string raw = orig[i] != null ? CleanMatName(orig[i].name) : "NurseBlouse";
+                        remapped[i] = Mat(raw);
+                    }
+                }
+                smr.sharedMaterials = remapped;
+            }
+
+            var clips = AssetDatabase.LoadAllAssetsAtPath(fbxPath)
+                .OfType<AnimationClip>()
+                .Where(c => c != null && !c.name.StartsWith("__preview__", StringComparison.Ordinal))
+                .ToArray();
+
+            var actor = holder.AddComponent<CharacterActor>();
+            actor.characterId = charId;
+            actor.clips = clips;
+            actor.isApparition = isApparition;
+            actor.enableBlink = enableBlink;
+            actor.enableLipSync = enableLipSync;
+            actor.enableLookAt = true;
+            return actor;
         }
 
         private static Transform FindDescendant(Transform root, string exactName)
@@ -495,7 +661,7 @@ namespace CTCC.Editor
         private void BuildFurnishing()
         {
             // Reception & Duty Desk (LOC02)
-            var desk = Group("Bàn trực · quầy hai cao độ", permanent, new Vector3(1.45f, 0, -3.24f));
+            var desk = Group("Bàn trực · quầy hai cao độ", ResolveParent(permanent, new Vector3(1.45f, 0, -3.24f)), new Vector3(1.45f, 0, -3.24f));
             Box("Terrazzo plinth", new Vector3(0, 0.06f, 0), new Vector3(1.35f, 0.12f, 3.88f), Mat("BaseTrim"), desk, true, isStatic: true);
             Surface("Counter apron", new Vector3(1.45f, 0.55f, -3.24f), new Vector3(1.25f, 0.98f, 3.8f), "DadoR", "DadoB", true, 1.8f, isStatic: true);
             Box("Wide counter top", new Vector3(0, 1.08f, 0), new Vector3(1.48f, 0.095f, 4f), Mat("Ceramic"), desk, tile: 1.2f, isStatic: true);
@@ -516,11 +682,18 @@ namespace CTCC.Editor
                 var clock = PlaceBlenderModel("CTCC_PROP_WallClock", permanent, new Vector3(-0.99f, 2.74f, -3.26f), 90f, pairRB: true, castShadows: false);
                 var handsR = FindDescendant(clock.transform, "HandsR");
                 var handsB = FindDescendant(clock.transform, "HandsB");
-                if (handsR != null) world.clockHandsR = handsR.gameObject;
-                if (handsB != null) world.clockHandsB = handsB.gameObject;
-                // Add readable dial print right on clock face
+                if (multiScene)
+                {
+                    if (handsR != null) zones["LOC02"].region.clockHandsR = handsR.gameObject;
+                    if (handsB != null) zones["LOC02"].region.clockHandsB = handsB.gameObject;
+                }
+                else
+                {
+                    if (handsR != null) world.clockHandsR = handsR.gameObject;
+                    if (handsB != null) world.clockHandsB = handsB.gameObject;
+                }
                 var dial = Flat("Clock dial face", "ClockR", new Vector3(-0.955f, 2.74f, -3.26f), Vector3.right, new Vector2(0.34f, 0.34f), permanent);
-                world.finishes.Add(new LayerFinish { renderer = dial.GetComponent<Renderer>(), real = Mat("ClockR"), report = Mat("ClockB") });
+                AddFinish(new LayerFinish { renderer = dial.GetComponent<Renderer>(), real = Mat("ClockR"), report = Mat("ClockB") });
             }
 
             // Room 101 Beds 1-3 + Outlets 1-4 + Bedside Cabinets + IV Stands + Vietnamese Attendant Props!
@@ -530,7 +703,7 @@ namespace CTCC.Editor
                 Vector3 p = new Vector3(bed.x, 0, bed.z);
                 if (!fourth)
                 {
-                    var root = Group("Bed " + bed.id, permanent, p);
+                    var root = Group("Bed " + bed.id, ResolveParent(permanent, p), p);
                     root.localRotation = Quaternion.Euler(0, bed.yaw, 0);
                     var proxy = Box("Bed clearance volume", new Vector3(0, 0.405f, 0),
                         new Vector3(layout.bedWidth, 0.81f, layout.bedLength), Mat("MetalPaint"), root, true);
@@ -538,12 +711,10 @@ namespace CTCC.Editor
                     {
                         proxy.GetComponent<MeshRenderer>().enabled = false;
                         PlaceBlenderModel("CTCC_PROP_WardBed", root, Vector3.zero, 0f, pairRB: true);
-                        // Grounding contact shadow decal beneath each bed
                         Decal("BedContact_" + bed.id, "BedContact", p + new Vector3(0, 0.01f, 0), Vector3.up, 1.38f, 2.48f, 0.24f, permanent, 0.88f);
 
-                        // Bedside cabinet beside head of each bed
                         var cabPos = p + new Vector3(0.74f, 0, bed.yaw == 0 ? 0.66f : -0.63f);
-                        var cabinetRoot = Group("Tủ đầu giường " + bed.id, permanent, cabPos);
+                        var cabinetRoot = Group("Tủ đầu giường " + bed.id, ResolveParent(permanent, cabPos), cabPos);
                         cabinetRoot.localRotation = root.localRotation;
                         var cabProxy = Box("Cabinet clearance", new Vector3(0, 0.36f, 0), new Vector3(0.54f, 0.72f, 0.45f), Mat("CabinetOld"), cabinetRoot, true);
                         cabProxy.GetComponent<Renderer>().enabled = false;
@@ -600,10 +771,23 @@ namespace CTCC.Editor
             }
 
             // Hero Rolling 2-Door Glass-and-Louver Steel Medical Cabinet blocking GATE-STORE
-            var cupboard = Group("Tủ sắt kính 2 cánh · dấu bánh hướng kho", permanent, new Vector3(13.34f, 0, 3.62f));
-            world.cabinet = cupboard;
-            world.cabinetClosed = cupboard.localPosition;
-            world.cabinetOpen = cupboard.localPosition + new Vector3(0.02f, 0, 1.61f);
+            var loc03Perm = ResolveParent(permanent, new Vector3(13.34f, 0, 3.62f));
+            var loc03Rep = ResolveParent(report, new Vector3(12.0f, 0, 4.0f));
+            var cupboard = Group("Tủ sắt kính 2 cánh · dấu bánh hướng kho", loc03Perm, new Vector3(13.34f, 0, 3.62f));
+            var cabClosed = cupboard.localPosition;
+            var cabOpen = cupboard.localPosition + new Vector3(0.02f, 0, 1.61f);
+            if (multiScene)
+            {
+                zones["LOC03"].region.cabinet = cupboard;
+                zones["LOC03"].region.cabinetClosed = cabClosed;
+                zones["LOC03"].region.cabinetOpen = cabOpen;
+            }
+            else
+            {
+                world.cabinet = cupboard;
+                world.cabinetClosed = cabClosed;
+                world.cabinetOpen = cabOpen;
+            }
             var cabCollider = Box("Cabinet frame", new Vector3(0, 1.04f, 0), new Vector3(0.48f, 2.06f, 1.36f), Mat("CabinetOld"), cupboard, true);
             if (art)
             {
@@ -612,10 +796,10 @@ namespace CTCC.Editor
                 Decal("MedicalCabAO", "BedContact", new Vector3(0, 0.01f, 0), Vector3.up, 0.72f, 1.60f, 0.24f, cupboard, 0.85f);
                 Sign("Store", "Store", new Vector3(13.69f, 2.94f, 3.62f), Vector3.left, new Vector2(0.72f, 0.27f));
             }
-            world.interactables.ConfigureCabinet(cupboard, world.cabinetClosed);
+            world.interactables.ConfigureCabinet(cupboard, cabClosed);
 
             // Store Room Dry Archive Shelving Unit (Kho giường)
-            var dryShelf = Group("Tủ khô giữ đồ vật 101", permanent, new Vector3(15.71f, 0, 2.61f));
+            var dryShelf = Group("Tủ khô giữ đồ vật 101", loc03Perm, new Vector3(15.71f, 0, 2.61f));
             var shelfProxy = Box("Shelf base", new Vector3(0, 0.40f, 0), new Vector3(2.08f, 0.80f, 0.52f), Mat("Wood"), dryShelf, true);
             if (art)
             {
@@ -625,18 +809,27 @@ namespace CTCC.Editor
             }
 
             // F101 Branch B Modules: Denied Bay solid partition (A) & Pending Privacy Curtain (B)
-            var hidden = Group("A · vách áp hồ sơ", report);
-            world.deniedBay = hidden.gameObject;
+            var hidden = Group("A · vách áp hồ sơ", loc03Rep);
+            var pendingObj = Group("B · rèm giường 4", loc03Rep).gameObject;
+            if (multiScene)
+            {
+                zones["LOC03"].region.deniedBay = hidden.gameObject;
+                zones["LOC03"].region.pendingBay = pendingObj;
+            }
+            else
+            {
+                world.deniedBay = hidden.gameObject;
+                world.pendingBay = pendingObj;
+            }
             Box("Denied bay front", new Vector3(12.14f, 1.8f, 4.32f), new Vector3(3.14f, 3.6f, 0.16f), Mat("Bay"), hidden, true, tile: 2.2f);
             Box("Denied bay return", new Vector3(10.65f, 1.80f, 3.15f), new Vector3(0.16f, 3.6f, 2.28f), Mat("Bay"), hidden, true, tile: 2.2f);
 
-            world.pendingBay = Group("B · rèm giường 4", report).gameObject;
             if (art)
             {
                 // Interactive Blender Curtain Assembly for Bed 4 (both B pending curtain and R partial curtain!)
-                var bCurtain = PlaceBlenderModel("CTCC_ENV_CurtainAssembly", world.pendingBay.transform, new Vector3(10.68f, 2.74f, 4.27f), 0f, pairRB: false);
+                var bCurtain = PlaceBlenderModel("CTCC_ENV_CurtainAssembly", pendingObj.transform, new Vector3(10.68f, 2.74f, 4.27f), 0f, pairRB: false);
                 RegisterCurtainMotion(bCurtain, wireInteractive: true);
-                CapsuleTarget("CURTAIN-101", "Rèm che giường 4", new Vector3(11.85f, 1.55f, 4.27f), new Vector3(2.1f, 1.6f, 0.35f), world.pendingBay.transform);
+                CapsuleTarget("CURTAIN-101", "Rèm che giường 4", new Vector3(11.85f, 1.55f, 4.27f), new Vector3(2.1f, 1.6f, 0.35f), pendingObj.transform);
 
                 // Permanent curtain between Bed 1 & entrance sightline (width 1.25 m)
                 var midCurtain = PlaceBlenderModel("CTCC_ENV_CurtainAssembly", permanent, new Vector3(6.58f, 2.75f, 5.32f), 0f, pairRB: true, scale: new Vector3(0.54f, 1f, 1f));
@@ -648,7 +841,7 @@ namespace CTCC.Editor
             }
             else
             {
-                Box("Soft partition proxy", new Vector3(11.85f, 1.68f, 4.25f), new Vector3(2.38f, 1.85f, 0.035f), Mat("Bay"), world.pendingBay.transform);
+                Box("Soft partition proxy", new Vector3(11.85f, 1.68f, 4.25f), new Vector3(2.38f, 1.85f, 0.035f), Mat("Bay"), pendingObj.transform);
             }
 
             if (!art) return;
@@ -662,12 +855,26 @@ namespace CTCC.Editor
             var clothTf = FindDescendant(assembly.transform, "CurtainCloth");
             if (clothTf == null) return;
             var mf = clothTf.GetComponent<MeshFilter>();
-            if (mf != null) movingCloth.Add(mf);
-            if (wireInteractive && world.interactables != null)
+            if (mf != null)
             {
-                world.interactables.curtainCloth = clothTf;
-                world.interactables.curtainClosedScale = clothTf.localScale;
-                world.interactables.curtainOpenScale = new Vector3(clothTf.localScale.x * 0.28f, clothTf.localScale.y, clothTf.localScale.z * 1.25f);
+                if (multiScene) ZoneForTransform(clothTf)?.cloth.Add(mf);
+                else movingCloth.Add(mf);
+            }
+            if (wireInteractive)
+            {
+                var openScale = new Vector3(clothTf.localScale.x * 0.28f, clothTf.localScale.y, clothTf.localScale.z * 1.25f);
+                if (multiScene)
+                {
+                    zones["LOC03"].region.curtainCloth = clothTf;
+                    zones["LOC03"].region.curtainClosedScale = clothTf.localScale;
+                    zones["LOC03"].region.curtainOpenScale = openScale;
+                }
+                if (world.interactables != null)
+                {
+                    world.interactables.curtainCloth = clothTf;
+                    world.interactables.curtainClosedScale = clothTf.localScale;
+                    world.interactables.curtainOpenScale = openScale;
+                }
             }
         }
 
@@ -793,12 +1000,15 @@ namespace CTCC.Editor
 
         private void PropDetails()
         {
-            // Upgraded Blender Transport Stretcher Trolley w/ Oxygen Cylinder in Emergency (LOC04)
-            var trolley = Group("Cáng kiểm kích thước", permanent, new Vector3(7.17f, 0, 19.13f));
-            trolley.localRotation = Quaternion.Euler(0, 16, 0);
-            PlaceBlenderModel("CTCC_PROP_TransportTrolley", trolley, Vector3.zero, 0f, pairRB: true, forceAged: true);
-            Box("Trolley clearance proxy", new Vector3(0, 0.43f, 0), new Vector3(0.72f, 0.86f, 2.05f), Mat("Steel"), trolley, true)
-                .GetComponent<Renderer>().enabled = false;
+            // Legacy greybox/single-scene stretcher fallback (M2 DressLoc04Emergency places high-fidelity EmergencyStretcher!)
+            if (!multiScene)
+            {
+                var trolley = Group("Cáng kiểm kích thước", permanent, new Vector3(7.17f, 0, 19.13f));
+                trolley.localRotation = Quaternion.Euler(0, 16, 0);
+                PlaceBlenderModel("CTCC_PROP_TransportTrolley", trolley, Vector3.zero, 0f, pairRB: true, forceAged: true);
+                Box("Trolley clearance proxy", new Vector3(0, 0.43f, 0), new Vector3(0.72f, 0.86f, 2.05f), Mat("Steel"), trolley, true)
+                    .GetComponent<Renderer>().enabled = false;
+            }
 
             // Sculpted Blender Patient Canvas Bag in Room 101 Store (Kho giường)
             PlaceBlenderModel("CTCC_PROP_PatientBag", real, new Vector3(14.95f, 0.865f, 2.65f), 24f, pairRB: false);
@@ -823,7 +1033,7 @@ namespace CTCC.Editor
             }
             else
             {
-                var file = Group("Bảng kẹp tại phòng 101", permanent, new Vector3(5.758f, 1.37f, 5.50f));
+                var file = Group("Bảng kẹp tại phòng 101", ResolveParent(permanent, new Vector3(5.758f, 1.37f, 5.50f)), new Vector3(5.758f, 1.37f, 5.50f));
                 Box("Wall board", Vector3.zero, new Vector3(0.065f, 0.42f, 0.315f), Mat("DoorWood"), file);
             }
             CapsuleTarget("F101", "Xử lý phiếu 101", new Vector3(5.811f, 1.37f, 5.50f), new Vector3(0.14f, 0.52f, 0.52f));
@@ -834,8 +1044,9 @@ namespace CTCC.Editor
             CapsuleTarget("WHEELS", "Dấu bánh xe", new Vector3(11.66f, 0.10f, 3.57f), new Vector3(0.89f, 0.21f, 1.05f), real);
             CapsuleTarget("PZ01", "Đối chiếu chỗ kê giường", new Vector3(13.06f, 1.28f, 3.62f), new Vector3(0.18f, 0.66f, 0.51f), real);
 
-            world.storeClues = Group("E11 · physical provenance", permanent).gameObject;
-            var store = world.storeClues.transform;
+            var loc03Perm = ResolveParent(permanent, new Vector3(14f, 0f, 3.6f));
+            var storeObj = Group("E11 · physical provenance", loc03Perm).gameObject;
+            var store = storeObj.transform;
             CapsuleTarget("DRAW1", "Mảnh tranh 1", new Vector3(14.68f, 0.98f, 2.73f), new Vector3(0.27f, 0.18f, 0.2f), store);
             CapsuleTarget("DRAW2", "Mảnh tranh 2", new Vector3(15.27f, 0.98f, 2.76f), new Vector3(0.29f, 0.18f, 0.23f), store);
             CapsuleTarget("DRAW3", "Mảnh tranh 3", new Vector3(16.30f, 1.807f, 2.76f), new Vector3(0.30f, 0.20f, 0.26f), store);
@@ -845,9 +1056,23 @@ namespace CTCC.Editor
             CapsuleTarget("G02", "Cửa cấp cứu", new Vector3(0.05f, 1.25f, 15.82f), new Vector3(1.04f, 0.88f, 0.18f));
             CapsuleTarget("EXIT", "Sổ giao ca · cấp cứu", new Vector3(4, 1.05f, 20.84f), new Vector3(0.72f, 0.64f, 0.54f));
 
-            world.statusA = Group("Biển xác nhận", permanent).gameObject;
-            world.statusB = Group("Biển chờ", permanent).gameObject;
-            world.statusC = Group("Biển phản chứng", permanent).gameObject;
+            var statusAObj = Group("Biển xác nhận", loc03Perm).gameObject;
+            var statusBObj = Group("Biển chờ", loc03Perm).gameObject;
+            var statusCObj = Group("Biển phản chứng", loc03Perm).gameObject;
+            if (multiScene)
+            {
+                zones["LOC03"].region.storeClues = storeObj;
+                zones["LOC03"].region.statusA = statusAObj;
+                zones["LOC03"].region.statusB = statusBObj;
+                zones["LOC03"].region.statusC = statusCObj;
+            }
+            else
+            {
+                world.storeClues = storeObj;
+                world.statusA = statusAObj;
+                world.statusB = statusBObj;
+                world.statusC = statusCObj;
+            }
             if (!art) return;
 
             world.inspectImages = Array.ConvertAll(new[]
@@ -873,9 +1098,9 @@ namespace CTCC.Editor
             PlaceBlenderModel("CTCC_PROP_BayEnvelope", permanent, new Vector3(3.17f, 0.22f, -21.44f), 14f, pairRB: false);
 
             var notice = new Vector3(5.492f, 1.92f, 5.96f);
-            Sign("Form A", "FileA", notice, Vector3.left, new Vector2(0.91f, 0.34f), world.statusA.transform);
-            Sign("Form B", "FileB", notice, Vector3.left, new Vector2(0.91f, 0.34f), world.statusB.transform);
-            Sign("Form C", "FileC", notice, Vector3.left, new Vector2(0.91f, 0.34f), world.statusC.transform);
+            Sign("Form A", "FileA", notice, Vector3.left, new Vector2(0.91f, 0.34f), statusAObj.transform);
+            Sign("Form B", "FileB", notice, Vector3.left, new Vector2(0.91f, 0.34f), statusBObj.transform);
+            Sign("Form C", "FileC", notice, Vector3.left, new Vector2(0.91f, 0.34f), statusCObj.transform);
 
             // Readable world-space document sheets atop physical props
             Flat("F101", "F101", new Vector3(5.736f, 1.365f, 5.50f), Vector3.right, new Vector2(0.222f, 0.310f));
@@ -898,38 +1123,48 @@ namespace CTCC.Editor
 
             // Brass threshold anchor strip (vạch đồng AP04) embedded into Room 101 floor!
             Box("Pad · brass threshold marker", new Vector3(6.52f, 0.008f, 4.95f), new Vector3(0.96f, 0.014f, 0.092f), Mat("Brass"), isStatic: true);
+            // Brass reception anchor strip (vạch đồng AP02) in front of reception counter!
+            Box("Pad · brass reception marker", new Vector3(3.78f, 0.008f, -3.28f), new Vector3(0.092f, 0.014f, 1.15f), Mat("Brass"), isStatic: true);
             Box("Hub ledger ledge", new Vector3(4, 0.91f, 21.02f), new Vector3(1.17f, 0.10f, 0.72f), Mat("Ceramic"), solid: true, isStatic: true);
             Box("Ledger", new Vector3(4, 0.973f, 20.85f), new Vector3(0.41f, 0.03f, 0.27f), Mat("Paper"), isStatic: true);
         }
 
         private void GroupFixedSurfaces()
         {
-            // Keep static batching on permanent box meshes (never merge skinned/LODGroup Blender hierarchies!)
-            var changeable = new HashSet<Renderer>(world.finishes.Select(x => x.renderer));
-            var fixedTrim = permanent.Cast<Transform>()
-                .Select(t => t.GetComponent<MeshRenderer>())
-                .Where(r => r != null && r.enabled && !changeable.Contains(r) && r.sharedMaterials.Length == 1 &&
-                          r.sharedMaterial.renderQueue < 3000 && r.GetComponent<MeshFilter>() != null &&
-                          r.GetComponentInParent<LODGroup>() == null)
-                .GroupBy(r => (r.sharedMaterial,
-                    Mathf.FloorToInt(r.transform.position.x / 7.5f), Mathf.FloorToInt(r.transform.position.z / 6.5f)))
-                .Where(g => g.Count() > 1).ToArray();
-            foreach (var zone in fixedTrim)
+            var roots = multiScene
+                ? zones.Values.Select(z => (z.permanent, (IEnumerable<LayerFinish>)z.region.finishes)).ToArray()
+                : new[] { (permanent, (IEnumerable<LayerFinish>)world.finishes) };
+
+            foreach (var (permRoot, zoneFinishes) in roots)
             {
-                var joins = zone.Select(r => new CombineInstance
+                var changeable = new HashSet<Renderer>(zoneFinishes.Select(x => x.renderer));
+                var fixedTrim = permRoot.Cast<Transform>()
+                    .Select(t => t.GetComponent<MeshRenderer>())
+                    .Where(r => r != null && r.enabled && !changeable.Contains(r) && r.sharedMaterials.Length == 1 &&
+                              r.sharedMaterial.renderQueue < 3000 && r.GetComponent<MeshFilter>() != null &&
+                              r.GetComponentInParent<LODGroup>() == null)
+                    .GroupBy(r => (r.sharedMaterial,
+                        Mathf.FloorToInt(r.transform.position.x / 7.5f), Mathf.FloorToInt(r.transform.position.z / 6.5f)))
+                    .Where(g => g.Count() > 1).ToArray();
+                foreach (var batch in fixedTrim)
                 {
-                    mesh = r.GetComponent<MeshFilter>().sharedMesh,
-                    transform = r.localToWorldMatrix,
-                    subMeshIndex = 0
-                }).ToArray();
-                var merged = new Mesh { name = "Fixed trim · " + zone.Key.Item1.name };
-                merged.CombineMeshes(joins);
-                StoreMesh(merged);
-                var item = Group(merged.name, permanent).gameObject;
-                item.AddComponent<MeshFilter>().sharedMesh = merged;
-                item.AddComponent<MeshRenderer>().sharedMaterial = zone.Key.Item1;
-                GameObjectUtility.SetStaticEditorFlags(item, StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic);
-                foreach (var r in zone) r.enabled = false;
+                    var joins = batch.Select(r => new CombineInstance
+                    {
+                        mesh = r.GetComponent<MeshFilter>().sharedMesh,
+                        transform = r.localToWorldMatrix,
+                        subMeshIndex = 0
+                    }).ToArray();
+                    var merged = new Mesh { name = "Fixed trim · " + batch.Key.Item1.name };
+                    merged.CombineMeshes(joins);
+                    StoreMesh(merged);
+                    var item = Group(merged.name, permRoot).gameObject;
+                    item.AddComponent<MeshFilter>().sharedMesh = merged;
+                    var mr = item.AddComponent<MeshRenderer>();
+                    mr.sharedMaterial = batch.Key.Item1;
+                    mr.receiveGI = ReceiveGI.LightProbes;
+                    GameObjectUtility.SetStaticEditorFlags(item, StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic | StaticEditorFlags.ContributeGI);
+                    foreach (var r in batch) r.enabled = false;
+                }
             }
         }
     }

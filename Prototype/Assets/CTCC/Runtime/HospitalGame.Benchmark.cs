@@ -119,6 +119,7 @@ namespace CTCC
                 $"gpu={SystemInfo.graphicsDeviceName}", $"driver={SystemInfo.graphicsDeviceVersion}", $"ram_mib={SystemInfo.systemMemorySize}",
                 $"screen={Screen.width}x{Screen.height}", $"hz={Screen.currentResolution.refreshRateRatio.value:F3}",
                 $"quality={QualitySettings.names[QualitySettings.GetQualityLevel()]}", $"render_scale={pipeline.renderScale}",
+                $"gi_mode={scene.giMode}", $"additive={scene.IsAdditiveMode}", $"loaded_zones={scene.LoadedZoneCount}",
                 $"vsync={QualitySettings.vSyncCount}",
                 $"lod_bias={QualitySettings.lodBias}", $"streaming={QualitySettings.streamingMipmapsActive}",
                 $"streaming_textures={Texture.streamingTextureCount}", $"active_mips_bytes={Texture.currentTextureMemory}",
@@ -192,17 +193,17 @@ namespace CTCC
             yield return new("open-gate", () => casework.OpenGate(player.Feet));
             yield return new("gate-R", 4, -17.9f);
             yield return new("approach-R", 4, -3.3f);
-            yield return new("swap-R-B", () => { var r = casework.AtHub(player.Feet, out _); player.Teleport(scene.Pad("AP02")); return r; });
+            yield return new("swap-R-B", async () => { var r = await casework.AtHubAsync(player.Feet); player.Teleport(scene.Pad("AP02")); return r; });
             yield return new("board", () => casework.Board(player.Feet));
             yield return new("hall-B", 4, 4.75f);
             yield return new("room-entry-B", 6.52f, 4.88f);
             yield return new("enter-room", () => casework.EnterRoom(player.Feet));
-            yield return new("submit-F101-B", () => casework.Submit(FormStatus.Unverified, false, player.Feet));
+            yield return new("submit-F101-B", () => casework.SubmitAsync(FormStatus.Unverified, false, player.Feet));
             yield return new("room-exit-B", 4, 4.75f);
             yield return new("hall-return-B", 4, -3.29f);
-            yield return new("swap-B-R", () => { var r = casework.AtHub(player.Feet, out _); player.Teleport(scene.Pad("AP02")); return r; });
+            yield return new("swap-B-R", async () => { var r = await casework.AtHubAsync(player.Feet); player.Teleport(scene.Pad("AP02")); return r; });
             yield return new("approach-return-R", 4, -20.30f);
-            yield return new("seam", () => { var r = casework.OutsideAttempt(player.Feet); player.Teleport(scene.Pad("AP01")); return r; });
+            yield return new("seam", async () => { var r = await casework.OutsideAttemptAsync(player.Feet); player.Teleport(scene.Pad("AP01")); return r; });
             yield return new("reception-return-R", 4, -3.30f);
             yield return new("handoff-and-load", () => {
                 var r = casework.AtHub(player.Feet, out _);
@@ -225,8 +226,16 @@ namespace CTCC
             yield return new("cabinet-return", 12.60f, 4.87f);
             yield return new("room-return", 6.52f, 4.93f);
             yield return new("verify-C01", () => casework.VerifyAn(player.Feet));
+            yield return new("gatekeeper-start", () => {
+                gatekeeperCameo?.BeginCameo(State, Line);
+                return CommitResult.Applied;
+            });
             yield return new("hall-junction", 4, 4.75f);
             yield return new("emergency-R-torch", 4, 19.70f);
+            yield return new("gatekeeper-resolve", () => {
+                gatekeeperCameo?.CompleteEscape();
+                return casework.RecordGatekeeperResolved(player.Feet);
+            });
             yield return new("finish", () => casework.Complete(player.Feet));
         }
 

@@ -16,8 +16,34 @@ namespace CTCC.Editor
     public sealed partial class HospitalAuthoring
     {
         public const string Root = "Assets/CTCC";
-        private const string SceneFile = Root + "/Scenes/AnSinh.unity";
+        private const string BootstrapSceneFile = Root + "/Scenes/AnSinh_Bootstrap.unity";
+        private const string LegacySceneFile = Root + "/Scenes/AnSinh.unity";
         private const string GeometryFile = Root + "/Generated/TileGeometry.asset";
+
+        private static readonly (string id, string name, Bounds navBounds)[] ZoneSpecs =
+        {
+            ("LOC01", "LOC01_Exterior", new Bounds(new Vector3(4f, 1f, -16f), new Vector3(24f, 8f, 20f))),
+            ("LOC02", "LOC02_Reception", new Bounds(new Vector3(4f, 1f, -4f), new Vector3(14f, 8f, 12f))),
+            ("LOC03", "LOC03_Ward101", new Bounds(new Vector3(8.5f, 1f, 8f), new Vector3(22f, 8f, 20f))),
+            ("LOC04", "LOC04_Emergency", new Bounds(new Vector3(4f, 1f, 19f), new Vector3(14f, 8f, 10f))),
+        };
+
+        private sealed class ZoneSlot
+        {
+            public string id;
+            public string sceneName;
+            public string scenePath;
+            public Scene scene;
+            public ZoneRegion region;
+            public Transform permanent, real, report;
+            public readonly List<MarkerPose> pads = new();
+            public readonly List<ReflectionProbe> probes = new();
+            public readonly List<Transform> fans = new();
+            public readonly List<Light> tubes = new();
+            public readonly List<MeshFilter> cloth = new();
+            public readonly List<RoomLoop> loops = new();
+            public readonly List<Light> emergencyRedLights = new();
+        }
 
         [Serializable] private sealed class Layout
         {
@@ -45,19 +71,22 @@ namespace CTCC.Editor
 
         private readonly Layout layout;
         private readonly bool art;
+        private readonly bool multiScene;
         private readonly Dictionary<string, Material> materials = new();
+        private readonly Dictionary<string, ZoneSlot> zones = new();
         private readonly List<Light> livingTubes = new();
         private readonly List<MeshFilter> movingCloth = new();
         private readonly List<Transform> movingFans = new();
         private readonly List<GameObject> staticArchitecture = new();
-        private readonly Scene scene;
+        private readonly Scene bootstrapScene;
         private readonly HospitalScene world;
         private readonly Transform permanent, real, report;
         private Mesh geometry;
 
-        private HospitalAuthoring(bool art)
+        private HospitalAuthoring(bool art, bool multiScene = true)
         {
             this.art = art;
+            this.multiScene = art && multiScene;
             string path = Path.GetFullPath("../docs/prototype/layout.json");
             layout = JsonUtility.FromJson<Layout>(File.ReadAllText(path));
             Directory.CreateDirectory(Root + "/Scenes");
@@ -66,8 +95,11 @@ namespace CTCC.Editor
             AssetDatabase.Refresh();
             if (AssetDatabase.LoadAssetAtPath<Mesh>(GeometryFile) != null)
                 AssetDatabase.DeleteAsset(GeometryFile);
-            scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            world = new GameObject("An Sinh · CTCC M0-R").AddComponent<HospitalScene>();
+
+            bootstrapScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            if (this.multiScene)
+                EditorSceneManager.SaveScene(bootstrapScene, BootstrapSceneFile);
+            world = new GameObject(this.multiScene ? "An Sinh · CTCC M2 Bootstrap" : "An Sinh · CTCC Greybox").AddComponent<HospitalScene>();
             world.referenceArt = art;
             world.interactables = world.gameObject.AddComponent<InteractableRig>();
             permanent = Group("Physical continuity", world.transform);
@@ -75,20 +107,61 @@ namespace CTCC.Editor
             report = Group("B · Report in 2005 dress", world.transform);
             world.realProps = real.gameObject;
             world.reportProps = report.gameObject;
-            world.pads = layout.pads.Select(p =>
+
+            if (this.multiScene)
             {
-                var point = Group(p.id, permanent, new Vector3(p.x, 0.015f, p.z));
+                world.additiveZoneScenes = ZoneSpecs.Select(z => z.name).ToArray();
+                foreach (var spec in ZoneSpecs)
+                {
+                    var zScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+                    string zPath = Root + "/Scenes/" + spec.name + ".unity";
+                    EditorSceneManager.SaveScene(zScene, zPath);
+                    SceneManager.SetActiveScene(zScene);
+                    var zRoot = new GameObject("Zone · " + spec.id);
+                    var region = zRoot.AddComponent<ZoneRegion>();
+                    region.zoneId = spec.id;
+                    region.navigationBounds = spec.navBounds;
+                    var zPerm = Group("Physical continuity", zRoot.transform);
+                    var zReal = Group("R · 2012", zRoot.transform);
+                    var zRep = Group("B · Report in 2005 dress", zRoot.transform);
+                    region.realProps = zReal.gameObject;
+                    region.reportProps = zRep.gameObject;
+                    zones[spec.id] = new ZoneSlot
+                    {
+                        id = spec.id,
+                        sceneName = spec.name,
+                        scenePath = zPath,
+                        scene = zScene,
+                        region = region,
+                        permanent = zPerm,
+                        real = zReal,
+                        report = zRep
+                    };
+                }
+                SceneManager.SetActiveScene(bootstrapScene);
+            }
+
+            // Route safe checkpoint pads AP00–AP05 to their owning ZoneRegions (or Bootstrap if greybox)
+            var bootstrapPads = new List<MarkerPose>();
+            foreach (var p in layout.pads)
+            {
+                var pos = new Vector3(p.x, 0.015f, p.z);
+                Transform parent = multiScene ? ZoneAt(p.z).permanent : permanent;
+                var point = Group(p.id, parent, pos);
                 point.rotation = Quaternion.Euler(0, p.yaw, 0);
-                return new MarkerPose { id = p.id, point = point };
-            }).ToArray();
+                var mp = new MarkerPose { id = p.id, point = point };
+                if (this.multiScene) ZoneAt(p.z).pads.Add(mp);
+                else bootstrapPads.Add(mp);
+            }
+            world.pads = bootstrapPads.ToArray();
             PrepareMaterials();
         }
 
         [MenuItem("Ca Trực Cuối Cùng/1 — Dựng và kiểm mặt bằng")]
-        public static void Greybox() => new HospitalAuthoring(false).Generate(true);
+        public static void Greybox() => new HospitalAuthoring(false, multiScene: false).Generate(true);
 
-        [MenuItem("Ca Trực Cuối Cùng/2 — Dựng cảnh Phòng 101 (M0-R)")]
-        public static void ReferenceScene() => new HospitalAuthoring(true).Generate(false);
+        [MenuItem("Ca Trực Cuối Cùng/2 — Dựng cảnh M2 Vertical Slice (5 Additive Scenes)")]
+        public static void ReferenceScene() => new HospitalAuthoring(true, multiScene: true).Generate(true);
 
         public static void PrepareAndTest()
         {
@@ -98,7 +171,7 @@ namespace CTCC.Editor
 
         public static void TestScene()
         {
-            EditorSceneManager.OpenScene(SceneFile);
+            EditorSceneManager.OpenScene(BootstrapSceneFile);
             EditorApplication.isPlaying = true;
         }
 
@@ -108,18 +181,20 @@ namespace CTCC.Editor
             Windows();
         }
 
-        [MenuItem("Ca Trực Cuối Cùng/3 — Build Windows")]
+        [MenuItem("Ca Trực Cuối Cùng/3 — Build Windows (M2 Additive)")]
         public static void Windows()
         {
-            if (!File.Exists(SceneFile))
-                throw new InvalidOperationException("Build the CTCC scene first.");
-            ConfigureEnvironment();
-            string destination = Argument("-ctcc-build") ?? "../output/CTCC-M0R/CaTrucCuoiCung.exe";
+            if (!File.Exists(BootstrapSceneFile))
+                throw new InvalidOperationException("Build the M2 additive scenes first.");
+            ConfigureEnvironment(multiScene: true);
+            string destination = Argument("-ctcc-build") ?? "../output/m2/windows/CaTrucCuoiCung.exe";
             destination = Path.GetFullPath(destination);
             Directory.CreateDirectory(Path.GetDirectoryName(destination));
+            var scenePaths = new List<string> { BootstrapSceneFile };
+            scenePaths.AddRange(ZoneSpecs.Select(z => Root + "/Scenes/" + z.name + ".unity"));
             var options = new BuildPlayerOptions
             {
-                scenes = new[] { SceneFile },
+                scenes = scenePaths.ToArray(),
                 locationPathName = destination,
                 target = BuildTarget.StandaloneWindows64,
                 options = Array.IndexOf(Environment.GetCommandLineArgs(), "-ctcc-development") >= 0
@@ -138,11 +213,11 @@ namespace CTCC.Editor
             return i >= 0 && i + 1 < args.Length ? args[i + 1] : null;
         }
 
-        private static void ConfigureEnvironment()
+        private static void ConfigureEnvironment(bool multiScene)
         {
             PlayerSettings.companyName = "An Sinh Project";
             PlayerSettings.productName = "Ca trực cuối cùng";
-            PlayerSettings.bundleVersion = "0.2.1";
+            PlayerSettings.bundleVersion = "0.3.0-m2";
             PlayerSettings.colorSpace = ColorSpace.Linear;
             PlayerSettings.defaultScreenWidth = 1920;
             PlayerSettings.defaultScreenHeight = 1080;
@@ -151,40 +226,173 @@ namespace CTCC.Editor
             PlayerSettings.enableFrameTimingStats = true;
             PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
             PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64, new[] { GraphicsDeviceType.Direct3D12, GraphicsDeviceType.Direct3D11 });
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(SceneFile, true) };
+            if (multiScene)
+            {
+                var buildScenes = new List<EditorBuildSettingsScene> { new(BootstrapSceneFile, true) };
+                foreach (var z in ZoneSpecs)
+                    buildScenes.Add(new EditorBuildSettingsScene(Root + "/Scenes/" + z.name + ".unity", true));
+                EditorBuildSettings.scenes = buildScenes.ToArray();
+            }
+            else
+            {
+                EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(LegacySceneFile, true) };
+            }
             AssetDatabase.SaveAssets();
+        }
+
+        private ZoneSlot ZoneAt(float z)
+        {
+            if (z < -8.01f) return zones["LOC01"];
+            if (z < -0.01f) return zones["LOC02"];
+            if (z < 15.99f) return zones["LOC03"];
+            return zones["LOC04"];
+        }
+
+        private ZoneSlot ZoneForTransform(Transform t)
+        {
+            if (!multiScene || t == null) return null;
+            var cur = t;
+            while (cur != null)
+            {
+                var reg = cur.GetComponent<ZoneRegion>();
+                if (reg != null && zones.TryGetValue(reg.zoneId, out var slot))
+                    return slot;
+                cur = cur.parent;
+            }
+            return ZoneAt(t.position.z);
+        }
+
+        private Transform ResolveParent(Transform parent, Vector3 worldPos)
+        {
+            if (!multiScene) return parent == null ? permanent : parent;
+            if (parent == null || parent == permanent) return ZoneAt(worldPos.z).permanent;
+            if (parent == real) return ZoneAt(worldPos.z).real;
+            if (parent == report) return ZoneAt(worldPos.z).report;
+            return parent;
+        }
+
+        private void AddFinish(LayerFinish finish)
+        {
+            if (finish == null || finish.renderer == null) return;
+            if (multiScene)
+            {
+                var slot = ZoneForTransform(finish.renderer.transform);
+                if (slot != null)
+                {
+                    slot.region.finishes.Add(finish);
+                    return;
+                }
+            }
+            world.finishes.Add(finish);
         }
 
         private void Generate(bool verify)
         {
             BuildShell();
             BuildFurnishing();
+            BuildM2ZoneDressing();
             MarkInteractions();
             LightAndStage();
+            if (multiScene)
+                FinalizeZoneRegions();
+
             if (art)
             {
                 ApplyStaticFlags();
                 GroupFixedSurfaces();
             }
+
+            // Register zones into Bootstrap Coordinator in Editor so Present/VerifyBlockout/ProbeBaking work across all 5 scenes!
+            if (multiScene)
+            {
+                foreach (var slot in zones.Values)
+                    world.RegisterZone(slot.region);
+            }
+
             world.Present(false, 0, false, false, false, false);
             if (verify)
                 VerifyBlockout();
-            EditorSceneManager.SaveScene(scene, SceneFile);
-            ConfigureEnvironment();
-            Debug.Log($"CTCC_SCENE {(art ? "m0r-reference" : "greybox")} {world.finishes.Count} paired finishes, {staticArchitecture.Count} static objects");
+
+            // Save scenes first so Unity Lightmapper & StaticOcclusionCulling have valid on-disk scene assets!
+            SaveAllScenes();
+
+            if (art)
+            {
+                // Bake Dual-Scenario Indirect LightProbes (R 2012 & B 2005) + Multi-Scene Static Occlusion Culling!
+                BakeDualLightProbes();
+                BakeMultiSceneOcclusion();
+                world.Present(false, 0, false, false, false, false);
+                SaveAllScenes();
+            }
+
+            ConfigureEnvironment(multiScene);
+            int finishCount = multiScene ? zones.Values.Sum(z => z.region.finishes.Count) : world.finishes.Count;
+            Debug.Log($"CTCC_SCENE {(multiScene ? "m2-additive-5scenes" : "greybox")} {finishCount} paired finishes, {staticArchitecture.Count} static objects");
+        }
+
+        private void FinalizeZoneRegions()
+        {
+            foreach (var slot in zones.Values)
+            {
+                slot.region.pads = slot.pads.ToArray();
+                slot.region.reflectionProbes = slot.probes.ToArray();
+                slot.region.movingFans = slot.fans.ToArray();
+                slot.region.livingTubes = slot.tubes.ToArray();
+                slot.region.movingCloth = slot.cloth.ToArray();
+                slot.region.roomLoops = slot.loops.ToArray();
+                slot.region.emergencyRedLights = slot.emergencyRedLights.ToArray();
+            }
+        }
+
+        private void SaveAllScenes()
+        {
+            SceneManager.SetActiveScene(bootstrapScene);
+            if (multiScene)
+            {
+                foreach (var slot in zones.Values)
+                    EditorSceneManager.SaveScene(slot.scene, slot.scenePath);
+                EditorSceneManager.SaveScene(bootstrapScene, BootstrapSceneFile);
+            }
+            else
+            {
+                EditorSceneManager.SaveScene(bootstrapScene, LegacySceneFile);
+            }
+            AssetDatabase.SaveAssets();
+        }
+
+        private void BakeMultiSceneOcclusion()
+        {
+            SceneManager.SetActiveScene(bootstrapScene);
+            StaticOcclusionCulling.smallestOccluder = 2.0f;
+            StaticOcclusionCulling.smallestHole = 0.25f;
+            StaticOcclusionCulling.backfaceThreshold = 100f;
+            bool ok = StaticOcclusionCulling.Compute();
+            Debug.Log($"CTCC_OCCLUSION_BAKE success={ok} activeScene={bootstrapScene.name} loadedScenes={SceneManager.sceneCount}");
         }
 
         private void ApplyStaticFlags()
         {
             var flags = StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccluderStatic |
-                        StaticEditorFlags.OccludeeStatic | StaticEditorFlags.ReflectionProbeStatic;
+                        StaticEditorFlags.OccludeeStatic | StaticEditorFlags.ReflectionProbeStatic |
+                        StaticEditorFlags.ContributeGI;
             foreach (var go in staticArchitecture)
             {
                 if (go == null) continue;
-                GameObjectUtility.SetStaticEditorFlags(go, flags);
-                foreach (Transform child in go.GetComponentsInChildren<Transform>(true))
-                    GameObjectUtility.SetStaticEditorFlags(child.gameObject, flags);
+                ApplyStaticRecursive(go, flags);
             }
+        }
+
+        private static void ApplyStaticRecursive(GameObject go, StaticEditorFlags flags)
+        {
+            GameObjectUtility.SetStaticEditorFlags(go, flags);
+            var mr = go.GetComponent<MeshRenderer>();
+            if (mr != null)
+            {
+                // ReceiveGI.LightProbes lets static walls/props bounce GI into probes while swapping R<->B instantaneously!
+                mr.receiveGI = ReceiveGI.LightProbes;
+            }
+            foreach (Transform child in go.transform)
+                ApplyStaticRecursive(child.gameObject, flags);
         }
 
         private static Transform Group(string name, Transform parent, Vector3 position = default)
@@ -198,9 +406,10 @@ namespace CTCC.Editor
         private GameObject Box(string name, Vector3 p, Vector3 size, Material material,
             Transform parent = null, bool solid = false, float tile = 0, bool isStatic = false)
         {
+            Transform resolved = ResolveParent(parent, p);
             var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
             box.name = name;
-            box.transform.SetParent(parent == null ? permanent : parent, false);
+            box.transform.SetParent(resolved, false);
             box.transform.localPosition = p;
             box.transform.localScale = size;
             if (solid)
@@ -250,7 +459,7 @@ namespace CTCC.Editor
             bool solid = false, float tile = 0, bool isStatic = true)
         {
             var item = Box(name, p, size, Mat(r), solid: solid, tile: tile, isStatic: isStatic);
-            world.finishes.Add(new LayerFinish { renderer = item.GetComponent<Renderer>(), real = Mat(r), report = Mat(b) });
+            AddFinish(new LayerFinish { renderer = item.GetComponent<Renderer>(), real = Mat(r), report = Mat(b) });
             return item;
         }
 
@@ -285,12 +494,10 @@ namespace CTCC.Editor
             if (art && bottom < 0.01f)
             {
                 float middle = (from + to) * 0.5f;
-                // Terrazzo cove skirting (len đá mài cao 9.5 cm)
                 Vector3 p = alongX ? new Vector3(middle, 0.048f, axis) : new Vector3(axis, 0.048f, middle);
                 Vector3 size = alongX ? new Vector3(to - from, 0.096f, 0.224f) : new Vector3(0.224f, 0.096f, to - from);
                 Box("Terrazzo cove skirting", p, size, Mat("BaseTrim"), tile: 0.8f, isStatic: true);
 
-                // Crisp painted wainscot dado trim stripe at 1.15 m (kẻ chỉ chân tường bệnh viện VN!)
                 if (top > 1.18f)
                 {
                     Vector3 dp = alongX ? new Vector3(middle, 1.152f, axis) : new Vector3(axis, 1.152f, middle);
@@ -314,18 +521,41 @@ namespace CTCC.Editor
         {
             foreach (var a in layout.rooms)
                 Floor(a.id, a.id != "LOC01");
-            Box("Approach at grade", new Vector3(4, -0.1f, -22), new Vector3(9, 0.2f, 4), Mat("Exterior"), solid: true, tile: 2f, isStatic: true);
-            Wall(false, -5, -20, -8, 0, 0.85f);
-            Wall(false, 13, -20, -8, 0, 0.85f);
-            Wall(true, -20, -5, 2.8f, 0, 1.72f);
-            Wall(true, -20, 5.2f, 13, 0, 1.72f);
+            if (!art)
+                Box("Approach at grade", new Vector3(4, -0.1f, -22), new Vector3(9, 0.2f, 4), Mat("Exterior"), solid: true, tile: 2f, isStatic: true);
+
+            // Courtyard perimeter low walls using authentic WeatheredBrick in M2 art mode
+            if (art)
+            {
+                Box("West yard brick wall", new Vector3(-5f, 0.425f, -14f), new Vector3(0.22f, 0.85f, 12f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true);
+                Box("East yard brick wall", new Vector3(13f, 0.425f, -14f), new Vector3(0.22f, 0.85f, 12f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true);
+                Box("Front yard brick wall L", new Vector3(-1.1f, 0.86f, -20f), new Vector3(7.8f, 1.72f, 0.24f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true);
+                Box("Front yard brick wall R", new Vector3(9.1f, 0.86f, -20f), new Vector3(7.8f, 1.72f, 0.24f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true);
+            }
+            else
+            {
+                Wall(false, -5, -20, -8, 0, 0.85f);
+                Wall(false, 13, -20, -8, 0, 0.85f);
+                Wall(true, -20, -5, 2.8f, 0, 1.72f);
+                Wall(true, -20, 5.2f, 13, 0, 1.72f);
+            }
 
             var gate = Opening("GATE-CONG");
-            world.outerGate = HingedExteriorGate("GATE-CONG", gate, -101);
-            world.seamBlocker = Box("Exhausted gate seam only", new Vector3(4, 1.1f, -20.50f),
+            var outerGate = HingedExteriorGate("GATE-CONG", gate, -101);
+            var seam = Box("Exhausted gate seam only", new Vector3(4, 1.1f, -20.50f),
                 new Vector3(2.44f, 2.20f, 0.07f), Mat("Glass"), solid: true);
-            world.seamBlocker.GetComponent<Renderer>().enabled = false;
-            world.seamBlocker.SetActive(false);
+            seam.GetComponent<Renderer>().enabled = false;
+            seam.SetActive(false);
+            if (multiScene)
+            {
+                zones["LOC01"].region.outerGate = outerGate;
+                zones["LOC01"].region.seamBlocker = seam;
+            }
+            else
+            {
+                world.outerGate = outerGate;
+                world.seamBlocker = seam;
+            }
 
             Wall(false, -1.1f, -8, 0);
             Wall(false, 9.1f, -8, 0);
@@ -336,13 +566,14 @@ namespace CTCC.Editor
             Wall(false, 1.2f, 0, 16);
             Wall(false, 2.4f, 0, 16);
 
-            // Room 101 doorway: leave transom clear up to 2.84 m in reference art so real louvered glass transom shines through!
             WallOpening(false, 5.60f, 0, 16, 4.75f, 1.2f, art ? 2.84f : 2.22f);
             var room = Opening("GATE-101");
-            world.roomDoor = HingedWardDoor("GATE-101", room, -105);
+            var roomDoor = HingedWardDoor("GATE-101", room, -105);
+            if (multiScene) zones["LOC03"].region.roomDoor = roomDoor;
+            else world.roomDoor = roomDoor;
             if (art)
             {
-                var frame = PlaceBlenderModel("CTCC_ENV_WardDoorFrame", permanent, new Vector3(room.x, 0, room.z), -90f, pairRB: true);
+                var frame = PlaceBlenderModel("CTCC_ENV_WardDoorFrame", ResolveParent(null, new Vector3(room.x, 0, room.z)), new Vector3(room.x, 0, room.z), -90f, pairRB: true);
                 staticArchitecture.Add(frame);
             }
 
@@ -366,7 +597,7 @@ namespace CTCC.Editor
             if (art)
             {
                 var storeOp = Opening("GATE-STORE");
-                var sFrame = PlaceBlenderModel("CTCC_ENV_WardDoorFrame", permanent, new Vector3(storeOp.x, 0, storeOp.z), -90f, pairRB: true);
+                var sFrame = PlaceBlenderModel("CTCC_ENV_WardDoorFrame", ResolveParent(null, new Vector3(storeOp.x, 0, storeOp.z)), new Vector3(storeOp.x, 0, storeOp.z), -90f, pairRB: true);
                 staticArchitecture.Add(sFrame);
             }
 
@@ -378,24 +609,34 @@ namespace CTCC.Editor
             Wall(true, 16, 4.7f, 9);
             Wall(true, 16, -0.65f, 0.75f, 2.20f);
             Wall(true, 16, 3.3f, 4.7f, 2.20f);
-            world.emergencyDoorA = Hinged("GATE-CAPCUU", Opening("GATE-CAPCUU"), 2.18f, Mat("MetalPaint"), -94, true);
-            world.emergencyDoorB = Hinged("GATE-CAPCUU-B", Opening("GATE-CAPCUU-B"), 2.18f, Mat("MetalPaint"), -94, true);
+            var erA = HingedEmergencyDoor("GATE-CAPCUU", Opening("GATE-CAPCUU"), -94);
+            var erB = HingedEmergencyDoor("GATE-CAPCUU-B", Opening("GATE-CAPCUU-B"), -94);
+            if (multiScene)
+            {
+                zones["LOC04"].region.emergencyDoorA = erA;
+                zones["LOC04"].region.emergencyDoorB = erB;
+            }
+            else
+            {
+                world.emergencyDoorA = erA;
+                world.emergencyDoorB = erB;
+            }
         }
 
         private DoorPose HingedExteriorGate(string name, Aperture a, float angle)
         {
             if (!art) return Hinged(name, a, 1.80f, Mat("MetalPaint"), angle, false);
+            var pos = new Vector3(a.x, 0, a.z);
+            var parent = ResolveParent(null, pos);
             var offset = new Vector3(-a.width / 2f, 0, 0);
-            Transform pivot = Group(name + " · hinge", permanent, new Vector3(a.x, 0, a.z) + offset);
-            // Solid collision proxy kept exact for navigation/blockout
+            Transform pivot = Group(name + " · hinge", parent, pos + offset);
             var proxy = Box("Gate collider", new Vector3(a.width / 2f, 0.90f, 0), new Vector3(a.width - 0.025f, 1.80f, 0.08f), Mat("MetalOld"), pivot, solid: true);
             proxy.GetComponent<Renderer>().enabled = false;
             PlaceBlenderModel("CTCC_PROP_ExteriorGate", pivot, Vector3.zero, 0f, pairRB: true);
-            // Masonry gate pillars on either side
             foreach (int s in new[] { -1, 1 })
             {
-                Box("Gate pillar", new Vector3(a.x + s * (a.width * 0.5f + 0.16f), 1.05f, a.z), new Vector3(0.32f, 2.10f, 0.34f), Mat("PlasterR"), solid: true, tile: 1.5f, isStatic: true);
-                Box("Gate pillar cap", new Vector3(a.x + s * (a.width * 0.5f + 0.16f), 2.14f, a.z), new Vector3(0.38f, 0.09f, 0.40f), Mat("BaseTrim"), isStatic: true);
+                Box("Gate pillar", new Vector3(a.x + s * (a.width * 0.5f + 0.16f), 1.05f, a.z), new Vector3(0.32f, 2.10f, 0.34f), Mat("PlasterR"), parent, solid: true, tile: 1.5f, isStatic: true);
+                Box("Gate pillar cap", new Vector3(a.x + s * (a.width * 0.5f + 0.16f), 2.14f, a.z), new Vector3(0.38f, 0.09f, 0.40f), Mat("BaseTrim"), parent, isStatic: true);
             }
             return new DoorPose { pivot = pivot, openAngle = angle };
         }
@@ -403,41 +644,45 @@ namespace CTCC.Editor
         private DoorPose HingedWardDoor(string name, Aperture a, float angle)
         {
             if (!art) return Hinged(name, a, 2.20f, Mat("DoorWood"), angle, false);
+            var pos = new Vector3(a.x, 0, a.z);
             var offset = a.alongX ? new Vector3(-a.width / 2f, 0, 0) : new Vector3(0, 0, -a.width / 2f);
-            Transform pivot = Group(name + " · hinge", permanent, new Vector3(a.x, 0, a.z) + offset);
+            Transform pivot = Group(name + " · hinge", ResolveParent(null, pos), pos + offset);
             Transform leaf = Group("Leaf", pivot);
             if (!a.alongX) leaf.localRotation = Quaternion.Euler(0, -90, 0);
 
-            // Exact solid collision proxy matching greybox metrics (1.20 m clear when open!)
             var proxy = Box("Ward door collider", new Vector3(a.width / 2f, 1.10f, 0), new Vector3(a.width - 0.025f, 2.20f, 0.055f), Mat("WoodDoorR"), leaf, solid: true);
             proxy.GetComponent<Renderer>().enabled = false;
             PlaceBlenderModel("CTCC_ENV_WardDoorLeaf", leaf, Vector3.zero, 0f, pairRB: true);
-
-            // Physical handle trigger so player can swing Room 101's timber door open/shut directly!
             CapsuleTarget("DOOR-101", "Cửa phòng 101", new Vector3(a.width - 0.16f, 1.04f, 0f), new Vector3(0.36f, 0.48f, 0.34f), leaf);
+            return new DoorPose { pivot = pivot, openAngle = angle };
+        }
+
+        private DoorPose HingedEmergencyDoor(string name, Aperture a, float angle)
+        {
+            if (!art) return Hinged(name, a, 2.18f, Mat("MetalPaint"), angle, true);
+            var pos = new Vector3(a.x, 0, a.z);
+            var offset = a.alongX ? new Vector3(-a.width / 2f, 0, 0) : new Vector3(0, 0, -a.width / 2f);
+            Transform pivot = Group(name + " · hinge", ResolveParent(null, pos), pos + offset);
+            Transform leaf = Group("Leaf", pivot);
+            if (!a.alongX) leaf.localRotation = Quaternion.Euler(0, -90, 0);
+
+            var proxy = Box("ER door collider", new Vector3(a.width / 2f, 1.09f, 0), new Vector3(a.width - 0.025f, 2.18f, 0.065f), Mat("MetalPaint"), leaf, solid: true);
+            proxy.GetComponent<Renderer>().enabled = false;
+            // Two side-by-side Blender Emergency Swing Door leaves spanning the 1.40m ER doorway!
+            PlaceBlenderModel("CTCC_ENV_EmergencySwingDoorLeaf", leaf, new Vector3(a.width * 0.25f, 0f, 0f), 0f, pairRB: true);
+            PlaceBlenderModel("CTCC_ENV_EmergencySwingDoorLeaf", leaf, new Vector3(a.width * 0.75f, 0f, 0f), 180f, pairRB: true);
             return new DoorPose { pivot = pivot, openAngle = angle };
         }
 
         private DoorPose Hinged(string name, Aperture a, float height, Material finish, float angle, bool glass)
         {
+            var pos = new Vector3(a.x, 0, a.z);
             var offset = a.alongX ? new Vector3(-a.width / 2, 0, 0) : new Vector3(0, 0, -a.width / 2);
-            Transform pivot = Group(name + " · hinge", permanent, new Vector3(a.x, 0, a.z) + offset);
+            Transform pivot = Group(name + " · hinge", ResolveParent(null, pos), pos + offset);
             Transform leaf = Group("Leaf", pivot);
             if (!a.alongX) leaf.localRotation = Quaternion.Euler(0, -90, 0);
-            if (!art || !glass)
-            {
-                Box("Door leaf", new Vector3(a.width / 2, height / 2, 0), new Vector3(a.width - 0.025f, height, 0.065f),
-                    finish, leaf, true);
-            }
-            else
-            {
-                Box("Kick plate", new Vector3(a.width / 2, 0.40f, 0), new Vector3(a.width - 0.02f, 0.80f, 0.065f), finish, leaf, true);
-                Box("Safety glass", new Vector3(a.width / 2, 1.53f, 0), new Vector3(a.width - 0.05f, 1.23f, 0.022f), Mat("FrostedGlass"), leaf, true);
-                Box("Tubular left stile", new Vector3(0.045f, 1.08f, 0), new Vector3(0.064f, 2.16f, 0.078f), finish, leaf);
-                Box("Tubular right stile", new Vector3(a.width - 0.045f, 1.08f, 0), new Vector3(0.064f, 2.16f, 0.078f), finish, leaf);
-                Box("Tubular top rail", new Vector3(a.width / 2, 2.13f, 0), new Vector3(a.width, 0.075f, 0.075f), finish, leaf);
-                Box("Push bar", new Vector3(a.width / 2, 1.02f, -0.065f), new Vector3(a.width - 0.24f, 0.045f, 0.035f), Mat("Steel"), leaf);
-            }
+            Box("Door leaf", new Vector3(a.width / 2, height / 2, 0), new Vector3(a.width - 0.025f, height, 0.065f),
+                finish, leaf, true);
             return new DoorPose { pivot = pivot, openAngle = angle };
         }
 
@@ -447,24 +692,22 @@ namespace CTCC.Editor
             Wall(true, z, left, right, 2.94f, 3.6f);
             float midX = (left + right) * 0.5f;
             float w = right - left;
+            var pos = new Vector3(midX, 0f, z);
+            var parent = ResolveParent(null, pos);
 
-            // Invisible solid collision barrier so capsule never clips outside windows
             var barrier = Box("Window barrier", new Vector3(midX, 2.01f, z + 0.03f), new Vector3(w, 1.85f, 0.035f),
-                Mat("Glass"), solid: true);
+                Mat("Glass"), parent, solid: true);
             if (!art)
             {
-                Box("Sill", new Vector3(midX, 1.10f, z), new Vector3(w, 0.065f, 0.4f), Mat("BaseTrim"), solid: true);
+                Box("Sill", new Vector3(midX, 1.10f, z), new Vector3(w, 0.065f, 0.4f), Mat("BaseTrim"), parent, solid: true);
                 return;
             }
             barrier.GetComponent<Renderer>().enabled = false;
-
-            // Authentic Blender rolled-steel casement window + terrazzo sill + rain hood + louvers + iron security grille!
-            var win = PlaceBlenderModel(blenderModel, permanent, new Vector3(midX, 0f, z), 0f, pairRB: true);
+            var win = PlaceBlenderModel(blenderModel, parent, pos, 0f, pairRB: true);
             staticArchitecture.Add(win);
 
-            // Animated monsoon raindrop-streaked window glass in R, swapping to clean glass in B!
-            var pane = Flat("Window rain glass", "RainGlassR", new Vector3(midX, 1.76f, z + 0.01f), Vector3.back, new Vector2(w - 0.08f, 1.30f), permanent);
-            world.finishes.Add(new LayerFinish { renderer = pane.GetComponent<Renderer>(), real = Mat("RainGlassR"), report = Mat("Glass") });
+            var pane = Flat("Window rain glass", "RainGlassR", new Vector3(midX, 1.76f, z + 0.01f), Vector3.back, new Vector2(w - 0.08f, 1.30f), parent);
+            AddFinish(new LayerFinish { renderer = pane.GetComponent<Renderer>(), real = Mat("RainGlassR"), report = Mat("Glass") });
         }
 
         private void VerifyBlockout()

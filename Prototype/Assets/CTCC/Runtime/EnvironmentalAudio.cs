@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace CTCC
@@ -16,34 +17,73 @@ namespace CTCC
 
     public sealed class EnvironmentalAudio : MonoBehaviour
     {
-        public RoomLoop[] loops;
+        public RoomLoop[] loops = Array.Empty<RoomLoop>();
         public AudioSource propCue;
         public AudioClip paper, stamp, slippers, step, stepWet, stepCorridor, switchLayer;
         public AudioClip switchToB, switchToR, doorCreak, doorLatch, curtainSlide, cabinetRoll;
+        public AudioClip keyJingle, trolleyRoll, phoneBuzz, paStatic, breakerCut, emergencyHum, distantThunder;
+        public VoiceClipEntry[] voiceClips = Array.Empty<VoiceClipEntry>();
+        public AudioClip lanMotif;
+
         public bool ReportLayer { get; set; }
+        private readonly List<RoomLoop> activeLoops = new();
         private bool mono;
         private float footstepPitch;
         private float ambienceScale = 0.85f;
         private float sfxScale = 0.90f;
+        private float duckGain = 1.0f;
+        private float duckTarget = 1.0f;
         private Transform listener;
+        private bool started;
 
         private void Start()
         {
+            started = true;
             var cam = Camera.main;
             if (cam != null) listener = cam.transform;
-            foreach (var loop in loops)
+            if (loops != null)
             {
-                loop.source.volume = 0f;
-                if (loop.exteriorOccluded)
-                {
-                    loop.filter = loop.source.gameObject.GetComponent<AudioLowPassFilter>();
-                    if (loop.filter == null)
-                        loop.filter = loop.source.gameObject.AddComponent<AudioLowPassFilter>();
-                    loop.currentCutoff = 3200f;
-                    loop.filter.cutoffFrequency = 3200f;
-                }
-                loop.source.Play();
+                foreach (var loop in loops)
+                    AttachLoop(loop);
             }
+        }
+
+        public void RegisterZoneLoops(RoomLoop[] extra)
+        {
+            if (extra == null) return;
+            foreach (var loop in extra)
+                AttachLoop(loop);
+        }
+
+        public void UnregisterZoneLoops(RoomLoop[] extra)
+        {
+            if (extra == null) return;
+            foreach (var loop in extra)
+                activeLoops.Remove(loop);
+        }
+
+        private void AttachLoop(RoomLoop loop)
+        {
+            if (loop == null || loop.source == null || activeLoops.Contains(loop)) return;
+            activeLoops.Add(loop);
+            loop.source.volume = 0f;
+            loop.source.spatialBlend = mono ? 0f : 0.96f;
+            if (loop.exteriorOccluded)
+            {
+                loop.filter = loop.source.gameObject.GetComponent<AudioLowPassFilter>();
+                if (loop.filter == null)
+                    loop.filter = loop.source.gameObject.AddComponent<AudioLowPassFilter>();
+                loop.currentCutoff = 3200f;
+                loop.filter.cutoffFrequency = 3200f;
+            }
+            if (started || Application.isPlaying)
+                loop.source.Play();
+        }
+
+        public void SetVoiceDucking(bool ducking)
+        {
+            // -5 dB smooth ambience ducking during spoken Vietnamese VO so every word stays crisp!
+            duckTarget = ducking ? 0.56f : 1.0f;
         }
 
         private void Update()
@@ -51,13 +91,19 @@ namespace CTCC
             if (listener == null && Camera.main != null) listener = Camera.main.transform;
             float dt = Time.unscaledDeltaTime;
             float amount = dt * 1.65f;
+            duckGain = Mathf.MoveTowards(duckGain, duckTarget, dt * 2.2f);
             bool checkOcclusion = Time.frameCount % 6 == 0 && listener != null;
 
-            foreach (var loop in loops)
+            for (int i = activeLoops.Count - 1; i >= 0; i--)
             {
-                var source = loop.source;
-                if (source == null) continue;
-                float target = (ReportLayer == loop.report ? loop.level : 0f) * ambienceScale;
+                var loop = activeLoops[i];
+                var source = loop?.source;
+                if (source == null)
+                {
+                    activeLoops.RemoveAt(i);
+                    continue;
+                }
+                float target = (ReportLayer == loop.report ? loop.level : 0f) * ambienceScale * duckGain;
 
                 if (loop.exteriorOccluded && loop.filter != null && listener != null)
                 {
@@ -84,12 +130,12 @@ namespace CTCC
             ambienceScale = Mathf.Clamp01(options.ambienceVolume);
             sfxScale = Mathf.Clamp01(options.sfxVolume);
             mono = options.monoAudio;
-            foreach (var loop in loops)
-                if (loop.source != null)
+            foreach (var loop in activeLoops)
+                if (loop?.source != null)
                     loop.source.spatialBlend = mono ? 0f : 0.96f;
         }
 
-        public void From(string cue, Vector3 at)
+        public void From(string cue, Vector3 at, float gainScale = 1f)
         {
             var sound = cue switch
             {
@@ -103,6 +149,13 @@ namespace CTCC
                 "doorLatch" => doorLatch,
                 "curtainSlide" => curtainSlide,
                 "cabinetRoll" => cabinetRoll,
+                "keyJingle" => keyJingle,
+                "trolleyRoll" => trolleyRoll,
+                "phoneBuzz" => phoneBuzz,
+                "paStatic" => paStatic,
+                "breakerCut" => breakerCut,
+                "emergencyHum" => emergencyHum,
+                "distantThunder" => distantThunder,
                 _ => null
             };
             if (sound == null || propCue == null) return;
@@ -114,16 +167,22 @@ namespace CTCC
                 "cabinetRoll" => 0.66f,
                 "doorCreak" => 0.56f,
                 "curtainSlide" => 0.52f,
+                "keyJingle" => 0.72f,
+                "trolleyRoll" => 0.62f,
+                "breakerCut" => 0.74f,
+                "distantThunder" => 0.48f,
+                "phoneBuzz" => 0.55f,
                 _ => 0.58f
             };
-            propCue.PlayOneShot(sound, baseVol * sfxScale);
+            propCue.PlayOneShot(sound, baseVol * sfxScale * gainScale);
         }
 
         public void Step(AudioSource source, bool running, bool crouched, Vector3 worldPos, bool reportLayer)
         {
             AudioClip clip = step;
-            // Wet puddle beneath Room 101 north windows & damp corridor track in R (2012)
+            // Exterior wet courtyard (z < -8), damp north window puddle & corridor track in R (2012)
             bool wetZone = !reportLayer && (
+                worldPos.z < -8.2f ||
                 (worldPos.x > 7.4f && worldPos.x < 11.4f && worldPos.z > 6.3f && worldPos.z < 8.1f) ||
                 (worldPos.x > 3.8f && worldPos.x < 5.5f && worldPos.z > 4.6f && worldPos.z < 9.2f)
             );

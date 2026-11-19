@@ -21,6 +21,10 @@ namespace CTCC
         public float mouseSensitivity = 1f;
         public float ambienceVolume = .85f;
         public float sfxVolume = .90f;
+        public float voiceVolume = .92f;
+        public float musicVolume = .65f;
+        public bool hintsEnabled = true;
+        public bool storyMode;
     }
 
     [Serializable]

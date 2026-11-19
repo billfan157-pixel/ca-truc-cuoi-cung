@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
@@ -18,11 +19,24 @@ namespace CTCC
         private FirstPerson player;
         private HospitalUI ui;
         private PhysicalInspector inspector;
+        private VoiceDirector voice;
+        private LanDirector lanDirector;
+        private GatekeeperCameo gatekeeperCameo;
+        private AnApparitionDirector anDirector;
         private RealityTransaction transaction;
         private Casework casework;
         private AtomicSaves saves;
-        private bool live, busy, firstEscape;
+        private bool live, busy, firstEscape, bootReady;
         private string qaFolder;
+
+        // Scripted Horror Events (once-per-visit runtime guards) & Progressive Hints (CH01-T11)
+        private bool heardLobbySilhouette;
+        private bool playedHe01Trolley;
+        private bool playedHe04CorridorCut;
+        private string lastObjectiveKey = "";
+        private float objectiveStagnantSeconds;
+        private int hintTierShown;
+
         private Investigation State => casework.State;
         private VisitSettings Options => State.settings;
         private string UseKey => Options.alternateBindings ? "K" : "E";
@@ -31,7 +45,8 @@ namespace CTCC
         private static void StartGame()
         {
             var world = FindFirstObjectByType<HospitalScene>();
-            if (world != null) world.gameObject.AddComponent<HospitalGame>();
+            if (world != null && world.GetComponent<HospitalGame>() == null)
+                world.gameObject.AddComponent<HospitalGame>();
         }
 
         private void Awake()
@@ -47,10 +62,27 @@ namespace CTCC
                 int preset = Array.IndexOf(QualitySettings.names, PlayerPrefs.GetString("CTCC.GraphicsQuality"));
                 if (preset >= 0) QualitySettings.SetQualityLevel(preset, true);
             }
+
             scene = GetComponent<HospitalScene>();
+            string requestedGi = Argument("-ctcc-gi");
+            if (!string.IsNullOrEmpty(requestedGi))
+                scene.giMode = requestedGi.ToLowerInvariant();
+
             var lineSheet = Resources.Load<TextAsset>("CTCC/Dialogue");
             foreach (var entry in JsonUtility.FromJson<DialogueSheet>(lineSheet.text).entries)
                 dialogue.Add(entry.id, entry);
+
+            qaFolder = Argument("-ctcc-qa");
+        }
+
+        private void Start() => StartCoroutine(BootAndRun());
+
+        private IEnumerator BootAndRun()
+        {
+            // Load all additive zone scenes (LOC01..LOC04) and wait until every ZoneRegion is live
+            yield return scene.EnsureAllZonesLoadedAsync();
+            Debug.Log($"CTCC_BOOT_ZONES loaded={scene.LoadedZoneCount} additive={scene.IsAdditiveMode} gi={scene.giMode}");
+
             var rig = new GameObject("FPS character", typeof(CharacterController), typeof(FirstPerson));
             player = rig.GetComponent<FirstPerson>();
             player.Initialize(Camera.main, scene.atmosphere);
@@ -63,7 +95,18 @@ namespace CTCC
             ui.Initialize();
             ui.OpenChanged += RefreshControls;
 
-            qaFolder = Argument("-ctcc-qa");
+            voice = gameObject.AddComponent<VoiceDirector>();
+            voice.Initialize(scene.atmosphere?.voiceClips, scene.atmosphere?.lanMotif, scene.atmosphere, ui);
+
+            lanDirector = gameObject.AddComponent<LanDirector>();
+            lanDirector.Initialize(scene, voice, player);
+
+            gatekeeperCameo = gameObject.AddComponent<GatekeeperCameo>();
+            gatekeeperCameo.Initialize(scene, voice, player, ui);
+
+            anDirector = gameObject.AddComponent<AnApparitionDirector>();
+            anDirector.Initialize(scene, voice, player);
+
             var saveDirectory = qaFolder == null ? Argument("-ctcc-save") ?? Path.Combine(Application.persistentDataPath, "Patient101")
                 : Path.Combine(Path.GetFullPath(qaFolder), "isolated-save");
             saves = new AtomicSaves(saveDirectory);
@@ -71,24 +114,25 @@ namespace CTCC
             transaction.ReadCharge = () => player.BatterySeconds;
             casework = new Casework(transaction);
             transaction.Committed += ApplyCommitted;
+
+            // Pre-warm BOTH R and B regional NavMesh caches behind startup so the very first R->B swap never hitches!
             scene.smoothPresentation = false;
+            scene.WarmupNavigationAndShaders();
             transaction.Present(State);
             scene.smoothPresentation = qaFolder == null;
             ApplyCommitted(State);
-        }
+            bootReady = true;
 
-        private void Start()
-        {
             string benchmark = Argument("-ctcc-benchmark");
             if (benchmark != null)
             {
                 StartCoroutine(BenchmarkVisit(Path.GetFullPath(benchmark)));
-                return;
+                yield break;
             }
             if (qaFolder != null)
             {
                 StartCoroutine(AutomatedVisit());
-                return;
+                yield break;
             }
             MainMenu();
             string inputQa = Argument("-ctcc-input-qa");
@@ -108,13 +152,25 @@ namespace CTCC
             player.ReportLayer = current.layer == Reality.B;
             ui.Apply(current.settings);
             scene.atmosphere?.Apply(current.settings);
+            voice?.Apply(current.settings);
             inspector?.SetReducedMotion(current.settings.reduceMotion);
             scene.interactables?.SetReducedMotion(current.settings.reduceMotion);
-            if (scene.motion != null) scene.motion.reducedMotion = current.settings.reduceMotion;
+            if (scene.motion != null)
+            {
+                scene.motion.reducedMotion = current.settings.reduceMotion;
+                if (current.layer == Reality.R || !GateService.G01(current))
+                    scene.motion.fanSpeedScale = 1f;
+            }
             if (scene.realGrade != null && scene.realGrade.sharedProfile.TryGet<ColorAdjustments>(out var real))
-                real.postExposure.value = 0.28f + current.settings.visibility * 0.58f;
+                real.postExposure.value = 0.42f + current.settings.visibility * 0.58f;
             if (scene.reportGrade != null && scene.reportGrade.sharedProfile.TryGet<ColorAdjustments>(out var report))
-                report.postExposure.value = -0.04f + current.settings.visibility * 0.45f;
+                report.postExposure.value = -0.02f + current.settings.visibility * 0.45f;
+
+            lanDirector?.SyncState(current);
+            gatekeeperCameo?.SyncState(current);
+            if (current.chapter == "CH01" || current.layer == Reality.B)
+                anDirector?.HideImmediately();
+
             RefreshObjective();
         }
 
@@ -129,7 +185,7 @@ namespace CTCC
 
         private void Update()
         {
-            if (!live || busy || ui.IsModal || qaFolder != null)
+            if (!bootReady || !live || busy || ui.IsModal || qaFolder != null)
                 return;
             var keys = Keyboard.current;
             if (keys == null) return;
@@ -145,28 +201,88 @@ namespace CTCC
                 Journal();
                 return;
             }
+
             Vector3 feet = player.Feet;
+
+            // CH01 B02: Spotting Lan's warm backlit silhouette behind reception glass pulls Minh voluntarily inside!
+            if (!heardLobbySilhouette && State.chapter == "CH01" && State.Happened("CH01-T02") && !State.Happened("CH01-T03") &&
+                feet.z > -10.5f && feet.z < -6.2f)
+            {
+                heardLobbySilhouette = true;
+                voice?.Speak("CH01-D02", "Minh", Line("CH01-D02"), directionalPrefix: "[Bóng người sau ô kính quầy lễ tân]");
+            }
+
+            // HE01: Frosted ER glass trolley shadow gliding silently behind emergency doors on first corridor walk in B
+            if (!playedHe01Trolley && State.chapter == "CH01" && State.layer == Reality.B && State.Happened("CH01-T05") &&
+                !GateService.G01(State) && feet.z > 1.8f && feet.x < 5.5f)
+            {
+                playedHe01Trolley = true;
+                StartCoroutine(PlayHe01TrolleyShadow());
+            }
+
+            // HE04: After handling F101 in B, walking back down corridor slows ceiling fans & cuts PA04 mid-sentence!
+            if (!playedHe04CorridorCut && State.chapter == "CH01" && State.layer == Reality.B && GateService.G01(State) &&
+                !State.Happened("CH01-T08") && feet.x < 5.2f && feet.z < 3.6f && feet.z > -0.8f)
+            {
+                playedHe04CorridorCut = true;
+                if (scene.motion != null) scene.motion.fanSpeedScale = 0.22f;
+                scene.atmosphere?.From("paStatic", scene.PaSpeakerAnchor != null ? scene.PaSpeakerAnchor.transform.position : new Vector3(5.5f, 2.6f, 3.35f));
+                voice?.Speak("CH01-PA04", "Loa hành lang", Line("CH01-PA04"), scene.PaSpeakerAnchor,
+                    directionalPrefix: "[Loa hành lang · rè và ngắt đột ngột]");
+            }
+
+            // CH01 B07: Outer gate loop once (HE06)
             if (State.chapter == "CH01" && State.Happened("CH01-T08") && !State.Happened("CH01-T09") &&
                 feet.z < -20.26f && feet.z > -21.3f && Mathf.Abs(feet.x - 4) < 1.18f)
             {
-                Transition(() => casework.OutsideAttempt(player.Feet), true, () => ui.Caption(Line("CH01-D13", 2), 4, true));
+                TransitionAsync(() => casework.OutsideAttemptAsync(player.Feet), true, () =>
+                {
+                    scene.atmosphere?.From("distantThunder", new Vector3(4f, 4f, -18f));
+                    voice?.Speak("CH01-D13", "Minh", Line("CH01-D13", 2), onComplete: () =>
+                        voice?.Speak("CH01-D14", "Minh", Line("CH01-D14")));
+                });
                 return;
             }
+
+            // CH01 Hub Reception trigger (B03 entry, B06 collapse, B08 CH02 handoff)
             if (State.chapter == "CH01" && transaction.OnPad(feet, "AP02") && NeedsHub())
             {
                 Hub();
                 return;
             }
+
+            // CH01 Room 101 threshold checkpoint
             if (State.chapter == "CH01" && State.Happened("CH01-T05") && !State.Happened("CH01-T06") &&
                 feet.x > 5.82f && feet.z > 2.01f && feet.z < 7.99f)
                 casework.EnterRoom(feet);
+
+            // CH02 B02: Slipper cue + gentle Bé An glimpse near Room 101 doorway
             if (State.chapter == "CH02" && State.layer == Reality.R && !State.Happened("CH02-T02") &&
                feet.z > 1.25f && feet.z < 7.9f && feet.x > 2.55f && feet.x < 6f &&
                casework.Record("CH02-T02", feet) == CommitResult.Applied)
             {
                 scene.atmosphere?.From("slippers", new Vector3(10.3f, 0.1f, 4.74f));
-                ui.Caption("[Tiếng dép tổ ong · bên phải — phía phòng 101]", 4.5f);
+                anDirector?.PlaySlipperGlimpse(Options.reduceMotion);
+                voice?.Speak("CH02-D02", "Minh", Line("CH02-D02"),
+                    directionalPrefix: "[Tiếng dép tổ ong · bên phải — phía phòng 101]");
             }
+
+            // CH02 B06: Gatekeeper scripted cameo (strictly after G02, once-only, non-lethal, escapable via Door A or Door B!)
+            if (gatekeeperCameo != null)
+            {
+                if (gatekeeperCameo.ShouldTrigger(State, feet))
+                {
+                    gatekeeperCameo.BeginCameo(State, Line);
+                }
+                else if (gatekeeperCameo.CheckEscapedToEmergency(feet))
+                {
+                    gatekeeperCameo.CompleteEscape(() => casework.RecordGatekeeperResolved(player.Feet));
+                }
+            }
+
+            // CH01-T11: Progressive gentle inactivity hints (60s / 120s / 180s, toggleable in Settings)
+            UpdateProgressiveHints();
+
             bool use = keys[Options.alternateBindings ? Key.K : Key.E].wasPressedThisFrame;
             if (transaction.OnPad(feet, "AP04") && State.chapter == "CH02" && keys.qKey.wasPressedThisFrame)
             {
@@ -183,6 +299,62 @@ namespace CTCC
                 Anchor();
         }
 
+        private IEnumerator PlayHe01TrolleyShadow()
+        {
+            var prop = scene.TrolleyShadowProp;
+            scene.atmosphere?.From("trolleyRoll", new Vector3(4.0f, 0.9f, 16.4f));
+            ui.Caption("[Tiếng xe đẩy cáng lăn chậm sau cửa kính mờ Cấp cứu · phía trước]", 4.5f);
+            if (prop == null) yield break;
+
+            prop.SetActive(true);
+            Vector3 start = new(1.2f, 0f, 17.2f);
+            Vector3 end = new(7.2f, 0f, 17.2f);
+            float dur = Options.reduceMotion ? 0.5f : 3.2f;
+            for (float t = 0f; t < dur; t += Time.unscaledDeltaTime)
+            {
+                prop.transform.position = Vector3.Lerp(start, end, Mathf.Clamp01(t / dur));
+                yield return null;
+            }
+            prop.SetActive(false);
+        }
+
+        private void UpdateProgressiveHints()
+        {
+            if (!Options.hintsEnabled || State.Happened("M1-complete")) return;
+            objectiveStagnantSeconds += Time.unscaledDeltaTime;
+            int tier = objectiveStagnantSeconds >= 180f ? 3 : objectiveStagnantSeconds >= 120f ? 2 : objectiveStagnantSeconds >= 60f ? 1 : 0;
+            if (tier <= hintTierShown) return;
+            hintTierShown = tier;
+            string hint = BuildProgressiveHint(tier);
+            if (!string.IsNullOrEmpty(hint))
+                ui.Toast("GỢI Ý NHẸ · SỔ TRỰC", hint, 6.5f);
+        }
+
+        private string BuildProgressiveHint(int tier)
+        {
+            if (State.chapter == "CH01")
+            {
+                if (!State.Happened("E10a.SMSRead")) return "Kiểm tra bì thư của Bảy đặt trên túi vải cạnh cổng phụ.";
+                if (!State.Happened("CH01-T02")) return "Dùng chìa khóa trong bì thư để mở cổng sắt phụ phía trước.";
+                if (!State.Happened("CH01-T03")) return "Đi qua sân mưa vào sảnh lễ tân và đứng tại vạch đồng trước bàn trực.";
+                if (!State.Happened("CH01-T05")) return "Lấy phiếu bàn giao phòng 101 đặt ngay trên mặt quầy lễ tân.";
+                if (!GateService.G01(State))
+                    return tier == 1 ? "Đi dọc hành lang vào Phòng 101 bên phải để kiểm tra bảng kẹp F101."
+                        : "Quan sát dấu bánh xe & thẻ giường 4 gần rèm nếu muốn đối chiếu bất nhất trước khi ký phiếu F101 trên vạch đồng.";
+                if (!State.Happened("CH01-T08")) return "Mang phiếu đã xử lý quay về bàn trực lễ tân (vạch đồng AP02).";
+                if (!State.Happened("CH01-T09")) return "Quay ra cổng sắt ngoài sân để thử rời khỏi bệnh viện.";
+                return "Trở lại sổ trực ở bàn lễ tân để ghi nhận bất thường và mở bước điều tra hiện trường.";
+            }
+            if (!State.Has("E12"))
+                return tier == 1 ? "Trong Phòng 101 (lớp R), kiểm tra bản kê 3 giường, 4 ổ cắm trên tường và dấu bánh xe trên sàn."
+                    : "Sau khi ghi đủ 3 dấu vết vật lý, lại gần tủ sắt kính chắn cửa kho để đối chiếu chỗ kê giường thứ 4.";
+            if (!EvidenceRegistry.BundleComplete(State))
+                return "Vào kho giường phía sau tủ sắt: thu thập 3 mảnh tranh sáp màu, vòng tay C01 và phiếu chuyển 101/4, rồi mở điểm neo phòng 101 (phím Q).";
+            if (!GateService.G02(State))
+                return "Đứng trên vạch đồng trước cửa phòng 101 (phím Q) → Ghép tranh và đối chiếu hồ sơ C01.";
+            return "Cửa Cấp cứu ở cuối hành lang chính (hoặc hành lang nhân viên bên trái) đã mở. Tới sổ giao ca Cấp cứu.";
+        }
+
         private bool NeedsHub() => !State.Happened("CH01-T03") && State.Happened("CH01-T02") ||
             GateService.G01(State) && !State.Happened("CH01-T08") ||
             State.Happened("CH01-T09") && !State.Happened("CH01-T10");
@@ -192,6 +364,7 @@ namespace CTCC
             "GATE-CONG" => !State.Happened("CH01-T02"),
             "SEAM" => State.Happened("CH01-T08"),
             "BOARD" => State.layer == Reality.B && State.chapter == "CH01" && !State.Happened("CH01-T05"),
+            "BATTERY" => !State.Happened("CH01-BATTERY") && State.Happened("CH01-T02"),
             "F101" or "AN02" => casework.CanRevise,
             "LIST" or "SOCKETS" or "WHEELS" or "PZ01" => State.chapter == "CH02" && State.layer == Reality.R,
             "EXIT" => GateService.G02(State),
@@ -209,8 +382,20 @@ namespace CTCC
                     else if (Report(casework.OpenGate(player.Feet)))
                     {
                         scene.atmosphere?.From("doorCreak", new Vector3(4, 1.2f, -20f));
-                        ui.Caption("Cổng phụ đã mở.");
+                        scene.atmosphere?.From("distantThunder", new Vector3(4, 6f, -15f), 0.7f);
+                        ui.Caption("Cổng phụ đã mở. [Tiếng mưa nặng hạt trên sân xi măng]", 4.2f);
                     }
+                    break;
+                case "BATTERY":
+                    if (Report(casework.TakeSpareBattery(player.Feet)))
+                    {
+                        player.RestoreBattery(360);
+                        scene.atmosphere?.From("doorLatch", player.Feet + Vector3.up);
+                        ui.Toast("PIN ĐÈN PIN DỰ PHÒNG", "Đã thay đôi pin khô đặt trên quầy lễ tân. Pin đèn hồi đầy 100%.", 4.5f);
+                    }
+                    break;
+                case "STAIRWELL":
+                    ui.Caption("Cầu thang lên Khu B đã bị rào chắn và khóa xích trước ngày tháo dỡ.", 4.5f, true);
                     break;
                 case "DOOR-101":
                     if (scene.interactables != null && scene.roomDoor.pivot != null)
@@ -228,7 +413,8 @@ namespace CTCC
                     break;
                 case "SEAM":
                     if (!State.Happened("CH01-T09"))
-                        Transition(() => casework.OutsideAttempt(player.Feet), true, () => ui.Caption("Minh · " + Line("CH01-D13", 2), 4, true));
+                        TransitionAsync(() => casework.OutsideAttemptAsync(player.Feet), true, () =>
+                            voice?.Speak("CH01-D13", "Minh", Line("CH01-D13", 2)));
                     else ui.Caption("Không tìm được đường ra. Trở lại sổ trực.", 5, true);
                     break;
                 case "E10a": Letter(); break;
@@ -236,7 +422,9 @@ namespace CTCC
                     if (Report(casework.Board(player.Feet)))
                     {
                         scene.atmosphere?.From("paper", player.Feet + Vector3.up);
-                        ui.Caption("Đã lấy phiếu bàn giao. Cửa phòng 101 đã mở.", 5, true);
+                        lanDirector?.PlayHandoverGesture();
+                        voice?.Speak("CH01-D06", "Lan", Line("CH01-D06"), scene.LanVoiceAnchor, scene.LanActor);
+                        ui.Toast("PHIẾU BÀN GIAO 101", "Đã nhận bảng kẹp từ Lan. Cửa phòng 101 cuối hành lang bên phải đã mở.", 5f);
                     }
                     break;
                 case "AN01":
@@ -245,10 +433,12 @@ namespace CTCC
                     break;
                 case "AN02": Anchor(); break;
                 case "F101": Form(); break;
-                // Environmental world clues -> non-blocking diegetic toast! Zero unnecessary modal interruption!
                 case "OBS101A":
                     DiegeticObservation(id, "Dấu sử dụng giường thứ tư",
                         "Có vết bánh cao su cạnh rèm và dấu đồ dùng đã bị dời đi. Ổ cắm số 4 vẫn gắn trên tường.");
+                    // HE02 subtle curtain rustle + Minh observation whisper
+                    scene.atmosphere?.From("curtainSlide", new Vector3(11.4f, 1.8f, 4.3f), 0.55f);
+                    voice?.Speak("CH01-D10", "Minh", Line("CH01-D10"), essential: false);
                     break;
                 case "OBS101B":
                     InspectDocumentObservation(id, "Thẻ bàn giao giường 4",
@@ -276,10 +466,18 @@ namespace CTCC
                         "17/11/2005 · An\nGiường 4 phòng 101, khám sốt tạm. Trở lại C01.\n\nBản lưu nội bộ từ bàn trực, cất trong tủ khô kho 101.", "Transfer", null);
                     break;
                 case "G02":
-                    ui.Caption(GateService.G02(State) ? "Cửa cấp cứu đã mở." : "Cấp cứu tạm đóng. Hãy đối chiếu hồ sơ phòng 101.", 5, true);
+                    ui.Caption(GateService.G02(State)
+                        ? "Cửa cấp cứu đã mở."
+                        : State.chapter == "CH01"
+                            ? "Khu Cấp cứu tạm khóa trong ca này. Quay lại xử lý phiếu Phòng 101."
+                            : "Cấp cứu tạm đóng. Hãy đối chiếu hồ sơ phòng 101.", 5, true);
                     break;
                 case "EXIT":
-                    if (Report(casework.Complete(player.Feet))) EndOfVisit();
+                    if (Report(casework.Complete(player.Feet)))
+                    {
+                        gatekeeperCameo?.CompleteEscape(() => casework.RecordGatekeeperResolved(player.Feet));
+                        EndOfVisit();
+                    }
                     break;
             }
         }
@@ -291,12 +489,32 @@ namespace CTCC
                 ui.Caption("Đứng sát vạch đồng trước bàn trực.", 4, true);
                 return;
             }
-            bool entering = !State.Happened("CH01-T03");
-            Transition(() => casework.AtHub(player.Feet, out _), true, () =>
+            bool enteringB = !State.Happened("CH01-T03");
+            bool collapsingR = GateService.G01(State) && !State.Happened("CH01-T08");
+            bool startingCh02 = State.Happened("CH01-T09") && !State.Happened("CH01-T10");
+
+            if (collapsingR)
+                scene.atmosphere?.From("breakerCut", new Vector3(1.5f, 2.2f, -3.2f));
+
+            TransitionAsync(() => casework.AtHubAsync(player.Feet), true, () =>
             {
-                if (entering) LanTranscript();
-                else if (State.chapter == "CH02") ui.Caption("Ca trực chưa kết thúc. Tìm lối ra qua phòng 101.", 5, true);
-                else ui.Caption("Minh · " + Line("CH01-D13", 1), 4);
+                if (enteringB)
+                {
+                    lanDirector?.StartEncounter(Line);
+                    LanTranscript();
+                }
+                else if (collapsingR)
+                {
+                    lanDirector?.StopEncounter(false);
+                    voice?.Speak("CH01-D11", "Minh", Line("CH01-D11"), onComplete: () =>
+                        voice?.Speak("CH01-D12", "Minh", Line("CH01-D12")));
+                }
+                else if (startingCh02)
+                {
+                    ui.ShowChapterCard("CHƯƠNG 02  ·  LỚP R / B", "PHÒNG BỆNH TRỐNG", 4.6f);
+                    scene.atmosphere?.From("phoneBuzz", scene.PhoneAnchor != null ? scene.PhoneAnchor.transform.position : new Vector3(1.8f, 1.2f, -3.2f));
+                    voice?.Speak("CH02-D01", "Minh", Line("CH02-D01"));
+                }
             });
         }
 
@@ -308,7 +526,7 @@ namespace CTCC
                 new(State.layer == Reality.R ? "Bước vào B · Bản báo cáo 2005" : "Trở về R · Hiện trường 2012", () =>
                 {
                     ui.Close();
-                    Transition(() => casework.SwitchIn101(player.Feet), true);
+                    TransitionAsync(() => casework.SwitchIn101Async(player.Feet), true);
                 }),
                 new("Đối chiếu phiếu F101", Form),
                 new("Ghép tranh và kiểm hồ sơ", Identify),
@@ -322,11 +540,16 @@ namespace CTCC
 
         private void Transition(Func<CommitResult> apply, bool warp, Action after = null)
         {
-            if (busy) return;
-            StartCoroutine(WhileTransition(apply, warp, after));
+            TransitionAsync(() => Task.FromResult(apply()), warp, after);
         }
 
-        private IEnumerator WhileTransition(Func<CommitResult> apply, bool warp, Action after)
+        private void TransitionAsync(Func<Task<CommitResult>> applyAsync, bool warp, Action after = null)
+        {
+            if (busy) return;
+            StartCoroutine(WhileTransitionAsync(applyAsync, warp, after));
+        }
+
+        private IEnumerator WhileTransitionAsync(Func<Task<CommitResult>> applyAsync, bool warp, Action after)
         {
             busy = true;
             ui.Close();
@@ -360,9 +583,12 @@ namespace CTCC
             }
             ui.Fade(1f);
 
-            // Transaction commit happens atomically at peak transition (zero mid-frame pop!)
+            // Atomic CommitAsync runs durable NTFS Flush on background thread during peak dark fade (ZERO main-thread spike!)
             scene.smoothPresentation = false;
-            var outcome = apply();
+            var task = applyAsync();
+            while (!task.IsCompleted) yield return null;
+            var outcome = task.IsFaulted ? CommitResult.SaveUnavailable : task.GetAwaiter().GetResult();
+            if (task.IsFaulted) Debug.LogException(task.Exception);
             scene.smoothPresentation = qaFolder == null;
 
             bool switchedLayer = State.layer != beforeLayer;
@@ -373,7 +599,6 @@ namespace CTCC
                 scene.atmosphere?.From(cueName, player.Feet + Vector3.up);
             }
 
-            // Reset transition distortion on previous volume before fading in new reality
             if (ca != null) ca.intensity.value = 0.06f;
             if (lens != null) lens.intensity.value = 0f;
 
@@ -423,6 +648,7 @@ namespace CTCC
 
         private string Line(string id, int ordinal = 1)
         {
+            if (id == "CH01-D16b" || id == "CH04-D06") return "";
             if (!dialogue.TryGetValue(id, out var entry) || string.IsNullOrWhiteSpace(entry.copy)) return "";
             var quotes = System.Text.RegularExpressions.Regex.Matches(entry.copy, "“([^”]+)”");
             return ordinal <= quotes.Count ? quotes[ordinal - 1].Groups[1].Value : entry.copy;
@@ -455,6 +681,13 @@ namespace CTCC
                 : !State.Has("E12") ? "Đối chiếu bản kê, ổ cắm và dấu bánh phòng 101."
                 : !EvidenceRegistry.BundleComplete(State) ? "Tìm và ghép các phần hồ sơ trong kho 101."
                 : "Về điểm neo 101 để xác thực hồ sơ.";
+
+            if (task != lastObjectiveKey)
+            {
+                lastObjectiveKey = task;
+                objectiveStagnantSeconds = 0f;
+                hintTierShown = 0;
+            }
             ui.Hud(State.layer == Reality.R ? "R  ·  HIỆN TRƯỜNG 2012" : "B  ·  BẢN BÁO CÁO 2005", task);
         }
     }

@@ -89,14 +89,14 @@ namespace CTCC
             }
         }
 
-        private static bool IsSharingError(IOException error) => (error.HResult & 0xffff) is 32 or 33;
+        private static bool IsSharingError(IOException error) => (error.HResult & 0xffff) is 32 or 33 or 1175 or 1176 or 1177;
 
         private static T RetrySharing<T>(Func<T> operation)
         {
             for (int attempt = 0;; attempt++)
             {
                 try { return operation(); }
-                catch (IOException e) when (attempt < 2 && IsSharingError(e)) { Thread.Sleep(4 << attempt); }
+                catch (IOException e) when (attempt < 4 && IsSharingError(e)) { Thread.Sleep(5 << attempt); }
             }
         }
 

@@ -33,12 +33,12 @@ namespace CTCC
         private readonly List<Button> focus = new();
         private Font standard, heading;
         private RectTransform canvas, hud, modal, panel, reticleRect;
-        private Image fade, cueBacking, promptBacking, modalBackdrop, panelBg, reticleImg, toastBacking;
-        private Text place, task, prompt, cue, help, toastTitle, toastBody;
+        private Image fade, cueBacking, promptBacking, modalBackdrop, panelBg, reticleImg, toastBacking, chapterBacking;
+        private Text place, task, prompt, cue, help, toastTitle, toastBody, chapterEyebrow, chapterTitle;
         private Action dismiss;
         private Action onCloseExtra;
         private ScrollRect readingScroll;
-        private float cueUntil, toastUntil;
+        private float cueUntil, toastUntil, chapterUntil;
         private float scale = 1f;
         private bool captions = true;
         private int selected;
@@ -116,6 +116,17 @@ namespace CTCC
                 19, Ink, TextAnchor.UpperLeft, false);
             toastBacking.gameObject.SetActive(false);
 
+            // Filmic Chapter Title Banner (non-blocking top-center overlay)
+            var chapBox = Fixed("ChapterBanner", hud, new Vector2(0.5f, 0.82f), Vector2.zero, new Vector2(720, 108));
+            chapBox.pivot = new Vector2(0.5f, 0.5f);
+            chapterBacking = Graphic(chapBox, new Color(0.032f, 0.050f, 0.046f, 0.84f), false);
+            Graphic(Rect("ChapterRule", chapBox, new Vector2(0.18f, 0), new Vector2(0.82f, 0), Vector2.zero, new Vector2(0, 2)), Accent, false);
+            chapterEyebrow = MakeText(Rect("ChapterEyebrow", chapBox, new Vector2(0, 0.56f), new Vector2(1, 1), new Vector2(16, 0), new Vector2(-16, -10)),
+                18, Accent, TextAnchor.MiddleCenter, true);
+            chapterTitle = MakeText(Rect("ChapterTitle", chapBox, new Vector2(0, 0.06f), new Vector2(1, 0.60f), new Vector2(16, 6), new Vector2(-16, 0)),
+                34, Ink, TextAnchor.MiddleCenter, true);
+            chapterBacking.gameObject.SetActive(false);
+
             // Modal / Side Inspect Container
             modal = Rect("Reading", canvas, Vector2.zero, Vector2.one);
             modalBackdrop = Graphic(modal, new Color(0.012f, 0.020f, 0.017f, 0.72f), true);
@@ -176,6 +187,15 @@ namespace CTCC
             toastBody.text = body;
             toastUntil = Time.unscaledTime + seconds;
             toastBacking.gameObject.SetActive(true);
+        }
+
+        public void ShowChapterCard(string eyebrow, string title, float seconds = 4.2f)
+        {
+            if (chapterBacking == null) return;
+            chapterEyebrow.text = eyebrow;
+            chapterTitle.text = title;
+            chapterUntil = Time.unscaledTime + seconds;
+            chapterBacking.gameObject.SetActive(true);
         }
 
         public void Show(string section, string title, string body, ActionChoice[] buttons, Action close, Texture splitImage = null)
@@ -337,6 +357,7 @@ namespace CTCC
         {
             if (cueBacking != null && Time.unscaledTime > cueUntil) cueBacking.gameObject.SetActive(false);
             if (toastBacking != null && Time.unscaledTime > toastUntil) toastBacking.gameObject.SetActive(false);
+            if (chapterBacking != null && Time.unscaledTime > chapterUntil) chapterBacking.gameObject.SetActive(false);
             if (modal == null || !IsModal || ModalInputBlocked || modalOpenedFrame == Time.frameCount) return;
             HandleNavigation(Keyboard.current);
         }

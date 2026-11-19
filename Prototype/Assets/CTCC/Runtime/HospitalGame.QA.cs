@@ -44,8 +44,75 @@ namespace CTCC
         private IEnumerator VerifyModuleStages()
         {
             yield return VerifyDeferredSaveFailure();
+            yield return VerifyM2AdditiveAndCharacters();
             yield return VerifyKeyboard();
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
+        }
+
+        private IEnumerator VerifyM2AdditiveAndCharacters()
+        {
+            // 1) M2-ADDITIVE: verify all 4 additive zone scenes, duplicate zone rejection, and async unload/reload
+            if (scene.IsAdditiveMode)
+            {
+                Require(scene.LoadedZoneCount == 4 && scene.HasZone("LOC01") && scene.HasZone("LOC02") &&
+                    scene.HasZone("LOC03") && scene.HasZone("LOC04"), $"All 4 additive zones loaded (got {scene.LoadedZoneCount})");
+
+                // Duplicate zoneId rejection check (m2-scene-handoff.md)
+                var dupGo = new GameObject("QA_DupZone");
+                var dupRegion = dupGo.AddComponent<ZoneRegion>();
+                dupRegion.zoneId = "LOC01";
+                bool acceptedDup = scene.RegisterZone(dupRegion);
+                Destroy(dupGo);
+                Require(!acceptedDup, "Duplicate ZoneRegion LOC01 rejected");
+
+                // Async unload & reload of LOC04_Emergency without breaking persistent state or AP05
+                yield return scene.UnloadZoneAsync("LOC04_Emergency");
+                Require(scene.LoadedZoneCount == 3 && !scene.HasZone("LOC04"), "LOC04 unloaded cleanly");
+                yield return scene.LoadZoneAsync("LOC04_Emergency");
+                Require(scene.LoadedZoneCount == 4 && scene.HasZone("LOC04") && scene.Pad("AP05") != null, "LOC04 reloaded cleanly");
+                verification.Add("M2-ADDITIVE PASS: 4 additive scenes loaded, duplicate zoneId rejected, async unload/reload of LOC04_Emergency preserved AP05 & state.");
+            }
+
+            // 2) LOCK-V22-02 / V22-Q03 runtime VO & Transcript guard
+            Require(voice != null && !voice.HasClip("CH01-D16b") && !voice.HasClip("CH04-D06"), "Forbidden CH04 VO absent");
+            int beforeT = voice.Transcript.Count;
+            voice.Speak("CH01-D16b", "Lan", "Forbidden test");
+            voice.Speak("CH04-D06", "Lan", "Forbidden test");
+            Require(voice.Transcript.Count == beforeT, "Forbidden CH04 lines blocked from Transcript");
+            verification.Add("V22-Q03 runtime PASS: CH01-D16b & CH04-D06 blocked in Dialogue, VoiceDirector clips, and Transcript.");
+
+            // 3) Characters, BlendShapes & Dual-Scenario GI Probes check
+            if (scene.referenceArt)
+            {
+                Require(scene.LanActor != null && scene.LanActor.clips.Length >= 4, "Lan actor rigged with 4+ actions");
+                var lanSmr = scene.LanActor.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+                int maxShapes = 0;
+                foreach (var s in lanSmr) if (s.sharedMesh != null) maxShapes = Mathf.Max(maxShapes, s.sharedMesh.blendShapeCount);
+                Require(maxShapes >= 9, $"Lan face has >=9 blendshapes (got {maxShapes})");
+                Require(scene.GatekeeperActor != null && scene.GatekeeperActor.clips.Length >= 3, "Gatekeeper actor rigged with 3+ actions");
+                Require(scene.AnActor != null && scene.AnActor.clips.Length >= 2, "Bé An apparition actor rigged with 2+ actions");
+                int rProbes = scene.realLightProbes != null ? scene.realLightProbes.count : 0;
+                int bProbes = scene.reportLightProbes != null ? scene.reportLightProbes.count : 0;
+                Require(rProbes > 0 && bProbes > 0, $"Dual-scenario baked LightProbes present (R={rProbes}, B={bProbes})");
+                verification.Add($"M2-CHARACTERS & GI PASS: Lan ({maxShapes} blendshapes, {scene.LanActor.clips.Length} clips), Gatekeeper ({scene.GatekeeperActor.clips.Length} clips), An ({scene.AnActor.clips.Length} clips), Dual LightProbes (R={rProbes}, B={bProbes}).");
+            }
+
+            // 4) CH02-Q05 Gatekeeper cameo trigger, dual-door escape (Door A & Door B), and CH02-T06 non-repeat check
+            if (gatekeeperCameo != null && scene.GatekeeperActor != null)
+            {
+                Require(State.chapter == "CH02" && GateService.G02(State), "Ready in CH02 post-G02 for cameo test");
+                if (State.layer == Reality.B) Apply(casework.SwitchIn101(scene.Pad("AP04").position), "return R for cameo");
+                Require(gatekeeperCameo.ShouldTrigger(State, new Vector3(4.0f, 0.02f, 4.75f)), "Gatekeeper triggers in CH02 post-G02 corridor");
+                gatekeeperCameo.BeginCameo(State, Line);
+                Require(gatekeeperCameo.IsActive, "Gatekeeper cameo active");
+                // Verify both Door A (x=4.0, z=16.5) and Door B (x=0.05, z=16.5) count as valid escape routes!
+                Require(gatekeeperCameo.CheckEscapedToEmergency(new Vector3(4.0f, 0.02f, 16.5f)), "Door A escape valid");
+                Require(gatekeeperCameo.CheckEscapedToEmergency(new Vector3(0.05f, 0.02f, 16.5f)), "Door B staff escape valid");
+                gatekeeperCameo.CompleteEscape(() => Apply(casework.RecordGatekeeperResolved(scene.Pad("AP05").position), "CH02-T06 persisted"));
+                Require(State.Happened("CH02-T06") && !gatekeeperCameo.IsActive && !gatekeeperCameo.ShouldTrigger(State, new Vector3(4.0f, 0.02f, 4.75f)),
+                    "CH02-T06 persisted and Gatekeeper never repeats");
+                verification.Add("CH02-Q05 PASS: Gatekeeper dormant in CH01, triggers post-G02 in CH02, escapable via Door A & Door B, CH02-T06 once-only persisted.");
+            }
         }
 
         private IEnumerator VerifyDeferredSaveFailure()
@@ -341,6 +408,38 @@ namespace CTCC
             camera.transform.localRotation = Quaternion.Euler(8, 0, 0);
             SaveFrame(camera, target, "reception-R");
 
+            // M2 LOC01 Exterior Arrival & Rain Courtyard Captures (R 2012)
+            player.Teleport(new Vector3(3.85f, 0.02f, -24.4f), Quaternion.Euler(0, 6, 0));
+            camera.transform.localRotation = Quaternion.Euler(-7, 0, 0);
+            SaveFrame(camera, target, "loc01-exterior-R");
+
+            player.Teleport(new Vector3(3.95f, 0.02f, -16.8f), Quaternion.Euler(0, 0, 0));
+            camera.transform.localRotation = Quaternion.Euler(-9, 0, 0);
+            SaveFrame(camera, target, "loc01-courtyard-R");
+
+            // M2 LOC03 Store Room Dismantled Bed 4 + Dry Shelf E11 Capture (R 2012)
+            player.Teleport(new Vector3(14.15f, 0.02f, 3.62f), Quaternion.Euler(0, 74, 0));
+            camera.transform.localRotation = Quaternion.Euler(10, 0, 0);
+            SaveFrame(camera, target, "loc03-store-R");
+
+            // M2 LOC04 Emergency Bay Equipment Capture (R 2012)
+            player.Teleport(new Vector3(3.65f, 0.02f, 17.15f), Quaternion.Euler(0, 42, 0));
+            camera.transform.localRotation = Quaternion.Euler(6, 0, 0);
+            SaveFrame(camera, target, "loc04-emergency-R");
+
+            // M2 CHAR005 Gatekeeper Corridor Silhouette & Keyring Capture (R 2012 under crimson ER glow)
+            if (scene.GatekeeperActor != null)
+            {
+                scene.GatekeeperActor.gameObject.SetActive(true);
+                scene.GatekeeperActor.transform.SetPositionAndRotation(new Vector3(4.0f, 0f, 11.4f), Quaternion.Euler(0, 180, 0));
+                scene.GatekeeperActor.PlayAction("GK_StalkWalk", 0.01f, restart: true);
+                for (int i = 0; i < 6; i++) yield return null;
+                player.Teleport(new Vector3(3.85f, 0.02f, 8.25f), Quaternion.Euler(0, 4, 0));
+                camera.transform.localRotation = Quaternion.Euler(-2, 0, 0);
+                SaveFrame(camera, target, "loc04-gatekeeper-R");
+                scene.GatekeeperActor.gameObject.SetActive(false);
+            }
+
             // 3D Physical Inspector close-up capture (Bảy's kraft envelope + brass/steel keys in 3D!)
             player.Teleport(artView, artAngle);
             camera.transform.localRotation = Quaternion.identity;
@@ -362,6 +461,22 @@ namespace CTCC
             player.Teleport(new Vector3(3.65f, 0.02f, 4.05f), Quaternion.Euler(0, 73, 0));
             camera.transform.localRotation = Quaternion.identity;
             SaveFrame(camera, target, "corridor-B");
+
+            // M2 CHAR002 Trần Ngọc Lan Live Reception Encounter Capture (B 2005!)
+            if (scene.LanActor != null)
+            {
+                scene.LanActor.gameObject.SetActive(true);
+                if (scene.LanStepOutPoint != null)
+                    scene.LanActor.transform.SetPositionAndRotation(scene.LanStepOutPoint.position, scene.LanStepOutPoint.rotation);
+                scene.LanActor.LookTarget = camera.transform;
+                scene.LanActor.SetExpression(0.65f, 0.12f, 0f);
+                scene.LanActor.PlayAction("Lan_TalkGesture", 0.01f, restart: true);
+                player.Teleport(new Vector3(4.15f, 0.02f, -3.55f), Quaternion.Euler(0, -82, 0));
+                camera.transform.localRotation = Quaternion.Euler(3, 0, 0);
+                for (int i = 0; i < 12; i++) yield return null;
+                SaveFrame(camera, target, "loc02-lan-B");
+                scene.LanActor.gameObject.SetActive(false);
+            }
 
             // Optional 30fps Gameplay Walkthrough Video Sequence (-ctcc-record <framesDir>)
             string recordDir = Argument("-ctcc-record");
@@ -401,43 +516,91 @@ namespace CTCC
                 frameIdx++;
             }
 
-            // Ensure R layer for first 210 frames (7 sec at 30fps): Corridor -> Room 101 Door -> Bed/Window -> Bed 4 & Cabinet
+            // 1) LOC01 Exterior Arrival (R 2012, 90 frames = 3s)
             player.Teleport(scene.Pad("AP04"));
             if (State.layer == Reality.B) Apply(casework.SwitchIn101(player.Feet), "record R");
             for (int i = 0; i < 12; i++) yield return null;
 
             for (int f = 0; f < 90; f++)
             {
-                float t = f / 89f;
-                float s = t * t * (3f - 2f * t);
-                Vector3 pos = Vector3.Lerp(new Vector3(3.85f, 0.02f, 1.90f), new Vector3(6.85f, 0.02f, 4.75f), s);
-                Vector3 look = Vector3.Lerp(new Vector3(5.65f, 1.55f, 4.95f), new Vector3(11.4f, 1.25f, 6.20f), s);
-                CapturePose(pos, look);
-                yield return null;
-            }
-            for (int f = 0; f < 110; f++)
-            {
-                float t = f / 109f;
-                float s = t * t * (3f - 2f * t);
-                Vector3 pos = Vector3.Lerp(new Vector3(6.85f, 0.02f, 4.75f), new Vector3(9.60f, 0.02f, 5.30f), s);
-                Vector3 look = Vector3.Lerp(new Vector3(11.4f, 1.25f, 6.20f), new Vector3(12.8f, 1.05f, 3.60f), s);
+                float s = Smooth(f / 89f);
+                Vector3 pos = Vector3.Lerp(new Vector3(3.85f, 0.02f, -24.0f), new Vector3(4.0f, 0.02f, -13.5f), s);
+                Vector3 look = Vector3.Lerp(new Vector3(4.2f, 2.4f, -10.0f), new Vector3(4.0f, 2.8f, -7.8f), s);
                 CapturePose(pos, look);
                 yield return null;
             }
 
-            // Switch to B (2005 operational reality) for next 120 frames (4 sec at 30fps)
+            // 2) LOC02 Reception & Live Trần Ngọc Lan (B 2005, 90 frames = 3s)
             player.Teleport(scene.Pad("AP04"));
             Apply(casework.SwitchIn101(player.Feet), "record B");
-            for (int i = 0; i < 18; i++) yield return null;
-            for (int f = 0; f < 120; f++)
+            if (scene.LanActor != null)
             {
-                float t = f / 119f;
-                float s = t * t * (3f - 2f * t);
-                Vector3 pos = Vector3.Lerp(new Vector3(7.58f, 0.02f, 4.66f), new Vector3(9.85f, 0.02f, 5.15f), s);
-                Vector3 look = Vector3.Lerp(new Vector3(11.8f, 1.30f, 6.30f), new Vector3(11.5f, 1.15f, 3.65f), s);
+                scene.LanActor.gameObject.SetActive(true);
+                if (scene.LanStepOutPoint != null)
+                    scene.LanActor.transform.SetPositionAndRotation(scene.LanStepOutPoint.position, scene.LanStepOutPoint.rotation);
+                scene.LanActor.LookTarget = camera.transform;
+                scene.LanActor.SetExpression(0.62f, 0.14f, 0f);
+                scene.LanActor.PlayAction("Lan_TalkGesture", 0.01f, restart: true);
+            }
+            for (int i = 0; i < 12; i++) yield return null;
+            for (int f = 0; f < 90; f++)
+            {
+                float s = Smooth(f / 89f);
+                Vector3 pos = Vector3.Lerp(new Vector3(4.6f, 0.02f, -5.6f), new Vector3(3.95f, 0.02f, -3.35f), s);
+                Vector3 look = Vector3.Lerp(new Vector3(2.4f, 1.48f, -3.28f), new Vector3(2.65f, 1.48f, -3.28f), s);
                 CapturePose(pos, look);
                 yield return null;
             }
+            if (scene.LanActor != null) scene.LanActor.gameObject.SetActive(false);
+
+            // 3) LOC03 Room 101 B -> R contrast + Store Room (120 frames = 4s)
+            for (int f = 0; f < 60; f++)
+            {
+                float s = Smooth(f / 59f);
+                Vector3 pos = Vector3.Lerp(new Vector3(7.4f, 0.02f, 4.75f), new Vector3(9.6f, 0.02f, 5.15f), s);
+                Vector3 look = Vector3.Lerp(new Vector3(11.4f, 1.35f, 5.8f), new Vector3(11.6f, 1.15f, 3.65f), s);
+                CapturePose(pos, look);
+                yield return null;
+            }
+            player.Teleport(scene.Pad("AP04"));
+            Apply(casework.SwitchIn101(player.Feet), "record R 101");
+            for (int i = 0; i < 12; i++) yield return null;
+            for (int f = 0; f < 60; f++)
+            {
+                float s = Smooth(f / 59f);
+                Vector3 pos = Vector3.Lerp(new Vector3(9.6f, 0.02f, 5.15f), new Vector3(14.3f, 0.02f, 3.65f), s);
+                Vector3 look = Vector3.Lerp(new Vector3(12.2f, 1.15f, 3.85f), new Vector3(15.6f, 0.95f, 4.2f), s);
+                CapturePose(pos, look);
+                yield return null;
+            }
+
+            // 4) LOC04 Gatekeeper Corridor Tension & Emergency Department (120 frames = 4s)
+            if (scene.GatekeeperActor != null)
+            {
+                scene.GatekeeperActor.gameObject.SetActive(true);
+                scene.GatekeeperActor.transform.SetPositionAndRotation(new Vector3(4.0f, 0f, 12.2f), Quaternion.Euler(0, 180, 0));
+                scene.GatekeeperActor.PlayAction("GK_StalkWalk", 0.01f, restart: true);
+            }
+            for (int f = 0; f < 60; f++)
+            {
+                float s = Smooth(f / 59f);
+                if (scene.GatekeeperActor != null)
+                    scene.GatekeeperActor.transform.position = Vector3.Lerp(new Vector3(4.0f, 0f, 12.2f), new Vector3(4.0f, 0f, 10.6f), s);
+                Vector3 pos = Vector3.Lerp(new Vector3(3.9f, 0.02f, 7.6f), new Vector3(3.95f, 0.02f, 8.8f), s);
+                CapturePose(pos, new Vector3(4.0f, 1.55f, 11.4f));
+                yield return null;
+            }
+            if (scene.GatekeeperActor != null) scene.GatekeeperActor.gameObject.SetActive(false);
+            for (int f = 0; f < 60; f++)
+            {
+                float s = Smooth(f / 59f);
+                Vector3 pos = Vector3.Lerp(new Vector3(3.8f, 0.02f, 16.8f), new Vector3(4.5f, 0.02f, 18.8f), s);
+                Vector3 look = Vector3.Lerp(new Vector3(7.2f, 1.1f, 19.0f), new Vector3(7.9f, 1.25f, 19.8f), s);
+                CapturePose(pos, look);
+                yield return null;
+            }
+
+            static float Smooth(float t) => t * t * (3f - 2f * t);
 
             Destroy(shot);
             rt.Release();

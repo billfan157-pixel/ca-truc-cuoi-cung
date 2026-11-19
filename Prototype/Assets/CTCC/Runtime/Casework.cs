@@ -8,112 +8,167 @@ namespace CTCC
     {
         private readonly RealityTransaction reality;
         public Investigation State => reality.Current;
-        public Casework(RealityTransaction reality) { this.reality=reality; }
+        public Casework(RealityTransaction reality) { this.reality = reality; }
 
-        public CommitResult Begin(Vector3 feet,VisitSettings options)
+        public CommitResult Begin(Vector3 feet, VisitSettings options)
         {
-            var proposed=Investigation.New();
-            proposed.settings=options;
-            return reality.Commit(proposed,feet,warp:true,geometryChanges:true);
+            var proposed = Investigation.New();
+            proposed.settings = options;
+            return reality.Commit(proposed, feet, warp: true, geometryChanges: true);
         }
 
         public CommitResult ReadLetter(Vector3 feet) =>
-            Record("E10a.SMSRead",feet);
+            Record("E10a.SMSRead", feet);
 
         public CommitResult OpenGate(Vector3 feet)
         {
             if (!State.Happened("E10a.SMSRead")) return CommitResult.PadRequired;
-            return Record("CH01-T02",feet,"CH01-S1",true);
+            return Record("CH01-T02", feet, "CH01-S1", true);
         }
 
         public CommitResult AtHub(Vector3 feet, out bool warp)
         {
-            warp=false;
-            if (State.chapter=="CH02") return CommitResult.Applied;
-            var next=State.Copy();
+            if (!PrepareHub(out var next, out warp)) return CommitResult.Applied;
+            return reality.Commit(next, feet, "AP02", true, true);
+        }
+
+        public Task<CommitResult> AtHubAsync(Vector3 feet)
+        {
+            if (!PrepareHub(out var next, out _)) return Task.FromResult(CommitResult.Applied);
+            return reality.CommitAsync(next, feet, "AP02", true, true);
+        }
+
+        private bool PrepareHub(out Investigation next, out bool warp)
+        {
+            warp = false;
+            next = null;
+            if (State.chapter == "CH02") return false;
+            var candidate = State.Copy();
             if (State.Happened("CH01-T02") && !State.Happened("CH01-T03"))
             {
-                next.layer=Reality.B;
-                next.checkpoint="CH01-CP01";
-                next.Remember("CH01-T03");
-                next.Remember("CH01-T04");
-                warp=true;
-                return reality.Commit(next,feet,"AP02",true,true);
+                candidate.layer = Reality.B;
+                candidate.checkpoint = "CH01-CP01";
+                candidate.Remember("CH01-T03");
+                candidate.Remember("CH01-T04");
+                warp = true;
+                next = candidate;
+                return true;
             }
             if (GateService.G01(State) && !State.Happened("CH01-T08"))
             {
-                next.layer=Reality.R;
-                next.checkpoint="CH01-CP03";
-                next.Remember("CH01-T08");
-                warp=true;
-                return reality.Commit(next,feet,"AP02",true,true);
+                candidate.layer = Reality.R;
+                candidate.checkpoint = "CH01-CP03";
+                candidate.Remember("CH01-T08");
+                warp = true;
+                next = candidate;
+                return true;
             }
             if (State.Happened("CH01-T09") && !State.Happened("CH01-T10"))
             {
-                next.layer=Reality.R;
-                next.chapter="CH02";
-                next.checkpoint="CH01-CP04";
-                next.Remember("CH01-T10");
-                warp=true;
-                return reality.Commit(next,feet,"AP02",true,true);
+                candidate.layer = Reality.R;
+                candidate.chapter = "CH02";
+                candidate.checkpoint = "CH01-CP04";
+                candidate.Remember("CH01-T10");
+                warp = true;
+                next = candidate;
+                return true;
             }
-            return CommitResult.Applied;
+            return false;
         }
 
         public CommitResult Board(Vector3 feet) =>
-            State.layer == Reality.B && State.chapter=="CH01" && State.Happened("CH01-T03")
-                ? Record("CH01-T05",feet,"CH01-CP01",true) : CommitResult.PadRequired;
+            State.layer == Reality.B && State.chapter == "CH01" && State.Happened("CH01-T03")
+                ? Record("CH01-T05", feet, "CH01-CP01", true) : CommitResult.PadRequired;
 
         public CommitResult EnterRoom(Vector3 feet) =>
-            State.chapter=="CH01" && State.Happened("CH01-T05")
-                ? Record("CH01-T06",feet,"CH01-CP02") : CommitResult.Applied;
+            State.chapter == "CH01" && State.Happened("CH01-T05")
+                ? Record("CH01-T06", feet, "CH01-CP02") : CommitResult.Applied;
 
         public CommitResult OutsideAttempt(Vector3 feet)
         {
-            if (State.chapter!="CH01" || !State.Happened("CH01-T08") || State.Happened("CH01-T09"))
-                return CommitResult.PadRequired;
-            var next=State.Copy();
-            next.checkpoint="CH01-S7";
+            if (!PrepareOutsideAttempt(out var next)) return CommitResult.PadRequired;
+            return reality.Commit(next, feet, warp: true, geometryChanges: true);
+        }
+
+        public Task<CommitResult> OutsideAttemptAsync(Vector3 feet)
+        {
+            if (!PrepareOutsideAttempt(out var next)) return Task.FromResult(CommitResult.PadRequired);
+            return reality.CommitAsync(next, feet, warp: true, geometryChanges: true);
+        }
+
+        private bool PrepareOutsideAttempt(out Investigation next)
+        {
+            next = null;
+            if (State.chapter != "CH01" || !State.Happened("CH01-T08") || State.Happened("CH01-T09"))
+                return false;
+            next = State.Copy();
+            next.checkpoint = "CH01-S7";
             next.Remember("CH01-T09");
-            return reality.Commit(next,feet,warp:true,geometryChanges:true);
+            return true;
         }
 
         public CommitResult SwitchIn101(Vector3 feet)
         {
-            if (State.chapter!="CH02")
-                return CommitResult.PadRequired;
-            var next=State.Copy();
-            next.layer=State.layer==Reality.R ? Reality.B : Reality.R;
-            next.checkpoint=GateService.G02(State) ? "CH02-CP03" : "CH02-CP02";
-            return reality.Commit(next,feet,"AP04",true,true);
+            if (!PrepareSwitch101(out var next)) return CommitResult.PadRequired;
+            return reality.Commit(next, feet, "AP04", true, true);
+        }
+
+        public Task<CommitResult> SwitchIn101Async(Vector3 feet)
+        {
+            if (!PrepareSwitch101(out var next)) return Task.FromResult(CommitResult.PadRequired);
+            return reality.CommitAsync(next, feet, "AP04", true, true);
+        }
+
+        private bool PrepareSwitch101(out Investigation next)
+        {
+            next = null;
+            if (State.chapter != "CH02") return false;
+            next = State.Copy();
+            next.layer = State.layer == Reality.R ? Reality.B : Reality.R;
+            next.checkpoint = GateService.G02(State) ? "CH02-CP03" : "CH02-CP02";
+            return true;
         }
 
         public bool CanRevise => State.Happened("CH01-T05") &&
-            (State.chapter=="CH02" || State.layer==Reality.B && !State.Happened("CH01-T08"));
+            (State.chapter == "CH02" || State.layer == Reality.B && !State.Happened("CH01-T08"));
 
-        public CommitResult Observe(string id,Vector3 feet)
+        public CommitResult Observe(string id, Vector3 feet)
         {
-            if ((id=="OBS101A" || id=="OBS101B") && State.layer!=Reality.B ||
-                (id=="LIST" || id=="SOCKETS" || id=="WHEELS") && (State.layer!=Reality.R || State.chapter!="CH02"))
+            if ((id == "OBS101A" || id == "OBS101B") && State.layer != Reality.B ||
+                (id == "LIST" || id == "SOCKETS" || id == "WHEELS") && (State.layer != Reality.R || State.chapter != "CH02"))
                 return CommitResult.PadRequired;
-            var next=State.Copy();
-            return next.Observe(id) ? reality.Commit(next,feet) : CommitResult.Applied;
+            var next = State.Copy();
+            return next.Observe(id) ? reality.Commit(next, feet) : CommitResult.Applied;
         }
 
-        public CommitResult Submit(FormStatus form,bool pairedObservations,Vector3 feet)
+        public CommitResult Submit(FormStatus form, bool pairedObservations, Vector3 feet)
         {
-            if (!CanRevise || form==FormStatus.Refuted && !pairedObservations)
+            var status = PrepareSubmit(form, pairedObservations, feet, out var next);
+            return next == null ? status : reality.Commit(next, feet, "AP04", false, true);
+        }
+
+        public Task<CommitResult> SubmitAsync(FormStatus form, bool pairedObservations, Vector3 feet)
+        {
+            var status = PrepareSubmit(form, pairedObservations, feet, out var next);
+            return next == null ? Task.FromResult(status) : reality.CommitAsync(next, feet, "AP04", false, true);
+        }
+
+        private CommitResult PrepareSubmit(FormStatus form, bool pairedObservations, Vector3 feet, out Investigation next)
+        {
+            next = null;
+            if (!CanRevise || form == FormStatus.Refuted && !pairedObservations)
                 return CommitResult.PadRequired;
-            if (!reality.OnPad(feet,"AP04")) return CommitResult.PadRequired;
-            var next=State.Copy();
-            if (!FormService.Apply(next,form))
+            if (!reality.OnPad(feet, "AP04")) return CommitResult.PadRequired;
+            var candidate = State.Copy();
+            if (!FormService.Apply(candidate, form))
                 return CommitResult.PadRequired;
-            if (next.f101.revision==State.f101.revision)
+            if (candidate.f101.revision == State.f101.revision)
                 return CommitResult.Applied;
-            next.Remember("CH01-T07");
-            if (next.chapter=="CH01")
-                next.checkpoint="CH01-CP02";
-            return reality.Commit(next,feet,"AP04",false,true);
+            candidate.Remember("CH01-T07");
+            if (candidate.chapter == "CH01")
+                candidate.checkpoint = "CH01-CP02";
+            next = candidate;
+            return CommitResult.Applied;
         }
 
         public string MissingPhysicalObservations()
@@ -126,17 +181,17 @@ namespace CTCC
 
         public CommitResult SolvePz01(Vector3 feet)
         {
-            if (State.layer!=Reality.R || State.chapter!="CH02" || MissingPhysicalObservations()!=null)
+            if (State.layer != Reality.R || State.chapter != "CH02" || MissingPhysicalObservations() != null)
                 return CommitResult.PadRequired;
             if (State.Has("E12")) return CommitResult.Applied;
-            var next=State.Copy();
-            EvidenceRegistry.Grant(next,"E12",Reality.R,"LOC03");
-            next.checkpoint="CH02-CP02";
+            var next = State.Copy();
+            EvidenceRegistry.Grant(next, "E12", Reality.R, "LOC03");
+            next.checkpoint = "CH02-CP02";
             next.Remember("CH02-T03");
-            return reality.Commit(next,feet,geometryChanges:true);
+            return reality.Commit(next, feet, geometryChanges: true);
         }
 
-        public CommitResult Take(string id,Vector3 feet)
+        public CommitResult Take(string id, Vector3 feet)
         {
             var result = PrepareEvidence(id, out var next);
             return next == null ? result : reality.Commit(next, feet);
@@ -161,34 +216,40 @@ namespace CTCC
 
         public CommitResult VerifyAn(Vector3 feet)
         {
-            if (!State.Has("E12") || !EvidenceRegistry.BundleComplete(State) || State.layer!=Reality.R)
+            if (!State.Has("E12") || !EvidenceRegistry.BundleComplete(State) || State.layer != Reality.R)
                 return CommitResult.PadRequired;
             if (GateService.G02(State)) return CommitResult.Applied;
-            var next=State.Copy();
+            var next = State.Copy();
             next.Remember("C01.verified");
             next.Remember("CH02-T05");
             next.Remember("G02.opened");
-            next.checkpoint="CH02-CP03";
-            return reality.Commit(next,feet,"AP04",false,true);
+            next.checkpoint = "CH02-CP03";
+            return reality.Commit(next, feet, "AP04", false, true);
         }
+
+        public CommitResult RecordGatekeeperResolved(Vector3 feet) =>
+            GateService.G02(State) ? Record("CH02-T06", feet) : CommitResult.PadRequired;
+
+        public CommitResult TakeSpareBattery(Vector3 feet) =>
+            Record("CH01-BATTERY", feet);
 
         public CommitResult Complete(Vector3 feet) =>
-            GateService.G02(State) ? Record("M1-complete",feet,"CH02-CP04") : CommitResult.PadRequired;
+            GateService.G02(State) ? Record("M1-complete", feet, "CH02-CP04") : CommitResult.PadRequired;
 
-        public CommitResult UpdateSettings(VisitSettings options,Vector3 feet)
+        public CommitResult UpdateSettings(VisitSettings options, Vector3 feet)
         {
-            var proposed=State.Copy();
-            proposed.settings=options;
-            return reality.Commit(proposed,feet);
+            var proposed = State.Copy();
+            proposed.settings = options;
+            return reality.Commit(proposed, feet);
         }
 
-        public CommitResult Record(string id,Vector3 feet,string checkpoint=null,bool geometryChanges=false)
+        public CommitResult Record(string id, Vector3 feet, string checkpoint = null, bool geometryChanges = false)
         {
             if (State.Happened(id)) return CommitResult.Applied;
-            var proposed=State.Copy();
+            var proposed = State.Copy();
             proposed.Remember(id);
-            if (checkpoint!=null) proposed.checkpoint=checkpoint;
-            return reality.Commit(proposed,feet,geometryChanges:geometryChanges);
+            if (checkpoint != null) proposed.checkpoint = checkpoint;
+            return reality.Commit(proposed, feet, geometryChanges: geometryChanges);
         }
     }
 }

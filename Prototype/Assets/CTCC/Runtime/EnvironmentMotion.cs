@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace CTCC
@@ -9,11 +10,15 @@ namespace CTCC
         public MeshFilter[] curtains;
         public bool reducedMotion;
         public bool reportLayer;
-        private float[] tubePower;
-        private Curtain[] cloth;
+        public float fanSpeedScale = 1f;
+
+        private readonly List<Transform> dynamicBlades = new();
+        private readonly List<(Light light, float power)> dynamicTubes = new();
+        private readonly List<Curtain> dynamicCloth = new();
 
         private sealed class Curtain
         {
+            public MeshFilter filter;
             public Mesh mesh;
             public Vector3[] rest;
             public Vector3[] posed;
@@ -21,54 +26,82 @@ namespace CTCC
 
         private void Awake()
         {
-            if (tubes != null)
+            Register(blades, tubes, curtains);
+        }
+
+        public void Register(Transform[] extraBlades, Light[] extraTubes, MeshFilter[] extraCurtains)
+        {
+            if (extraBlades != null)
             {
-                tubePower = new float[tubes.Length];
-                for (int i = 0; i < tubes.Length; i++)
-                    tubePower[i] = tubes[i] != null ? tubes[i].intensity : 0f;
+                foreach (var b in extraBlades)
+                    if (b != null && !dynamicBlades.Contains(b)) dynamicBlades.Add(b);
             }
-            if (curtains != null)
+            if (extraTubes != null)
             {
-                cloth = new Curtain[curtains.Length];
-                for (int i = 0; i < curtains.Length; i++)
+                foreach (var l in extraTubes)
                 {
-                    if (curtains[i] == null || curtains[i].sharedMesh == null || !curtains[i].sharedMesh.isReadable)
-                        continue;
-                    var mesh = curtains[i].mesh;
+                    if (l == null) continue;
+                    bool exists = false;
+                    for (int i = 0; i < dynamicTubes.Count; i++)
+                        if (dynamicTubes[i].light == l) { exists = true; break; }
+                    if (!exists) dynamicTubes.Add((l, l.intensity));
+                }
+            }
+            if (extraCurtains != null)
+            {
+                foreach (var mf in extraCurtains)
+                {
+                    if (mf == null || mf.sharedMesh == null || !mf.sharedMesh.isReadable) continue;
+                    bool exists = false;
+                    for (int i = 0; i < dynamicCloth.Count; i++)
+                        if (dynamicCloth[i].filter == mf) { exists = true; break; }
+                    if (exists) continue;
+                    var mesh = mf.mesh;
                     if (mesh != null && mesh.isReadable)
                     {
                         mesh.MarkDynamic();
-                        cloth[i] = new Curtain { mesh = mesh, rest = mesh.vertices, posed = mesh.vertices };
+                        dynamicCloth.Add(new Curtain { filter = mf, mesh = mesh, rest = mesh.vertices, posed = mesh.vertices });
                     }
                 }
             }
         }
 
+        public void Unregister(Transform[] extraBlades, Light[] extraTubes, MeshFilter[] extraCurtains)
+        {
+            if (extraBlades != null)
+                foreach (var b in extraBlades) dynamicBlades.Remove(b);
+            if (extraTubes != null)
+                dynamicTubes.RemoveAll(t => t.light == null || System.Array.IndexOf(extraTubes, t.light) >= 0);
+            if (extraCurtains != null)
+                dynamicCloth.RemoveAll(c => c.filter == null || System.Array.IndexOf(extraCurtains, c.filter) >= 0);
+        }
+
         private void Update()
         {
             float t = Time.unscaledTime;
-            if (blades != null)
+            for (int i = dynamicBlades.Count - 1; i >= 0; i--)
             {
-                for (int i = 0; i < blades.Length; i++)
-                    if (blades[i] != null && reportLayer && blades[i].gameObject.activeInHierarchy && !reducedMotion)
-                        blades[i].Rotate(0, Time.unscaledDeltaTime * (119 + i * 11), 0, Space.Self);
+                var blade = dynamicBlades[i];
+                if (blade == null) { dynamicBlades.RemoveAt(i); continue; }
+                if (reportLayer && blade.gameObject.activeInHierarchy && !reducedMotion && fanSpeedScale > 0.01f)
+                    blade.Rotate(0, Time.unscaledDeltaTime * (119 + i * 11) * fanSpeedScale, 0, Space.Self);
             }
-            if (tubes != null && tubePower != null)
+
+            for (int i = dynamicTubes.Count - 1; i >= 0; i--)
             {
-                for (int i = 0; i < tubes.Length; i++)
-                {
-                    if (tubes[i] == null) continue;
-                    float pulse = Mathf.PerlinNoise(t * .38f, i * .86f);
-                    tubes[i].intensity = tubePower[i] * (reducedMotion ? 1 : .90f + pulse * .19f);
-                }
+                var entry = dynamicTubes[i];
+                if (entry.light == null) { dynamicTubes.RemoveAt(i); continue; }
+                float pulse = Mathf.PerlinNoise(t * .38f, i * .86f);
+                entry.light.intensity = entry.power * (reducedMotion ? 1f : .90f + pulse * .19f);
             }
-            if (cloth == null || Time.frameCount % 3 != 0)
+
+            if (dynamicCloth.Count == 0 || Time.frameCount % 3 != 0)
                 return;
-            for (int k = 0; k < cloth.Length; k++)
+            for (int k = dynamicCloth.Count - 1; k >= 0; k--)
             {
-                var c = cloth[k];
-                if (c == null || curtains[k] == null || !curtains[k].gameObject.activeInHierarchy)
-                    continue;
+                var c = dynamicCloth[k];
+                if (c.filter == null || c.mesh == null) { dynamicCloth.RemoveAt(k); continue; }
+                if (!c.filter.gameObject.activeInHierarchy) continue;
                 for (int i = 0; i < c.rest.Length; i++)
                 {
                     var p = c.rest[i];

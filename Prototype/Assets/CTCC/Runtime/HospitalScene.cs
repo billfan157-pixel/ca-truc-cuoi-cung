@@ -1,9 +1,11 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
 
 namespace CTCC
 {
@@ -53,6 +55,12 @@ namespace CTCC
         }
     }
 
+    /// <summary>
+    /// Persistent Bootstrap Coordinator for Ca Trực Cuối Cùng (M2 Additive Architecture).
+    /// Orchestrates additive LOC01–LOC04 ZoneRegions, validates unique zone/pad IDs,
+    /// manages regional NavMesh caches, dual-scenario indirect GI (Trilight / Dual Baked LightProbes / APV),
+    /// staggered reflection probes, and atomic R/B world presentation.
+    /// </summary>
     public sealed class HospitalScene : MonoBehaviour
     {
         public const int SolidLayer = 9;
@@ -62,7 +70,10 @@ namespace CTCC
         public const float Radius = 0.35f;
         public const float Height = 1.75f;
 
-        public MarkerPose[] pads;
+        public static HospitalScene Instance { get; private set; }
+
+        public string[] additiveZoneScenes = Array.Empty<string>();
+        public MarkerPose[] pads = Array.Empty<MarkerPose>();
         public InspectImage[] inspectImages = Array.Empty<InspectImage>();
         public InspectModel[] inspectModels = Array.Empty<InspectModel>();
         public DoorPose outerGate, roomDoor, emergencyDoorA, emergencyDoorB;
@@ -80,24 +91,65 @@ namespace CTCC
         public EnvironmentalAudio atmosphere;
         public InteractableRig interactables;
         public bool referenceArt;
+
+        // M2 Dual-Scenario Indirect GI Evaluation Assets (R 2012 vs B 2005)
+        public LightProbes realLightProbes;
+        public LightProbes reportLightProbes;
+        [NonSerialized] public string giMode = "dual-probes";
+
+        // M2 Zone-Bound Characters, Anchors & Horror Props
+        public CharacterActor LanActor { get; private set; }
+        public CharacterActor GatekeeperActor { get; private set; }
+        public CharacterActor AnActor { get; private set; }
+        public Transform[] GatekeeperWaypoints { get; private set; } = Array.Empty<Transform>();
+        public Transform LanSilhouettePoint { get; private set; }
+        public Transform LanDeskPoint { get; private set; }
+        public Transform LanStepOutPoint { get; private set; }
+        public GameObject ReceptionGlassSilhouette { get; private set; }
+        public GameObject TrolleyShadowProp { get; private set; }
+        public GameObject SpareBatteryProp { get; private set; }
+        public Light[] EmergencyRedLights { get; private set; } = Array.Empty<Light>();
+        public AudioSource PaSpeakerAnchor { get; private set; }
+        public AudioSource PhoneAnchor { get; private set; }
+        public AudioSource LanVoiceAnchor { get; private set; }
+        public AudioSource GatekeeperVoiceAnchor { get; private set; }
+        public AudioSource AnVoiceAnchor { get; private set; }
+
         [SerializeField] private Bounds navigationBounds = new(new Vector3(5, 1, 0), new Vector3(42, 8, 59));
         [NonSerialized] public bool smoothPresentation;
+
+        private readonly List<ZoneRegion> registeredZones = new();
+        private readonly Dictionary<string, ZoneRegion> zonesById = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, Transform> padsById = new(StringComparer.OrdinalIgnoreCase);
+        private readonly List<ReflectionProbe> allProbes = new();
+        private readonly List<Light> allEmergencyLights = new();
+
         private bool themeReady;
         private bool showedReport;
+        private bool lastLayerB;
+        private int lastForm;
+        private bool lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate;
+
+        // Legacy single-scene NavMesh fallback (also used when additiveZoneScenes is empty)
         private NavMeshDataInstance navigation;
         private NavigationSnapshot activeNavigation;
         private readonly List<NavigationSnapshot> navigationCache = new();
         private readonly List<NavMeshBuildSource> navigationSources = new();
         private readonly List<NavMeshBuildMarkup> navigationMarkups = new();
+        private const int NavigationCacheCapacity = 8;
+
         private static readonly ProfilerMarker CollectNavigationMarker = new("CTCC.Navigation.Collect");
         private static readonly ProfilerMarker BuildNavigationMarker = new("CTCC.Navigation.Build");
         private static readonly ProfilerMarker ProbeMarker = new("CTCC.Reflection.Schedule");
-        private const int NavigationCacheCapacity = 8;
+
         private ReflectionProbe renderingProbe;
         private int reflectionRequest;
         private int reflectionVersion;
         private int renderingVersion;
         private int nextProbe;
+
+        public bool IsAdditiveMode => additiveZoneScenes != null && additiveZoneScenes.Length > 0;
+        public int LoadedZoneCount => registeredZones.Count;
 
         private sealed class NavigationSnapshot
         {
@@ -107,11 +159,207 @@ namespace CTCC
             public NavMeshData Data;
         }
 
+        private void Awake()
+        {
+            Instance = this;
+            RebuildPadLookup();
+            RebuildProbeLookup();
+
+            // Register any ZoneRegions already present in open scenes (e.g. Editor multi-scene play)
+            foreach (var region in FindObjectsByType<ZoneRegion>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                RegisterZone(region);
+        }
+
+        /// <summary>
+        /// Ensures all configured additive zone scenes (LOC01..LOC04) are loaded asynchronously
+        /// before binding player, directors, saves, and navigation warm-up.
+        /// Note: Unity queues LoadScene(Additive) for end-of-frame, so additive boot must await AsyncOperation.isDone.
+        /// </summary>
+        public IEnumerator EnsureAllZonesLoadedAsync()
+        {
+            if (!IsAdditiveMode) yield break;
+            var pending = new List<AsyncOperation>();
+            foreach (string sceneName in additiveZoneScenes)
+            {
+                if (string.IsNullOrEmpty(sceneName)) continue;
+                var sc = SceneManager.GetSceneByName(sceneName);
+                if (!sc.IsValid() || !sc.isLoaded)
+                {
+                    var op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+                    if (op != null) pending.Add(op);
+                }
+            }
+            for (int i = 0; i < pending.Count; i++)
+                while (!pending[i].isDone)
+                    yield return null;
+            foreach (var region in FindObjectsByType<ZoneRegion>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                RegisterZone(region);
+            RebuildPadLookup();
+            RebuildProbeLookup();
+        }
+
+        public IEnumerator LoadZoneAsync(string sceneName)
+        {
+            var sc = SceneManager.GetSceneByName(sceneName);
+            if (sc.IsValid() && sc.isLoaded) yield break;
+            var op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            while (op != null && !op.isDone) yield return null;
+            foreach (var region in FindObjectsByType<ZoneRegion>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                RegisterZone(region);
+            themeReady = false;
+            Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate);
+        }
+
+        public IEnumerator UnloadZoneAsync(string sceneName)
+        {
+            var sc = SceneManager.GetSceneByName(sceneName);
+            if (!sc.IsValid() || !sc.isLoaded) yield break;
+            var op = SceneManager.UnloadSceneAsync(sc);
+            while (op != null && !op.isDone) yield return null;
+        }
+
+        public bool HasZone(string zoneId) => !string.IsNullOrEmpty(zoneId) && zonesById.ContainsKey(zoneId);
+
+        /// <summary>
+        /// Registers an additive ZoneRegion while enforcing strict M2 Handoff uniqueness
+        /// invariants (zero duplicate zoneId, zero duplicate pad IDs).
+        /// </summary>
+        public bool RegisterZone(ZoneRegion region)
+        {
+            if (region == null || string.IsNullOrEmpty(region.zoneId)) return false;
+            if (registeredZones.Contains(region)) return true;
+
+            if (zonesById.ContainsKey(region.zoneId))
+            {
+                Debug.LogWarning($"CTCC M2-Handoff rejected duplicate ZoneRegion '{region.zoneId}'.");
+                return false;
+            }
+            if (region.pads != null)
+            {
+                foreach (var pad in region.pads)
+                {
+                    if (pad == null || string.IsNullOrEmpty(pad.id)) continue;
+                    if (padsById.ContainsKey(pad.id))
+                    {
+                        Debug.LogWarning($"CTCC M2-Handoff rejected ZoneRegion '{region.zoneId}' due to duplicate safe pad '{pad.id}'.");
+                        return false;
+                    }
+                }
+            }
+
+            registeredZones.Add(region);
+            zonesById[region.zoneId] = region;
+
+            // Bind zone-owned doors, dynamic rigs, characters, audio anchors and motion
+            if (region.outerGate != null && region.outerGate.pivot != null) outerGate = region.outerGate;
+            if (region.roomDoor != null && region.roomDoor.pivot != null) roomDoor = region.roomDoor;
+            if (region.emergencyDoorA != null && region.emergencyDoorA.pivot != null) emergencyDoorA = region.emergencyDoorA;
+            if (region.emergencyDoorB != null && region.emergencyDoorB.pivot != null) emergencyDoorB = region.emergencyDoorB;
+            if (region.seamBlocker != null) seamBlocker = region.seamBlocker;
+            if (region.pendingBay != null) pendingBay = region.pendingBay;
+            if (region.deniedBay != null) deniedBay = region.deniedBay;
+            if (region.statusA != null) statusA = region.statusA;
+            if (region.statusB != null) statusB = region.statusB;
+            if (region.statusC != null) statusC = region.statusC;
+            if (region.paperAfter != null) paperAfter = region.paperAfter;
+            if (region.storeClues != null) storeClues = region.storeClues;
+            if (region.clockHandsR != null) clockHandsR = region.clockHandsR;
+            if (region.clockHandsB != null) clockHandsB = region.clockHandsB;
+            if (region.spareBatteryProp != null) SpareBatteryProp = region.spareBatteryProp;
+            if (region.receptionGlassSilhouette != null) ReceptionGlassSilhouette = region.receptionGlassSilhouette;
+            if (region.trolleyShadowProp != null) TrolleyShadowProp = region.trolleyShadowProp;
+            if (region.cabinet != null)
+            {
+                cabinet = region.cabinet;
+                cabinetClosed = region.cabinetClosed;
+                cabinetOpen = region.cabinetOpen;
+                interactables?.ConfigureCabinet(cabinet, cabinetClosed);
+            }
+            if (region.curtainCloth != null && interactables != null)
+            {
+                interactables.curtainCloth = region.curtainCloth;
+                interactables.curtainClosedScale = region.curtainClosedScale;
+                interactables.curtainOpenScale = region.curtainOpenScale;
+            }
+            if (region.lanActor != null) LanActor = region.lanActor;
+            if (region.gatekeeperActor != null) GatekeeperActor = region.gatekeeperActor;
+            if (region.anActor != null) AnActor = region.anActor;
+            if (region.gatekeeperWaypoints != null && region.gatekeeperWaypoints.Length > 0)
+                GatekeeperWaypoints = region.gatekeeperWaypoints;
+            if (region.lanSilhouettePoint != null) LanSilhouettePoint = region.lanSilhouettePoint;
+            if (region.lanDeskPoint != null) LanDeskPoint = region.lanDeskPoint;
+            if (region.lanStepOutPoint != null) LanStepOutPoint = region.lanStepOutPoint;
+            if (region.paSpeakerAnchor != null) PaSpeakerAnchor = region.paSpeakerAnchor;
+            if (region.phoneAnchor != null) PhoneAnchor = region.phoneAnchor;
+            if (region.lanVoiceAnchor != null) LanVoiceAnchor = region.lanVoiceAnchor;
+            if (region.gatekeeperVoiceAnchor != null) GatekeeperVoiceAnchor = region.gatekeeperVoiceAnchor;
+            if (region.anVoiceAnchor != null) AnVoiceAnchor = region.anVoiceAnchor;
+
+            if (region.realProps != null && realProps == null) realProps = region.realProps;
+            if (region.reportProps != null && reportProps == null) reportProps = region.reportProps;
+
+            motion?.Register(region.movingFans, region.livingTubes, region.movingCloth);
+            atmosphere?.RegisterZoneLoops(region.roomLoops);
+            RebuildPadLookup();
+            RebuildProbeLookup();
+
+            // Sync visuals immediately to the current committed reality layer
+            if (themeReady)
+                region.ApplyLayerVisuals(showedReport);
+            return true;
+        }
+
+        public void UnregisterZone(ZoneRegion region)
+        {
+            if (region == null || !registeredZones.Remove(region)) return;
+            if (!string.IsNullOrEmpty(region.zoneId) && zonesById.TryGetValue(region.zoneId, out var cur) && cur == region)
+                zonesById.Remove(region.zoneId);
+            motion?.Unregister(region.movingFans, region.livingTubes, region.movingCloth);
+            atmosphere?.UnregisterZoneLoops(region.roomLoops);
+            RebuildPadLookup();
+            RebuildProbeLookup();
+        }
+
+        private void RebuildPadLookup()
+        {
+            padsById.Clear();
+            if (pads != null)
+                foreach (var p in pads)
+                    if (p != null && !string.IsNullOrEmpty(p.id) && p.point != null)
+                        padsById[p.id] = p.point;
+            foreach (var z in registeredZones)
+                if (z != null && z.pads != null)
+                    foreach (var p in z.pads)
+                        if (p != null && !string.IsNullOrEmpty(p.id) && p.point != null)
+                            padsById[p.id] = p.point;
+        }
+
+        private void RebuildProbeLookup()
+        {
+            allProbes.Clear();
+            allEmergencyLights.Clear();
+            if (localReflection != null) allProbes.Add(localReflection);
+            if (corridorReflection != null) allProbes.Add(corridorReflection);
+            foreach (var z in registeredZones)
+            {
+                if (z == null) continue;
+                if (z.reflectionProbes != null)
+                    foreach (var rp in z.reflectionProbes)
+                        if (rp != null && !allProbes.Contains(rp)) allProbes.Add(rp);
+                if (z.emergencyRedLights != null)
+                    foreach (var el in z.emergencyRedLights)
+                        if (el != null && !allEmergencyLights.Contains(el)) allEmergencyLights.Add(el);
+            }
+            EmergencyRedLights = allEmergencyLights.ToArray();
+        }
+
         public Transform Pad(string id)
         {
-            foreach (var pad in pads)
-                if (pad.id == id)
-                    return pad.point;
+            if (padsById.TryGetValue(id, out var cached) && cached != null)
+                return cached;
+            RebuildPadLookup();
+            if (padsById.TryGetValue(id, out cached) && cached != null)
+                return cached;
             throw new InvalidOperationException("Missing safe pad " + id);
         }
 
@@ -124,8 +372,41 @@ namespace CTCC
             return null;
         }
 
+        /// <summary>
+        /// Pre-warms BOTH R and B NavMesh snapshots + material/PSO variants behind startup fade
+        /// so the very first R->B reality switch incurs zero NavMesh bake spike and zero shader compile hitch!
+        /// </summary>
+        public void WarmupNavigationAndShaders()
+        {
+            bool savedSmooth = smoothPresentation;
+            smoothPresentation = false;
+            try
+            {
+                // Pre-cache B (2005) navigation snapshot
+                Present(true, 0, true, false, false, false);
+                TryRefreshNavigation(Pad("AP02").position);
+                // Pre-cache B with Room 101 open
+                Present(true, 0, true, true, false, false);
+                TryRefreshNavigation(Pad("AP04").position);
+                // Return cleanly to initial R (2012) state and cache R snapshot
+                Present(false, 0, false, false, false, false);
+                TryRefreshNavigation(Pad("AP00").position);
+            }
+            finally
+            {
+                smoothPresentation = savedSmooth;
+            }
+        }
+
         public void Present(bool layerB, int form, bool entered, bool acceptedBoard, bool closetOpen, bool secondGate)
         {
+            lastLayerB = layerB;
+            lastForm = form;
+            lastEntered = entered;
+            lastAcceptedBoard = acceptedBoard;
+            lastClosetOpen = closetOpen;
+            lastSecondGate = secondGate;
+
             if (!themeReady || showedReport != layerB)
             {
                 foreach (var part in finishes)
@@ -141,27 +422,13 @@ namespace CTCC
                 Toggle(clockHandsR, !layerB);
                 Toggle(clockHandsB, layerB);
 
+                foreach (var zone in registeredZones)
+                    zone?.ApplyLayerVisuals(layerB);
+
                 if (realGrade != null) realGrade.weight = layerB ? 0f : 1f;
                 if (reportGrade != null) reportGrade.weight = layerB ? 1f : 0f;
 
-                // Trilight Gradient ambient lighting — alive cool sky, tinted equator, grounded dark warm floor bounce!
-                RenderSettings.ambientMode = AmbientMode.Trilight;
-                if (layerB)
-                {
-                    RenderSettings.ambientSkyColor = new Color(0.32f, 0.38f, 0.33f);
-                    RenderSettings.ambientEquatorColor = new Color(0.22f, 0.27f, 0.23f);
-                    RenderSettings.ambientGroundColor = new Color(0.11f, 0.12f, 0.10f);
-                    RenderSettings.fogColor = new Color(0.19f, 0.27f, 0.23f);
-                    RenderSettings.fogDensity = 0.011f;
-                }
-                else
-                {
-                    RenderSettings.ambientSkyColor = new Color(0.13f, 0.19f, 0.23f);
-                    RenderSettings.ambientEquatorColor = new Color(0.08f, 0.11f, 0.13f);
-                    RenderSettings.ambientGroundColor = new Color(0.045f, 0.042f, 0.036f);
-                    RenderSettings.fogColor = new Color(0.065f, 0.10f, 0.125f);
-                    RenderSettings.fogDensity = 0.019f;
-                }
+                ApplyIndirectLighting(layerB);
 
                 if (Application.isPlaying) reflectionVersion++;
                 if (motion != null) motion.reportLayer = layerB;
@@ -191,21 +458,69 @@ namespace CTCC
                 }
             }
 
-            outerGate.Set(entered);
+            outerGate?.Set(entered);
             bool wantRoomOpen = acceptedBoard || !layerB;
-            if (smoothPresentation && interactables != null && Application.isPlaying && roomDoor.pivot != null)
+            if (roomDoor != null)
             {
-                roomDoor.isOpen = wantRoomOpen;
-                interactables.MoveDoor(roomDoor.pivot, wantRoomOpen ? roomDoor.openAngle : 0f, false, atmosphere);
+                if (smoothPresentation && interactables != null && Application.isPlaying && roomDoor.pivot != null)
+                {
+                    roomDoor.isOpen = wantRoomOpen;
+                    interactables.MoveDoor(roomDoor.pivot, wantRoomOpen ? roomDoor.openAngle : 0f, false, atmosphere);
+                }
+                else
+                {
+                    roomDoor.Set(wantRoomOpen);
+                    interactables?.ConfigureDoor(roomDoor.pivot, wantRoomOpen ? roomDoor.openAngle : 0f);
+                }
+            }
+            emergencyDoorA?.Set(secondGate);
+            emergencyDoorB?.Set(secondGate);
+            Physics.SyncTransforms();
+        }
+
+        private void ApplyIndirectLighting(bool layerB)
+        {
+            // Mode 1: Calibrated Trilight Gradient Ambient (always set as smooth base floor)
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            if (layerB)
+            {
+                RenderSettings.ambientSkyColor = new Color(0.36f, 0.42f, 0.37f);
+                RenderSettings.ambientEquatorColor = new Color(0.25f, 0.30f, 0.26f);
+                RenderSettings.ambientGroundColor = new Color(0.13f, 0.14f, 0.12f);
+                RenderSettings.fogColor = new Color(0.20f, 0.28f, 0.24f);
+                RenderSettings.fogDensity = 0.0095f;
             }
             else
             {
-                roomDoor.Set(wantRoomOpen);
-                interactables?.ConfigureDoor(roomDoor.pivot, wantRoomOpen ? roomDoor.openAngle : 0f);
+                // Calibrated R (2012) moonlight bounce — preserves deep shadow tension while keeping clues & walls readable!
+                RenderSettings.ambientSkyColor = new Color(0.17f, 0.24f, 0.29f);
+                RenderSettings.ambientEquatorColor = new Color(0.115f, 0.155f, 0.175f);
+                RenderSettings.ambientGroundColor = new Color(0.068f, 0.064f, 0.055f);
+                RenderSettings.fogColor = new Color(0.068f, 0.105f, 0.132f);
+                RenderSettings.fogDensity = 0.0155f;
             }
-            emergencyDoorA.Set(secondGate);
-            emergencyDoorB.Set(secondGate);
-            Physics.SyncTransforms();
+
+            // Mode 2: Dual-Scenario Pre-Baked LightProbes SH L2 (atomic 0.05 ms swap on R<->B!)
+            if (giMode == "dual-probes")
+            {
+                var probes = layerB ? reportLightProbes : realLightProbes;
+                if (probes != null)
+                    LightmapSettings.lightProbes = probes;
+            }
+            else if (giMode == "trilight")
+            {
+                LightmapSettings.lightProbes = null;
+            }
+            else if (giMode == "apv")
+            {
+                // Mode 3: URP 17.3 Adaptive Probe Volumes Lighting Scenario swap
+                try
+                {
+                    if (ProbeReferenceVolume.instance != null && ProbeReferenceVolume.instance.isInitialized)
+                        ProbeReferenceVolume.instance.lightingScenario = layerB ? "Scenario_B" : "Scenario_R";
+                }
+                catch (Exception) { /* APV fallback to Trilight if scenario not baked in this build */ }
+            }
         }
 
         private static void Toggle(GameObject item, bool active)
@@ -229,9 +544,18 @@ namespace CTCC
         private void CollectNavigation()
         {
             using var marker = CollectNavigationMarker.Auto();
-            // The scene-owned root keeps an additively loaded zone out of this zone's source set.
-            NavMeshBuilder.CollectSources(transform, SolidMask, NavMeshCollectGeometry.PhysicsColliders, 0,
-                navigationMarkups, navigationSources);
+            navigationSources.Clear();
+            if (registeredZones.Count > 0)
+            {
+                foreach (var z in registeredZones)
+                    if (z != null && z.isActiveAndEnabled)
+                        z.CollectRegionalSources(navigationSources);
+            }
+            else
+            {
+                NavMeshBuilder.CollectSources(transform, SolidMask, NavMeshCollectGeometry.PhysicsColliders, 0,
+                    navigationMarkups, navigationSources);
+            }
         }
 
         private NavMeshData BakeNavigation()
@@ -248,6 +572,20 @@ namespace CTCC
 
         public bool TryRefreshNavigation(Vector3 landing)
         {
+            // In additive multi-scene mode, refresh per-zone regional NavMesh caches cleanly!
+            // Unchanged zones hit their cache in <0.1 ms; only zones whose colliders changed rebuild!
+            if (registeredZones.Count > 0)
+            {
+                bool allOk = true;
+                foreach (var z in registeredZones)
+                {
+                    if (z != null && z.isActiveAndEnabled && !z.RefreshRegionalNavMesh())
+                        allOk = false;
+                }
+                return allOk && NavMesh.SamplePosition(landing, out _, 0.36f, NavMesh.AllAreas);
+            }
+
+            // Legacy single-scene fallback
             CollectNavigation();
             var proposed = navigationCache.Find(MatchesNavigation);
             if (proposed == activeNavigation && navigation.valid)
@@ -257,8 +595,13 @@ namespace CTCC
             {
                 var data = BakeNavigation();
                 if (data == null) return false;
-                proposed = new NavigationSnapshot { Sources = navigationSources.ToArray(), Data = data,
-                    Origin = transform.position, Rotation = transform.rotation };
+                proposed = new NavigationSnapshot
+                {
+                    Sources = navigationSources.ToArray(),
+                    Data = data,
+                    Origin = transform.position,
+                    Rotation = transform.rotation
+                };
             }
 
             if (navigation.valid) navigation.Remove();
@@ -305,9 +648,9 @@ namespace CTCC
                 renderingVersion = reflectionVersion;
                 nextProbe = 0;
             }
-            while (nextProbe < 2)
+            while (nextProbe < allProbes.Count)
             {
-                var probe = nextProbe++ == 0 ? localReflection : corridorReflection;
+                var probe = allProbes[nextProbe++];
                 if (probe == null || !probe.isActiveAndEnabled) continue;
                 using var marker = ProbeMarker.Auto();
                 reflectionRequest = probe.RenderProbe();
@@ -318,8 +661,12 @@ namespace CTCC
 
         private void OnDestroy()
         {
+            if (Instance == this) Instance = null;
             if (navigation.valid) navigation.Remove();
-            foreach (var snapshot in navigationCache) Destroy(snapshot.Data);
+            foreach (var snapshot in navigationCache)
+                if (snapshot.Data != null) Destroy(snapshot.Data);
+            foreach (var z in registeredZones)
+                z?.ReleaseNavigation();
         }
     }
 }
