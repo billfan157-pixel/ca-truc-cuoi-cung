@@ -13,3 +13,16 @@ Hệ trục dùng mét, X sang đông, Z sang bắc, Y lên cao. Phòng 101 rộ
 | Cửa cũ | LOC12 → cửa đã bị bịt năm 2004 → đoạn dẫn ngắn tới sân sau. Cửa chính tiếp cận từ LOC11. | Trên bản vẽ chỉ cửa cũ có vệt khóa vữa. Sơ đồ tuyến chơi không có cạnh xuyên qua. |
 
 Core 03 §2–3 và DEC-V2-01 xác định cao độ lõi và ranh giới khu C. Các tuyến kỹ thuật và sạch/bẩn là thiết kế chức năng hư cấu. Bản vẽ phục vụ duyệt blockout. Đối chiếu thực địa và chuyên gia TASK026–028 vẫn thuộc cổng trước art lock.
+
+## Chi tiết hóa kiến trúc M0-R (Phòng 101 & Hành lang liền kề)
+
+Giữ nguyên 100% tọa độ phòng, cửa, giường và pad trong `layout.json` (và toàn bộ ngưỡng kiểm `VerifyBlockout`: lối cáng 0,72 m qua cửa 1,20 m, capsule 0,35 m, khoảng giữa hai dãy giường 1,88 m, `AP04` tại `(6,52; 4,93)`). Bổ sung chiều sâu cấu tạo kiến trúc công trình bệnh viện Việt Nam 1987–2005:
+
+- **Kết cấu nhịp BTCT & phân khu cải tạo:** Hành lang trục chính rộng 3,00 m chia 4 nhịp cột BTCT vát cạnh (tại `z = 1,00 / 5,25 / 9,50 / 13,75 m`) nối dầm ngang cao 360 mm và dầm dọc đỡ trần phòng 101 (`x = 9,77 m`). Lắp ốp bảo vệ góc inox tại cột dễ va quệt xe cáng và tay vịn gỗ + thanh chống va đập dọc tường tây hành lang ở cao độ 0,82 m.
+- **Lớp hoàn thiện tường hai tầng:** Len chân tường đá mài bo cong cao 95 mm, dải sơn dầu xanh bệnh viện cao 1,15 m có đường chỉ phân cách 12 mm, phần trên sơn vôi/nước nhạt. Ở R (2012), hiện tượng thấm mao dẫn, muối hóa bong sơn và rêu mốc tập trung dọc chân tường bắc/đông và dưới bậu cửa sổ theo quy luật vật lý [R41].
+- **Hệ cửa đi & cửa sổ thông gió tự nhiên [R39/R40]:**
+  - `GATE-101` (1,20 × 2,22 m): khuôn gỗ ghép nẹp chỉ, cánh gỗ pano dưới dày + tấm inox đá chân, ô kính mờ quan sát phía trên, tay gạt inox, khóa, 3 bản lề trụ, tay co thủy lực và ô thoáng chớp kính phía trên khuôn cửa (tới cao độ 2,86 m). Cánh cửa xoay mượt theo bản lề và cho phép người chơi đóng/mở trực tiếp trong R/B.
+  - 3 ô cửa sổ tường bắc phòng 101 (`z = 8,10 m`, tổng diện tích lấy sáng 10,19 m² = 21,2% diện tích sàn 48 m², đạt chuẩn TCVN 4470:1995): tường dày 200 mm tạo hốc cửa sâu có bậu đá mài nhô 35 mm, khung thép góc chia cánh, 6 lá chớp kính thông gió phía trên và lưới hoa sắt bảo vệ hàn hình học đổ bóng thực lên sàn và giường.
+  - `GATE-STORE` (1,22 × 2,20 m): khuôn gỗ sâu, bậc ngưỡng mòn, biển `KHO GIƯỜNG` gắn vít nổi, bị tủ sắt kính 2 cánh di động (`1,36 × 0,48 × 2,06 m`) chắn phía trước trong R trước khi giải `E12` và lăn sang bên mượt mà sau khi đối chiếu `PZ01`.
+- **Hệ kỹ thuật nổi & giao thông nội phòng:** Ống ghen điện chạy nổi có kẹp đỡ và hộp nối chia nhánh tới từng đèn T8 đôi, hộp công tắc/ổ cắm đôi có số `1–4` đầu giường (ổ số 4 giữ nguyên dấu vết tại hốc trống), loa phóng thanh hành lang gắn tường gần `GATE-101`, bảng kẹp `F101` gắn tường trong cửa, bình chữa cháy treo hành lang, ray rèm treo trần có móc trượt và rèm vải có thể kéo mở vật lý quanh hốc giường 4.
+- **Đồng nhất hình học R/B:** Toàn bộ khung tường, cột, dầm, khuôn cửa, cửa sổ, quạt trần, máng đèn, ổ cắm và bao va chạm giường 1–3 giữ cùng vị trí giữa R (2012) và B (2005). B chỉ đổi vật liệu sạch hơn, ánh sáng đèn T8 vận hành, bật rèm `pendingBay` hoặc vách áp hồ sơ `deniedBay` theo trạng thái `F101`, và ẩn các lớp xuống cấp/vật chứng riêng của hiện trường 2012.

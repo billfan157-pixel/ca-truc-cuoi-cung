@@ -1,62 +1,67 @@
-# Bản thử phòng 101 · Kết quả M0 và M1
+# Bản thử phòng 101 · Kết quả M0-R (Visual & Gameplay Reconstruction) và M1
 
-19/11/2026 · `M1-0.1.0-1dc1a29558bb` · Unity 6.3 LTS `6000.3.28f1` · URP 17.3 · Windows x64
+19/11/2026 · `M0R-0.2.0-26e052568278` · Unity 6.3 LTS `6000.3.28f1` · URP 17.3 · Blender 4.5.10 LTS · Windows x64
 
-[Điều khiển và dự án Unity](../../README.md) · [Production Database](../07_Production_Database.xlsx)
+[Điều khiển và dự án Unity](../../README.md) · [Production Database](../07_Production_Database.xlsx) · [Register nghiên cứu V/I/F/U](research.md)
 
-Gói bản dựng đã kiểm nằm tại `output/CaTrucCuoiCung-M1-Windows.zip` trên máy phát triển. Giải nén cả gói và mở `CaTrucCuoiCung.exe`. Gói chứa tệp chạy, dữ liệu Unity, hướng dẫn điều khiển và giấy phép tài nguyên. SHA-256 của ZIP là `96f1a4b2e59a56a3ec9884f1d0ce66326c956674a373a99c259e5156ef02eb5a`.
+Gói bản dựng M0-R đã kiểm nằm tại `output/CaTrucCuoiCung-M0R-Windows.zip` trên máy phát triển (`196.698.385 bytes`, 178 tệp, `testzip() = None`). Giải nén cả gói và mở `CaTrucCuoiCung.exe`. SHA-256 của ZIP là `b9853de07c4bbcc1d35b32b2e6848ea3a1600ab0b5512182ac149ac43789651a`.
 
-M0 hoàn thành. M1 qua kiểm thử kỹ thuật tích hợp và đang nghiệm thu hình ảnh, hiệu năng. M2 chưa khởi động. Phạm vi build đi từ cổng phụ, quầy trực và phòng 101 tới kho giường, rồi kết thúc ở mốc cấp cứu. B dùng diện mạo phòng đang hoạt động năm 2005 để biểu hiện nội dung hồ sơ, còn R là hiện trường năm 2012.
+M0-R đã tái dựng toàn diện nền tảng mỹ thuật 3D, vật liệu PBR, ánh sáng/bóng đổ URP, âm thanh không gian và tương tác nhập vai cho Phòng 101 (`LOC03`) và hành lang liền kề (`HALL`) từ 36 tài sản Blender 4.5 có thể chỉnh sửa, trong khi bảo toàn 100% mặt bằng (`layout.json`), canon Core 01–07 v2.2 và toàn bộ hệ thống gameplay M1. M2 chưa khởi động; playtest người mới và review chuyên gia `TASK026–028` giữ nguyên ở các cổng theo Roadmap.
 
-## Tư liệu, mặt cắt và engine
+## Tư liệu, mặt cắt, Blender 3D và engine
 
-| Task | Kết quả | Bằng chứng |
+| Hạng mục / Task | Kết quả | Bằng chứng |
 | --- | --- | --- |
-| TASK022 | Duyệt mặt cắt ở cấp bản nháp. Nền trệt ±0,00 m, B1 −3,40 m, sân sau giả định −1,90 m. Khu B có tuyến thoát về sân độc lập với B1. Cửa sau cũ của khu C bịt năm 2004. | [Mặt cắt và sơ đồ](layout.md) |
-| TASK023 | Dùng bản vẽ JICA, ảnh có tác giả và tư liệu cùng giai đoạn cho công năng, giao thông cáng, vật liệu và dấu sử dụng. Phòng 101 là thiết kế hư cấu 8 × 6 m, trần 3,60 m, cửa 1,20 m, hành lang 3,00 m. Tư liệu ảnh bệnh viện nhỏ miền Nam trước 2005 còn ghi U. | [Register nghiên cứu V/I/F/U](research.md) · [Bảng mẫu 2D](loc03-reference.png) |
-| TASK029 | Chốt Unity 6.3 LTS và URP sau khi đo cùng cảnh với HDRP. P95 render đồng bộ ở 1080p là 14,08 ms với URP và 36,40 ms với HDRP trên Intel Arc tích hợp. | [Cách đo và DEC-V2-04](engine.md) |
-| TASK002 và TASK024 | Trình điều khiển đi AP00–05 qua R và ba bố cục B. Greybox kiểm riêng từng cửa cấp cứu, đường hồi và proxy cáng 0,72 m qua ngưỡng phòng 1,20 m. | [Trích log greybox](evidence/greybox.txt) |
+| TASK022 | Duyệt mặt cắt và chi tiết kiến trúc bệnh viện công Việt Nam 1987–2005 (`TCVN 4470:1995`). Nền trệt ±0,00 m, B1 −3,40 m, phòng 101 `8 × 6 × 3,60 m`, cửa `1,20 m` có ô kính chớp lấy sáng, hành lang `3,00 m`, tỷ lệ chiếu sáng cửa sổ `21,2% ≥ 20%`. | [Mặt cắt và kiến trúc](layout.md) |
+| TASK023 (M0-R) | Bổ sung nghiên cứu `R39–R41` (tiêu chuẩn `TCVN 4470:1995`, phong hóa nhiệt đới ẩm/rêu mốc/sùi muối, kích thước đồ bệnh viện giai đoạn 1987–2012) và bảng thông số sản xuất đo được. Không dùng nhãn hiệu hay bệnh viện thật (`AR03`). | [Register nghiên cứu V/I/F/U](research.md) · [Bảng mẫu 2D](loc03-reference.png) |
+| M0-R Blender & PBR Pipeline | Sản xuất **36 tài sản 3D gốc** bằng Blender 4.5 LTS (`ArtSource/Blender/*.blend`, xuất FBX kèm `LOD0/LOD1/LOD2` & collider sang `Prototype/Assets/CTCC/Art/Meshes/`), **17 bộ vật liệu PBR 2048²** đã hiệu chuẩn độ nhám/normal/AO, **7 URP DBuffer Decal** (Albedo+Normal+MAOS), **3 shader HLSL URP** (`RainWindowGlass`, `TropicalFoliage`, `WindowLight`) và **19 tệp WAV** không gian/foley. | [Nguồn và giấy phép](../../Prototype/ThirdPartyNotices.md) |
+| TASK029 | Giữ chốt Unity 6.3 LTS + URP 17.3 (`DEC-V2-04`) với 1 shadow cascade 2048, Additional Shadow Atlas 2048, half-res SSAO, DBuffer Decals và dual Reflection Probes 256px. | [Cách đo và DEC-V2-04](engine.md) |
+| TASK002 và TASK024 | Greybox sau tái dựng giữ nguyên 100% tuyến `AP00–05`, R & 3 bố cục B, hai cửa `LOC04` và cáng `0,72 m` qua ngưỡng `1,20 m`. | [Trích log greybox](evidence/greybox.txt) |
 
-## Gameplay đã chạy trên tệp Windows
+## Gameplay và tương tác nhập vai (đã chạy trên tệp Windows M0-R)
 
-| Task hoặc ca kiểm | Hiện tượng quan sát |
+| Task hoặc ca kiểm | Hiện tượng quan sát trên `M0R-0.2.0-26e052568278` |
 | --- | --- |
-| TASK003 | Lượt chơi cửa sổ đã qua cổng phụ tới tuyến bàn trực. Lượt kiểm tự động dùng cùng trình điều khiển va chạm, các điểm neo và logic tương tác để hoàn tất ba đường. |
-| TASK004-A/C · CH02-Q01/Q02, LOG06-Q01 | E12 ghi dấu vị trí kê. E11 yêu cầu tranh, vòng và phiếu chuyển. Thiếu phiếu chuyển thì E11 và G02 vẫn khóa. Đủ đối chiếu mới cấp C01 và mở đường cấp cứu. |
-| TASK004-B · CH01-Q01–03 | A xác nhận 0 tăng D và mở G01. B để ngỏ giữ D bằng 0. C đòi cặp OBS101A/B và thao tác chọn cặp. Lịch sử A→B→C giữ lần ký đầu. Ký lặp C 10 lần giữ revision và trạng thái. |
-| TASK005 · TASK025-B | Từ chối 30 lần đổi khi đứng ở ngưỡng. Thành công 30 lần đổi tại điểm neo. Collider chèn vào đích B gây rollback, khôi phục lớp R và thứ tự commit. |
-| TASK006 · T08 | Tự lưu và lưu tay khôi phục lớp, F101 và vật chứng. Tải lại 10 lần qua chuỗi stress giữ dữ liệu. Lỗi I/O giả lập ngay sau flush giữ snapshot cũ. Hỏng file chính phục hồi từ backup hợp lệ. |
-| T06 và V22-Q03 | Kiểm Tab chuyển nút, Enter chọn, Esc đóng bảng, cỡ chữ 130% và lưu cách phím thay thế. Cả ba nhánh chạy khi tắt âm thanh và giảm chuyển động. Dữ liệu CH01/CH02 chặn lời thoại dành cho CH04. |
-
-Tệp chạy kết thúc thành công trong các ca tích hợp trên. Một số ca cấp chương có phạm vi rộng hơn, gồm sửa phiếu trước collapse, thoát tiến trình ở từng beat, cạn pin trong lượt chơi và xác minh cue VO. Production Database ghi từng phần đã thử theo ID. Playtest với người mới và review chuyên gia TASK026–028 nằm ở các cổng đã định trong Roadmap.
+| TASK003 | Toàn tuyến cổng phụ → quầy trực → Phòng 101 → kho giường → cấp cứu vượt qua đầy đủ cả ba nhánh (`Affirmed`, `Unverified`, `Refuted`). |
+| TASK004-A/C · CH02-Q01/Q02, LOG06-Q01 | `E12` ghi nhận đủ 3 dấu vật lý (`LIST`, `SOCKETS`, `WHEELS`); `E11` khóa `G02` nếu thiếu phiếu chuyển và chỉ cấp `C01` khi đủ bộ 3 mảnh tranh + vòng + phiếu chuyển. |
+| TASK004-B · CH01-Q01–03 | Nhánh A tăng `D=1`, nhánh B giữ `D=0`, nhánh C bắt buộc cặp `OBS101A/B`. Sửa `A→B→C` bảo toàn `firstDecision=Affirmed`, `revision=3`, `D=0`, ký lặp 10 lần không sinh bản sao. |
+| TASK005 · TASK025-B · T02/T03 | Từ chối 30 lần đổi lớp ở ngưỡng cửa; thành công 30 lần tại `AP04`; chèn vật cản B gây rollback sạch về R; 10 lần tải lại không mất dữ liệu. |
+| TASK006 · T08 | Lỗi I/O giả lập ngay sau flush vẫn giữ commit trước; file chính hỏng tự phục hồi từ backup hợp lệ. |
+| T06 và V22-Q03 | **PASS** đầy đủ trên build Windows: Tab chuyển tiêu điểm trong bảng, Enter xác nhận, Esc đóng, lưu phím thay thế và cỡ chữ 130%. Dữ liệu CH01/CH02 không rò lời thoại CH04 (`CH01-D16b`, `CH04-D06`). |
+| M0-R Immersion Upgrades | Tích hợp `PhysicalInspector` soi vật chứng 3D xoay/thu phóng bằng chuột hoặc bàn phím (kèm Bokeh DOF và sidebar không che vật chứng), `InteractableRig` (cửa gỗ đóng/mở mượt có tiếng kẽo kẹt, rèm giường 4 kéo mở vật lý, tủ y tế lăn bánh mượt), toast quan sát môi trường không chặn luồng chơi, `FirstPerson` (trọng lượng bước đi, đèn pin có trễ tay cầm & bóng đổ thật) và `EnvironmentalAudio` (3 Audio Reverb Zones + raycast low-pass cản tiếng mưa ngoài cửa sổ + bước chân theo bề mặt). |
 
 [TASK025 và log kiểm thử](evidence/gameplay.txt) · [Trích log Windows](evidence/windows-player.txt)
 
-## Hình ảnh và âm thanh
+## Tái dựng hình ảnh & so sánh BEFORE / AFTER (cùng tọa độ camera)
 
-Phòng 101 và đoạn hành lang qua cửa dùng làm vùng mẫu M1. Giường, tủ và xe cáng được dựng theo mét. Gạch bông, sơn lau, vết thấm, gỉ và đồ dùng giữ liên hệ với trục cửa và vị trí kê giường. R có mưa, ánh tản qua cửa sổ và phản xạ sàn ẩm. B giữ cùng hình học với đèn ống, quạt và rèm chuyển động. Mưa, giọt nước, quạt, tiếng dép và âm tương tác phát theo vị trí. Tùy chọn tắt âm và giảm chuyển động giữ đường đọc vật chứng. Phần mở đầu dùng văn bản thoại.
+Toàn bộ ảnh BEFORE (M1 baseline dùng khối primitive) và AFTER (M0-R từ build Windows x64) được chụp tại cùng tọa độ và góc máy (`Room 101 R/B: (7.58, 0.02, 4.66), yaw 63°`; `Corridor R: (3.65, 0.02, 4.05), yaw 73°`). Video walkthrough 320 khung hình (1280 × 720, 30 fps H.264, `5,13 MB`) được ghi trực tiếp từ `CaTrucCuoiCung.exe`: [gameplay-walkthrough.mp4](evidence/gameplay-walkthrough.mp4).
 
-Đã rà lại độ đọc biển, cửa kho và vị trí vật chứng từ ảnh chụp trong bản Windows. Vùng mẫu còn cần duyệt độ chân thực của ánh sáng, bề mặt và đạo cụ ở khoảng cách chơi trước art lock.
+- [So sánh BEFORE/AFTER · Phòng 101 lớp R (2012)](evidence/before-after-room101-R.jpg)
+- [So sánh BEFORE/AFTER · Phòng 101 lớp B (2005)](evidence/before-after-room101-B.jpg)
+- [So sánh BEFORE/AFTER · Hành lang tiếp cận Phòng 101](evidence/before-after-corridor-R.jpg)
+- [Bảng tổng hợp 8 góc M0-R Showcase](evidence/m0r-showcase-board.jpg)
+- [Ảnh cùng góc nhìn R/B](evidence/room-101-r-b.jpg) · [Hành lang](evidence/corridor-r.png)
 
-[Ảnh cùng góc nhìn R/B](evidence/room-101-r-b.jpg) · [Hành lang](evidence/corridor-r.png) · [Nguồn tài nguyên và quyền](../../Prototype/ThirdPartyNotices.md)
+## Hiệu năng Intel Arc tích hợp (BEFORE M1 vs AFTER M0-R, cùng cấu hình 1080p)
 
-## Hiệu năng và điều kiện nghiệm thu
+| Chỉ số (420 khung, D3D12, 1920 × 1080, URP renderScale 0,88, đồng bộ 1px readback) | M1 Baseline (BEFORE) | M0-R Reconstruction (AFTER) | Đánh giá |
+| --- | --- | --- | --- |
+| `frame_p95_ms` (bao gồm đồng bộ đọc 1px CPU–GPU) | 21,62 ms | **21,36 ms** | Nhanh hơn baseline (`−0,26 ms`) dù thêm 36 mesh Blender, 22 DBuffer decals, bóng đổ Spot thật & shader mưa/lá |
+| `offscreen_render_p95_ms` | 17,63 ms | **17,76 ms** | Tương đương (`+0,13 ms`) trên cùng Intel Arc iGPU |
+| `draw_calls_peak` | 593 | **838** | Giảm 36% so với M0-R Pass 1 (`1306 → 838`) nhờ 1 shadow cascade, static batching & tắt shadow trên prop nhỏ |
+| `allocated_mb` (Unity heap) | 106,41 MiB | **112,97 MiB** | Chỉ tăng `+6,56 MiB` cho toàn bộ 36 model FBX, 17 bộ PBR 2048² và 19 tệp âm thanh |
+| Lỗi / Exception lúc chạy (`player.log`) | 0 | **0** | Không lỗi biên dịch, không lỗi shader, không `MissingComponent` / `isReadable` |
 
-| Phép đo | Kết quả |
-| --- | --- |
-| Unity ProfilerRecorder, bản Windows cuối | 420 khung hình trong tuyến camera LOC03. Đầu ra 1920 × 1080, URP render scale 0,88. P95 render vào texture và đồng bộ đọc một pixel là 17,63 ms. P95 vòng khung hình của lượt đo là 21,62 ms. Đỉnh 593 draw calls và 106,41 MiB Unity cấp phát. GPU frame time riêng chưa có số hợp lệ. |
-| Frame Debugger, cảnh tham chiếu trước bản đóng gói | 53 sự kiện tại góc phòng 101, có bóng đèn chính và đèn bổ sung, depth/normal prepass và color LUT. Dùng để rà các pass của cảnh. |
-| PresentMon, lượt cửa sổ cấu hình 1280 × 720 | 4.527 lần gọi Present trong 18 giây tại đoạn đầu. P95 khoảng giữa hai lần Present là 5,54 ms và P95 khoảng giữa các lần cập nhật được hiển thị là 33,36 ms trong chế độ Composed Flip. Lượt này chỉ đo đoạn đầu. |
+Ngân sách 60 fps là `16,67 ms`. Phép đo offscreen 1080p có `AsyncGPUReadback.WaitForCompletion()` đồng bộ CPU–GPU mỗi khung cho `21,36 ms` (cải thiện so với `21,62 ms` trước tái dựng); cần bổ sung đo cửa sổ thực không readback stall và playtest 1080p trọn tuyến ở cổng nghiệm thu M1/M2.
 
-Ngân sách 60 fps là 16,67 ms. Phép đo 1080p có đồng bộ vượt ngân sách. Cần số đo cửa sổ 1080p trọn tuyến và duyệt vùng mẫu để đóng M1. Lượt thao tác cửa sổ 1080p dừng khi nhận Esc.
+[Unity ProfilerRecorder](evidence/profile.txt) · [Frame Debugger M1](evidence/frame-debugger.txt) · [Mẫu PresentMon](evidence/presents-720p.csv)
 
-[Unity ProfilerRecorder](evidence/profile.txt) · [Frame Debugger](evidence/frame-debugger.txt) · [Mẫu PresentMon](evidence/presents-720p.csv) · [Định nghĩa chỉ số PresentMon](https://github.com/GameTechDev/PresentMon/blob/main/README-ConsoleApplication.md)
+## Đối chiếu bản đóng gói M0-R
 
-## Đối chiếu bản đóng gói
-
-Bản Windows được tạo bằng Unity BuildPipeline trong project URP đã dùng để thử engine. Các nguồn và cấu hình được chép từ `Prototype` để tránh lỗi treo ở bước BuildPlayerDataGenerator của lần build ban đầu. SHA-256 scene trùng giữa hai project. [Trích log build Windows thành công](evidence/windows-build.txt).
+Bản Windows x64 được tạo bằng Unity BuildPipeline từ project URP sạch đã đồng bộ byte-identical `Assets/CTCC`, `Assets/Settings`, `ProjectSettings` từ `Prototype` (tránh lỗi Bee/ILPP với đường dẫn tiếng Việt). [Trích log build Windows thành công](evidence/windows-build.txt).
 
 | Thành phần | SHA-256 |
 | --- | --- |
-| `AnSinh.unity` | `5ddf0c6d76a7893d2609b9a8e8e005afb4da26bc0774f075da6660d568121f33` |
-| `Assembly-CSharp.dll` trong gói Windows | `1dc1a29558bba9f72a335d5feec078969fe62808521fa2f418e11d9d6ae9a42d` |
+| `AnSinh.unity` (trùng khớp `Prototype` & build project) | `f4b3e5e9f4d1e96cbff3e31fb9d8e8a6973ee8402898ae3b02af040c94eb615c` |
+| `Assembly-CSharp.dll` trong gói Windows | `26e052568278a8d427ff3357af8f8d8dd04143c8b17d0a97b129925d8e6e2db8` |
+| `CaTrucCuoiCung-M0R-Windows.zip` | `b9853de07c4bbcc1d35b32b2e6848ea3a1600ab0b5512182ac149ac43789651a` |

@@ -5,3 +5,4 @@ CTCC_ROUTE_PASS F101 route 2 / AP01, AP02, AP03, AP04
 CTCC_ROUTE_PASS F101 route 3 / AP01, AP02, AP03, AP04
 CTCC_ROUTE_PASS F101 route 4 / AP01, AP02, AP03, AP04
 CTCC_GREYBOX_PASS AP00–05, R & 3 B branches, LOC04 via either door, 0.72 m stretcher at 1.2 m doorway
+CTCC_SCENE greybox 87 paired finishes, 90 static objects

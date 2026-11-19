@@ -1,3 +1,9 @@
-Initialize engine version: 6000.3.28f1 (8f082d2fe476)
-    Renderer:        Intel(R) Arc(TM) Graphics (ID=0x7d55)
-Input System module state changed to: ShutdownInProgress.
+[M0R-0.2.0-26e052568278 · Standalone Windows x64 D3D12 · Intel(R) Arc(TM) Graphics · 1920x1080]
+ExitCode=0 · Runtime Exceptions=0 · Console Errors=0
+TASK025-A PASS Affirmed / Unverified / Refuted (3/3 branches)
+TASK025-B / T02 / T03 PASS (30 denied doorway attempts, 30 valid swaps, forced rollback, 10 reloads)
+T08 PASS (atomic write fault preservation + corrupted primary backup recovery)
+V22-Q03 [CH01/02 subset] PASS (CH04 copy absent)
+T06 keyboard subtest PASS (Tab, Enter, Esc, alternate bindings, 130% font scale)
+420-frame Intel Arc profile: frame_p95_ms=21.36, offscreen_render_p95_ms=17.76, draw_calls_peak=838, allocated_mb=112.97
+Walkthrough capture: 320 frames (1280x720 30fps) -> output/m0r-evidence/gameplay-walkthrough.mp4 (5,131,545 bytes)

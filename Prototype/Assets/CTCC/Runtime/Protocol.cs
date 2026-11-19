@@ -18,6 +18,9 @@ namespace CTCC
         public float textScale = 1;
         public float volume = .72f;
         public float visibility = 0;
+        public float mouseSensitivity = 1f;
+        public float ambienceVolume = .85f;
+        public float sfxVolume = .90f;
     }
 
     [Serializable]

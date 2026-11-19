@@ -65,6 +65,8 @@ namespace CTCC
                     InputSystem.QueueStateEvent(keyboard,new KeyboardState(key));
                     InputSystem.Update();
                     ui.HandleNavigation(keyboard);
+                    InputSystem.QueueStateEvent(keyboard,new KeyboardState());
+                    InputSystem.Update();
                     yield return null;
                 }
             }
@@ -77,7 +79,7 @@ namespace CTCC
             if(second && !first && escaped && State.settings.alternateBindings && State.settings.textScale>1.25f)
                 verification.Add("T06 keyboard subtest PASS: Tab focus within modal, Enter action, Esc dismiss, alternate binding and 130% font settings kept.");
             else
-                verification.Add("T06 keyboard subtest UNVERIFIED: input state was not observed in the expected order.");
+                verification.Add($"T06 keyboard subtest UNVERIFIED: first={first} second={second} escaped={escaped} alt={State.settings.alternateBindings} scale={State.settings.textScale:0.00}.");
             ui.Close();
             yield return null;
         }
@@ -233,21 +235,63 @@ namespace CTCC
             var target=new RenderTexture(1920,1080,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB);
             target.Create();
             camera.enabled=false;
-            var artView=new Vector3(7.58f,.02f,4.66f);
-            var artAngle=Quaternion.Euler(0,63,0);
-            player.Teleport(artView,artAngle);
-            for(int i=0;i<65;i++) yield return null;
-            SaveFrame(camera,target,"room101-R");
-            player.Teleport(new Vector3(3.65f,.02f,4.05f),Quaternion.Euler(0,73,0));
-            SaveFrame(camera,target,"corridor-R");
+            var artView = new Vector3(7.58f, 0.02f, 4.66f);
+            var artAngle = Quaternion.Euler(0, 63, 0);
+            player.Teleport(artView, artAngle);
+            for (int i = 0; i < 65; i++) yield return null;
+            SaveFrame(camera, target, "room101-R");
+            player.Teleport(new Vector3(3.65f, 0.02f, 4.05f), Quaternion.Euler(0, 73, 0));
+            SaveFrame(camera, target, "corridor-R");
+
+            // M0-R Close-up Hero Craftsmanship Showcase Captures in R (2012)
+            player.Teleport(new Vector3(9.05f, 0.02f, 5.20f), Quaternion.Euler(0, 28, 0));
+            camera.transform.localRotation = Quaternion.Euler(14, 0, 0);
+            SaveFrame(camera, target, "closeup-bed-iv");
+            player.Teleport(new Vector3(8.95f, 0.02f, 5.85f), Quaternion.Euler(0, 6, 0));
+            camera.transform.localRotation = Quaternion.Euler(-4, 0, 0);
+            SaveFrame(camera, target, "closeup-window-rain");
+            player.Teleport(new Vector3(11.55f, 0.02f, 3.85f), Quaternion.Euler(0, 96, 0));
+            camera.transform.localRotation = Quaternion.Euler(10, 0, 0);
+            SaveFrame(camera, target, "closeup-cabinet-wheels");
+            player.Teleport(new Vector3(3.85f, 0.02f, 1.85f), Quaternion.Euler(0, 16, 0));
+            camera.transform.localRotation = Quaternion.Euler(2, 0, 0);
+            SaveFrame(camera, target, "corridor-long-R");
+            player.Teleport(new Vector3(4.35f, 0.02f, -4.65f), Quaternion.Euler(0, -68, 0));
+            camera.transform.localRotation = Quaternion.Euler(8, 0, 0);
+            SaveFrame(camera, target, "reception-R");
+
+            // 3D Physical Inspector close-up capture (Bảy's kraft envelope + brass/steel keys in 3D!)
+            player.Teleport(artView, artAngle);
+            camera.transform.localRotation = Quaternion.identity;
+            var envTmpl = scene.InspectTemplate("E10a");
+            if (envTmpl != null && inspector != null)
+            {
+                inspector.Open(envTmpl, null, 1f, ActiveVolume());
+                for (int i = 0; i < 6; i++) yield return null;
+                SaveFrame(camera, target, "closeup-inspect-3d");
+                inspector.Close();
+            }
+
             player.Teleport(scene.Pad("AP04"));
-            Apply(casework.SwitchIn101(player.Feet),"capture B");
-            for(int i=0;i<55;i++) yield return null;
-            player.Teleport(artView,artAngle);
-            SaveFrame(camera,target,"room101-B");
+            Apply(casework.SwitchIn101(player.Feet), "capture B");
+            for (int i = 0; i < 55; i++) yield return null;
+            player.Teleport(artView, artAngle);
+            camera.transform.localRotation = Quaternion.identity;
+            SaveFrame(camera, target, "room101-B");
+            player.Teleport(new Vector3(3.65f, 0.02f, 4.05f), Quaternion.Euler(0, 73, 0));
+            camera.transform.localRotation = Quaternion.identity;
+            SaveFrame(camera, target, "corridor-B");
+
+            // Optional 30fps Gameplay Walkthrough Video Sequence (-ctcc-record <framesDir>)
+            string recordDir = Argument("-ctcc-record");
+            if (!string.IsNullOrEmpty(recordDir))
+            {
+                yield return RecordWalkthrough(camera, Path.GetFullPath(recordDir));
+            }
+
             ui.Close();
             player.Teleport(scene.Pad("AP04"));
-            Apply(casework.SwitchIn101(player.Feet),"capture back to R");
+            Apply(casework.SwitchIn101(player.Feet), "capture back to R");
             const int count=420;
             var elapsed=new double[count];
             var gpu=new double[count];
@@ -293,6 +337,75 @@ namespace CTCC
             });
             target.Release();
             Destroy(target);
+        }
+
+        private IEnumerator RecordWalkthrough(Camera camera, string dir)
+        {
+            Directory.CreateDirectory(dir);
+            var rt = new RenderTexture(1280, 720, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            rt.Create();
+            var shot = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+            var req = new UniversalRenderPipeline.SingleCameraRequest { destination = rt };
+            int frameIdx = 0;
+
+            void CapturePose(Vector3 pos, Vector3 lookAt)
+            {
+                camera.transform.parent.position = pos;
+                camera.transform.localPosition = Vector3.up * 1.62f;
+                camera.transform.LookAt(lookAt);
+                RenderPipeline.SubmitRenderRequest(camera, req);
+                var fence = AsyncGPUReadback.Request(rt, 0, 0, 1, 0, 1, 0, 1);
+                fence.WaitForCompletion();
+                var prev = RenderTexture.active;
+                RenderTexture.active = rt;
+                shot.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+                shot.Apply();
+                File.WriteAllBytes(Path.Combine(dir, $"frame_{frameIdx:D4}.jpg"), shot.EncodeToJPG(88));
+                RenderTexture.active = prev;
+                frameIdx++;
+            }
+
+            // Ensure R layer for first 210 frames (7 sec at 30fps): Corridor -> Room 101 Door -> Bed/Window -> Bed 4 & Cabinet
+            player.Teleport(scene.Pad("AP04"));
+            if (State.layer == Reality.B) Apply(casework.SwitchIn101(player.Feet), "record R");
+            for (int i = 0; i < 12; i++) yield return null;
+
+            for (int f = 0; f < 90; f++)
+            {
+                float t = f / 89f;
+                float s = t * t * (3f - 2f * t);
+                Vector3 pos = Vector3.Lerp(new Vector3(3.85f, 0.02f, 1.90f), new Vector3(6.85f, 0.02f, 4.75f), s);
+                Vector3 look = Vector3.Lerp(new Vector3(5.65f, 1.55f, 4.95f), new Vector3(11.4f, 1.25f, 6.20f), s);
+                CapturePose(pos, look);
+                yield return null;
+            }
+            for (int f = 0; f < 110; f++)
+            {
+                float t = f / 109f;
+                float s = t * t * (3f - 2f * t);
+                Vector3 pos = Vector3.Lerp(new Vector3(6.85f, 0.02f, 4.75f), new Vector3(9.60f, 0.02f, 5.30f), s);
+                Vector3 look = Vector3.Lerp(new Vector3(11.4f, 1.25f, 6.20f), new Vector3(12.8f, 1.05f, 3.60f), s);
+                CapturePose(pos, look);
+                yield return null;
+            }
+
+            // Switch to B (2005 operational reality) for next 120 frames (4 sec at 30fps)
+            player.Teleport(scene.Pad("AP04"));
+            Apply(casework.SwitchIn101(player.Feet), "record B");
+            for (int i = 0; i < 18; i++) yield return null;
+            for (int f = 0; f < 120; f++)
+            {
+                float t = f / 119f;
+                float s = t * t * (3f - 2f * t);
+                Vector3 pos = Vector3.Lerp(new Vector3(7.58f, 0.02f, 4.66f), new Vector3(9.85f, 0.02f, 5.15f), s);
+                Vector3 look = Vector3.Lerp(new Vector3(11.8f, 1.30f, 6.30f), new Vector3(11.5f, 1.15f, 3.65f), s);
+                CapturePose(pos, look);
+                yield return null;
+            }
+
+            Destroy(shot);
+            rt.Release();
+            Destroy(rt);
         }
 
         private void SaveFrame(Camera camera,RenderTexture target,string name)
