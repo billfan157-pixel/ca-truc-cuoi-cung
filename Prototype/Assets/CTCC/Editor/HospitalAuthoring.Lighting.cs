@@ -66,23 +66,23 @@ namespace CTCC.Editor
             canopyLamp.spotAngle = 124f;
             canopyLamp.innerSpotAngle = 68f;
             canopyLamp.shadowStrength = 0.85f;
-            Lamp("Street wash at the gate", LightType.Point, new Vector3(6.03f, 3.60f, -19.75f), 2.15f, 13.0f, new Color(0.76f, 0.78f, 0.70f), permanent);
-            Lamp("Bounced entry spill", LightType.Point, new Vector3(4.6f, 2.35f, -4.5f), 0.92f, 8.8f, coolNight, permanent);
-            Lamp("Emergency glass return", LightType.Point, new Vector3(6.20f, 2.65f, 19.48f), 1.05f, 9.8f, coolNight, permanent);
+            Lamp("Street wash at the gate", LightType.Point, new Vector3(6.03f, 3.60f, -19.75f), 3.35f, 13.0f, new Color(0.76f, 0.78f, 0.70f), permanent);
+            Lamp("Bounced entry spill", LightType.Point, new Vector3(4.6f, 2.35f, -4.5f), 1.24f, 8.8f, coolNight, permanent);
+            Lamp("Emergency glass return", LightType.Point, new Vector3(6.20f, 2.65f, 19.48f), 1.48f, 9.8f, coolNight, permanent);
             Lamp("Wayfinding on staff corridor", LightType.Point, new Vector3(0.2f, 2.66f, 8.3f), 0.72f, 11.0f, coolNight, permanent);
 
             // Calibrated horror bounce fills in R (deep atmospheric shadows without crushing clues or architectural depth!)
-            Lamp("Room 101 floor bounce R", LightType.Point, new Vector3(9.4f, 1.45f, 5.2f), 0.82f, 8.2f, subtleBounce, real);
+            Lamp("Room 101 floor bounce R", LightType.Point, new Vector3(9.4f, 1.45f, 5.2f), 1.18f, 8.2f, subtleBounce, real);
             Lamp("Back wall warm dust bounce R", LightType.Point, new Vector3(12.2f, 2.15f, 4.4f), 0.65f, 6.8f, new Color(0.80f, 0.74f, 0.60f), real);
-            Lamp("Dry store readable spill R", LightType.Point, new Vector3(15.6f, 2.45f, 3.65f), 1.15f, 6.2f, new Color(0.86f, 0.78f, 0.62f), real);
+            Lamp("Dry store readable spill R", LightType.Point, new Vector3(15.6f, 2.45f, 3.65f), 1.66f, 6.2f, new Color(0.86f, 0.78f, 0.62f), real);
             var corrSpill = Lamp("Corridor doorway spill R", LightType.Spot, new Vector3(6.6f, 2.45f, 4.75f), 3.2f, 9.2f, coolNight, real, shadow: art);
             corrSpill.transform.LookAt(new Vector3(3.1f, 0.35f, 4.75f));
             corrSpill.spotAngle = 82f;
             corrSpill.innerSpotAngle = 42f;
             Lamp("Corridor ambient depth R", LightType.Point, new Vector3(4.0f, 2.55f, 4.95f), 0.84f, 8.4f, coolNight, real);
-            Lamp("Corridor mid bounce R", LightType.Point, new Vector3(4.0f, 2.55f, 10.6f), 0.68f, 8.2f, coolNight, real);
+            Lamp("Corridor mid bounce R", LightType.Point, new Vector3(4.0f, 2.55f, 10.6f), 0.96f, 8.2f, coolNight, real);
             Lamp("Corridor far red emergency hint R", LightType.Point, new Vector3(4.2f, 2.75f, 14.2f), 1.05f, 8.5f, new Color(0.88f, 0.28f, 0.22f), real);
-            Lamp("Desk readable spill R", LightType.Point, new Vector3(2.35f, 2.45f, -3.5f), 0.85f, 7.2f, new Color(0.72f, 0.78f, 0.74f), real);
+            Lamp("Desk readable spill R", LightType.Point, new Vector3(2.35f, 2.45f, -3.5f), 1.18f, 7.2f, new Color(0.72f, 0.78f, 0.74f), real);
             Lamp("Reception desk lamp warm glow", LightType.Point, new Vector3(1.88f, 1.56f, -3.45f), 1.35f, 4.2f, new Color(0.98f, 0.76f, 0.46f), permanent);
 
             // --- B (2005) Institutional Operational Fluorescent T8 Fixtures ---

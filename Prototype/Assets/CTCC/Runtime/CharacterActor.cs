@@ -27,7 +27,7 @@ namespace CTCC
         private PlayableGraph graph;
         private AnimationMixerPlayable mixer;
         private readonly Dictionary<string, int> clipIndex = new(StringComparer.OrdinalIgnoreCase);
-        private readonly List<AnimationClipPlayable> clipPlayables = new();
+        private AnimationClipPlayable[] clipPlayables;
         private int activeSlot = -1;
         private int previousSlot = -1;
         private float fadeTimer;
@@ -119,6 +119,7 @@ namespace CTCC
             graph = PlayableGraph.Create("CTCC_Actor_" + name);
             graph.SetTimeUpdateMode(DirectorUpdateMode.GameTime);
             mixer = AnimationMixerPlayable.Create(graph, clips.Length);
+            clipPlayables = new AnimationClipPlayable[clips.Length];
             var output = AnimationPlayableOutput.Create(graph, "Anim", animator);
             output.SetSourcePlayable(mixer);
 
@@ -131,7 +132,7 @@ namespace CTCC
                 p.SetApplyPlayableIK(false);
                 graph.Connect(p, 0, mixer, i);
                 mixer.SetInputWeight(i, i == 0 ? 1f : 0f);
-                clipPlayables.Add(p);
+                clipPlayables[i] = p;
                 clipIndex[c.name] = i;
                 // Also register short suffix after '|' (Blender FBX exports "Armature|ActionName")
                 int bar = c.name.LastIndexOf('|');
@@ -153,6 +154,7 @@ namespace CTCC
             int found = -1;
             if (!clipIndex.TryGetValue(actionName, out found))
             {
+                found = -1;
                 foreach (var kv in clipIndex)
                 {
                     if (kv.Key.IndexOf(actionName, StringComparison.OrdinalIgnoreCase) >= 0)
@@ -170,7 +172,7 @@ namespace CTCC
             ActiveActionName = actionName;
             fadeDuration = Mathf.Max(0.02f, ReducedMotion ? 0.04f : crossfade);
             fadeTimer = 0f;
-            if (restart && found < clipPlayables.Count)
+            if (restart)
                 clipPlayables[found].SetTime(0d);
         }
 

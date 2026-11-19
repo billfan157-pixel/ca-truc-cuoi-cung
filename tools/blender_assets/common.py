@@ -11,6 +11,7 @@ Provides:
 """
 
 import math
+import os
 from pathlib import Path
 
 import bmesh
@@ -79,8 +80,8 @@ PREVIEW_PALETTE = {
     "LanSkin": ((0.76, 0.59, 0.47), 0.0, 0.66, "LanSkin"),
     "LanLip": ((0.58, 0.33, 0.30), 0.0, 0.52, None),
     "LanHair": ((0.065, 0.052, 0.044), 0.0, 0.48, "LanHair"),
-    "LanEyeWhite": ((0.82, 0.80, 0.77), 0.0, 0.15, None),
-    "LanIris": ((0.11, 0.075, 0.055), 0.0, 0.10, None),
+    "LanEyeWhite": ((0.69, 0.65, 0.61), 0.0, 0.24, None),
+    "LanIris": ((0.065, 0.042, 0.029), 0.0, 0.21, None),
     "LanBadgeMat": ((0.84, 0.81, 0.72), 0.0, 0.32, None),
     "DarkTrouser": ((0.11, 0.13, 0.15), 0.0, 0.86, "DarkTrouser"),
     "CharredBlouse": ((0.18, 0.18, 0.16), 0.0, 0.92, "CharredBlouse"),
@@ -642,7 +643,10 @@ def export_character(name, arm_obj, mesh_objs, render=True, cam_dir=(0.35, -1.85
             bpy.data.worlds.remove(world, do_unlink=True)
 
     blend_path = BLEND_DIR / f"{name}.blend"
-    bpy.ops.wm.save_as_mainfile(filepath=str(blend_path))
+    for source in bpy.data.images:
+        if source.source == "FILE" and Path(source.filepath).is_absolute():
+            source.filepath = "//" + Path(os.path.relpath(source.filepath, BLEND_DIR)).as_posix()
+    bpy.ops.wm.save_as_mainfile(filepath=str(blend_path), relative_remap=False)
 
     bpy.ops.object.select_all(action="DESELECT")
     arm_obj.select_set(True)

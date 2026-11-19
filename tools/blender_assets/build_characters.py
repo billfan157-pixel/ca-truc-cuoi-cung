@@ -280,25 +280,89 @@ def make_smooth_hair_cap(center_z, scale=1.0, style="lan"):
     return C.finalize_mesh(obj, "SmoothHairCap", "LanHair", smooth_angle=82.0, uv_scale=0.28)
 
 
-def make_eyelid_frame(name, sx, ey, ez, scale=1.0):
-    """Sleek flush upper/lower eyelid arcs + delicate dark upper lash hugging the eyeball cleanly."""
-    # Eyeball radius = 0.0115; front surface sits at ey - 0.0115
-    u_pts = [
-        (sx - 0.0130 * scale, ey - 0.0055 * scale, ez + 0.0005 * scale),
-        (sx - 0.0055 * scale, ey - 0.0112 * scale, ez + 0.0068 * scale),
-        (sx + 0.0055 * scale, ey - 0.0112 * scale, ez + 0.0068 * scale),
-        (sx + 0.0130 * scale, ey - 0.0055 * scale, ez + 0.0005 * scale),
-    ]
-    l_pts = [
-        (sx - 0.0120 * scale, ey - 0.0055 * scale, ez - 0.0012 * scale),
-        (sx, ey - 0.0108 * scale, ez - 0.0064 * scale),
-        (sx + 0.0120 * scale, ey - 0.0055 * scale, ez - 0.0012 * scale),
-    ]
-    lash_pts = [(p[0], p[1] - 0.0014 * scale, p[2] - 0.0012 * scale) for p in u_pts]
-    u_lid = C.make_pipe(name + "_U", u_pts, 0.0028 * scale, "LanSkin", bevel_res=3)
-    l_lid = C.make_pipe(name + "_L", l_pts, 0.0020 * scale, "LanSkin", bevel_res=3)
-    lash = C.make_pipe(name + "_Lash", lash_pts, 0.0013 * scale, "LanHair", bevel_res=2)
-    return [u_lid, l_lid, lash]
+def make_eyelids(head, sx, ey, ez, head_z):
+    """Skin patches cover the sclera and feather into the sculpted brow and cheek."""
+    lids = []
+    for name, height, spread in (("Upper", 0.0048, 0.0095), ("Lower", -0.0032, -0.010)):
+        vertices, faces = [], []
+        for row in range(5):
+            blend = row / 4.0
+            for column in range(21):
+                t = column / 10.0 - 1.0
+                x = t * (0.0117 + blend * 0.0037)
+                z = height * (1.0 - t * t) + math.copysign(1.0, sx) * x * 0.09
+                z += blend * spread * (0.55 + 0.45 * (1.0 - t * t))
+                hit, skin, _, _ = head.ray_cast((sx + x, -0.2, ez + z), (0, 1, 0))
+                skin_y = skin.y if hit else ey
+                ball_y = ey - math.sqrt(max(0.0, 0.0116 ** 2 - x * x - z * z))
+                y = min(skin_y - 0.00025, ball_y - 0.00035)
+                if row == 4:
+                    y = skin_y + 0.0004
+                vertices.append((sx + x, y, ez + z))
+                if row and column:
+                    index = row * 21 + column
+                    quad = (index - 22, index - 21, index, index - 1)
+                    faces.append(quad if height > 0 else quad[::-1])
+        mesh = bpy.data.meshes.new(name + "Eyelid")
+        mesh.from_pydata(vertices, [], faces)
+        mesh.update()
+        uv = mesh.uv_layers.new(name="UVMap")
+        for polygon in mesh.polygons:
+            polygon.use_smooth = True
+            for loop in polygon.loop_indices:
+                x, y, z = vertices[mesh.loops[loop].vertex_index]
+                uv.data[loop].uv = (0.5 + math.atan2(x, -y) / math.tau, 0.5 + (z - head_z) / 0.242)
+        lid = bpy.data.objects.new(name + "Eyelid", mesh)
+        bpy.context.collection.objects.link(lid)
+        C.assign_mat(lid, "LanSkin")
+        lids.append(lid)
+    return lids
+
+
+def make_eye(name, center):
+    """Build sclera, iris and pupil on one round surface to avoid protruding discs."""
+    radius = 0.0115
+    segments = 32
+    angles = (0, 13, 20, 31, 54, 76, 100, 124, 145, 163, 180)
+    vertices = []
+    for degrees in angles:
+        angle = math.radians(degrees)
+        for segment in range(segments if degrees not in (0, 180) else 1):
+            around = segment * math.tau / segments
+            vertices.append((center[0] + radius * math.sin(angle) * math.cos(around),
+                             center[1] - radius * math.cos(angle),
+                             center[2] + radius * math.sin(angle) * math.sin(around)))
+
+    faces, materials = [], []
+    for segment in range(segments):
+        next_segment = (segment + 1) % segments
+        faces.append((0, 1 + segment, 1 + next_segment))
+        materials.append(2)
+        for ring in range(len(angles) - 3):
+            current = 1 + ring * segments
+            following = current + segments
+            faces.append((current + segment, following + segment, following + next_segment, current + next_segment))
+            materials.append(1 if angles[ring + 2] <= 31 else 0)
+        last = 1 + (len(angles) - 3) * segments
+        faces.append((last + segment, len(vertices) - 1, last + next_segment))
+        materials.append(0)
+
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata(vertices, [], faces)
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+    for key in ("LanEyeWhite", "LanIris", "Black"):
+        mesh.materials.append(C.get_material(key))
+    for face, material in zip(mesh.polygons, materials):
+        face.material_index = material
+        face.use_smooth = True
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj)
+    return obj
 
 
 def add_lan_shape_keys(head_obj, center_z, scale=1.0):
@@ -559,14 +623,11 @@ def build_lan():
     # Properly seated warm dark-brown Vietnamese eyes visible cleanly inside sculpted almond sockets!
     for side, sx in (("L", -0.0265), ("R", 0.0265)):
         ey, ez = -0.0775, head_z + 0.010
-        scl = C.make_sphere(f"Sclera_{side}", (sx, ey, ez), (0.0230, 0.0230, 0.0230), "LanEyeWhite", segs=20, rings=14)
-        iris = C.make_sphere(f"Iris_{side}", (sx, ey - 0.0094, ez), (0.0124, 0.0055, 0.0124), "LanIris", segs=20, rings=12)
-        pupil = C.make_sphere(f"Pupil_{side}", (sx, ey - 0.0115, ez), (0.0056, 0.0025, 0.0056), "Black", segs=12, rings=8)
-        em = C.join_objects([scl, iris, pupil], f"Lan_Eye_{side}")
+        em = make_eye(f"Lan_Eye_{side}", (sx, ey, ez))
         weight_part(em, arm_obj, [(f"Eye_{side}", 1.0)])
         bind_to_armature(em, arm_obj)
         eye_objs.append(em)
-        hair_parts.extend(make_eyelid_frame(f"Lid_{side}", sx, ey, ez, scale=1.0))
+        hair_parts.extend(make_eyelids(head_obj, sx, ey, ez, head_z))
 
     # Subtle ears + low nurse bun + neat sweeping temple hair strands framing her face
     for sx in (-1, 1):

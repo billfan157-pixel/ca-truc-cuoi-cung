@@ -571,8 +571,8 @@ namespace CTCC.Editor
 
             var inst = (GameObject)PrefabUtility.InstantiatePrefab(prefab, holder.transform);
             inst.transform.localPosition = Vector3.zero;
-            // Blender characters face -Y (in Unity local -Z after FBX import), so 180 yaw faces +Z forward cleanly!
-            inst.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            // The FBX importer maps Blender's authored front to local +Z.
+            inst.transform.localRotation = Quaternion.identity;
 
             foreach (var smr in inst.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
