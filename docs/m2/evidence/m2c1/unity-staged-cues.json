@@ -1,0 +1,55 @@
+{
+  "fps": 30,
+  "frames": 570,
+  "cues": [
+    {
+      "asset": "Prototype/Assets/CTCC/Art/Audio/MUS_LanMotif.wav",
+      "frame": 0,
+      "time": 0.0,
+      "gain": null
+    },
+    {
+      "asset": "Prototype/Assets/CTCC/Art/Audio/VO/CH01-D03.wav",
+      "frame": 55,
+      "time": 1.833,
+      "gain": null
+    },
+    {
+      "asset": "Prototype/Assets/CTCC/Art/Audio/VO/CH01-D04.wav",
+      "frame": 110,
+      "time": 3.667,
+      "gain": null
+    },
+    {
+      "asset": "Prototype/Assets/CTCC/Art/Audio/VO/CH01-D05.wav",
+      "frame": 175,
+      "time": 5.833,
+      "gain": null
+    },
+    {
+      "asset": "Prototype/Assets/CTCC/Art/Audio/VO/CH02-D03.wav",
+      "frame": 348,
+      "time": 11.6,
+      "gain": null
+    },
+    {
+      "asset": "Prototype/Assets/CTCC/Art/Audio/KeyJingle.wav",
+      "frame": 454,
+      "time": 15.133,
+      "gain": null
+    },
+    {
+      "asset": "Prototype/Assets/CTCC/Art/Audio/VO/CH02-D05.wav",
+      "frame": 462,
+      "time": 15.4,
+      "gain": null
+    },
+    {
+      "asset": "Prototype/Assets/CTCC/Art/Audio/KeyJingle.wav",
+      "frame": 512,
+      "time": 17.067,
+      "gain": null
+    }
+  ],
+  "capture_mode": "Staged render from Windows release QA; audio mixed from source WAV cues"
+}

@@ -1,0 +1,4 @@
+FAIL: System.InvalidOperationException: walked through Door A
+  at CTCC.HospitalGame+<Until>d__30.MoveNext () [0x00076] in <6ea78271051741e680a927f947bdfe45>:0
+  at CTCC.HospitalGame+<FinishVerification>d__62.MoveNext () [0x00058] in <6ea78271051741e680a927f947bdfe45>:0
+RESULT=FAIL

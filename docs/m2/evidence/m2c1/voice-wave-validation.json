@@ -1,0 +1,74 @@
+{
+  "CH01-D03": {
+    "sample_rate": 32000,
+    "samples": 46656,
+    "track_duration": 1.458,
+    "fps": 30,
+    "frame_count": 45,
+    "wav_sha256": "7aab3ab52eb88a564a1c7af3fee1441e1f49f410b89d103e4cd8602736a056de"
+  },
+  "CH01-D05": {
+    "sample_rate": 32000,
+    "samples": 139328,
+    "track_duration": 4.354,
+    "fps": 30,
+    "frame_count": 132,
+    "wav_sha256": "c5e4cd64cc967c566aa9410c9066cbf2b19f539d363361353eb5392a48e3aa38"
+  },
+  "CH01-D06": {
+    "sample_rate": 32000,
+    "samples": 125248,
+    "track_duration": 3.914,
+    "fps": 30,
+    "frame_count": 119,
+    "wav_sha256": "68ba0b4c629cadd49a2ac392557d2827e3a60c1445a00d28d3d09445de3307a1"
+  },
+  "CH01-D07": {
+    "sample_rate": 32000,
+    "samples": 92992,
+    "track_duration": 2.906,
+    "fps": 30,
+    "frame_count": 89,
+    "wav_sha256": "0a2225be27094e8ac7277ba7ba718f7e4f325254fae5db826782ac83e138e61c"
+  },
+  "CH01-D08": {
+    "sample_rate": 32000,
+    "samples": 156224,
+    "track_duration": 4.882,
+    "fps": 30,
+    "frame_count": 148,
+    "wav_sha256": "3c27aab43d77feee2158ab8fe6068877d3bfc3403fa02fb1b02769f047dbbb38"
+  },
+  "CH01-D09": {
+    "sample_rate": 32000,
+    "samples": 116800,
+    "track_duration": 3.65,
+    "fps": 30,
+    "frame_count": 111,
+    "wav_sha256": "268fb7e3b8af279c7a3e2b8a7871fdc21c75585ad839b2e44567328953472010"
+  },
+  "CH01-D16": {
+    "sample_rate": 32000,
+    "samples": 166208,
+    "track_duration": 5.194,
+    "fps": 30,
+    "frame_count": 157,
+    "wav_sha256": "29ac3e5be09777e729a0983fe690900601ebf205f0c012cec6e2ca656eaa08d0"
+  },
+  "CH02-D03": {
+    "sample_rate": 32000,
+    "samples": 63552,
+    "track_duration": 1.986,
+    "fps": 30,
+    "frame_count": 61,
+    "wav_sha256": "6b8c3da5658769e414ad6424c67e7374bcb55608ce5c29830ade6f6b640775c5"
+  },
+  "CH02-D05": {
+    "sample_rate": 32000,
+    "samples": 138048,
+    "track_duration": 4.314,
+    "fps": 30,
+    "frame_count": 131,
+    "wav_sha256": "b483cef5a75ed441e033b75e9b9e744bd162b017d42c0e3f4f353136e892fbbd"
+  }
+}

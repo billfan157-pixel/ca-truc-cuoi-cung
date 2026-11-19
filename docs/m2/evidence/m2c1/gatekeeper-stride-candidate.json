@@ -1,0 +1,12 @@
+{
+  "assay": {
+    "action": "GK_StalkWalk",
+    "assumed_world_speed_mps": 1.78,
+    "samples": 60,
+    "stance_forward_compensation_median_mps": 1.0798762366175652,
+    "longitudinal_slip_median_mps": 0.7256996321678162,
+    "longitudinal_slip_p95_mps": 2.516564546823502
+  },
+  "method": "30 Hz local toe positions near floor, constant world translation",
+  "limitations": "Does not measure the shoe sole or collisions in Unity"
+}

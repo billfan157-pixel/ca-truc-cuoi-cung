@@ -1,0 +1,4 @@
+Blender 4.5.10 LTS --factory-startup --export-only, re-import with --verify
+Lan: Blender report matches imported project FBX exactly (2a6a9ffa04e108db3753e07809ce40bc6ca7d9a78b31ad87b9652086efdca50f)
+AnApparition: Blender report matches imported project FBX exactly (86cb96034172e4d57b6c41205d6807e4708df26f5b7c2c9ecd81e6f2b39942c0)
+Gatekeeper: Blender report matches imported project FBX exactly (ac16cdb6177ba55aae0b96575d868f8fcf91c7540a93d6b4bc2c8b7848b46518)

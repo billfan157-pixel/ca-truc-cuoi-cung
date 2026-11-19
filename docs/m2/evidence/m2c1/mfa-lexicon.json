@@ -1,0 +1,51 @@
+{
+  "dictionary": "vietnamese_mfa v3.0.0",
+  "sha256": "2cc49f7108054fa57c54319110a68d0f8c2f828d3e8e83ea56bcb2b958963778",
+  "coverage_only": true,
+  "lines": {
+    "CH01-D03": {
+      "tokens": 4,
+      "oov": [
+        "trễ"
+      ]
+    },
+    "CH01-D05": {
+      "tokens": 13,
+      "oov": []
+    },
+    "CH01-D06": {
+      "tokens": 12,
+      "oov": []
+    },
+    "CH01-D07": {
+      "tokens": 9,
+      "oov": []
+    },
+    "CH01-D08": {
+      "tokens": 15,
+      "oov": [
+        "xê"
+      ]
+    },
+    "CH01-D09": {
+      "tokens": 11,
+      "oov": [
+        "trực"
+      ]
+    },
+    "CH01-D16": {
+      "tokens": 17,
+      "oov": []
+    },
+    "CH02-D03": {
+      "tokens": 7,
+      "oov": []
+    },
+    "CH02-D05": {
+      "tokens": 12,
+      "oov": [
+        "khu"
+      ]
+    }
+  }
+}

@@ -1,0 +1,393 @@
+{
+  "blender": "4.5.10 LTS",
+  "bones": [
+    "KeyRing",
+    "mixamorig:Head",
+    "mixamorig:Hips",
+    "mixamorig:Jaw",
+    "mixamorig:LeftArm",
+    "mixamorig:LeftBreast",
+    "mixamorig:LeftButtock",
+    "mixamorig:LeftEye",
+    "mixamorig:LeftFoot",
+    "mixamorig:LeftForeArm",
+    "mixamorig:LeftHand",
+    "mixamorig:LeftHandIndex1",
+    "mixamorig:LeftHandIndex2",
+    "mixamorig:LeftHandIndex3",
+    "mixamorig:LeftHandMiddle1",
+    "mixamorig:LeftHandMiddle2",
+    "mixamorig:LeftHandMiddle3",
+    "mixamorig:LeftHandPinky1",
+    "mixamorig:LeftHandPinky2",
+    "mixamorig:LeftHandPinky3",
+    "mixamorig:LeftHandRing1",
+    "mixamorig:LeftHandRing2",
+    "mixamorig:LeftHandRing3",
+    "mixamorig:LeftHandThumb1",
+    "mixamorig:LeftHandThumb2",
+    "mixamorig:LeftHandThumb3",
+    "mixamorig:LeftLeg",
+    "mixamorig:LeftOrbicularisBottom",
+    "mixamorig:LeftOrbicularisTop",
+    "mixamorig:LeftShoulder",
+    "mixamorig:LeftToeBase",
+    "mixamorig:LeftUpLeg",
+    "mixamorig:Neck",
+    "mixamorig:RightArm",
+    "mixamorig:RightBreast",
+    "mixamorig:RightButtock",
+    "mixamorig:RightEye",
+    "mixamorig:RightFoot",
+    "mixamorig:RightForeArm",
+    "mixamorig:RightHand",
+    "mixamorig:RightHandIndex1",
+    "mixamorig:RightHandIndex2",
+    "mixamorig:RightHandIndex3",
+    "mixamorig:RightHandMiddle1",
+    "mixamorig:RightHandMiddle2",
+    "mixamorig:RightHandMiddle3",
+    "mixamorig:RightHandPinky1",
+    "mixamorig:RightHandPinky2",
+    "mixamorig:RightHandPinky3",
+    "mixamorig:RightHandRing1",
+    "mixamorig:RightHandRing2",
+    "mixamorig:RightHandRing3",
+    "mixamorig:RightHandThumb1",
+    "mixamorig:RightHandThumb2",
+    "mixamorig:RightHandThumb3",
+    "mixamorig:RightLeg",
+    "mixamorig:RightOrbicularisBottom",
+    "mixamorig:RightOrbicularisTop",
+    "mixamorig:RightShoulder",
+    "mixamorig:RightToeBase",
+    "mixamorig:RightUpLeg",
+    "mixamorig:Root",
+    "mixamorig:Spine",
+    "mixamorig:Spine1",
+    "mixamorig:Spine2"
+  ],
+  "meshes": {
+    "GK_Body_LOD0": {
+      "lod": 0,
+      "vertices": 8318,
+      "triangles": 16448,
+      "max_influences": 4,
+      "unweighted": 0,
+      "max_weight_sum_error": 4.842877388000488e-08,
+      "materials": [
+        "GatekeeperSkin",
+        "LanEyebrow"
+      ],
+      "shapes": [
+        "Blink_L",
+        "Blink_R",
+        "Viseme_AA",
+        "Viseme_OH",
+        "Viseme_EE",
+        "Viseme_MM",
+        "Brow_Concern",
+        "Mouth_Warm",
+        "Mouth_Sorrow",
+        "Viseme_PP",
+        "Viseme_FF",
+        "Viseme_TH",
+        "Viseme_CH",
+        "Viseme_IH",
+        "Viseme_OO",
+        "Viseme_UH",
+        "Jaw_Open",
+        "Eye_Wide_L",
+        "Eye_Wide_R",
+        "Eye_Squint_L",
+        "Eye_Squint_R",
+        "Brow_InnerUp",
+        "Brow_OuterUp_L",
+        "Brow_OuterUp_R",
+        "Brow_Down_L",
+        "Brow_Down_R",
+        "Mouth_Smile_L",
+        "Mouth_Smile_R",
+        "Nose_Wrinkle"
+      ]
+    },
+    "GK_Body_LOD1": {
+      "lod": 1,
+      "vertices": 8318,
+      "triangles": 16448,
+      "max_influences": 4,
+      "unweighted": 0,
+      "max_weight_sum_error": 4.842877388000488e-08,
+      "materials": [
+        "GatekeeperSkin",
+        "LanEyebrow"
+      ],
+      "shapes": [
+        "Blink_L",
+        "Blink_R",
+        "Viseme_AA",
+        "Viseme_OH",
+        "Viseme_EE",
+        "Viseme_MM",
+        "Brow_Concern",
+        "Mouth_Warm",
+        "Mouth_Sorrow",
+        "Viseme_PP",
+        "Viseme_FF",
+        "Viseme_TH",
+        "Viseme_CH",
+        "Viseme_IH",
+        "Viseme_OO",
+        "Viseme_UH",
+        "Jaw_Open",
+        "Eye_Wide_L",
+        "Eye_Wide_R",
+        "Eye_Squint_L",
+        "Eye_Squint_R",
+        "Brow_InnerUp",
+        "Brow_OuterUp_L",
+        "Brow_OuterUp_R",
+        "Brow_Down_L",
+        "Brow_Down_R",
+        "Mouth_Smile_L",
+        "Mouth_Smile_R",
+        "Nose_Wrinkle"
+      ]
+    },
+    "GK_Body_LOD2": {
+      "lod": 2,
+      "vertices": 3546,
+      "triangles": 6908,
+      "max_influences": 4,
+      "unweighted": 0,
+      "max_weight_sum_error": 4.470348358154297e-08,
+      "materials": [
+        "GatekeeperSkin",
+        "LanEyebrow"
+      ],
+      "shapes": [
+        "Blink_L",
+        "Blink_R",
+        "Viseme_AA",
+        "Viseme_OH",
+        "Viseme_EE",
+        "Viseme_MM",
+        "Brow_Concern",
+        "Mouth_Warm",
+        "Mouth_Sorrow",
+        "Viseme_PP",
+        "Viseme_FF",
+        "Viseme_TH",
+        "Viseme_CH",
+        "Viseme_IH",
+        "Viseme_OO",
+        "Viseme_UH",
+        "Jaw_Open",
+        "Eye_Wide_L",
+        "Eye_Wide_R",
+        "Eye_Squint_L",
+        "Eye_Squint_R",
+        "Brow_InnerUp",
+        "Brow_OuterUp_L",
+        "Brow_OuterUp_R",
+        "Brow_Down_L",
+        "Brow_Down_R",
+        "Mouth_Smile_L",
+        "Mouth_Smile_R",
+        "Nose_Wrinkle"
+      ]
+    },
+    "GK_Coat_LOD0": {
+      "lod": 0,
+      "vertices": 8131,
+      "triangles": 16148,
+      "max_influences": 4,
+      "unweighted": 0,
+      "max_weight_sum_error": 5.21540641784668e-08,
+      "materials": [
+        "CharredBlouse",
+        "DarkTrouser",
+        "ClinicalShoe"
+      ],
+      "shapes": []
+    },
+    "GK_Coat_LOD1": {
+      "lod": 1,
+      "vertices": 4255,
+      "triangles": 8396,
+      "max_influences": 4,
+      "unweighted": 0,
+      "max_weight_sum_error": 4.912726581096649e-08,
+      "materials": [
+        "CharredBlouse",
+        "DarkTrouser",
+        "ClinicalShoe"
+      ],
+      "shapes": []
+    },
+    "GK_Coat_LOD2": {
+      "lod": 2,
+      "vertices": 2310,
+      "triangles": 4520,
+      "max_influences": 4,
+      "unweighted": 0,
+      "max_weight_sum_error": 4.842877388000488e-08,
+      "materials": [
+        "CharredBlouse",
+        "DarkTrouser",
+        "ClinicalShoe"
+      ],
+      "shapes": []
+    },
+    "GK_Eye_L_LOD0": {
+      "lod": 0,
+      "vertices": 276,
+      "triangles": 530,
+      "max_influences": 1,
+      "unweighted": 0,
+      "max_weight_sum_error": 0.0,
+      "materials": [
+        "LanEye"
+      ],
+      "shapes": []
+    },
+    "GK_Eye_L_LOD1": {
+      "lod": 1,
+      "vertices": 156,
+      "triangles": 290,
+      "max_influences": 1,
+      "unweighted": 0,
+      "max_weight_sum_error": 0.0,
+      "materials": [
+        "LanEye"
+      ],
+      "shapes": []
+    },
+    "GK_Eye_L_LOD2": {
+      "lod": 2,
+      "vertices": 90,
+      "triangles": 158,
+      "max_influences": 1,
+      "unweighted": 0,
+      "max_weight_sum_error": 0.0,
+      "materials": [
+        "LanEye"
+      ],
+      "shapes": []
+    },
+    "GK_Eye_R_LOD0": {
+      "lod": 0,
+      "vertices": 276,
+      "triangles": 530,
+      "max_influences": 1,
+      "unweighted": 0,
+      "max_weight_sum_error": 0.0,
+      "materials": [
+        "LanEye"
+      ],
+      "shapes": []
+    },
+    "GK_Eye_R_LOD1": {
+      "lod": 1,
+      "vertices": 156,
+      "triangles": 290,
+      "max_influences": 1,
+      "unweighted": 0,
+      "max_weight_sum_error": 0.0,
+      "materials": [
+        "LanEye"
+      ],
+      "shapes": []
+    },
+    "GK_Eye_R_LOD2": {
+      "lod": 2,
+      "vertices": 90,
+      "triangles": 158,
+      "max_influences": 1,
+      "unweighted": 0,
+      "max_weight_sum_error": 0.0,
+      "materials": [
+        "LanEye"
+      ],
+      "shapes": []
+    },
+    "GK_Hair_LOD0": {
+      "lod": 0,
+      "vertices": 865,
+      "triangles": 1050,
+      "max_influences": 1,
+      "unweighted": 0,
+      "max_weight_sum_error": 0.0,
+      "materials": [
+        "GatekeeperHairCard"
+      ],
+      "shapes": []
+    },
+    "GK_Hair_LOD1": {
+      "lod": 1,
+      "vertices": 630,
+      "triangles": 682,
+      "max_influences": 1,
+      "unweighted": 0,
+      "max_weight_sum_error": 0.0,
+      "materials": [
+        "GatekeeperHairCard"
+      ],
+      "shapes": []
+    },
+    "GK_Hair_LOD2": {
+      "lod": 2,
+      "vertices": 445,
+      "triangles": 440,
+      "max_influences": 1,
+      "unweighted": 0,
+      "max_weight_sum_error": 0.0,
+      "materials": [
+        "GatekeeperHairCard"
+      ],
+      "shapes": []
+    },
+    "GK_KeyRing_LOD0": {
+      "lod": 0,
+      "vertices": 328,
+      "triangles": 572,
+      "max_influences": 1,
+      "unweighted": 0,
+      "max_weight_sum_error": 0.0,
+      "materials": [
+        "MetalTrim"
+      ],
+      "shapes": []
+    },
+    "GK_KeyRing_LOD1": {
+      "lod": 1,
+      "vertices": 227,
+      "triangles": 370,
+      "max_influences": 1,
+      "unweighted": 0,
+      "max_weight_sum_error": 0.0,
+      "materials": [
+        "MetalTrim"
+      ],
+      "shapes": []
+    },
+    "GK_KeyRing_LOD2": {
+      "lod": 2,
+      "vertices": 185,
+      "triangles": 286,
+      "max_influences": 1,
+      "unweighted": 0,
+      "max_weight_sum_error": 0.0,
+      "materials": [
+        "MetalTrim"
+      ],
+      "shapes": []
+    }
+  },
+  "actions": [
+    "GK_IdleStill",
+    "GK_InspectReach",
+    "GK_StalkWalk"
+  ],
+  "missing_images": []
+}

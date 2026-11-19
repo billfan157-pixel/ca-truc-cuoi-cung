@@ -1,0 +1,7 @@
+INPUT PASS E11/E12/G02 & CH02-Q05 Door A: physical clues, cabinet, assembly, identification, walking escape and ER ledger.
+INPUT PASS Affirmed: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.
+INPUT PASS E11/E12/G02 & CH02-Q05 Door B: physical clues, cabinet, assembly, identification, walking escape and ER ledger.
+INPUT PASS Unverified: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.
+INPUT PASS Refuted: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.
+INPUT STRESS PASS: 100 paper open/close cycles; 0 live paper meshes, 0 live paper materials, Unity allocated bytes 272664029→271769352.
+RESULT=PASS

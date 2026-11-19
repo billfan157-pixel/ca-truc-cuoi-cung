@@ -1,6 +1,7 @@
 """Run the existing foreground route at 60 Hz and restore the original display mode."""
 
 import argparse
+import csv
 import ctypes as ct
 import json
 from pathlib import Path
@@ -24,6 +25,12 @@ def current_mode(user32):
         raise OSError("Unable to read the primary display mode")
     width, height, _, hz = struct.unpack_from("4I", mode, 172)
     return mode, (width, height, hz)
+
+
+def foreground_share(path, column):
+    with path.open(encoding="utf-8-sig", newline="") as stream:
+        samples = [row[column] == "1" for row in csv.DictReader(stream)]
+    return sum(samples) / len(samples) if samples else 0
 
 
 def main():
@@ -57,14 +64,27 @@ def main():
         (evidence / "display.json").write_text(json.dumps({"previous": before, "test": actual}) + "\n")
         modes = (0,) if args.stress else {"both": (1, 0), "paced": (1,), "uncapped": (0,)}[args.mode]
         for vsync in modes:
-            for n in range(1, args.runs + 1):
-                dest = evidence / f"vsync{vsync}-{n}"
+            good_runs = 0
+            for attempt in range(1, args.runs + 3):
+                dest = evidence / f"vsync{vsync}-{attempt}"
                 cmd = ["pwsh.exe", "-NoProfile", "-File", str(ROOT / "tools" / "measure_m2.ps1"),
                        "-Executable", str(exe), "-PresentMon", str(presentmon), "-Evidence", str(dest),
                        "-VSync", str(vsync)]
                 if args.stress:
                     cmd.append("-CharacterStress")
                 subprocess.run(cmd, check=True)
+                shares = {"unity": foreground_share(dest / "frames.csv", "focused"),
+                          "windows": foreground_share(dest / "process.csv", "foreground")}
+                accepted = min(shares.values()) >= 0.99
+                (dest / "foreground-validation.json").write_text(
+                    json.dumps({"accepted": accepted, "minimum": 0.99, **shares}) + "\n", encoding="utf-8")
+                print(f"{dest.name} viewport focus: {shares}, accepted={accepted}", flush=True)
+                if accepted:
+                    good_runs += 1
+                if good_runs == args.runs:
+                    break
+            if good_runs < args.runs:
+                raise RuntimeError(f"Only {good_runs}/{args.runs} runs met foreground criteria at VSync {vsync}")
     finally:
         if changed and user32.ChangeDisplaySettingsW(original, CDS_FULLSCREEN) != 0:
             raise OSError(f"Failed to restore original display mode {before}")

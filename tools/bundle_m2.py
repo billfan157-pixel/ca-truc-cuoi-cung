@@ -16,6 +16,10 @@ def digest(path):
         return file_digest(stream, 'sha256').hexdigest()
 
 
+def read_identity(path):
+    return dict(line.split('=', 1) for line in path.read_text(encoding='utf-8-sig').splitlines() if '=' in line)
+
+
 def member(name):
     entry = ZipInfo(name, (2026, 11, 19, 0, 0, 0))
     entry.compress_type = ZIP_DEFLATED
@@ -28,16 +32,34 @@ def main():
     parser.add_argument('archive', type=Path)
     parser.add_argument('--allow-dirty', action='store_true',
                         help='Allow packaging before final git commit (only for staging checks).')
+    parser.add_argument('--evidence-identity', type=Path,
+                        help='Commit-linked identity checked against the original build and executable.')
+    parser.add_argument('--label')
     args = parser.parse_args()
     build, archive = args.build.resolve(), args.archive.resolve()
-    identity = dict(line.split('=', 1) for line in (build / 'build-identity.txt').read_text(encoding='utf-8-sig').splitlines() if '=' in line)
+    original_identity = build / 'build-identity.txt'
+    identity = read_identity(original_identity)
     if identity.get('development') != 'False' or digest(build / DLL) != identity.get('assembly_sha256'):
         raise SystemExit('Packaging requires a verified Windows release build matching build-identity.txt.')
-    if not args.allow_dirty and identity.get('prototype_diff'):
+    published_identity = args.evidence_identity or original_identity
+    revision = identity.get('revision', 'unknown')
+    if args.evidence_identity:
+        evidence = read_identity(published_identity)
+        relevant = {'unity', 'development', 'assembly_sha256'} | {
+            key for key in identity if key.startswith('scene_') and key.endswith('_sha256')
+        }
+        if (any(evidence.get(key) != identity.get(key) for key in relevant)
+                or evidence.get('exe_sha256') != digest(build / 'CaTrucCuoiCung.exe')
+                or not evidence.get('source_commit')):
+            raise SystemExit('Evidence identity does not match this Windows player.')
+        revision = evidence['source_commit']
+    elif not args.allow_dirty and identity.get('prototype_diff'):
         raise SystemExit('Packaging requires a clean git tree under Prototype/ (commit first or pass --allow-dirty for staging).')
 
-    guide = f"""CA TRỰC CUỐI CÙNG · M2 VERTICAL SLICE · Windows x64
-Bản dựng 0.3.0-m2 · {identity.get('revision', 'unknown')[:12]}
+    title = args.label or 'M2 VERTICAL SLICE'
+    version = args.label or '0.3.0-m2'
+    guide = f"""CA TRỰC CUỐI CÙNG · {title} · Windows x64
+Bản dựng {version} · {revision[:12]}
 Phạm vi: CH01 cô đọng & đầu CH02 (LOC01–LOC04: Cổng/Sân viện, Sảnh lễ tân, Phòng 101 & Kho lưu, Cấp cứu).
 
 Giải nén cả gói vào cùng một thư mục và mở CaTrucCuoiCung.exe.
@@ -67,7 +89,7 @@ Lưu tay tại bàn trực; tự lưu nguyên tử (atomic save) bám các mốc
         'HUONG-DAN.txt': guide.encode('utf-8-sig'),
         'ThirdPartyNotices.md': notices.encode('utf-8'),
         'BeVietnamPro-OFL.txt': (ROOT / 'Prototype/Assets/CTCC/Art/Resources/CTCC/OFL.txt').read_bytes(),
-        'BUILD.txt': (build / 'build-identity.txt').read_bytes(),
+        'BUILD.txt': published_identity.read_bytes(),
     }
     archive.parent.mkdir(parents=True, exist_ok=True)
     temporary = archive.with_suffix('.zip.tmp')

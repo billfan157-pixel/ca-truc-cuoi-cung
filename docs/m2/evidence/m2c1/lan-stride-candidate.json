@@ -1,0 +1,12 @@
+{
+  "assay": {
+    "action": "Lan_StepOut",
+    "assumed_world_speed_mps": 1.7,
+    "samples": 63,
+    "stance_forward_compensation_median_mps": 0.6984221935272217,
+    "longitudinal_slip_median_mps": 1.0015778064727783,
+    "longitudinal_slip_p95_mps": 2.7350968688726427
+  },
+  "method": "30 Hz local toe positions near floor, constant world translation",
+  "limitations": "Does not measure the shoe sole or collisions in Unity"
+}

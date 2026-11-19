@@ -1,5 +1,7 @@
 # Hồ sơ nghiệm thu kỹ thuật & nghệ thuật M2-C — High-Fidelity Digital Human Production
 
+**Đối chiếu M2-C.1.** Số liệu và ảnh bên dưới thuộc build M2-C gốc. Hồ sơ M2-C.1 đo lại commit `3845fb5` ở 60 Hz thực, gồm kiểm tra bổ sung cho LOD, diễn xuất và runtime. [Hồ sơ M2-C.1](m2c1-acceptance.md)
+
 Báo cáo tổng hợp quá trình tái dựng ba nhân vật chính của *Ca trực cuối cùng* từ nền mẫu M2-A (`49bc06837cf3ebc72348ca4a5f86575f371a108a`) sang hệ nhân vật Digital Human đạt chuẩn giải phẫu, vật liệu URP 17.3 Forward+, diễn xuất cơ thể/khuôn mặt và giữ trọn bản sắc khuôn mặt người Việt Nam / Đông Nam Á cùng bối cảnh Bệnh viện An Sinh năm 2005–2012.
 
 - **Tài liệu thẩm định pipeline & bản quyền:** [m2c-character-audit-and-pipeline.md](m2c-character-audit-and-pipeline.md)

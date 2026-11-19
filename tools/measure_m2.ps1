@@ -26,14 +26,16 @@ try {
     $launchQpc = [Diagnostics.Stopwatch]::GetTimestamp()
     $stressArgs = if ($CharacterStress) { '-ctcc-character-stress true' } else { '' }
     $player = Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) -ArgumentList "-force-d3d12 -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 -ctcc-quality $Quality -ctcc-vsync $VSync -ctcc-gi $GiMode -ctcc-benchmark `"$out`" -ctcc-save `"$out/save`" -ctcc-ablation $Ablation $stressArgs -logFile `"$out/player.log`"" -PassThru
-    Show-CtccPlayerWindow $player
+    Show-CtccPlayerWindow $player -CalibrationClick
+    if (![CtccPlayerWindow]::IsForegroundProcess($player.Id)) {
+        throw "The Windows benchmark player did not acquire foreground focus."
+    }
     $deadline = [Diagnostics.Stopwatch]::StartNew()
     $processSamples = [Collections.Generic.List[string]]::new()
     $processSamples.Add('qpc,working_set_bytes,private_bytes,foreground')
     while (!$player.WaitForExit(500)) {
         $player.Refresh()
-        $focused = [int]($player.MainWindowHandle -ne [IntPtr]::Zero -and
-            [CtccPlayerWindow]::GetForegroundWindow() -eq $player.MainWindowHandle)
+        $focused = [int][CtccPlayerWindow]::IsForegroundProcess($player.Id)
         $processSamples.Add("$([Diagnostics.Stopwatch]::GetTimestamp()),$($player.WorkingSet64),$($player.PrivateMemorySize64),$focused")
         if ($deadline.Elapsed.TotalSeconds -gt 180) { $player.Kill(); throw "Timed out: $out/player.log" }
     }
