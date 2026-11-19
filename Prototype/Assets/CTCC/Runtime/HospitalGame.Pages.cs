@@ -14,6 +14,7 @@ namespace CTCC
         {
             live = false;
             voice?.StopCurrent();
+            voice?.SetPaused(false);
             lanDirector?.StopEncounter(false);
             gatekeeperCameo?.StopAndHide();
             anDirector?.HideImmediately();
@@ -81,6 +82,7 @@ namespace CTCC
 
         private void Pause()
         {
+            voice?.SetPaused(true);
             var manual = transaction.Inspect(SaveSlot.Manual);
             var automatic = transaction.Inspect(SaveSlot.Auto);
             ui.Show(State.chapter == "CH01" ? "NGƯỜI TRỞ VỀ" : "PHÒNG BỆNH TRỐNG", "Tạm dừng",
@@ -534,6 +536,7 @@ namespace CTCC
 
         private void CloseModal()
         {
+            voice?.SetPaused(false);
             firstEscape = true;
             inspector?.Close();
             ui.Close();

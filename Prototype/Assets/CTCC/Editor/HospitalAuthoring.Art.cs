@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -179,7 +180,7 @@ namespace CTCC.Editor
             }
 
             // Skin (Lan, An, Gatekeeper)
-            MakeSkinMat("LanSkin", "LanSkin", sss: 0.58f, backScatter: 0.24f, spec: 0.68f, detailScale: 0.32f, bump: 0.75f);
+            MakeSkinMat("LanSkin", "LanSkin", sss: 0.43f, backScatter: 0.16f, spec: 0.47f, detailScale: 0.27f, bump: 0.75f);
             MakeSkinMat("AnSkin", "AnSkin", sss: 0.62f, backScatter: 0.28f, spec: 0.62f, detailScale: 0.24f, bump: 0.62f);
             MakeSkinMat("GatekeeperSkin", "GatekeeperSkin", sss: 0.14f, backScatter: 0.05f, spec: 0.32f, detailScale: 0.45f, bump: 0.95f);
 
@@ -268,6 +269,8 @@ namespace CTCC.Editor
             MakeApparitionHumanMat("AnCotton_Apparition", "AnCotton_Color", "AnCotton_Normal", "AnCotton_Mask", Color.white, 0f, 0.34f);
             MakeApparitionHumanMat("AnHair_Apparition", "AnHair_Color", "AnHair_Normal", null, Color.white, 0.42f, 0.26f);
             MakeApparitionHumanMat("AnEye_Apparition", "LanEye_Color", "LanEye_Normal", null, Color.white, 0f, 0.18f);
+            MakeApparitionHumanMat("AnTeeth_Apparition", "LanTeeth_Color", null, null, Color.white, 0f, 0.05f);
+            MakeApparitionHumanMat("AnTongue_Apparition", "LanTongue_Color", null, null, Color.white, 0f, 0.03f);
             MakeApparitionHumanMat("AnEyebrow_Apparition", "LanEyebrow_Color", null, null, Color.white, 0.34f, 0.15f);
             MakeApparitionHumanMat("AnEyelash_Apparition", "LanEyelash_Color", null, null, Color.white, 0.34f, 0.15f);
             MakeApparitionHumanMat("AnSlipper_Apparition", null, null, null, new Color(0.88f, 0.72f, 0.24f, 1f), 0f, 0.28f);
@@ -746,69 +749,14 @@ namespace CTCC.Editor
             // The FBX importer maps Blender's authored front to local +Z.
             inst.transform.localRotation = Quaternion.identity;
 
-            var lod0List = new List<Renderer>();
-            var lod1List = new List<Renderer>();
-            var lod2List = new List<Renderer>();
-
-            foreach (var smr in inst.GetComponentsInChildren<SkinnedMeshRenderer>(true))
-            {
-                smr.updateWhenOffscreen = true;
-                smr.shadowCastingMode = isApparition ? ShadowCastingMode.Off : ShadowCastingMode.On;
-                var orig = smr.sharedMaterials;
-                var remapped = new Material[orig.Length];
-                for (int i = 0; i < orig.Length; i++)
-                {
-                    string raw = orig[i] != null ? CleanMatName(orig[i].name) : "NurseBlouse";
-                    if (isApparition)
-                    {
-                        string appKey = raw switch
-                        {
-                            "AnSkin" => "AnSkin_Apparition",
-                            "AnCotton" => "AnCotton_Apparition",
-                            "AnHairCard" => "AnHair_Apparition",
-                            "LanEye" => "AnEye_Apparition",
-                            "LanEyebrow" => "AnEyebrow_Apparition",
-                            "LanEyelash" => "AnEyelash_Apparition",
-                            "SlipperYellow" => "AnSlipper_Apparition",
-                            _ => "AnApparitionMat"
-                        };
-                        remapped[i] = Mat(appKey);
-                    }
-                    else
-                    {
-                        remapped[i] = Mat(raw);
-                    }
-                }
-                smr.sharedMaterials = remapped;
-
-                if (smr.name.Contains("_LOD0")) lod0List.Add(smr);
-                else if (smr.name.Contains("_LOD1")) lod1List.Add(smr);
-                else if (smr.name.Contains("_LOD2")) lod2List.Add(smr);
-            }
-
-            // Configure game-ready LODGroup automatically when character FBX supplies LOD0 / LOD1 / LOD2!
-            if (lod0List.Count > 0 && (lod1List.Count > 0 || lod2List.Count > 0))
-            {
-                var lodGroup = inst.GetComponent<LODGroup>() ?? inst.AddComponent<LODGroup>();
-                var lods = new List<LOD> { new LOD(0.22f, lod0List.ToArray()) };
-                if (lod1List.Count > 0) lods.Add(new LOD(0.08f, lod1List.ToArray()));
-                if (lod2List.Count > 0) lods.Add(new LOD(0.01f, lod2List.ToArray()));
-                lodGroup.SetLODs(lods.ToArray());
-                lodGroup.RecalculateBounds();
-            }
-
-            var clips = AssetDatabase.LoadAllAssetsAtPath(fbxPath)
-                .OfType<AnimationClip>()
-                .Where(c => c != null && !c.name.StartsWith("__preview__", StringComparison.Ordinal))
-                .ToArray();
-
             var actor = holder.AddComponent<CharacterActor>();
             actor.characterId = charId;
-            actor.clips = clips;
+            actor.clips = ActorClips(fbxPath);
             actor.isApparition = isApparition;
             actor.enableBlink = enableBlink;
             actor.enableLipSync = enableLipSync;
             actor.enableLookAt = true;
+            ConfigureActorModel(prefab, inst, isApparition, key => Mat(key));
 
             // Attach toggleable physical 3D F101 Clipboard prop directly onto Lan's right-hand ClipboardSocket_R!
             if (charId.Contains("CHAR002"))
@@ -843,6 +791,109 @@ namespace CTCC.Editor
                 }
             }
             return actor;
+        }
+
+        private static AnimationClip[] ActorClips(string fbxPath) => AssetDatabase.LoadAllAssetsAtPath(fbxPath)
+            .OfType<AnimationClip>()
+            .Where(c => !c.name.StartsWith("__preview__", StringComparison.Ordinal))
+            .ToArray();
+
+        private static void ConfigureActorModel(GameObject prefab, GameObject instance, bool apparition, Func<string, Material> resolve)
+        {
+            var byName = prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true).ToDictionary(r => r.name);
+            var levels = new[] { new List<Renderer>(), new List<Renderer>(), new List<Renderer>() };
+            foreach (var renderer in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (!byName.TryGetValue(renderer.name, out var source))
+                    throw new InvalidOperationException($"Stale character renderer {renderer.name}");
+                var slots = source.sharedMaterials;
+                var mapped = new Material[slots.Length];
+                for (int i = 0; i < slots.Length; i++)
+                {
+                    if (slots[i] == null) throw new InvalidOperationException($"Empty slot in {source.name}");
+                    string key = CleanMatName(slots[i].name);
+                    if (apparition)
+                    {
+                        key = key switch
+                        {
+                            "AnSkin" => "AnSkin_Apparition",
+                            "AnCotton" => "AnCotton_Apparition",
+                            "AnHairCard" => "AnHair_Apparition",
+                            "LanEye" => "AnEye_Apparition",
+                            "LanEyebrow" => "AnEyebrow_Apparition",
+                            "LanEyelash" => "AnEyelash_Apparition",
+                            "LanTeeth" => "AnTeeth_Apparition",
+                            "LanTongue" => "AnTongue_Apparition",
+                            "SlipperYellow" => "AnSlipper_Apparition",
+                            _ => throw new InvalidOperationException($"Unknown apparition material {key}")
+                        };
+                    }
+                    mapped[i] = resolve(key);
+                    if (mapped[i] == null) throw new InvalidOperationException($"Missing material {key}");
+                }
+                renderer.sharedMaterials = mapped;
+                renderer.updateWhenOffscreen = false;
+                renderer.shadowCastingMode = apparition ? ShadowCastingMode.Off : ShadowCastingMode.On;
+                int level = renderer.name.EndsWith("_LOD0", StringComparison.Ordinal) ? 0 :
+                    renderer.name.EndsWith("_LOD1", StringComparison.Ordinal) ? 1 :
+                    renderer.name.EndsWith("_LOD2", StringComparison.Ordinal) ? 2 : -1;
+                if (level < 0) throw new InvalidOperationException($"Missing character LOD suffix on {renderer.name}");
+                levels[level].Add(renderer);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(renderer);
+            }
+            if (levels.Any(level => level.Count == 0))
+                throw new InvalidOperationException($"{instance.name} must supply all three LOD levels");
+
+            var group = instance.GetComponent<LODGroup>() ?? instance.AddComponent<LODGroup>();
+            group.SetLODs(new[]
+            {
+                new LOD(0.22f, levels[0].ToArray()), new LOD(0.08f, levels[1].ToArray()),
+                new LOD(0.01f, levels[2].ToArray())
+            });
+            group.RecalculateBounds();
+            PrefabUtility.RecordPrefabInstancePropertyModifications(group);
+        }
+
+        public static void RefreshCharacterModels()
+        {
+            Material Generated(string key) => AssetDatabase.LoadAssetAtPath<Material>(Root + "/Generated/Materials/Reference_" + key + ".mat");
+            var lanSkin = Generated("LanSkin");
+            lanSkin.SetFloat("_SSSStrength", 0.43f);
+            lanSkin.SetFloat("_BackScatter", 0.16f);
+            lanSkin.SetFloat("_SpecIntensity", 0.47f);
+            lanSkin.SetFloat("_DetailScale", 0.27f);
+            EditorUtility.SetDirty(lanSkin);
+            foreach (var mapping in new[] { ("AnTeeth_Apparition", "LanTeeth_Color", 0.05f), ("AnTongue_Apparition", "LanTongue_Color", 0.03f) })
+            {
+                var material = Generated(mapping.Item1);
+                if (material == null)
+                {
+                    material = new Material(Generated("AnEye_Apparition"));
+                    AssetDatabase.CreateAsset(material, Root + "/Generated/Materials/Reference_" + mapping.Item1 + ".mat");
+                }
+                material.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/Art/Textures/" + mapping.Item2 + ".png"));
+                material.SetTexture("_BumpMap", null);
+                material.SetFloat("_RimStrength", mapping.Item3);
+                EditorUtility.SetDirty(material);
+            }
+            foreach (var zone in ZoneSpecs)
+            {
+                var scene = EditorSceneManager.OpenScene(Root + "/Scenes/" + zone.name + ".unity");
+                var actors = scene.GetRootGameObjects().SelectMany(go => go.GetComponentsInChildren<CharacterActor>(true)).ToArray();
+                foreach (var actor in actors)
+                {
+                    var group = actor.GetComponentInChildren<LODGroup>(true);
+                    if (group == null) throw new InvalidOperationException($"Missing character model on {actor.name}");
+                    var model = group.gameObject;
+                    string path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(model);
+                    var source = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    ConfigureActorModel(source, model, actor.isApparition, Generated);
+                    actor.clips = ActorClips(path);
+                    EditorUtility.SetDirty(actor);
+                }
+                if (actors.Length > 0) EditorSceneManager.SaveScene(scene);
+            }
+            AssetDatabase.SaveAssets();
         }
 
         private static Transform FindDescendant(Transform root, string exactName)

@@ -1,0 +1,102 @@
+{
+  "blender": {
+    "version": "4.5.10 LTS",
+    "build": "6dc0b208d1b5",
+    "source": "https://download.blender.org/release/Blender4.5/"
+  },
+  "unity": {
+    "version": "6000.3.28f1",
+    "urp": "17.3.0",
+    "lock": "Prototype/Packages/packages-lock.json"
+  },
+  "mpfb": {
+    "version": "2.0.18",
+    "build_info": "20261010",
+    "tool_license": "GPL-3.0-or-later",
+    "source": "https://extensions.blender.org/add-ons/mpfb/",
+    "manifest_sha256": "09723beadd1cb5f29f0327a6792fd92365b46fd8bfb8141d9df21c6421a6a201",
+    "texture_inputs_sha256": {
+      "textures/mpfb_face.jpg": "6f2d7abee30d63378b7b4214cf43a47d4cae65d967c12b34e365e058448b96df",
+      "textures/mpfb_lips.jpg": "572630c2b4bb061dfd3b5bb75228615527442296b0db40feffffb0d439e8c203",
+      "textures/mpfb_eyelids.jpg": "2b6f41d6c51f1a991f715025f87a0c8626c889201c8fe9c12514fcc579710532",
+      "textures/mpfb_ears.jpg": "8c1becd3887b65df50720de87e91807667155107d23a6da9f5142d84142b724b",
+      "textures/mpfb_fingernails.jpg": "0828222964a14c14a46e72445f549a2124de06f072daab71e5a6716324c37362",
+      "textures/sss.png": "d433f15c7240c5b0c91c6fafa482d9c380504efd6ad4d1504b4d7da32d1eec42"
+    },
+    "optional_baseline_fallback": "uv_layers/scalp_solid.png missing in installed MPFB data. The bake uses its existing generated fallback."
+  },
+  "makehuman_asset_inputs": {
+    "license": "CC0-1.0",
+    "source": "https://static.makehumancommunity.org/assets/assetpacks.html",
+    "system_pack": "https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip",
+    "installed_files_sha256": {
+      "eyebrows/eyebrow001/eyebrow001.mhclo": "54c8892c2ba577f4152d779ce1f20f7cd323beb8cbd9cb701796165c221b4f5b",
+      "eyebrows/eyebrow001/eyebrow001.mhmat": "976e5f4f1d3922d7a11c6e2db233f8b4584b068d00619d5749687e81c92d61fc",
+      "eyebrows/eyebrow001/eyebrow001.obj": "88b13146395133f3901715e11706cdfd293e5d6087ad7c5e01efe1485a26b513",
+      "eyebrows/eyebrow001/eyebrow001.png": "9940f7d0b1b223709a19b05156ba6f6e9e4dbdbced02d7574f4d51d72c58967b",
+      "eyebrows/eyebrow004/eyebrow004.mhclo": "c0d0c3a0e457ecf6a6a969bb57d1ddd42909845ad612d7ca3b129d265dd6c157",
+      "eyebrows/eyebrow004/eyebrow004.mhmat": "e84a531d1a5cf4229e5c1985c97be0e515c7d5119ed98438a8850f05002d3e00",
+      "eyebrows/eyebrow004/eyebrow004.obj": "f46d623621f28bbad757465721bcc7bbe816f0958d7a4b0f925b0e27733944e1",
+      "eyebrows/eyebrow004/eyebrow004.png": "899b2ae3d6d46bef093b8da0fa2e2c21f07f7565b5e13c57139d1288a3a8e27e",
+      "eyelashes/eyelashes01/eyelashes01.mhclo": "5a86b29c15649273d723084954b7fa7bf199112571d4f58539b46734d397ee6b",
+      "eyelashes/eyelashes01/eyelashes01.mhmat": "8029c99d94f3d87a1e81825fad6b90eec773ae6955a5b2592222ef237377e190",
+      "eyelashes/eyelashes01/eyelashes01.obj": "f78f5b93fea1946fcae103d32c4f082dd9612a1ec2e7e2f90b03ebe59b0baf20",
+      "eyelashes/eyelashes01/eyelashes01.png": "4b69c0fff2648874460e9caf80c31413c444218a5c50afebc425aeaa65484a35",
+      "eyelashes/eyelashes02/eyelashes02.mhclo": "51b858de6005bf9476035a739a695726b2227b853daf60cbf0f6b5eb9f70628e",
+      "eyelashes/eyelashes02/eyelashes02.mhmat": "b4866317918a984e4a20a1ce67b56e7186da6dc5d5436fe0c36f1f058d7dcc6f",
+      "eyelashes/eyelashes02/eyelashes02.obj": "331595b4e19a179be1fe603edc58ba6d088ab7898007b7e8321428efcbaf2eba",
+      "eyelashes/eyelashes02/eyelashes02.png": "6375eb8934d86d49eb2a37589e179614fb557dd92a772ced11e269ad6d72d79d",
+      "eyes/high-poly/high-poly.mhclo": "b183cfe37120ab726f9b3f2ea6cd3a64c44ce7b4bd91a77c841cf70c04f83a0d",
+      "eyes/high-poly/high-poly.obj": "da2493215b708a344c33dc72f2a9a5b8fa985dcc5a70ad3b208995cf871da8e1",
+      "eyes/materials/blue.mhmat": "bd9cab4d2f6ca54df6253c1adfbb1c82e0ee61057361d95449ade06a1b5669c4",
+      "eyes/materials/blue_eye.png": "572ddc93ab3e177100619ec7c00b2574540cfb382805afc2e450788117f6140c",
+      "eyes/materials/bluegreen.mhmat": "2dfb910b48da0e0739b44a8fa4728b3b351bf9b408034c6402a1b9c07915b884",
+      "eyes/materials/bluegreen_eye.png": "653b3154e67f67e118c22acd19c472aa7543e0c229209f687c3f7f669f191fd9",
+      "eyes/materials/brown.mhmat": "4abad93ce50541c08127721e77bce035640c9f16bed16cd0f5524b1cd5908465",
+      "eyes/materials/brown_eye.png": "4659691c7295ad6206c78b003e5fd0e5f91dcd53032fa914a229bb48cabe424b",
+      "eyes/materials/brownlight.mhmat": "75ae6903fe51134ee6f10147dadad3cb1b355aecf8218213431fb6ddbb3ba71d",
+      "eyes/materials/brownlight_eye.png": "3f43a4de70e446186dac1760cfa01dfe36d530ed7564208455395b0ebcdf788a",
+      "eyes/materials/deepblue.mhmat": "08f7a30d8cd8d264d21d755afcfdca3d28386e780b9e9fea11a662337e99d3a3",
+      "eyes/materials/deepblue_eye.png": "55ec9e3d06c8193e74fbbcea32ea474c100feaccef96556d9181e796fe2a7ea6",
+      "eyes/materials/green.mhmat": "b3b512120d9f87f91cd34879ac17ad9f26eb6a250d92be52df8b19df5cc90113",
+      "eyes/materials/green_eye.png": "b9864ac4f4fa484b24e18f6aba030d70dbc8820cbbacfbe63a974c76772c2009",
+      "eyes/materials/grey.mhmat": "65c536157ef0550b2f8461a9526c726707533dc7cfe8a65abb9b9db0b4e6b25e",
+      "eyes/materials/grey_eye.png": "ecb05613126036a3d017880fabbd570501c5f14032c186462d8f6e2d719f6c4f",
+      "eyes/materials/ice.mhmat": "4b2d2d10d9d887dc6f4dd2f66ff252a85b60ca2a30bc2b57672f83b758db776b",
+      "eyes/materials/ice_eye.png": "a5903596fe033371ba7130b5c8b2c09ce2f5d282d77557c21060ab8a778bf03d",
+      "eyes/materials/lightblue.mhmat": "3bb470d56dfdf40b16e499578bf6ea2c4e0e7e27db4c5bd2adb47f760f5c5f34",
+      "eyes/materials/lightblue_eye.png": "687c8f6d95a8550bcd4a34158f415d6bb376c0bb32e67d127bbb51e5fa469eef",
+      "hair/ponytail01/ponytail01.mhclo": "97fc50b12bcb3b1c7b33edddd8d427a2604ffb06fe79b31132bf47f82d7afbac",
+      "hair/ponytail01/ponytail01.mhmat": "b145f5a7c9606859ad523f5113482a1cf989cf0e26dccc2ea95c377cb1c2557f",
+      "hair/ponytail01/ponytail01.obj": "d9f5fe96fbedbc8006220d87aad0e4a33d15286eb6b21f5929661cdc490ebf5a",
+      "hair/ponytail01/ponytail01_diffuse.png": "dcb364300cac06ce8bef91b2f7c0970baf310898bbdd06b0c6b884ee9306eb97",
+      "hair/short01/short01.mhclo": "ae1ffaa98da5753b803b3a173bede4895d2215e6bb94763f3765a71f0e984f35",
+      "hair/short01/short01.mhmat": "01e2e12ce3f3d3c859225456660acadcdd27d4f4b4d888bcbd6f11998cadd975",
+      "hair/short01/short01.obj": "d998d8416f9b5d5591f1d756f4d292288d000a6951bc0f4d2e8e72727bbc44fa",
+      "hair/short01/short01_diffuse.png": "f34a0957184e3d1e911ed59245f874f8d4843f61ee44ff49f43edb4be0196949",
+      "hair/short04/short04.mhclo": "d60640aa4c4ffce1aa269647ba436b6ee0bb21bb948f927b84e27a48d2107157",
+      "hair/short04/short04.mhmat": "7a3ac74db8478aa0afdb8a596c6fe3997d1a8a09d12211d70e8f1e9f0b7e0e97",
+      "hair/short04/short04.obj": "676964a133ee35ffcea1195382bf75542da7a298931e4001bc7b0d7b707225de",
+      "hair/short04/short04_diffuse.png": "0bef7fc0e403db5a40fabb2111ebfa6f7e8158e204c6e56b8da98e9ef527846e",
+      "teeth/teeth_base/teeth.mhmat": "3baeff72d9eb06ca16c3cff7ca2ab304216717dee247e0d88f1dc33037c8320e",
+      "teeth/teeth_base/teeth.png": "d0afb57869c6fbb56b98f5efc4aec629ee7593e70d8dd2bfb9de923acfb65f43",
+      "teeth/teeth_base/teeth_base.mhclo": "9edc3deff3bb97a95c791878064dd069a74a38f95ea6d9707a9ba68d888b3b5c",
+      "teeth/teeth_base/teeth_base.obj": "f55198069e55d360c4b4cc7ecb1cc292b2c7665753ab8b65eabf46a8783f2875",
+      "tongue/tongue01/tongue01.mhclo": "61d825899cd78ff3146fa1324118060cb44b095fae1427d408c199ade74e3c9e",
+      "tongue/tongue01/tongue01.mhmat": "7769df66c69b8c09a0ec713d70d8381abbb08ac82207369f5413970495cd4340",
+      "tongue/tongue01/tongue01.obj": "12f4a6a9f85abae2ce3b4aa42d8119e1f679a437e0e89cb928ec68b29a7a1587",
+      "tongue/tongue01/tongue01_diffuse.png": "3150be398e48e8ba1feac164c3143c16c0b2e959d9ffb6155f0171f59cfb4ea9",
+      "skins/young_asian_female/young_lightskinned_female_diffuse3.png": "1d82f782b7d2da732229633bd2d14754d873fff53cdb1d088977bcf67ae19dde",
+      "skins/middleage_asian_male/middleage_lightskinned_male_diffuse2.png": "e897c4cc1b6ad5d10a7d2b2be92402feda4e772e6582dfaf0a1e8fc4621d8097"
+    }
+  },
+  "cmu": {
+    "source": "https://mocap.cs.cmu.edu/",
+    "variant": "cgspeed MotionBuilder BVH",
+    "retargeted_files_sha256": {
+      "07_04.bvh": "320fceb9f8269b8d44f5142385e98e236eccc24cee3728d8227a4933abb82564",
+      "08_04.bvh": "1acf07634f97a864cb764f4adf22e5ef950ccff32748ea2f62b772bd81010176",
+      "18_08.bvh": "b57e6ba15cf2bde4e6e4233da53425dde6d91952fb2bff17a89c5fce18a1a0ce"
+    }
+  }
+}

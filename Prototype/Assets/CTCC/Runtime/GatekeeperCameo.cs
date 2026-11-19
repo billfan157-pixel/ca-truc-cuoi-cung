@@ -60,6 +60,8 @@ namespace CTCC
         {
             if (active || resolved || scene == null || scene.GatekeeperActor == null) return;
             active = true;
+            keyStepTimer = 0f;
+            pulsePhase = 0f;
             routine = StartCoroutine(RunCameo(state, lineLookup));
         }
 
@@ -163,7 +165,7 @@ namespace CTCC
                 {
                     gk.PlayAction("GK_StalkWalk", 0.25f);
                     Vector3 dir = toWp.normalized;
-                    gk.transform.position += dir * (stalkSpeed * dt);
+                    gk.transform.position += dir * Mathf.Min(stalkSpeed * dt, toWp.magnitude);
                     gk.transform.rotation = Quaternion.Slerp(gk.transform.rotation, Quaternion.LookRotation(dir), dt * 4.5f);
 
                     keyStepTimer += dt;

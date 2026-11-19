@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Playables;
@@ -53,6 +54,7 @@ namespace CTCC
         private int previousSlot = -1;
         private float fadeTimer;
         private float fadeDuration = 0.25f;
+        private bool mixerWeightsDirty;
 
         private Transform neckBone;
         private Transform headBone;
@@ -80,7 +82,9 @@ namespace CTCC
             public int vAA = -1, vEE = -1, vIH = -1, vOH = -1, vOO = -1, vUH = -1, vMM = -1;
             public int jawOpen = -1;
             public int warm = -1, concern = -1, sorrow = -1;
-            public int browInnerUp = -1, browOuterUp = -1, cheekRaise = -1;
+            public int browInnerUp = -1, browOuterUpL = -1, browOuterUpR = -1;
+            public int smileL = -1, smileR = -1;
+            public bool wasVisible;
         }
 
         private readonly List<FaceBinding> faceBindings = new();
@@ -88,24 +92,34 @@ namespace CTCC
 
         private LipSyncTrack activeTrack;
         private string activeLineId;
-        private float speechFallbackTime;
         private float forcedSpeechTime = -1f;
+        private bool speechPaused;
 
         private float blinkCooldown = 2.6f;
         private float blinkPhase = -1f;
         private float targetWarm, targetConcern, targetSorrow;
         private float curWarm, curConcern, curSorrow;
         private readonly float[] curVisemes = new float[12]; // PP,FF,TH,CH,AA,EE,IH,OH,OO,UH,MM,JawOpen
+        private readonly float[] visemeTargets = new float[12];
+        private bool poseDirty = true;
+        private float currentAsymmetry;
+        private float currentBlink;
+        private static readonly ProfilerMarker FaceMarker = new("CTCC.Character.Face");
+        private static readonly ProfilerMarker GazeMarker = new("CTCC.Character.Gaze");
+        internal bool MeasureAnimationAllocations;
+        internal long AnimationAllocationBytes { get; private set; }
+        internal int MeasuredAnimationFrames { get; private set; }
         private float curBrowAccent;
         private readonly float[] sampleBuffer = new float[256];
 
         private Renderer[] allRenderers = Array.Empty<Renderer>();
-        private MaterialPropertyBlock mpb;
+        private Material[] apparitionMaterials = Array.Empty<Material>();
         private float apparitionAlpha = 1f;
         private static readonly int AlphaId = Shader.PropertyToID("_Alpha");
 
         public string ActiveActionName { get; private set; } = "";
         public float ApparitionAlpha => apparitionAlpha;
+        internal string ActiveLineId => activeLineId;
 
         private void Awake()
         {
@@ -114,18 +128,48 @@ namespace CTCC
             if (heldClipboard != null)
                 heldClipboard.SetActive(false);
             if (isApparition)
+            {
+                BindApparitionMaterials();
                 SetApparitionAlpha(0f);
+            }
         }
 
         private void OnDestroy()
         {
             if (graph.IsValid()) graph.Destroy();
+            foreach (var material in apparitionMaterials)
+                Destroy(material);
+        }
+
+        private void OnEnable()
+        {
+            poseDirty = true;
+            if (graph.IsValid()) graph.Play();
+        }
+
+        private void OnDisable()
+        {
+            if (graph.IsValid()) graph.Stop();
+            if (hasLookRotation)
+            {
+                if (headBone != null && Quaternion.Angle(headBone.localRotation, appliedHeadRotation) < 0.1f)
+                    headBone.localRotation = unmodifiedHeadRotation;
+                if (neckBone != null && Quaternion.Angle(neckBone.localRotation, appliedNeckRotation) < 0.1f)
+                    neckBone.localRotation = unmodifiedNeckRotation;
+                if (eyeLeft != null) eyeLeft.localRotation = eyeLeftRestLocal;
+                if (eyeRight != null) eyeRight.localRotation = eyeRightRestLocal;
+            }
+            if (hasJawRotation && jawBone != null && Quaternion.Angle(jawBone.localRotation, appliedJawRotation) < 0.1f)
+                jawBone.localRotation = unmodifiedJawRotation;
+            hasLookRotation = hasJawRotation = false;
+            EndSpeech();
+            Array.Clear(curVisemes, 0, curVisemes.Length);
+            currentJawRad = currentNodDeg = currentAsymmetry = 0f;
         }
 
         private void CacheBonesAndShapes()
         {
             allRenderers = GetComponentsInChildren<Renderer>(true);
-            mpb = new MaterialPropertyBlock();
 
             foreach (var t in GetComponentsInChildren<Transform>(true))
             {
@@ -140,6 +184,8 @@ namespace CTCC
             faceBindings.Clear();
             foreach (var smr in GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
+                // The imported animation bounds remain active even when Unity skips skinning.
+                smr.updateWhenOffscreen = false;
                 var mesh = smr.sharedMesh;
                 if (mesh == null || mesh.blendShapeCount <= 0) continue;
                 var b = new FaceBinding
@@ -163,8 +209,10 @@ namespace CTCC
                     concern = mesh.GetBlendShapeIndex("Brow_Concern"),
                     sorrow = mesh.GetBlendShapeIndex("Mouth_Sorrow"),
                     browInnerUp = mesh.GetBlendShapeIndex("Brow_InnerUp"),
-                    browOuterUp = mesh.GetBlendShapeIndex("Brow_OuterUp"),
-                    cheekRaise = mesh.GetBlendShapeIndex("Cheek_Raise"),
+                    browOuterUpL = mesh.GetBlendShapeIndex("Brow_OuterUp_L"),
+                    browOuterUpR = mesh.GetBlendShapeIndex("Brow_OuterUp_R"),
+                    smileL = mesh.GetBlendShapeIndex("Mouth_Smile_L"),
+                    smileR = mesh.GetBlendShapeIndex("Mouth_Smile_R"),
                 };
                 faceBindings.Add(b);
             }
@@ -214,9 +262,12 @@ namespace CTCC
         {
             voiceSource = source;
             activeLineId = lineId;
-            speechFallbackTime = 0f;
             forcedSpeechTime = -1f;
+            speechPaused = false;
             activeTrack = LoadLipSyncTrack(lineId);
+            if (activeTrack != null && source != null && source.clip != null &&
+                Mathf.Abs(source.clip.length - activeTrack.duration) > 1f / activeTrack.fps)
+                activeTrack = null;
         }
 
         public void ForceSpeechTime(string lineId, float timeSec)
@@ -235,9 +286,12 @@ namespace CTCC
             activeLineId = null;
             activeTrack = null;
             forcedSpeechTime = -1f;
+            speechPaused = false;
         }
 
-        private static LipSyncTrack LoadLipSyncTrack(string lineId)
+        internal void SetSpeechPaused(bool paused) => speechPaused = paused;
+
+        internal static LipSyncTrack LoadLipSyncTrack(string lineId)
         {
             if (string.IsNullOrEmpty(lineId)) return null;
             if (TrackCache.TryGetValue(lineId, out var cached)) return cached;
@@ -245,12 +299,37 @@ namespace CTCC
             LipSyncTrack parsed = null;
             if (ta != null && !string.IsNullOrEmpty(ta.text))
             {
-                try { parsed = JsonUtility.FromJson<LipSyncTrack>(ta.text); }
-                catch { parsed = null; }
+                try
+                {
+                    parsed = JsonUtility.FromJson<LipSyncTrack>(ta.text);
+                    if (!ValidLipSyncTrack(parsed, lineId)) parsed = null;
+                }
+                catch (ArgumentException) { parsed = null; }
             }
             TrackCache[lineId] = parsed;
             return parsed;
         }
+
+        internal static bool ValidLipSyncTrack(LipSyncTrack track, string lineId)
+        {
+            if (track == null || track.lineId != lineId || string.IsNullOrWhiteSpace(track.text) ||
+                track.fps != 30f || !float.IsFinite(track.duration) || track.duration <= 0f ||
+                track.frames == null || track.frames.Length < 2 ||
+                Mathf.Abs((track.frames.Length - 1) / track.fps - track.duration) > 1f / track.fps)
+                return false;
+            for (int i = 0; i < track.frames.Length; i++)
+            {
+                var f = track.frames[i];
+                if (f == null || !float.IsFinite(f.t) || Mathf.Abs(f.t - i / track.fps) > 0.001f ||
+                    !Unit(f.pp) || !Unit(f.ff) || !Unit(f.th) || !Unit(f.ch) || !Unit(f.aa) ||
+                    !Unit(f.ee) || !Unit(f.ih) || !Unit(f.oh) || !Unit(f.oo) || !Unit(f.uh) ||
+                    !Unit(f.mm) || !Unit(f.jaw) || !Unit(f.brow) || !Unit(f.nod) || !Unit(f.breath))
+                    return false;
+            }
+            return true;
+        }
+
+        private static bool Unit(float x) => x >= 0f && x <= 1f;
 
         public void SetHeldClipboardVisible(bool visible)
         {
@@ -282,6 +361,8 @@ namespace CTCC
             ActiveActionName = actionName;
             fadeDuration = Mathf.Max(0.02f, ReducedMotion ? 0.04f : crossfade);
             fadeTimer = 0f;
+            poseDirty = true;
+            mixerWeightsDirty = true;
             if (restart)
                 clipPlayables[found].SetTime(0d);
         }
@@ -295,25 +376,77 @@ namespace CTCC
 
         public void SetApparitionAlpha(float alpha)
         {
-            apparitionAlpha = Mathf.Clamp01(alpha);
-            if (mpb == null) mpb = new MaterialPropertyBlock();
-            mpb.SetFloat(AlphaId, apparitionAlpha);
+            float next = Mathf.Clamp01(alpha);
+            if (next == apparitionAlpha) return;
+            if (apparitionAlpha <= 0.01f && next > 0.01f) poseDirty = true;
+            apparitionAlpha = next;
+            if (!isApparition) return;
+            foreach (var material in apparitionMaterials)
+                material.SetFloat(AlphaId, apparitionAlpha);
             for (int i = 0; i < allRenderers.Length; i++)
             {
                 if (allRenderers[i] == null) continue;
-                allRenderers[i].SetPropertyBlock(mpb);
-                allRenderers[i].enabled = apparitionAlpha > 0.01f;
+                bool visible = apparitionAlpha > 0.01f;
+                if (allRenderers[i].enabled != visible) allRenderers[i].enabled = visible;
             }
+        }
+
+        private void BindApparitionMaterials()
+        {
+            // One owned material per surface across all LODs keeps the fade actor-local and batchable.
+            var instances = new Dictionary<Material, Material>();
+            foreach (var renderer in allRenderers)
+            {
+                var slots = renderer.sharedMaterials;
+                for (int i = 0; i < slots.Length; i++)
+                {
+                    var source = slots[i];
+                    if (source == null || !source.HasProperty(AlphaId)) continue;
+                    if (!instances.TryGetValue(source, out var instance))
+                    {
+                        instance = new Material(source);
+                        instances.Add(source, instance);
+                    }
+                    slots[i] = instance;
+                }
+                renderer.sharedMaterials = slots;
+            }
+            apparitionMaterials = new Material[instances.Count];
+            instances.Values.CopyTo(apparitionMaterials, 0);
         }
 
         private void Update()
         {
+            long before = MeasureAnimationAllocations ? GC.GetAllocatedBytesForCurrentThread() : 0;
             float dt = Mathf.Min(Time.unscaledDeltaTime, 0.05f);
             UpdateMixerFade(dt);
-            UpdateFacialAnimation(dt);
+            using (FaceMarker.Auto()) UpdateFacialAnimation(dt);
+            if (MeasureAnimationAllocations)
+            {
+                AnimationAllocationBytes += GC.GetAllocatedBytesForCurrentThread() - before;
+                MeasuredAnimationFrames++;
+            }
         }
 
         private void LateUpdate()
+        {
+            long before = MeasureAnimationAllocations ? GC.GetAllocatedBytesForCurrentThread() : 0;
+            using (FaceMarker.Auto()) ApplyFaceWeights();
+            if (HasVisibleSkin())
+                using (GazeMarker.Auto()) ApplyGazeAndJaw();
+            if (MeasureAnimationAllocations)
+                AnimationAllocationBytes += GC.GetAllocatedBytesForCurrentThread() - before;
+        }
+
+        private bool HasVisibleSkin()
+        {
+            for (int i = 0; i < faceBindings.Count; i++)
+                if (faceBindings[i].smr != null && faceBindings[i].smr.isVisible)
+                    return true;
+            return false;
+        }
+
+        private void ApplyGazeAndJaw()
         {
             float dt = Mathf.Min(Time.unscaledDeltaTime, 0.05f);
 
@@ -420,12 +553,17 @@ namespace CTCC
                     else if (i == previousSlot) mixer.SetInputWeight(i, 1f - t);
                     else mixer.SetInputWeight(i, 0f);
                 }
-                if (fadeTimer >= fadeDuration) previousSlot = -1;
+                if (fadeTimer >= fadeDuration)
+                {
+                    previousSlot = -1;
+                    mixerWeightsDirty = false;
+                }
             }
-            else
+            else if (mixerWeightsDirty)
             {
                 for (int i = 0; i < clips.Length; i++)
                     mixer.SetInputWeight(i, i == activeSlot ? 1f : 0f);
+                mixerWeightsDirty = false;
             }
         }
 
@@ -433,7 +571,7 @@ namespace CTCC
         {
             if (faceBindings.Count == 0) return;
 
-            // 1. Emotional facial base (smoothly layered with Duchenne cheek raise on genuine warm smile!)
+            // Smooth the expression base independently of the speaker's visibility.
             curWarm = Mathf.MoveTowards(curWarm, targetWarm, dt * 115f);
             curConcern = Mathf.MoveTowards(curConcern, targetConcern, dt * 115f);
             curSorrow = Mathf.MoveTowards(curSorrow, targetSorrow, dt * 115f);
@@ -462,15 +600,16 @@ namespace CTCC
             // 3. Offline 30 Hz Vietnamese Phonetic Lip-Sync (with graceful acoustic fallback if track absent)
             float tPP = 0f, tFF = 0f, tTH = 0f, tCH = 0f;
             float tAA = 0f, tEE = 0f, tIH = 0f, tOH = 0f, tOO = 0f, tUH = 0f, tMM = 0f, tJaw = 0f;
-            float tBrow = 0f, tNod = 0f;
+            float tBrow = 0f, tNod = 0f, asymmetry = 0f;
 
             bool forced = enableLipSync && forcedSpeechTime >= 0f && activeTrack != null && activeTrack.frames != null && activeTrack.frames.Length > 0;
-            bool speaking = forced || (enableLipSync && voiceSource != null && voiceSource.isPlaying);
+            bool speaking = forced || (enableLipSync && voiceSource != null &&
+                (voiceSource.isPlaying || (speechPaused && activeTrack != null)));
             if (speaking && activeTrack != null && activeTrack.frames != null && activeTrack.frames.Length > 0)
             {
-                float playT = forced ? forcedSpeechTime : voiceSource.time;
-                if (!forced && playT <= 0.0001f && speechFallbackTime > 0f) playT = speechFallbackTime;
-                if (!forced) speechFallbackTime += dt;
+                AudioClip clip = forced ? null : voiceSource.clip;
+                float playT = forced ? forcedSpeechTime :
+                    clip != null ? voiceSource.timeSamples / (float)clip.frequency : 0f;
 
                 float fps = activeTrack.fps > 1f ? activeTrack.fps : 30f;
                 float fPos = Mathf.Clamp(playT * fps, 0f, activeTrack.frames.Length - 1);
@@ -495,6 +634,9 @@ namespace CTCC
                 tJaw = Mathf.Lerp(f0.jaw, f1.jaw, a) * 44f;
                 tBrow = Mathf.Lerp(f0.brow, f1.brow, a) * 42f;
                 tNod = ReducedMotion ? 0f : Mathf.Lerp(f0.nod, f1.nod, a) * 3.2f;
+                ApplyReceptionAccent(activeLineId, playT, ref tBrow, ref tNod, out asymmetry);
+                // A bilabial closure overrides the jaw aperture left by adjacent vowels.
+                tJaw *= 1f - Mathf.Max(tPP / 68f, tMM / 55f) * 0.86f;
             }
             else if (speaking)
             {
@@ -525,28 +667,50 @@ namespace CTCC
             }
 
             float vRate = dt * 780f;
-            float[] targets = { tPP, tFF, tTH, tCH, tAA, tEE, tIH, tOH, tOO, tUH, tMM, tJaw };
+            visemeTargets[0] = tPP;
+            visemeTargets[1] = tFF;
+            visemeTargets[2] = tTH;
+            visemeTargets[3] = tCH;
+            visemeTargets[4] = tAA;
+            visemeTargets[5] = tEE;
+            visemeTargets[6] = tIH;
+            visemeTargets[7] = tOH;
+            visemeTargets[8] = tOO;
+            visemeTargets[9] = tUH;
+            visemeTargets[10] = tMM;
+            visemeTargets[11] = tJaw;
             for (int i = 0; i < curVisemes.Length; i++)
-                curVisemes[i] = Mathf.MoveTowards(curVisemes[i], targets[i], vRate);
+                curVisemes[i] = Mathf.MoveTowards(curVisemes[i], visemeTargets[i], vRate);
 
             curBrowAccent = Mathf.MoveTowards(curBrowAccent, tBrow, dt * 160f);
+            currentAsymmetry = Mathf.MoveTowards(currentAsymmetry, asymmetry, dt * 55f);
             currentNodDeg = Mathf.MoveTowards(currentNodDeg, tNod, dt * 22f);
             currentJawRad = Mathf.MoveTowards(currentJawRad, (curVisemes[11] / 100f) * 0.065f, dt * 2.0f);
+            currentBlink = blinkWeight;
+        }
 
-            // Push synced facial weights to ALL LOD face SkinnedMeshRenderers (LOD0 + LOD1)!
+        private void ApplyFaceWeights()
+        {
+            // Synchronize each LOD as soon as Unity reports it visible. Prime all tiers on activation.
             for (int i = 0; i < faceBindings.Count; i++)
             {
                 var b = faceBindings[i];
                 if (b.smr == null) continue;
+                bool visible = b.smr.isVisible;
+                bool write = visible || b.wasVisible || poseDirty;
+                b.wasVisible = visible;
+                if (!write) continue;
                 SetShape(b.smr, b.warm, curWarm);
-                SetShape(b.smr, b.cheekRaise, curWarm * 0.45f);
+                SetShape(b.smr, b.smileL, Mathf.Max(0f, currentAsymmetry));
+                SetShape(b.smr, b.smileR, Mathf.Max(0f, -currentAsymmetry));
                 SetShape(b.smr, b.concern, curConcern);
                 SetShape(b.smr, b.sorrow, curSorrow);
                 SetShape(b.smr, b.browInnerUp, Mathf.Clamp(curBrowAccent + curSorrow * 0.35f, 0f, 100f));
-                SetShape(b.smr, b.browOuterUp, curBrowAccent * 0.65f);
+                SetShape(b.smr, b.browOuterUpL, curBrowAccent * 0.56f);
+                SetShape(b.smr, b.browOuterUpR, curBrowAccent * 0.44f);
 
-                SetShape(b.smr, b.blinkL, blinkWeight);
-                SetShape(b.smr, b.blinkR, blinkWeight);
+                SetShape(b.smr, b.blinkL, currentBlink);
+                SetShape(b.smr, b.blinkR, currentBlink);
 
                 SetShape(b.smr, b.vPP, curVisemes[0]);
                 SetShape(b.smr, b.vFF, curVisemes[1]);
@@ -561,11 +725,42 @@ namespace CTCC
                 SetShape(b.smr, b.vMM, curVisemes[10]);
                 SetShape(b.smr, b.jawOpen, curVisemes[11] * 0.55f);
             }
+            poseDirty = false;
         }
+
+        private void ApplyReceptionAccent(string line, float time, ref float brow, ref float nod, out float asymmetry)
+        {
+            asymmetry = 0f;
+            // Timed beats for the current Temp VO. Keep them separate from phoneme weights.
+            switch (line)
+            {
+                case "CH01-D03":
+                    float chide = Accent(time, 0.16f, 0.55f, 1.15f);
+                    brow += 9f * chide;
+                    asymmetry = 6f * chide;
+                    break;
+                case "CH01-D05":
+                    float redirect = Accent(time, 0.90f, 1.80f, 2.65f);
+                    brow += 13f * redirect;
+                    if (!ReducedMotion) nod -= 1.6f * redirect;
+                    asymmetry = -5f * redirect;
+                    break;
+                case "CH01-D07":
+                    float reluctance = Accent(time, 0.42f, 1.20f, 2.20f);
+                    brow *= 1f - 0.35f * reluctance;
+                    if (!ReducedMotion) nod += 2.4f * reluctance;
+                    break;
+            }
+        }
+
+        private static float Accent(float time, float start, float peak, float end) =>
+            Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(start, peak, time)) *
+            (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(peak, end, time)));
 
         private static void SetShape(SkinnedMeshRenderer smr, int idx, float weight)
         {
-            if (idx >= 0) smr.SetBlendShapeWeight(idx, weight);
+            if (idx >= 0 && Mathf.Abs(smr.GetBlendShapeWeight(idx) - weight) > 0.05f)
+                smr.SetBlendShapeWeight(idx, weight);
         }
     }
 }

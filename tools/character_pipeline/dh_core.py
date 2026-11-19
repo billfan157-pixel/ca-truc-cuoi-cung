@@ -22,10 +22,6 @@ import bpy
 from mathutils import Euler, Matrix, Quaternion, Vector
 from mathutils.bvhtree import BVHTree
 
-from bl_ext.blender_org.mpfb.services.assetservice import AssetService
-from bl_ext.blender_org.mpfb.services.humanservice import HumanService
-from bl_ext.blender_org.mpfb.services.targetservice import TargetService
-
 ROOT = Path(__file__).resolve().parents[2]
 BLEND_DIR = ROOT / "ArtSource" / "Blender"
 FBX_DIR = ROOT / "Prototype" / "Assets" / "CTCC" / "Art" / "Meshes"
@@ -34,6 +30,8 @@ EVIDENCE_DIR = ROOT / "output" / "m2c"
 
 
 def fresh_metric_scene():
+    from bl_ext.blender_org.mpfb.services.assetservice import AssetService
+
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.unit_settings.system = "METRIC"
@@ -57,6 +55,9 @@ def measure_body_bounds(human_obj):
 
 def create_calibrated_human(macro_dict, target_height_m, facial_targets=None):
     """Create an MPFB2 hm08 human, apply anatomical facial morphs, bake targets, and calibrate exact metric height."""
+    from bl_ext.blender_org.mpfb.services.humanservice import HumanService
+    from bl_ext.blender_org.mpfb.services.targetservice import TargetService
+
     human = HumanService.create_human(
         mask_helpers=True,
         detailed_helpers=True,
@@ -87,6 +88,8 @@ def create_calibrated_human(macro_dict, target_height_m, facial_targets=None):
 
 def load_target_deltas(target_name, scale_corr=1.0):
     """Parse an MPFB2 .target.gz file directly into {vert_index: Vector(dx, dy, dz)} in Blender meters."""
+    from bl_ext.blender_org.mpfb.services.targetservice import TargetService
+
     tpath = TargetService.target_full_path(target_name)
     if not tpath:
         print(f"[WARN] Missing MPFB target: {target_name}")
@@ -215,7 +218,7 @@ def build_anatomical_blendshapes(human_obj, scale_corr=1.0):
     return [r[0] for r in recipes]
 
 
-def transfer_shapekeys_by_surface(src_obj, dst_obj, query_y_offset=0.0):
+def transfer_shapekeys_by_surface(src_obj, dst_obj, query_y_offset=0.0, body_only=True):
     """Project all shape keys from src_obj (hm08 face) onto dst_obj (eyelashes/eyebrows)
     via nearest-face barycentric interpolation so lashes & brows deform seamlessly during blinks & speech!"""
     if not src_obj.data.shape_keys:
@@ -228,7 +231,7 @@ def transfer_shapekeys_by_surface(src_obj, dst_obj, query_y_offset=0.0):
     # Build BVH over triangulated Basis mesh of src_obj (only body vertices!)
     bm = bmesh.new()
     bm.from_mesh(src_mesh)
-    bvg = src_obj.vertex_groups.get("body")
+    bvg = src_obj.vertex_groups.get("body") if body_only else None
     if bvg is not None:
         # Remove helper vertices from BVH so lashes bind strictly to actual eyelid skin!
         deform_layer = bm.verts.layers.deform.active
@@ -711,34 +714,18 @@ def make_skinned_lod(src_obj, new_name, ratio, rig_obj, keep_shapekeys=False):
         dec = dup.modifiers.new("LODDecimate", "DECIMATE")
         dec.ratio = ratio
         dec.use_collapse_triangulate = False
+        # Reduce the bind mesh before the armature, even when a posing action is active.
+        dup.modifiers.move(len(dup.modifiers) - 1, 0)
         bpy.ops.object.modifier_apply(modifier=dec.name)
 
     bind_rig(dup, rig_obj)
     return dup
 
 
-def save_and_export_character(name, rig_obj, lod0_meshes, lod1_meshes=None, lod2_meshes=None):
-    """Save editable .blend source to ArtSource/Blender/<name>.blend and export Unity-ready FBX
-    to Prototype/Assets/CTCC/Art/Meshes/<name>.fbx with Armature, BlendShapes, LODs & Actions intact."""
-    BLEND_DIR.mkdir(parents=True, exist_ok=True)
-    FBX_DIR.mkdir(parents=True, exist_ok=True)
-
-    # Make image paths relative to ArtSource/Blender for clean portable .blend files
-    for img in bpy.data.images:
-        if img.source == "FILE" and img.filepath:
-            abs_p = Path(bpy.path.abspath(img.filepath))
-            if abs_p.exists():
-                try:
-                    img.filepath = "//" + Path(os.path.relpath(abs_p, BLEND_DIR)).as_posix()
-                except ValueError:
-                    pass
-
-    # Save editable .blend source
-    blend_path = BLEND_DIR / f"{name}.blend"
-    bpy.ops.wm.save_as_mainfile(filepath=str(blend_path), relative_remap=False)
-
-    # Export Unity FBX with ALL LOD meshes + Armature + BlendShapes + Baked Actions
-    all_meshes = list(lod0_meshes) + list(lod1_meshes or []) + list(lod2_meshes or [])
+def export_character(fbx_path, rig_obj, all_meshes):
+    """Export the selected character, its named LODs and the existing baked actions."""
+    fbx_path = Path(fbx_path)
+    fbx_path.parent.mkdir(parents=True, exist_ok=True)
     for m in all_meshes:
         triangulate_ngons(m)
     bpy.ops.object.select_all(action="DESELECT")
@@ -748,8 +735,7 @@ def save_and_export_character(name, rig_obj, lod0_meshes, lod1_meshes=None, lod2
         m.select_set(True)
     bpy.context.view_layer.objects.active = rig_obj
 
-    fbx_path = FBX_DIR / f"{name}.fbx"
-    tmp_fbx = FBX_DIR / f".{name}.tmp.fbx"
+    tmp_fbx = fbx_path.with_name(f".{fbx_path.stem}.tmp.fbx")
     bpy.ops.export_scene.fbx(
         filepath=str(tmp_fbx),
         use_selection=True,
@@ -775,6 +761,20 @@ def save_and_export_character(name, rig_obj, lod0_meshes, lod1_meshes=None, lod2
         embed_textures=False,
     )
     os.replace(tmp_fbx, fbx_path)
+
+
+def save_and_export_character(name, rig_obj, lod0_meshes, lod1_meshes=None, lod2_meshes=None):
+    """Stage generated files for review. Hand-edited production sources are promoted separately."""
+    stage = Path(os.environ.get("CTCC_CHARACTER_STAGE", ROOT / "output" / "characters-generated")).resolve()
+    stage.mkdir(parents=True, exist_ok=True)
+    blend_path, fbx_path = stage / f"{name}.blend", stage / f"{name}.fbx"
+    if blend_path.exists() or fbx_path.exists() or BLEND_DIR.resolve() == stage or FBX_DIR.resolve() == stage:
+        raise FileExistsError(f"Choose an empty character staging directory: {stage}")
+    all_meshes = list(lod0_meshes) + list(lod1_meshes or []) + list(lod2_meshes or [])
+    for mesh in all_meshes:
+        triangulate_ngons(mesh)
+    bpy.ops.wm.save_as_mainfile(filepath=str(blend_path), relative_remap=True, copy=True)
+    export_character(fbx_path, rig_obj, all_meshes)
 
     def count_tris(objs):
         return sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in (objs or []))

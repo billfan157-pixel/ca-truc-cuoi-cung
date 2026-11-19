@@ -121,20 +121,14 @@ namespace CTCC
             Require(voice.Transcript.Count == journal.transcript.Count, "Journal restores delivered IDs");
             verification.Add("M2A-DIALOGUE PASS: interruption settles once, allowed transcript persists through the snapshot and restore.");
 
-            // 3) Characters, BlendShapes & Dual-Scenario GI Probes check
+            // 3) Digital Human import/production contract and dual-scenario GI.
             if (scene.referenceArt)
             {
-                Require(scene.LanActor != null && scene.LanActor.clips.Length >= 4, "Lan actor rigged with 4+ actions");
-                var lanSmr = scene.LanActor.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-                int maxShapes = 0;
-                foreach (var s in lanSmr) if (s.sharedMesh != null) maxShapes = Mathf.Max(maxShapes, s.sharedMesh.blendShapeCount);
-                Require(maxShapes >= 9, $"Lan face has >=9 blendshapes (got {maxShapes})");
-                Require(scene.GatekeeperActor != null && scene.GatekeeperActor.clips.Length >= 3, "Gatekeeper actor rigged with 3+ actions");
-                Require(scene.AnActor != null && scene.AnActor.clips.Length >= 2, "Bé An apparition actor rigged with 2+ actions");
+                VerifyDigitalHumanContracts();
                 int rProbes = scene.realLightProbes != null ? scene.realLightProbes.count : 0;
                 int bProbes = scene.reportLightProbes != null ? scene.reportLightProbes.count : 0;
                 Require(rProbes > 0 && bProbes > 0, $"Dual-scenario baked LightProbes present (R={rProbes}, B={bProbes})");
-                verification.Add($"M2-CHARACTERS & GI PASS: Lan ({maxShapes} blendshapes, {scene.LanActor.clips.Length} clips), Gatekeeper ({scene.GatekeeperActor.clips.Length} clips), An ({scene.AnActor.clips.Length} clips), Dual LightProbes (R={rProbes}, B={bProbes}).");
+                verification.Add($"M2 dual GI PASS: R={rProbes}, B={bProbes}.");
             }
 
             // 4) CH02-Q05 Gatekeeper cameo trigger, dual-door escape (Door A & Door B), and CH02-T06 non-repeat check
@@ -618,6 +612,7 @@ namespace CTCC
                 SaveFrame(camera, target, "m2c-lan-neutral-studio");
                 Destroy(studioRig);
 
+                yield return VerifyForcedFaceLods(lan, camera, target);
                 lan.gameObject.SetActive(false);
             }
 

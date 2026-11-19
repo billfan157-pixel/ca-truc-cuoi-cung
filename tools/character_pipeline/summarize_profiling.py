@@ -30,6 +30,8 @@ def summarize(ev_dir: Path):
 
     wall_ms, main_ms, render_ms, gpu_ms = [], [], [], []
     draws, setpass, tris, sys_mb, uni_mb = [], [], [], [], []
+    frames_total = 0
+    low_focus = 0
     by_stage = defaultdict(lambda: {"wall": [], "main": [], "gpu": [], "draws": [], "tris": []})
 
     if frames_csv.exists():
@@ -49,9 +51,15 @@ def summarize(ev_dir: Path):
                     continue
                 if w <= 0:
                     continue
+                frames_total += 1
+                if row.get("focused") == "0":
+                    low_focus += 1
+                    continue
                 wall_ms.append(w)
-                main_ms.append(m)
-                render_ms.append(r)
+                if m > 0:
+                    main_ms.append(m)
+                if r > 0:
+                    render_ms.append(r)
                 if g > 0:
                     gpu_ms.append(g)
                 if d > 0:
@@ -66,7 +74,8 @@ def summarize(ev_dir: Path):
                     uni_mb.append(ub)
                 st = row.get("stage", "unknown")
                 by_stage[st]["wall"].append(w)
-                by_stage[st]["main"].append(m)
+                if m > 0:
+                    by_stage[st]["main"].append(m)
                 if g > 0:
                     by_stage[st]["gpu"].append(g)
                 if d > 0:
@@ -92,12 +101,14 @@ def summarize(ev_dir: Path):
                             pass
 
     ws_mb, priv_mb = [], []
+    process_background = 0
     if proc_csv.exists():
         with proc_csv.open("r", encoding="utf-8", errors="ignore") as f:
             for row in csv.DictReader(f):
                 try:
                     ws_mb.append(float(row["working_set_bytes"]) / (1024.0 * 1024.0))
                     priv_mb.append(float(row["private_bytes"]) / (1024.0 * 1024.0))
+                    process_background += row.get("foreground") == "0"
                 except Exception:
                     pass
 
@@ -105,6 +116,11 @@ def summarize(ev_dir: Path):
         "dir": str(ev_dir),
         "meta": meta,
         "frames_count": len(wall_ms),
+        "focus": {"unity_frames_total": frames_total, "unity_frames_not_focused": low_focus,
+                  "process_samples_total": len(ws_mb), "process_samples_not_focused": process_background},
+        "valid_samples": {"unity_main": len(main_ms), "unity_render": len(render_ms),
+                          "unity_gpu": len(gpu_ms), "presentmon_frame": len(pm_frame),
+                          "presentmon_gpu": len(pm_gpu), "presentmon_displayed": len(pm_disp)},
         "unity_wall_ms": {"p50": round(pct(wall_ms, 50), 2), "p95": round(pct(wall_ms, 95), 2), "p99": round(pct(wall_ms, 99), 2)},
         "unity_main_ms": {"p50": round(pct(main_ms, 50), 2), "p95": round(pct(main_ms, 95), 2), "p99": round(pct(main_ms, 99), 2)},
         "unity_render_ms": {"p50": round(pct(render_ms, 50), 2), "p95": round(pct(render_ms, 95), 2)},
@@ -114,6 +130,7 @@ def summarize(ev_dir: Path):
         "triangles": {"p50": int(pct(tris, 50)), "p95": int(pct(tris, 95)), "max": int(max(tris)) if tris else 0},
         "presentmon_frametime_ms": {"n": len(pm_frame), "p50": round(pct(pm_frame, 50), 2), "p95": round(pct(pm_frame, 95), 2), "p99": round(pct(pm_frame, 99), 2)},
         "presentmon_displayed_ms": {"n": len(pm_disp), "p50": round(pct(pm_disp, 50), 2), "p95": round(pct(pm_disp, 95), 2), "p99": round(pct(pm_disp, 99), 2)},
+        "presentmon_gpu_ms": {"n": len(pm_gpu), "p50": round(pct(pm_gpu, 50), 2), "p95": round(pct(pm_gpu, 95), 2), "p99": round(pct(pm_gpu, 99), 2)},
         "memory_mib": {
             "working_set_peak": round(max(ws_mb), 1) if ws_mb else 0.0,
             "working_set_p50": round(pct(ws_mb, 50), 1) if ws_mb else 0.0,

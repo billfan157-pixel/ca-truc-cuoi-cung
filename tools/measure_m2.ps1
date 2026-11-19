@@ -5,7 +5,8 @@ param(
     [string]$Quality = 'Medium',
     [ValidateSet(0,1)][int]$VSync = 0,
     [ValidateSet('dual-probes','trilight','apv')][string]$GiMode = 'dual-probes',
-    [ValidateSet('none','ssao','decals','shadows','probes','transparency','geometry')][string]$Ablation = 'none'
+    [ValidateSet('none','ssao','decals','shadows','probes','transparency','geometry')][string]$Ablation = 'none',
+    [switch]$CharacterStress
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,7 +24,8 @@ try {
     Start-Sleep -Milliseconds 600
     if ($capture.HasExited) { throw "PresentMon startup failed. See $out/presentmon-error.txt" }
     $launchQpc = [Diagnostics.Stopwatch]::GetTimestamp()
-    $player = Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) -ArgumentList "-force-d3d12 -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 -ctcc-quality $Quality -ctcc-vsync $VSync -ctcc-gi $GiMode -ctcc-benchmark `"$out`" -ctcc-save `"$out/save`" -ctcc-ablation $Ablation -logFile `"$out/player.log`"" -PassThru
+    $stressArgs = if ($CharacterStress) { '-ctcc-character-stress true' } else { '' }
+    $player = Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) -ArgumentList "-force-d3d12 -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 -ctcc-quality $Quality -ctcc-vsync $VSync -ctcc-gi $GiMode -ctcc-benchmark `"$out`" -ctcc-save `"$out/save`" -ctcc-ablation $Ablation $stressArgs -logFile `"$out/player.log`"" -PassThru
     Show-CtccPlayerWindow $player
     $deadline = [Diagnostics.Stopwatch]::StartNew()
     $processSamples = [Collections.Generic.List[string]]::new()

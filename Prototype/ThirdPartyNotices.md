@@ -1,5 +1,12 @@
 # Nguồn tài nguyên của bản dựng M2 Vertical Slice (kế thừa M0-R / M1-P)
 
+## Rà soát nguồn M2-C.1
+
+- Blender 4.5.10 LTS và MPFB 2.0.18 là công cụ tạo nội dung. MPFB dùng GPL-3.0-or-later cho mã công cụ. Dữ liệu hình học, texture và target lõi do MakeHuman công bố theo CC0 1.0. Bản khóa nguồn ghi SHA-256 của các tệp đầu vào có trên máy dựng. [Giấy phép MakeHuman](https://static.makehumancommunity.org/about/license.html) · [Gói tài nguyên chính thức](https://static.makehumancommunity.org/assets/assetpacks.html) · [Bản khóa nguồn](../tools/character_pipeline/source-lock.json)
+- `ponytail01`, `short01` và `short04` có thông báo CC0 trong cả tệp lưới và tệp vật liệu. `ponytail01_diffuse.png`, `short01_diffuse.png` và `short04_diffuse.png` là các ảnh diffuse được vật liệu tương ứng tham chiếu. Phần chỉnh alpha ở mép atlas áp dụng trên bản dẫn xuất dùng trong game. Người giữ bản quyền gốc được nêu trong thông báo của asset gồm Data Collection AB, Joel Palmius và Jonas Hauquier.
+- Các BVH CMU đã retarget trong build là `07_04`, `18_08` và `08_04`. Bản khóa lưu dấu vân tay của bản chuyển đổi hiện dùng. Ghi nhận nguồn và quỹ NSF ở bảng dưới. [CMU Graphics Lab](https://mocap.cs.cmu.edu/)
+- Giọng Windows `Microsoft An` hiện dùng cho kiểm thử nội bộ. Tài liệu Windows xác nhận nguồn giọng hệ thống. Quyền phân phối thương mại WAV OneCore trong game cần được xác nhận hoặc WAV được thay bằng bản thu có quyền phát hành. [Danh sách giọng Windows](https://learn.microsoft.com/en-us/uwp/api/windows.media.speechsynthesis.voiceinformation)
+
 ## Bản đồ vật liệu (PBR) và biển hiệu
 
 Các bản đồ micro-surface nền dùng trong bộ vật liệu PBR 2048² và URP DBuffer decal tại LOC01–LOC04 (ngoại cảnh cổng viện, sảnh tiếp nhận, phòng 101, kho lưu, hành lang và phòng Cấp cứu) do ambientCG công bố dưới [CC0 1.0](https://docs.ambientcg.com/license/). Bảng màu, hoa văn gạch bông 20 × 20 cm, hệ vữa vôi–sơn dầu chân tường 1,15 m (đã khử họa tiết lặp cho M2), vết thấm ẩm/rêu mốc nhiệt đới, nhựa đường ướt, mặt tiền vữa cũ, tường gạch rêu, ghế đá mài, tán lá nhiệt đới, vải blouse trắng/quần tối/áo cháy xém, da/tóc/mắt nhân vật, biển hiệu An Sinh (`Sign_HospitalGate`, `Sign_ReceptionWindow`, `Sign_EmergencyBox`, `Sign_KhuBClosed`, `Calendar2005`, `MonitorECG`, `LanBadge`) và toàn bộ giấy tờ điều tra (`F101`, `ObsCard`, `BedList`, `Transfer`, `Drawing`, `WardRules`, `ClockB/R`) do dự án tự tạo (`tools/bake_surfaces.py`, `tools/bake_m2_surfaces.py`, `tools/bake_m2_character_maps.py`, `tools/audit_pbr.py`).

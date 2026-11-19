@@ -142,12 +142,8 @@ Shader "CTCC/DigitalHumanHair"
                 return (albedo * (wrapDiff + rim) + anisoSpec) * radiance;
             }
 
-            half3 ShadeHair(Varyings input, bool isFrontFace, out half alphaOut)
+            half3 ShadeHair(Varyings input, bool isFrontFace, half3 albedo)
             {
-                half4 baseSample = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv);
-                alphaOut = baseSample.a;
-                half3 albedo = baseSample.rgb * _BaseColor.rgb;
-
                 float3 N_geom = normalize(isFrontFace ? input.normalWS : -input.normalWS);
                 float3 T_ws = normalize(input.tangentWS.xyz);
                 float3 B_ws = normalize(cross(N_geom, T_ws) * input.tangentWS.w);
@@ -203,9 +199,9 @@ Shader "CTCC/DigitalHumanHair"
 
             half4 FragCore(Varyings input, bool isFrontFace : SV_IsFrontFace) : SV_Target
             {
-                half alpha;
-                half3 col = ShadeHair(input, isFrontFace, alpha);
-                clip(alpha - _Cutoff);
+                half4 baseSample = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv);
+                clip(baseSample.a - _Cutoff);
+                half3 col = ShadeHair(input, isFrontFace, baseSample.rgb * _BaseColor.rgb);
                 return half4(col, 1.0h);
             }
             ENDHLSL

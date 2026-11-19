@@ -1,6 +1,8 @@
 """Mux Unity 30fps rendered character showcase frames with frame-synced Vietnamese VO, MUS_LanMotif & SFX into MP4 with audio."""
 
 import json
+import os
+import shutil
 import subprocess
 import sys
 import wave
@@ -8,7 +10,9 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
-FFMPEG = ROOT / "output" / "m2a" / "diagnostic-tools" / "imageio_ffmpeg" / "binaries" / "ffmpeg-win-x86_64-v9.0.2.exe"
+FFMPEG = os.environ.get("CTCC_FFMPEG") or shutil.which("ffmpeg") or (
+    ROOT / "output" / "m2a" / "diagnostic-tools" / "imageio_ffmpeg" / "binaries" / "ffmpeg-win-x86_64-v9.0.2.exe"
+)
 
 
 def load_wav_mono_float(path: Path, target_sr=48000) -> np.ndarray:
@@ -38,7 +42,7 @@ def mux_video(frames_dir: Path, out_mp4: Path):
     cues_path = frames_dir / "audio_cues.json"
     raw = cues_path.read_text(encoding="utf-8")
     # Sanitize locale-formatted floats (e.g., 1,833 -> 1.833) or unquoted F2 format tokens cleanly
-    raw = re.sub(r'"time":(\d+),(\d+)', r'"time":\1.\2', raw)
+    raw = re.sub(r'("(?:time|gain)":-?\d+),(\d+)', r'\1.\2', raw)
     raw = re.sub(r'"gain":F2', r'"gain":null', raw)
     spec = json.loads(raw)
     fps = float(spec.get("fps", 30))

@@ -10,6 +10,7 @@ Outputs:
 """
 
 import json
+import hashlib
 import math
 import re
 import shutil
@@ -286,6 +287,7 @@ def align_line(line_id: str, speaker: str, text: str, wav_path: Path):
     """Align Vietnamese phrase & syllable visemes to actual acoustic energy spans in WAV."""
     sig, sr = read_wav_mono(wav_path)
     segs, rms_s, _zcr, dur = extract_speech_segments(sig, sr)
+    loud_reference = max(0.03, float(np.percentile(rms_s, 80)))
 
     expanded = expand_numbers(text)
     is_question = "?" in text
@@ -390,7 +392,7 @@ def align_line(line_id: str, speaker: str, text: str, wav_path: Path):
                     pulse = math.exp(-(dist * dist * 1.35))
                     # Modulate vowel intensity gently by real acoustic loudness at ft
                     r_idx = min(len(rms_s) - 1, max(0, int(ft * 100)))
-                    loud = min(1.15, max(0.45, rms_s[r_idx] / max(0.03, float(np.percentile(rms_s, 80)))))
+                    loud = min(1.15, max(0.45, rms_s[r_idx] / loud_reference))
                     val = ev["w"] * pulse * (1.0 if ev["v"] in ("PP", "FF") else loud)
                     vis[ev["v"]][fi] = max(vis[ev["v"]][fi], min(1.0, val))
                     # Dampen jaw during bilabial closure PP / labiodental FF!
@@ -399,12 +401,6 @@ def align_line(line_id: str, speaker: str, text: str, wav_path: Path):
                     else:
                         jaw[fi] = max(jaw[fi], min(0.85, ev["jaw"] * pulse * loud))
 
-    # Rest lip closure (MM) softly during inter-phrase pauses
-    for fi in range(n_out):
-        total_v = sum(vis[k][fi] for k in VISEME_KEYS if k != "MM")
-        if total_v < 0.08:
-            vis["MM"][fi] = 0.20
-
     # Temporal smoothing (human lip biomechanics: ~65ms smooth response, preventing jitter)
     smooth_k = np.array([0.16, 0.24, 0.30, 0.20, 0.10], dtype=np.float32)
     smooth_k /= smooth_k.sum()
@@ -412,7 +408,7 @@ def align_line(line_id: str, speaker: str, text: str, wav_path: Path):
         vis[k] = np.clip(np.convolve(vis[k], smooth_k, mode="same"), 0.0, 1.0)
     jaw = np.clip(np.convolve(jaw, smooth_k, mode="same"), 0.0, 0.85)
     # Re-enforce crisp bilabial closures (PP suppresses jaw & open vowels!)
-    pp_mask = np.clip((vis["PP"] - 0.35) * 1.8, 0.0, 1.0)
+    pp_mask = np.clip((np.maximum(vis["PP"], vis["MM"]) - 0.28) * 1.8, 0.0, 1.0)
     jaw *= (1.0 - pp_mask * 0.85)
     for open_v in ("AA", "OH", "EE", "UH"):
         vis[open_v] *= (1.0 - pp_mask * 0.72)
@@ -421,6 +417,12 @@ def align_line(line_id: str, speaker: str, text: str, wav_path: Path):
     brow = np.clip(np.convolve(brow, brow_k, mode="same"), 0.0, 1.0)
     nod = np.clip(np.convolve(nod, brow_k, mode="same"), 0.0, 1.0)
     breath = np.clip(np.convolve(breath, brow_k, mode="same"), 0.0, 1.0)
+
+    # At the end of the clip the rig returns to its neutral mouth, including short takes
+    # whose final utterance is close to the end of the WAV.
+    release = np.clip((dur - np.arange(n_out) / FPS) / 0.075, 0.0, 1.0)
+    for channel in (*vis.values(), jaw, brow, nod, breath):
+        channel *= release
 
     # Compact Unity JsonUtility-friendly structure (rounded to 3 decimals)
     frames = []
@@ -450,7 +452,8 @@ def align_line(line_id: str, speaker: str, text: str, wav_path: Path):
         "text": text,
         "duration": round(dur, 3),
         "fps": int(FPS),
-        "method": "vietnamese_g2p_acoustic_forced_alignment",
+        "method": "vietnamese_g2p_acoustic_envelope_heuristic",
+        "audioSha256": hashlib.sha256(wav_path.read_bytes()).hexdigest(),
         "frames": frames,
     }
     return track, sig, sr, aligned_debug
@@ -552,12 +555,12 @@ def main():
     OUT_RES_DIR.mkdir(parents=True, exist_ok=True)
     OUT_SRC_DIR.mkdir(parents=True, exist_ok=True)
 
+    missing = [line for line, _, _ in character_lines if not (VO_DIR / f"{line}.wav").is_file()]
+    if missing:
+        raise FileNotFoundError("Missing character WAVs: " + ", ".join(missing))
     debug_plot_items = []
     for line_id, speaker, text in character_lines:
         wav_path = VO_DIR / f"{line_id}.wav"
-        if not wav_path.exists():
-            print(f"[LIPSYNC] Skipping missing WAV: {wav_path}")
-            continue
         track, sig, sr, dbg = align_line(line_id, speaker, text, wav_path)
         payload = json.dumps(track, ensure_ascii=False, separators=(",", ":"))
         (OUT_RES_DIR / f"{line_id}.json").write_text(payload, encoding="utf-8")

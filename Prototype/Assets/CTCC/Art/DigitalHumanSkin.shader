@@ -179,12 +179,19 @@ Shader "CTCC/DigitalHumanSkin"
                 half3 nMacroTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.uv), _BumpScale);
                 float camDist = length(_WorldSpaceCameraPos - input.positionWS);
                 half poreFade = saturate(1.0 - (camDist - 0.45) / max(0.25, _DetailFadeDist - 0.45));
-                half3 nDetailTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_DetailNormalMap, sampler_DetailNormalMap, input.uv * _DetailTiling), _DetailScale * poreFade);
-
-                // Reoriented normal blending
-                half3 t = nMacroTS + half3(0.0h, 0.0h, 1.0h);
-                half3 u = nDetailTS * half3(-1.0h, -1.0h, 1.0h);
-                half3 nCombinedTS = normalize(t * dot(t, u) - u * t.z);
+                half3 nCombinedTS = nMacroTS;
+                float2 poreUv = input.uv * _DetailTiling;
+                float2 poreDx = ddx(poreUv);
+                float2 poreDy = ddy(poreUv);
+                UNITY_BRANCH if (poreFade > 0.0h)
+                {
+                    half3 detail = UnpackNormalScale(
+                        SAMPLE_TEXTURE2D_GRAD(_DetailNormalMap, sampler_DetailNormalMap, poreUv, poreDx, poreDy),
+                        _DetailScale * poreFade);
+                    half3 t = nMacroTS + half3(0.0h, 0.0h, 1.0h);
+                    half3 u = detail * half3(-1.0h, -1.0h, 1.0h);
+                    nCombinedTS = normalize(t * dot(t, u) - u * t.z);
+                }
 
                 half3 N_macro = normalize(mul(nMacroTS, TBN));
                 half3 N = normalize(mul(nCombinedTS, TBN));

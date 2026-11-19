@@ -143,7 +143,7 @@ namespace CTCC
                 foreach (Vector3 corner in path.corners)
                 {
                     var destination = new Vector3(corner.x, fromPos.y, corner.z);
-                    while ((destination - lan.transform.position).sqrMagnitude > 0.005f)
+                    while ((destination - lan.transform.position).sqrMagnitude > 0.000004f)
                     {
                         float step = Time.unscaledDeltaTime;
                         lan.transform.rotation = Quaternion.RotateTowards(lan.transform.rotation,
@@ -151,6 +151,14 @@ namespace CTCC
                         lan.transform.position = Vector3.MoveTowards(lan.transform.position, destination, step * 1.7f);
                         yield return null;
                     }
+                }
+                // Finish the turn on a planted listening pose as she makes eye contact.
+                lan.PlayAction("Lan_Listen", 0.18f, restart: true);
+                while (Quaternion.Angle(lan.transform.rotation, toRot) > 1f)
+                {
+                    lan.transform.rotation = Quaternion.RotateTowards(lan.transform.rotation,
+                        toRot, Time.unscaledDeltaTime * 300f);
+                    yield return null;
                 }
             }
             lan.transform.SetPositionAndRotation(toPos, toRot);

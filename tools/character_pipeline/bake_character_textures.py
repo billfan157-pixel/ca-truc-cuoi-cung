@@ -30,8 +30,12 @@ SRC_TEX_DIR = ROOT / "ArtSource" / "Characters" / "Textures"
 FONT_BOLD = ROOT / "Prototype" / "Assets" / "CTCC" / "Art" / "Resources" / "CTCC" / "BeVietnamPro-SemiBold.ttf"
 FONT_SEMI = ROOT / "Prototype" / "Assets" / "CTCC" / "Art" / "Resources" / "CTCC" / "BeVietnamPro-Regular.ttf"
 
-MPFB_EXT = Path(os.environ["APPDATA"]) / "Blender Foundation/Blender/4.5/extensions/blender_org/mpfb/data"
-MPFB_USER = Path(os.environ["APPDATA"]) / "Blender Foundation/Blender/4.5/extensions/.user/blender_org/mpfb/data"
+BLENDER_EXTENSIONS = Path(os.environ.get(
+    "BLENDER_USER_EXTENSIONS",
+    Path(os.environ.get("APPDATA", Path.home())) / "Blender Foundation/Blender/4.5/extensions",
+))
+MPFB_EXT = Path(os.environ.get("CTCC_MPFB_EXTENSION_DATA", BLENDER_EXTENSIONS / "blender_org/mpfb/data"))
+MPFB_USER = Path(os.environ.get("CTCC_MPFB_ASSET_DATA", BLENDER_EXTENSIONS / ".user/blender_org/mpfb/data"))
 
 
 def load_rgb(path: Path, size=None) -> np.ndarray:
@@ -361,8 +365,7 @@ def build_cc0_hair_textures():
     for prefix, rel, mul, pwr, gray_streak in specs:
         src = MPFB_USER / rel
         if not src.exists():
-            print(f"[WARN] Missing CC0 hair source {src}")
-            continue
+            raise FileNotFoundError(f"Missing pinned CC0 hair source {src}")
         rgba = load_rgba(src, 2048)
         rgb = rgba[..., :3]
         alpha = rgba[..., 3]

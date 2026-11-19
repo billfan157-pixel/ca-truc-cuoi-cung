@@ -68,7 +68,7 @@ Shader "CTCC/ApparitionHuman"
             }
             half4 FragPre(Varyings input) : SV_Target
             {
-                clip(_Alpha - 0.02h);
+                clip(_Alpha - 0.01h);
                 if (_Cutoff > 0.01h)
                     clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).a - _Cutoff);
                 return 0;
@@ -137,8 +137,7 @@ Shader "CTCC/ApparitionHuman"
 
             half4 Frag(Varyings input) : SV_Target
             {
-                if (_Alpha <= 0.005h)
-                    discard;
+                clip(_Alpha - 0.01h);
 
                 half4 baseSample = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv);
                 if (_Cutoff > 0.01h)

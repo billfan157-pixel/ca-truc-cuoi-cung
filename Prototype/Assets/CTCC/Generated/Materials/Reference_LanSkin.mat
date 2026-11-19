@@ -92,7 +92,7 @@ Material:
     - _AddPrecomputedVelocity: 0
     - _AlphaClip: 0
     - _AlphaToMask: 0
-    - _BackScatter: 0.24
+    - _BackScatter: 0.16
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 0.75
@@ -103,7 +103,7 @@ Material:
     - _DetailAlbedoMapScale: 1
     - _DetailFadeDist: 2.8
     - _DetailNormalMapScale: 1
-    - _DetailScale: 0.32
+    - _DetailScale: 0.27
     - _DetailTiling: 14
     - _DstBlend: 0
     - _DstBlendAlpha: 0
@@ -116,11 +116,11 @@ Material:
     - _Parallax: 0.005
     - _QueueOffset: 0
     - _ReceiveShadows: 1
-    - _SSSStrength: 0.58
+    - _SSSStrength: 0.43
     - _Smoothness: 1
     - _SmoothnessScale: 0.9
     - _SmoothnessTextureChannel: 0
-    - _SpecIntensity: 0.68
+    - _SpecIntensity: 0.47
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1

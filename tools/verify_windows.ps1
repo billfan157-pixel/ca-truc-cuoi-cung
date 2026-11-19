@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory=$true)][string]$Evidence,
     [string]$RecordDir = "",
     [switch]$PlayerInput,
-    [ValidateSet('module-failure','keyboard-failure','visual-failure','escape-premature')][string]$ProbeFailure
+    [ValidateSet('module-failure','keyboard-failure','visual-failure','escape-premature','char-mesh','char-track','char-interruption')][string]$ProbeFailure,
+    [ValidateSet('Low','Medium','High')][string]$Quality = 'Medium'
 )
 
 $ErrorActionPreference='Stop'
@@ -17,7 +18,7 @@ if(Test-Path -LiteralPath (Join-Path $ctccEvidence 'gameplay.txt')) {
 New-Item -ItemType Directory -Path $ctccEvidence -Force | Out-Null
 $ctccLog=Join-Path $ctccEvidence 'player.log'
 $qaArgs = if ($PlayerInput) { "-ctcc-input-qa `"$ctccEvidence`" -ctcc-save `"$ctccEvidence/input-save`"" } else { "-ctcc-qa `"$ctccEvidence`"" }
-$ctccArgs="-force-d3d12 -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 $qaArgs -logFile `"$ctccLog`""
+$ctccArgs="-force-d3d12 -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 -ctcc-quality $Quality $qaArgs -logFile `"$ctccLog`""
 if ($ProbeFailure) { $ctccArgs += " -ctcc-qa-probe $ProbeFailure" }
 if($RecordDir -ne "") {
     $recFull = [System.IO.Path]::GetFullPath($RecordDir)
@@ -44,6 +45,9 @@ if ($ProbeFailure) {
         'keyboard-failure' { 'T06 keyboard: first=False second=True escaped=True alt=True' }
         'visual-failure' { 'intentional QA visual failure' }
         'escape-premature' { 'Failed escape publication retains live encounter and previous snapshot' }
+        'char-mesh' { 'missing skinned component Lan_Eye_L_LOD1' }
+        'char-track' { 'Invalid character track or stale audio/text: CH01-D03' }
+        'char-interruption' { 'interrupted character voice did not release face, voice source and callback' }
     }
     if ($ctccRun.ExitCode -ne 1 -or !(Test-Path -LiteralPath $verdict) -or
         !(Select-String -LiteralPath $verdict -Quiet -Pattern '^RESULT=FAIL$') -or

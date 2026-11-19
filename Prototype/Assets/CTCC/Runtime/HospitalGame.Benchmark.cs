@@ -301,6 +301,59 @@ namespace CTCC
                     foreach (var unused in BenchmarkWalk(step.Name, step.Destination)) yield return null;
                 }
             }
+            if (Argument("-ctcc-character-stress") == "true")
+                foreach (var unused in BenchmarkCharacterStress()) yield return null;
+        }
+
+        private IEnumerable<object> BenchmarkCharacterStress()
+        {
+            Vector3 cameraFeet = new(4f, 0.02f, -16f);
+            player.Teleport(cameraFeet, Quaternion.identity);
+            benchmarkTorch.enabled = false;
+            var templates = new[] { scene.LanActor, scene.AnActor, scene.GatekeeperActor };
+            var stageActions = new[] { "Lan_TalkGesture", "An_IdleLook", "GK_IdleStill" };
+            var lines = new[] { "CH01-D05", "CH02-D03", "CH02-D05" };
+            var actors = new List<CharacterActor>(9);
+            var faces = new List<SkinnedMeshRenderer>(9);
+            try
+            {
+                foreach (int total in new[] { 1, 3, 6, 9 })
+                {
+                    for (int i = actors.Count; i < total; i++)
+                    {
+                        Vector3 position = cameraFeet + new Vector3((i % 3 - 1) * 1.45f, 0f, 4.3f + (i / 3) * 1.7f);
+                        var actor = Instantiate(templates[i % 3], position, Quaternion.Euler(0f, 180f, 0f));
+                        actors.Add(actor);
+                        actor.gameObject.SetActive(true);
+                        actor.LookTarget = player.Eye.transform;
+                        if (actor.isApparition) actor.SetApparitionAlpha(0.8f);
+                        actor.PlayAction(stageActions[i % 3], 0.25f, restart: true);
+                        var group = actor.GetComponentInChildren<LODGroup>();
+                        group.ForceLOD(0);
+                        faces.Add(group.GetLODs()[0].renderers.OfType<SkinnedMeshRenderer>()
+                            .Single(renderer => renderer.name.Contains("_Body_")));
+                    }
+                    benchmarkStage = $"stress-visible-{total}";
+                    double start = Time.realtimeSinceStartupAsDouble;
+                    for (double elapsed = 0; elapsed < 6.0; elapsed = Time.realtimeSinceStartupAsDouble - start)
+                    {
+                        for (int i = 0; i < actors.Count; i++)
+                            actors[i].ForceSpeechTime(lines[i % 3], (float)((elapsed + i * 0.07) % 1.3));
+                        yield return null;
+                    }
+                    Require(faces.All(face => face.isVisible), $"Stress stage {total}: one or more bodies were culled");
+                }
+                benchmarkStage = "stress-offscreen-9";
+                player.Teleport(cameraFeet, Quaternion.Euler(0f, 180f, 0f));
+                double until = Time.realtimeSinceStartupAsDouble + 6.0;
+                while (Time.realtimeSinceStartupAsDouble < until) yield return null;
+                // Renderer.isVisible can still include shadows, so only the camera direction is controlled here.
+            }
+            finally
+            {
+                foreach (var actor in actors)
+                    if (actor != null) Destroy(actor.gameObject);
+            }
         }
 
         private readonly struct BenchmarkStep

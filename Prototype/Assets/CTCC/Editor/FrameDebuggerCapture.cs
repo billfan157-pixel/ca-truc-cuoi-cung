@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -11,6 +12,36 @@ namespace CTCC.Editor
     public static class FrameDebuggerCapture
     {
         private const BindingFlags Static = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+
+        public static void AuditDigitalHumanShaders()
+        {
+            var args = Environment.GetCommandLineArgs();
+            int index = Array.IndexOf(args, "-ctcc-frame-log");
+            if (index < 0 || index + 1 >= args.Length) throw new ArgumentException("Supply -ctcc-frame-log");
+            var compatibility = typeof(ShaderUtil).GetMethod("GetSRPBatcherCompatibilityCode", Static);
+            var reason = typeof(ShaderUtil).GetMethod("GetSRPBatcherCompatibilityIssueReason", Static);
+            var rows = new List<string> { $"Unity {Application.unityVersion} imported shader and SRP Batcher audit" };
+            foreach (string name in new[] { "DigitalHumanSkin", "DigitalHumanEye", "DigitalHumanHair",
+                                            "DigitalHumanFabric", "ApparitionHuman" })
+            {
+                var shader = AssetDatabase.LoadAssetAtPath<Shader>($"Assets/CTCC/Art/{name}.shader");
+                if (shader == null) throw new InvalidOperationException($"Missing shader {name}");
+                var messages = ShaderUtil.GetShaderMessages(shader);
+                if (messages.Any(m => m.severity.ToString() == "Error"))
+                    throw new InvalidOperationException($"{name}: {string.Join("; ", messages.Select(m => m.message))}");
+                var material = new Material(shader);
+                try
+                {
+                    int? code = compatibility == null ? null : (int)compatibility.Invoke(null, new object[] { shader, 0 });
+                    string issue = code.GetValueOrDefault() != 0
+                        ? (string)reason?.Invoke(null, new object[] { shader, 0, code.Value }) : "";
+                    rows.Add($"{shader.name} | import errors=0 | SRP compatibility code={code?.ToString() ?? "unavailable"} {issue}");
+                    for (int i = 0; i < material.passCount; i++) rows.Add($"  {i}: {material.GetPassName(i)}");
+                }
+                finally { UnityEngine.Object.DestroyImmediate(material); }
+            }
+            File.WriteAllLines(Path.GetFullPath(args[index + 1]), rows);
+        }
 
         public static void Room101()
         {

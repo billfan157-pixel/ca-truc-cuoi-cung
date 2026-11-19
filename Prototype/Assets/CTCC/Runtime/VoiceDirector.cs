@@ -56,6 +56,7 @@ namespace CTCC
         private float musicVolume = 0.65f;
         private bool monoAudio;
         private float musicTarget;
+        private bool paused;
 
         public IReadOnlyList<TranscriptEntry> Transcript => transcript;
         public bool IsSpeaking => activeRoutine != null;
@@ -99,6 +100,10 @@ namespace CTCC
 
         public bool HasClip(string lineId, string beat = null) => mayDeliver(lineId, beat) && clipMap.ContainsKey(lineId);
 
+        internal bool TrackMatchesAudio(string lineId, LipSyncTrack track) =>
+            track != null && clipMap.TryGetValue(lineId, out var clip) &&
+            Mathf.Abs(clip.length - track.duration) <= 1f / track.fps;
+
         public void RecordTranscriptOnly(string lineId, string speaker, string text, string beat = null)
         {
             if (!mayDeliver(lineId, beat) || string.IsNullOrWhiteSpace(text)) return;
@@ -139,6 +144,18 @@ namespace CTCC
             if (actor != null && activeSpeaker == actor) StopCurrent();
         }
 
+        public void SetPaused(bool pause)
+        {
+            if (paused == pause) return;
+            paused = pause;
+            if (activeVoice != null)
+            {
+                if (paused) activeVoice.Pause();
+                else activeVoice.UnPause();
+            }
+            if (activeSpeaker != null) activeSpeaker.SetSpeechPaused(paused);
+        }
+
         private void FinishSpeech(bool completed)
         {
             if (activeVoice != null)
@@ -175,7 +192,7 @@ namespace CTCC
                 : $"{directionalPrefix} {speakerLabel} · {text}";
 
             AudioClip clip = clipMap.TryGetValue(lineId, out var found) ? found : null;
-            float duration = clip != null ? Mathf.Clamp(clip.length + 0.45f, 2.6f, 12.0f) : Mathf.Clamp(2.2f + text.Length * 0.045f, 3.2f, 7.5f);
+            float duration = clip != null ? Mathf.Max(clip.length + 0.45f, 2.6f) : Mathf.Clamp(2.2f + text.Length * 0.045f, 3.2f, 7.5f);
             ui?.Caption(caption, duration, essential);
 
             if (clip != null)
@@ -188,7 +205,9 @@ namespace CTCC
                 if (speakerActor != null)
                 {
                     speakerActor.BeginSpeech(lineId, activeVoice);
+                    speakerActor.SetSpeechPaused(paused);
                 }
+                if (paused) activeVoice.Pause();
                 ambience?.SetVoiceDucking(true);
             }
 
@@ -198,12 +217,14 @@ namespace CTCC
 
         private IEnumerator TrackSpeech(float duration)
         {
-            float until = Time.unscaledTime + duration;
-            while (Time.unscaledTime < until)
+            float remaining = duration;
+            while (remaining > 0f)
             {
-                if (activeVoice != null && !activeVoice.isPlaying && Time.unscaledTime > until - 0.5f)
-                    break;
                 yield return null;
+                if (paused) continue;
+                remaining -= Time.unscaledDeltaTime;
+                if (activeVoice != null && !activeVoice.isPlaying && remaining < 0.5f)
+                    break;
             }
             FinishSpeech(true);
         }
