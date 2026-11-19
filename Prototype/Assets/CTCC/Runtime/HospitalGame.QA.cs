@@ -158,6 +158,7 @@ namespace CTCC
                 var fault = casework.SaveEmergencyAsync(safe, true, gatekeeperCameo.IsActive,
                     () => throw new IOException("QA interruption while saving CH02-T06"));
                 while (!fault.IsCompleted) yield return null;
+                if (Argument("-ctcc-qa-probe") == "escape-premature") gatekeeperCameo.StopAndHide();
                 Require(fault.GetAwaiter().GetResult() == CommitResult.SaveUnavailable && gatekeeperCameo.IsActive &&
                     !gatekeeperCameo.WasResolved && State.sequence == previous && !State.Happened("CH02-T06") &&
                     !State.Happened("M1-complete") && saves.Read(SaveSlot.Auto, out var beforeEscape) == SaveRead.Valid &&

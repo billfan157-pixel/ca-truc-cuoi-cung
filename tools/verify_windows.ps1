@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory=$true)][string]$Evidence,
     [string]$RecordDir = "",
     [switch]$PlayerInput,
-    [ValidateSet('module-failure','keyboard-failure','visual-failure')][string]$ProbeFailure
+    [ValidateSet('module-failure','keyboard-failure','visual-failure','escape-premature')][string]$ProbeFailure
 )
 
 $ErrorActionPreference='Stop'
@@ -43,6 +43,7 @@ if ($ProbeFailure) {
         'module-failure' { 'intentional QA module failure' }
         'keyboard-failure' { 'T06 keyboard: first=False second=True escaped=True alt=True' }
         'visual-failure' { 'intentional QA visual failure' }
+        'escape-premature' { 'Failed escape publication retains live encounter and previous snapshot' }
     }
     if ($ctccRun.ExitCode -ne 1 -or !(Test-Path -LiteralPath $verdict) -or
         !(Select-String -LiteralPath $verdict -Quiet -Pattern '^RESULT=FAIL$') -or

@@ -232,6 +232,8 @@ namespace CTCC
             }
 
             Vector3 feet = player.Feet;
+            bool use = keys[Options.alternateBindings ? Key.K : Key.E].wasPressedThisFrame;
+            bool anchorPressed = keys.qKey.wasPressedThisFrame;
 
             // CH01 B02: Spotting Lan's warm backlit silhouette behind reception glass pulls Minh voluntarily inside!
             if (!heardLobbySilhouette && State.chapter == "CH01" && State.Happened("CH01-T02") && !State.Happened("CH01-T03") &&
@@ -284,7 +286,8 @@ namespace CTCC
 
             // CH01 Room 101 threshold checkpoint
             if (State.chapter == "CH01" && State.Happened("CH01-T05") && !State.Happened("CH01-T06") &&
-                feet.x > 5.82f && feet.z > 2.01f && feet.z < 7.99f && Time.unscaledTime >= retryAutomaticCheckpointAt)
+                feet.x > 5.82f && feet.z > 2.01f && feet.z < 7.99f &&
+                !use && !anchorPressed && Time.unscaledTime >= retryAutomaticCheckpointAt)
             {
                 retryAutomaticCheckpointAt = Time.unscaledTime + 2f;
                 SaveCheckpoint(() => casework.EnterRoomAsync(feet));
@@ -294,7 +297,7 @@ namespace CTCC
             // CH02 B02: Slipper cue + gentle Bé An glimpse near Room 101 doorway
             if (State.chapter == "CH02" && State.layer == Reality.R && !State.Happened("CH02-T02") &&
                feet.z > 1.25f && feet.z < 7.9f && feet.x > 2.55f && feet.x < 6f &&
-               Time.unscaledTime >= retryAutomaticCheckpointAt)
+               !use && !anchorPressed && Time.unscaledTime >= retryAutomaticCheckpointAt)
             {
                 retryAutomaticCheckpointAt = Time.unscaledTime + 2f;
                 SaveCheckpoint(() => casework.RecordAsync("CH02-T02", feet), () =>
@@ -314,7 +317,7 @@ namespace CTCC
                 {
                     gatekeeperCameo.BeginCameo(State, Line);
                 }
-                else if (gatekeeperCameo.CheckEscapedToEmergency(feet) && Time.unscaledTime >= retryEmergencySaveAt)
+                else if (!use && gatekeeperCameo.CheckEscapedToEmergency(feet) && Time.unscaledTime >= retryEmergencySaveAt)
                 {
                     StartCoroutine(SaveEmergency(false));
                     return;
@@ -324,8 +327,7 @@ namespace CTCC
             // CH01-T11: Progressive gentle inactivity hints (60s / 120s / 180s, toggleable in Settings)
             UpdateProgressiveHints();
 
-            bool use = keys[Options.alternateBindings ? Key.K : Key.E].wasPressedThisFrame;
-            if (transaction.OnPad(feet, "AP04") && State.chapter == "CH02" && keys.qKey.wasPressedThisFrame)
+            if (transaction.OnPad(feet, "AP04") && State.chapter == "CH02" && anchorPressed)
             {
                 Anchor();
                 return;

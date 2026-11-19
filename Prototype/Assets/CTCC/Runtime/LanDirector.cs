@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace CTCC
 {
@@ -126,15 +127,25 @@ namespace CTCC
 
             lan.transform.position = fromPos;
             lan.SetExpression(0.65f, 0.15f, 0f);
-            lan.PlayAction("Lan_StepOut", 0.2f, restart: true);
-
-            float moveDur = lan.ReducedMotion ? 0.15f : 1.45f;
-            for (float t = 0f; t < moveDur; t += Time.unscaledDeltaTime)
+            var path = new NavMeshPath();
+            if (!lan.ReducedMotion && NavMesh.SamplePosition(fromPos, out var start, 0.60f, NavMesh.AllAreas) &&
+                NavMesh.SamplePosition(toPos, out var end, 0.60f, NavMesh.AllAreas) &&
+                NavMesh.CalculatePath(start.position, end.position, NavMesh.AllAreas, path) &&
+                path.status == NavMeshPathStatus.PathComplete)
             {
-                float k = Mathf.SmoothStep(0f, 1f, t / moveDur);
-                lan.transform.position = Vector3.Lerp(fromPos, toPos, k);
-                lan.transform.rotation = Quaternion.Slerp(lan.transform.rotation, toRot, k);
-                yield return null;
+                lan.PlayAction("Lan_StepOut", 0.2f, restart: true);
+                foreach (Vector3 corner in path.corners)
+                {
+                    var destination = new Vector3(corner.x, fromPos.y, corner.z);
+                    while ((destination - lan.transform.position).sqrMagnitude > 0.005f)
+                    {
+                        float step = Time.unscaledDeltaTime;
+                        lan.transform.rotation = Quaternion.RotateTowards(lan.transform.rotation,
+                            Quaternion.LookRotation(destination - lan.transform.position), step * 270f);
+                        lan.transform.position = Vector3.MoveTowards(lan.transform.position, destination, step * 1.7f);
+                        yield return null;
+                    }
+                }
             }
             lan.transform.SetPositionAndRotation(toPos, toRot);
             steppingOut = false;

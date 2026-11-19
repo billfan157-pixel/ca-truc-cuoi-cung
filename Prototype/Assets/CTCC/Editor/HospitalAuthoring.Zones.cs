@@ -120,7 +120,7 @@ namespace CTCC.Editor
 
             // Iconic Vietnamese Hospital Glazed Reception Partition mounted cleanly along east counter edge (x = 2.02, y = 1.125)
             // Leaves open pass-through window + clear south end so Lan steps out smoothly in CH01 B03!
-            var partition = PlaceBlenderModel("CTCC_ENV_ReceptionPartition", perm, new Vector3(2.02f, 1.125f, -3.24f), 90f, pairRB: true);
+            var partition = PlaceBlenderModel("CTCC_ENV_ReceptionPartition", perm, new Vector3(2.02f, 1.125f, -3.24f), 0f, pairRB: true);
             staticArchitecture.Add(partition);
             Sign("Reception window plaque", "Sign_ReceptionWindow", new Vector3(2.09f, 2.34f, -3.24f), Vector3.right,
                 new Vector2(0.86f, 0.24f), perm, metalBacking: true);
@@ -164,7 +164,7 @@ namespace CTCC.Editor
             // Rigged, BlendShaped, Animated CHAR002 Trần Ngọc Lan!
             var lanSilPt = Group("LanSilhouettePoint", perm, new Vector3(0.65f, 0f, -3.24f));
             lanSilPt.localRotation = Quaternion.Euler(0f, 148f, 0f);
-            var lanDeskPt = Group("LanDeskPoint", perm, new Vector3(0.65f, 0f, -3.24f));
+            var lanDeskPt = Group("LanDeskPoint", perm, new Vector3(0.32f, 0f, -3.24f));
             lanDeskPt.localRotation = Quaternion.Euler(0f, 92f, 0f);
             // Step-out position clear of desk (x=2.08) and AP02 (x=3.78) so Lan stands face-to-face 1.15m from Minh!
             var lanStepPt = Group("LanStepOutPoint", perm, new Vector3(2.65f, 0f, -3.28f));

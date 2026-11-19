@@ -231,6 +231,7 @@ namespace CTCC
                 player.Teleport(point, Quaternion.LookRotation(look));
                 player.Eye.transform.LookAt(target.transform.position);
                 if (player.Focus(Available) != target) continue;
+                yield return Until(() => !busy, "ready for " + id + " interaction");
                 // Keep the fixture aim while the real game Update reads focus and the Use action.
                 player.CanPlay = false;
                 yield return Tap(State.settings.alternateBindings ? Key.K : Key.E);

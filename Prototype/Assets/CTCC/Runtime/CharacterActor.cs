@@ -34,10 +34,10 @@ namespace CTCC
         private float fadeDuration = 0.25f;
 
         private Transform headBone;
-        private Transform neckBone;
         private Transform eyeLeft;
         private Transform eyeRight;
-        private Quaternion headRestLocal;
+        private Quaternion unmodifiedHeadRotation, appliedHeadRotation;
+        private bool hasLookRotation;
         private Quaternion eyeLeftRestLocal;
         private Quaternion eyeRightRestLocal;
         private float smoothedYaw;
@@ -83,8 +83,7 @@ namespace CTCC
 
             foreach (var t in GetComponentsInChildren<Transform>(true))
             {
-                if (t.name == "Head") { headBone = t; headRestLocal = t.localRotation; }
-                else if (t.name == "Neck") neckBone = t;
+                if (t.name == "Head") headBone = t;
                 else if (t.name == "Eye_L") { eyeLeft = t; eyeLeftRestLocal = t.localRotation; }
                 else if (t.name == "Eye_R") { eyeRight = t; eyeRightRestLocal = t.localRotation; }
             }
@@ -205,25 +204,33 @@ namespace CTCC
 
         private void LateUpdate()
         {
-            if (!enableLookAt || headBone == null || LookTarget == null) return;
+            if (!enableLookAt || headBone == null) return;
             float dt = Mathf.Min(Time.unscaledDeltaTime, 0.05f);
-            Vector3 toTarget = LookTarget.position - headBone.position;
-            if (toTarget.sqrMagnitude < 0.04f || toTarget.sqrMagnitude > 196f)
+            Vector3 toTarget = LookTarget == null ? Vector3.zero : LookTarget.position - headBone.position;
+            Vector3 localDir = transform.InverseTransformDirection(toTarget.normalized);
+            if (toTarget.sqrMagnitude < 0.04f || toTarget.sqrMagnitude > 196f || localDir.z < 0.15f)
             {
                 smoothedYaw = Mathf.MoveTowards(smoothedYaw, 0f, dt * 45f);
                 smoothedPitch = Mathf.MoveTowards(smoothedPitch, 0f, dt * 35f);
             }
             else
             {
-                Vector3 localDir = transform.InverseTransformDirection(toTarget.normalized);
                 float yaw = Mathf.Clamp(Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg, -34f, 34f);
                 float pitch = Mathf.Clamp(-Mathf.Asin(Mathf.Clamp(localDir.y, -0.95f, 0.95f)) * Mathf.Rad2Deg, -14f, 16f);
                 float speed = ReducedMotion ? 160f : 72f;
                 smoothedYaw = Mathf.MoveTowards(smoothedYaw, yaw, dt * speed);
                 smoothedPitch = Mathf.MoveTowards(smoothedPitch, pitch, dt * speed);
             }
-            // Apply subtle natural head turn atop animation pose without snapping neck
-            headBone.localRotation = headBone.localRotation * Quaternion.Euler(smoothedPitch * 0.55f, smoothedYaw * 0.65f, 0f);
+            // The animator can skip a frame while culled. Remove our last offset before applying a new one.
+            Quaternion current = headBone.localRotation;
+            if (!hasLookRotation || Mathf.Abs(Quaternion.Dot(current, appliedHeadRotation)) < 0.999999f)
+                unmodifiedHeadRotation = current;
+            Quaternion offset = Quaternion.AngleAxis(smoothedYaw * 0.65f, transform.up) *
+                Quaternion.AngleAxis(smoothedPitch * 0.55f, transform.right);
+            Quaternion parentRotation = headBone.parent.rotation;
+            appliedHeadRotation = Quaternion.Inverse(parentRotation) * offset * parentRotation * unmodifiedHeadRotation;
+            headBone.localRotation = appliedHeadRotation;
+            hasLookRotation = true;
             if (eyeLeft != null)
                 eyeLeft.localRotation = eyeLeftRestLocal * Quaternion.Euler(smoothedPitch * 0.35f, smoothedYaw * 0.30f, 0f);
             if (eyeRight != null)

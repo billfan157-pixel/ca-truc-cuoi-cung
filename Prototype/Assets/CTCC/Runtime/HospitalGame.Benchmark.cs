@@ -226,7 +226,7 @@ namespace CTCC
                 player.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
                 lanDirector.StartEncounter(Line);
                 return CommitResult.Applied;
-            }, 3.8f);
+            }, 5.2f);
             yield return new("board", () => { lanDirector.StopEncounter(true); voice.StopCurrent(); return casework.BoardAsync(player.Feet); });
             yield return new("hall-B", 4, 4.75f);
             yield return new("room-entry-B", 6.52f, 4.88f);
