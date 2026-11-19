@@ -1,8 +1,8 @@
 # Ca trực cuối cùng
 
-Prototype Unity khám phá phòng 101 của bệnh viện An Sinh. Bản thử đi từ cổng phụ qua lễ tân, hành lang và phòng bệnh đến kho giường và cấp cứu. F101 có ba cách xử lý. Người chơi có thể quay lại sửa phiếu, đổi giữa R và B tại điểm neo, đối chiếu E11/E12 và tải lại ca đã lưu.
+Vertical slice Windows x64 của **Ca trực cuối cùng** đi từ cổng phụ bệnh viện An Sinh qua lễ tân, phòng 101 và kho giường đến Cấp cứu. Người chơi có thể chọn một trong ba cách xử lý F101, quay lại sửa phiếu, đổi giữa R và B tại điểm neo, đối chiếu E11/E12 và tải lại ca đã lưu.
 
-**M1-P · Windows x64** dùng Unity 6.3 LTS, URP 17.3 và bộ tài sản Blender 4.5 của M0-R. Kết quả đo 1080p, hồi quy, gói build và điều kiện nghiệm thu nằm trong [hồ sơ M1-P](docs/prototype/m1p-acceptance.md).
+Ứng viên **M2-A** dùng Unity 6.3 LTS, URP 17.3 và nguồn Blender 4.5. [Hồ sơ M2-A](docs/m2/acceptance.md) ghi revision, bằng chứng, điều kiện nghiệm thu còn mở và đường găng M3. [Hồ sơ M1-P](docs/prototype/m1p-acceptance.md) giữ kết quả nền trước vertical slice.
 
 ## Điều khiển
 
@@ -21,12 +21,15 @@ Trong Cài đặt có mức đồ họa Low/Medium/High, phím mũi tên, K tư�
 
 ## Nguồn và cách dựng
 
-Mở thư mục `Prototype` với Unity 6.3 LTS `6000.3.28f1` (trên Windows nên mở qua đường dẫn ASCII như junction `C:\CTCC-Unity-Workspace\Prototype` khi build Windows). Scene chính nằm tại `Assets/CTCC/Scenes/AnSinh.unity`; nguồn 3D gốc chỉnh sửa được nằm tại `ArtSource/Blender/*.blend` (`tools/blender_assets/`). Menu **Ca Trực Cuối Cùng** có lệnh dựng mặt bằng, dựng lại cảnh chi tiết M0-R và build Windows.
+Mở thư mục `Prototype` với Unity 6.3 LTS `6000.3.28f1`. Trên Windows, khi đường dẫn repo có dấu, dùng junction ASCII `C:\CTCC-Unity-Workspace` trỏ đến repo cho trình dựng Unity. `AnSinh_Bootstrap.unity` tải bốn scene LOC01–04. Nguồn chỉnh sửa được nằm tại `ArtSource/Blender/*.blend`, cùng công cụ xuất FBX trong `tools/blender_assets/`.
 
 ```powershell
-./tools/build_m1p.ps1 -Output output/m1p/repro-windows
-./tools/verify_windows.ps1 -Executable output/m1p/repro-windows/CaTrucCuoiCung.exe -Evidence output/m1p/repro-input -PlayerInput
+./tools/build_m2.ps1 -SkipGenerate -Output output/m2a/repro-windows
+./tools/verify_windows.ps1 -Executable output/m2a/repro-windows/CaTrucCuoiCung.exe -Evidence output/m2a/repro-module
+./tools/verify_windows.ps1 -Executable output/m2a/repro-windows/CaTrucCuoiCung.exe -Evidence output/m2a/repro-input -PlayerInput
 ```
+
+`-SkipGenerate` dựng lại từ scene và dữ liệu chiếu sáng đã commit. Bỏ tham số khi cần dựng lại chúng từ mã authoring.
 
 - [Nghiên cứu An Sinh](docs/prototype/research.md), [mặt cắt và mặt bằng](docs/prototype/layout.md) và [bảng vật liệu](docs/prototype/loc03-reference.png).
 - [Chọn Unity và URP](docs/prototype/engine.md), [Bằng chứng nghiệm thu & so sánh BEFORE/AFTER](docs/prototype/verification.md) và [Bảng showcase 8 góc M0-R](docs/prototype/evidence/m0r-showcase-board.jpg).

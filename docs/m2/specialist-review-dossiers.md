@@ -1,12 +1,10 @@
 # Ca Trực Cuối Cùng — M2 Specialist Review Dossiers (`TASK026`, `TASK027`, `TASK028`)
 
 - **Status:** **OPEN — AWAITING HUMAN SPECIALIST SIGN-OFF**
-- **Scope:** Condensed CH01 & early CH02 Vertical Slice across `LOC01–04` (Branch `m2/vertical-slice`, Unity 6.3 LTS + Blender 4.5 LTS assets).
+- **Scope:** Condensed CH01 & early CH02 across `LOC01–04` (branch `codex/m2-a-production-readiness`, Unity 6.3 LTS and Blender 4.5 assets).
 - **Evidence Package Linked for Reviewers:**
-  - Research & Art Direction Spec: [research-and-art-direction.md](file:///c:/Ca trực cuối cùng/docs/m2/research-and-art-direction.md)
-  - Blender Studio Asset Renders: `output/m2-evidence/blender-renders/`
-  - In-Engine 1080p Visual Captures & Comparison Boards: `docs/m2/evidence/`
-  - Playable Windows Build: `output/CaTrucCuoiCung-M2-Windows.zip`
+  - Research and art direction in [research-and-art-direction.md](research-and-art-direction.md).
+  - Revision, playable build and captures in [the M2-A acceptance record](acceptance.md).
 
 > [!IMPORTANT]
 > Per `AGENTS.md` and M2 Definition of Done, **AI self-review does NOT substitute for human domain specialists.** Each dossier below packages exact architectural metrics, historical assumptions (`V/I/F/U`), and visual assets so external reviewers can inspect and sign off directly.

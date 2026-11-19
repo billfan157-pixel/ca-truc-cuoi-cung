@@ -25,6 +25,11 @@ This specification extends the M0/M0-R historical research register ([docs/proto
 - `TASK027` (Historical Fire Safety): B1/Zone C section geometry, smoke flow assumptions, and sealed-door provenance (`LOC09–12` section continuity).
 - `TASK028` (Medical Provenance / Records): fictional wording of `F101`, `OBS101B`, and `E11` transfer note (`101/4 → C01`) vs 1997/2001 MoH documentation norms.
 
+### Kiểm chứng bổ sung M2-A
+
+- **V** Báo cáo thiết kế JICA tháng 7/2004 liệt kê máy theo dõi bệnh nhân và máy đo điện tim trong nhóm thiết bị Cấp cứu của Bệnh viện Đà Nẵng. Bảng 2-2 đề xuất hai máy theo dõi cho phòng điều trị Cấp cứu. Chi tiết kích thước màn hình và nhóm chỉ số giúp đối chiếu đạo cụ LOC04. Kiểu vỏ, màu xe đẩy và sở hữu thiết bị tương tự ở tuyến huyện vẫn là **I/U**. [Báo cáo JICA 2004](https://openjicareport.jica.go.jp/pdf/11775038.pdf)
+- **V** Phóng sự thực địa tháng 2/2006 ghi nhận giường và băng ca tại khoa Cấp cứu Chợ Rẫy, cùng ảnh nhân viên đang làm việc. Dùng tư liệu để so tỷ lệ thiết bị và hình dáng trang phục. Chợ Rẫy là bệnh viện tuyến cuối nên mật độ thiết bị, cấu trúc vách, kiểu cổ áo và phù hiệu của An Sinh tiếp tục chờ `TASK026`. Ảnh giữ ở nguồn tham khảo. [Tuổi Trẻ, 02/02/2006](https://tuoitre.vn/trang-dem-cung-nguoi-benh-120943.htm)
+
 ---
 
 ## 2. Visual Quality Benchmarks & Lighting Contrast (LOC01–LOC04)
