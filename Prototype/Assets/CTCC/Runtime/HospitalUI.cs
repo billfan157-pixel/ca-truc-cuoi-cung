@@ -45,6 +45,7 @@ namespace CTCC
         private int modalOpenedFrame = -1;
 
         public bool IsModal => modal != null && modal.gameObject.activeSelf;
+        public bool ModalInputBlocked { get; set; }
         public event Action OpenChanged;
 
         public void Initialize()
@@ -297,7 +298,7 @@ namespace CTCC
                 button.interactable = spec.Enabled;
                 if (spec.Enabled)
                 {
-                    button.onClick.AddListener(() => spec.Press?.Invoke());
+                    button.onClick.AddListener(() => { if (!ModalInputBlocked) spec.Press?.Invoke(); });
                     focus.Add(button);
                 }
                 var label = Rect("Inset", row, Vector2.zero, Vector2.one, new Vector2(18, 1), new Vector2(-14, -1));
@@ -336,7 +337,7 @@ namespace CTCC
         {
             if (cueBacking != null && Time.unscaledTime > cueUntil) cueBacking.gameObject.SetActive(false);
             if (toastBacking != null && Time.unscaledTime > toastUntil) toastBacking.gameObject.SetActive(false);
-            if (modal == null || !IsModal || modalOpenedFrame == Time.frameCount) return;
+            if (modal == null || !IsModal || ModalInputBlocked || modalOpenedFrame == Time.frameCount) return;
             HandleNavigation(Keyboard.current);
         }
 

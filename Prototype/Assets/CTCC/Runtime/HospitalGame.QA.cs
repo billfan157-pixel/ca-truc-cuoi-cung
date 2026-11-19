@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
@@ -42,8 +43,42 @@ namespace CTCC
 
         private IEnumerator VerifyModuleStages()
         {
+            yield return VerifyDeferredSaveFailure();
             yield return VerifyKeyboard();
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
+        }
+
+        private IEnumerator VerifyDeferredSaveFailure()
+        {
+            var isolated = new AtomicSaves(Path.Combine(qaFolder, "deferred-fault"));
+            var checking = new RealityTransaction(scene, isolated);
+            var before = checking.Current;
+            isolated.Write(SaveSlot.Auto, before);
+            var proposed = before.Copy();
+            proposed.Remember("QA.deferred-save");
+            var flushed = new TaskCompletionSource<bool>();
+            var release = new TaskCompletionSource<bool>();
+            var pending = checking.CommitEvidenceAsync(proposed, () =>
+            {
+                flushed.SetResult(true);
+                release.Task.Wait(TimeSpan.FromSeconds(5));
+                throw new IOException("QA deferred interruption after flush");
+            });
+            try
+            {
+                yield return Until(() => flushed.Task.IsCompleted, "deferred save reached durable flush");
+                int first = Time.frameCount;
+                for (int frame = 0; frame < 10; frame++) yield return null;
+                Require(Time.frameCount >= first + 10 && !pending.IsCompleted && checking.Current == before &&
+                    isolated.Read(SaveSlot.Auto, out var stillSaved) == SaveRead.Valid && stillSaved.sequence == before.sequence,
+                    "main loop advanced with unpublished evidence and previous disk commit");
+            }
+            finally { release.TrySetResult(true); }
+            yield return Until(() => pending.IsCompleted, "deferred failure completed");
+            Require(pending.GetAwaiter().GetResult() == CommitResult.SaveUnavailable && checking.Current == before &&
+                isolated.Read(SaveSlot.Auto, out var fallback) == SaveRead.Valid && fallback.sequence == before.sequence,
+                "deferred write failure preserves previous runtime and disk commits");
+            verification.Add("T08 deferred PASS: 10 main-loop frames while the worker was held after flush; previous state retained; failed publication returns SaveUnavailable.");
         }
 
         private IEnumerator FinishVerification(IEnumerator checks, string directory)

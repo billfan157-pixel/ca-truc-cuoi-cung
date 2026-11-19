@@ -7,6 +7,8 @@ param(
 )
 
 $ErrorActionPreference='Stop'
+. "$PSScriptRoot/focus_m1p_player.ps1"
+if ($PlayerInput -and $ProbeFailure) { throw 'Failure probes belong to the module suite.' }
 $ctccExe=(Resolve-Path -LiteralPath $Executable).Path
 $ctccEvidence=[System.IO.Path]::GetFullPath($Evidence)
 if(Test-Path -LiteralPath (Join-Path $ctccEvidence 'gameplay.txt')) {
@@ -24,18 +26,24 @@ if($RecordDir -ne "") {
 }
 $ctccRun=Start-Process -FilePath $ctccExe -WorkingDirectory (Split-Path -Parent $ctccExe) -ArgumentList $ctccArgs -PassThru
 if ($PlayerInput) {
-    $shell = New-Object -ComObject WScript.Shell
-    for ($attempt = 0; $attempt -lt 10 -and !$ctccRun.HasExited; $attempt++) {
-        Start-Sleep -Milliseconds 250
-        if ($shell.AppActivate($ctccRun.Id)) { break }
-    }
+    Show-CtccPlayerWindow $ctccRun
 }
 if(!$ctccRun.WaitForExit(180000)) { $ctccRun.Kill(); throw "Windows verification timed out. Check $ctccLog." }
-if ($ProbeFailure -and $ctccRun.ExitCode -eq 1 -and (Select-String -LiteralPath (Join-Path $ctccEvidence 'gameplay.txt') -Quiet -Pattern '^RESULT=FAIL$')) {
+if ($ProbeFailure) {
+    $verdict = Join-Path $ctccEvidence 'gameplay.txt'
+    $expected = switch ($ProbeFailure) {
+        'module-failure' { 'intentional QA module failure' }
+        'keyboard-failure' { 'T06 keyboard: first=False second=True escaped=True alt=True' }
+        'visual-failure' { 'intentional QA visual failure' }
+    }
+    if ($ctccRun.ExitCode -ne 1 -or !(Test-Path -LiteralPath $verdict) -or
+        !(Select-String -LiteralPath $verdict -Quiet -Pattern '^RESULT=FAIL$') -or
+        !(Select-String -LiteralPath $verdict -Quiet -SimpleMatch $expected)) {
+        throw "Failed to verify the injected failure. Exit $($ctccRun.ExitCode). Check $ctccLog."
+    }
     "Verified $ProbeFailure propagated to the Windows process exit code (1)."
     return
 }
-if ($ProbeFailure) { throw "Failed to verify the injected failure. Exit $($ctccRun.ExitCode). Check $ctccLog." }
 if($ctccRun.ExitCode -ne 0){throw "Windows verification exit $($ctccRun.ExitCode). Check $ctccLog."}
 $required = if ($PlayerInput) { @('gameplay.txt') } else { @('gameplay.txt','room101-R.png','room101-B.png') }
 foreach($file in $required) {

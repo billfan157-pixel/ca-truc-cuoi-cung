@@ -59,8 +59,6 @@ if ($Step -eq "qa") {
     Invoke-UnityMethod -Method "CTCC.Editor.HospitalAuthoring.TestScene" -LogName "unity-qa-$QaFolder.log" -ExtraArgs $extra -UseGraphics -NoQuit
     Write-Output "=== GAMEPLAY QA ==="
     if (Test-Path -LiteralPath (Join-Path $qaPath "gameplay.txt")) { Get-Content -LiteralPath (Join-Path $qaPath "gameplay.txt") }
-    Write-Output "=== PERFORMANCE PROFILE ==="
-    if (Test-Path -LiteralPath (Join-Path $qaPath "profile.txt")) { Get-Content -LiteralPath (Join-Path $qaPath "profile.txt") }
 }
 if ($Step -eq "build" -or $Step -eq "all") {
     $buildProj = Join-Path $unityRoot "output\engine-spike\urp-comparison"

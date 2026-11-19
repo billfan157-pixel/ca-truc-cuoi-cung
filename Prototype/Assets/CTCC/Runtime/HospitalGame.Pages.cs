@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -249,14 +250,11 @@ namespace CTCC
             var tmpl = string.IsNullOrEmpty(modelId) ? null : scene.InspectTemplate(modelId);
             scene.atmosphere?.From("paper", player.Feet + player.transform.forward * 0.5f + Vector3.up);
 
-            Action confirmTake = () =>
+            Action confirmTake = () => SaveEvidence(id, () =>
             {
-                if (Report(casework.Take(id, player.Feet)))
-                {
-                    CloseModal();
-                    ui.Toast("ĐÃ THU THẬP VẬT CHỨNG", title + " đã được lưu vào sổ trực.", 4.5f);
-                }
-            };
+                CloseModal();
+                ui.Toast("ĐÃ THU THẬP VẬT CHỨNG", title + " đã được lưu vào sổ trực.", 4.5f);
+            });
 
             if ((tmpl != null || tex != null) && inspector != null && qaFolder == null)
             {
@@ -284,6 +282,42 @@ namespace CTCC
                         new ActionChoice(State.Has(id) ? "Đã ghi vào sổ" : "Ghi vật chứng", confirmTake),
                         new ActionChoice("Quay lại", CloseModal)
                     }, CloseModal, tex);
+            }
+        }
+
+        private void SaveEvidence(string id, Action committed)
+        {
+            if (!busy) StartCoroutine(WaitForEvidenceSave(id, committed));
+        }
+
+        private IEnumerator WaitForEvidenceSave(string id, Action committed)
+        {
+            busy = true;
+            ui.ModalInputBlocked = true;
+            RefreshControls();
+            System.Threading.Tasks.Task<CommitResult> pending;
+            try
+            {
+                pending = casework.TakeAsync(id);
+                while (!pending.IsCompleted) yield return null;
+            }
+            finally
+            {
+                ui.ModalInputBlocked = false;
+                busy = false;
+                RefreshControls();
+            }
+            if (pending.IsFaulted)
+            {
+                Debug.LogException(pending.Exception);
+                CloseModal();
+                Report(CommitResult.SaveUnavailable);
+            }
+            else
+            {
+                var result = pending.GetAwaiter().GetResult();
+                if (result != CommitResult.Applied) CloseModal();
+                if (Report(result)) committed();
             }
         }
 
@@ -390,10 +424,7 @@ namespace CTCC
                 : null;
             var choices = new List<ActionChoice>();
             if (EvidenceRegistry.HaveFragments(State) && !State.Has(EvidenceRegistry.Drawing))
-                choices.Add(new ActionChoice("Ghép tranh theo đường mép", () =>
-                {
-                    if (Report(casework.Take(EvidenceRegistry.Drawing, player.Feet))) Identify();
-                }, State.layer == Reality.R));
+                choices.Add(new ActionChoice("Ghép tranh theo đường mép", () => SaveEvidence(EvidenceRegistry.Drawing, Identify), State.layer == Reality.R));
             if (missing == null && !GateService.G02(State))
                 choices.Add(new ActionChoice("Đối chiếu An · 101/4 → C01", () =>
                 {

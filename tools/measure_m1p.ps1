@@ -8,6 +8,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. "$PSScriptRoot/focus_m1p_player.ps1"
 $exe = (Resolve-Path -LiteralPath $Executable).Path
 $captureExe = (Resolve-Path -LiteralPath $PresentMon).Path
 $out = [IO.Path]::GetFullPath($Evidence)
@@ -21,11 +22,7 @@ try {
     Start-Sleep -Milliseconds 600
     if ($capture.HasExited) { throw "PresentMon startup failed. See $out/presentmon-error.txt" }
     $player = Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) -ArgumentList "-force-d3d12 -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 -ctcc-quality $Quality -ctcc-vsync $VSync -ctcc-benchmark `"$out`" -ctcc-save `"$out/save`" -ctcc-ablation $Ablation -logFile `"$out/player.log`"" -PassThru
-    $shell = New-Object -ComObject WScript.Shell
-    for ($attempt = 0; $attempt -lt 10 -and !$player.HasExited; $attempt++) {
-        Start-Sleep -Milliseconds 250
-        if ($shell.AppActivate($player.Id)) { break }
-    }
+    Show-CtccPlayerWindow $player
     if (!$player.WaitForExit(150000)) { $player.Kill(); throw "Timed out: $out/player.log" }
     if ($player.ExitCode -ne 0) { throw "Benchmark player exited $($player.ExitCode). See $out/result.txt and player.log" }
     $managed = Join-Path (Split-Path -Parent $exe) "$([IO.Path]::GetFileNameWithoutExtension($exe))_Data/Managed/Assembly-CSharp.dll"

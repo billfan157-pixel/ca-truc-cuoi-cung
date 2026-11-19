@@ -178,11 +178,13 @@ namespace CTCC
                 yield return UseFrom(id, new Vector3(15.0f, 0.02f, 3.64f));
                 Require(inspector.IsInspecting, id + " inspect");
                 yield return Choose("Thu thập");
+                yield return Until(() => !busy && !ui.IsModal, id + " durable pickup completed");
             }
             player.Teleport(scene.Pad("AP04"));
             yield return Tap(Key.Q);
             yield return Choose("Ghép tranh và kiểm hồ sơ");
             yield return Choose("Ghép tranh theo đường mép");
+            yield return Until(() => !busy && State.Has(EvidenceRegistry.Drawing), "assembled drawing was saved");
             yield return Choose("Đối chiếu An");
             Require(GateService.G02(State), "G02 opens through physical evidence and UI");
             yield return UseFrom("EXIT", scene.Pad("AP05").position);

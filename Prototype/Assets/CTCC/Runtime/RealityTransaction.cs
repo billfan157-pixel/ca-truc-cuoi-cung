@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Unity.Profiling;
 using UnityEngine;
 
@@ -15,6 +16,7 @@ namespace CTCC
         public Investigation Current { get; private set; }
         public event Action<Investigation> Committed;
         public Func<int> ReadCharge { get; set; }
+        private bool savingEvidence;
 
         public RealityTransaction(HospitalScene scene,AtomicSaves saves)
         {
@@ -27,6 +29,7 @@ namespace CTCC
             bool geometryChanges=false)
         {
             using var _=CommitMarker.Auto();
+            if (savingEvidence) return CommitResult.SaveUnavailable;
             if (requiredPad!=null && !OnPad(feet,requiredPad))
                 return CommitResult.PadRequired;
             Transform checkpoint=scene.Pad(SafeCheckpoints.Pad(proposed.checkpoint));
@@ -55,11 +58,34 @@ namespace CTCC
             return CommitResult.Applied;
         }
 
+        // Evidence pickups change the snapshot only. Geometry and the committed state stay live until durable publication.
+        internal async Task<CommitResult> CommitEvidenceAsync(Investigation proposed, Action afterFlush = null)
+        {
+            if (savingEvidence) return CommitResult.SaveUnavailable;
+            savingEvidence = true;
+            try
+            {
+                proposed.sequence = Current.sequence + 1;
+                proposed.torchSeconds = ReadCharge?.Invoke() ?? proposed.torchSeconds;
+                try { await Task.Run(() => saves.Write(SaveSlot.Auto, proposed, afterFlush)); }
+                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                {
+                    Debug.LogWarning($"CTCC evidence save failed: {e.GetType().Name} (0x{e.HResult:X8}) {e.Message}");
+                    return CommitResult.SaveUnavailable;
+                }
+                Current = proposed;
+                Committed?.Invoke(Current);
+                return CommitResult.Applied;
+            }
+            finally { savingEvidence = false; }
+        }
+
         public SaveRead Inspect(SaveSlot slot) => saves.Read(slot,out _);
 
         public SaveRead Restore(SaveSlot slot,out Transform landing)
         {
             landing=null;
+            if (savingEvidence) return SaveRead.Empty;
             SaveRead result=saves.Read(slot,out var proposed);
             if (proposed==null)
                 return result;
@@ -78,6 +104,7 @@ namespace CTCC
 
         public bool KeepManual()
         {
+            if (savingEvidence) return false;
             try
             {
                 var snapshot=Current.Copy();

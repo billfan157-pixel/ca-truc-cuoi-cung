@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace CTCC
@@ -137,12 +138,25 @@ namespace CTCC
 
         public CommitResult Take(string id,Vector3 feet)
         {
-            if (!State.Has("E12") || State.layer!=Reality.R || State.chapter!="CH02")
-                return CommitResult.PadRequired;
-            var next=State.Copy();
-            if (!EvidenceRegistry.Grant(next,id,Reality.R,"LOC03"))
-                return State.Has(id) ? CommitResult.Applied : CommitResult.PadRequired;
-            return reality.Commit(next,feet);
+            var result = PrepareEvidence(id, out var next);
+            return next == null ? result : reality.Commit(next, feet);
+        }
+
+        public Task<CommitResult> TakeAsync(string id)
+        {
+            var result = PrepareEvidence(id, out var next);
+            return next == null ? Task.FromResult(result) : reality.CommitEvidenceAsync(next);
+        }
+
+        private CommitResult PrepareEvidence(string id, out Investigation next)
+        {
+            next = null;
+            if (!State.Has("E12") || State.layer != Reality.R || State.chapter != "CH02") return CommitResult.PadRequired;
+            if (State.Has(id)) return CommitResult.Applied;
+            var proposal = State.Copy();
+            if (!EvidenceRegistry.Grant(proposal, id, Reality.R, "LOC03")) return CommitResult.PadRequired;
+            next = proposal;
+            return CommitResult.Applied;
         }
 
         public CommitResult VerifyAn(Vector3 feet)

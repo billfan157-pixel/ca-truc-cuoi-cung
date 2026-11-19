@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Profiling;
@@ -26,6 +27,7 @@ namespace CTCC
 
         private string benchmarkStage;
         private Light benchmarkTorch;
+        private Func<string, Task<CommitResult>> benchmarkTake;
         private readonly List<(string name, long qpc, double milliseconds)> benchmarkActions = new();
 
         private IEnumerator BenchmarkVisit(string folder)
@@ -75,6 +77,8 @@ namespace CTCC
                 if (Screen.width != 1920 || Screen.height != 1080 || player.Eye.targetTexture != null)
                     throw new InvalidOperationException($"Expected onscreen 1920x1080; got {Screen.width}x{Screen.height}.");
                 benchmarkTorch = player.Eye.GetComponentInChildren<Light>(true);
+                var takeAsync = typeof(Casework).GetMethod("TakeAsync");
+                if (takeAsync != null) benchmarkTake = (Func<string, Task<CommitResult>>)takeAsync.CreateDelegate(typeof(Func<string, Task<CommitResult>>), casework);
                 ApplyBenchmarkAblation(Argument("-ctcc-ablation") ?? "none");
             }
             catch (Exception ex) { error = ex; }
@@ -181,14 +185,6 @@ namespace CTCC
             }
         }
 
-        private void MeasureAction(string name, Func<CommitResult> action)
-        {
-            benchmarkStage = name;
-            long start = Stopwatch.GetTimestamp();
-            Apply(action(), name);
-            benchmarkActions.Add((name, PerformanceCounter(), (Stopwatch.GetTimestamp() - start) * 1000d / Stopwatch.Frequency));
-        }
-
         private IEnumerator<BenchmarkStep> BenchmarkSteps()
         {
             yield return new("begin", () => casework.Begin(player.Feet, new VisitSettings()));
@@ -223,7 +219,8 @@ namespace CTCC
             yield return new("resolve-E12", () => casework.SolvePz01(player.Feet));
             yield return new("store-R-torch", 15f, 3.64f);
             foreach (string id in EvidenceRegistry.DrawingFragments.Concat(new[] { EvidenceRegistry.Drawing, EvidenceRegistry.Wristband, EvidenceRegistry.Transfer }))
-                yield return new("take-" + id, () => casework.Take(id, player.Feet));
+                yield return benchmarkTake == null ? new BenchmarkStep("take-" + id, () => casework.Take(id, player.Feet))
+                    : new BenchmarkStep("take-" + id, () => benchmarkTake(id));
             yield return new("store-return", 12.61f, 3.62f);
             yield return new("cabinet-return", 12.60f, 4.87f);
             yield return new("room-return", 6.52f, 4.93f);
@@ -239,9 +236,18 @@ namespace CTCC
             while (steps.MoveNext())
             {
                 var step = steps.Current;
-                if (step.Action != null)
+                if (step.Action != null || step.AsyncAction != null)
                 {
-                    MeasureAction(step.Name, step.Action);
+                    benchmarkStage = step.Name;
+                    long start = Stopwatch.GetTimestamp();
+                    if (step.AsyncAction != null)
+                    {
+                        var pending = step.AsyncAction();
+                        while (!pending.IsCompleted) yield return null;
+                        Apply(pending.GetAwaiter().GetResult(), step.Name);
+                    }
+                    else Apply(step.Action(), step.Name);
+                    benchmarkActions.Add((step.Name, PerformanceCounter(), (Stopwatch.GetTimestamp() - start) * 1000d / Stopwatch.Frequency));
                     // Leave enough real frames for frame timing and time-sliced probe work after commits.
                     double until = Time.realtimeSinceStartupAsDouble + 0.40;
                     while (Time.realtimeSinceStartupAsDouble < until) yield return null;
@@ -258,8 +264,10 @@ namespace CTCC
             public readonly string Name;
             public readonly Vector3 Destination;
             public readonly Func<CommitResult> Action;
-            public BenchmarkStep(string name, float x, float z) { Name = name; Destination = new Vector3(x, 0, z); Action = null; }
-            public BenchmarkStep(string name, Func<CommitResult> action) { Name = name; Destination = default; Action = action; }
+            public readonly Func<Task<CommitResult>> AsyncAction;
+            public BenchmarkStep(string name, float x, float z) { Name = name; Destination = new Vector3(x, 0, z); Action = null; AsyncAction = null; }
+            public BenchmarkStep(string name, Func<CommitResult> action) { Name = name; Destination = default; Action = action; AsyncAction = null; }
+            public BenchmarkStep(string name, Func<Task<CommitResult>> action) { Name = name; Destination = default; Action = null; AsyncAction = action; }
         }
 
         private readonly struct BenchmarkFrame
