@@ -1,0 +1,13 @@
+/.bench/
+/output/
+/Prototype/[Ll]ibrary/
+/Prototype/[Tt]emp/
+/Prototype/[Ll]ogs/
+/Prototype/[Oo]bj/
+/Prototype/[Uu]ser[Ss]ettings/
+/Prototype/.vs/
+/Prototype/*.csproj
+/Prototype/*.sln
+__pycache__/
+*.py[cod]
+~$*

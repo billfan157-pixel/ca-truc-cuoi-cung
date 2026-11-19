@@ -1,0 +1,56 @@
+Unity 6000.3.28f1
+Scene: LOC03 / R / 2012, camera x6.23 y1.64 z4.93
+Event count: 53
+1
+2 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 0:0) Draw Main Light Shadowmap/MainLightShadow/Shadows.DrawSRPBatcher
+3 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 0:0) Draw Main Light Shadowmap/MainLightShadow/Shadows.DrawSRPBatcher
+4 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 0:0) Draw Main Light Shadowmap/MainLightShadow/Shadows.DrawSRPBatcher
+5 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 0:0) Draw Main Light Shadowmap/MainLightShadow/Shadows.DrawSRPBatcher
+6 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 0:0) Draw Main Light Shadowmap/MainLightShadow/Shadows.DrawSRPBatcher
+7 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 0:0) Draw Main Light Shadowmap/MainLightShadow/Shadows.DrawSRPBatcher
+8 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 1:0) Draw Additional Lights Shadowmap/AdditionalLightsShadow/Shadows.DrawSRPBatcher
+9 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 1:0) Draw Additional Lights Shadowmap/AdditionalLightsShadow/Shadows.DrawSRPBatcher
+10 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 2:0) Blit Color LUT/ColorGradingLUT
+11 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+12 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+13 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+14 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+15 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+16 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+17 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+18 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+19 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+20 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+21 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+22 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+23 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+24 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 3:0) DrawDepthNormalPrepass/RenderLoop.DrawSRPBatcher
+25 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph
+26 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/SSAO
+27 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/SSAO
+28 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/SSAO
+29 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/SSAO
+30 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+31 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+32 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+33 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+34 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+35 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+36 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+37 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+38 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+39 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+40 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+41 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+42 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+43 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawOpaqueObjects/RenderLoop.DrawSRPBatcher
+44 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawTransparentObjects/RenderLoop.DrawSRPBatcher
+45 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawTransparentObjects/RenderLoop.DrawSRPBatcher
+46 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawTransparentObjects/RenderLoop.DrawSRPBatcher
+47 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawTransparentObjects/RenderLoop.DrawSRPBatcher
+48 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawTransparentObjects/RenderLoop.DrawSRPBatcher
+49 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawTransparentObjects/RenderLoop.DrawSRPBatcher
+50 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 4:0) DrawTransparentObjects/RenderLoop.DrawSRPBatcher
+51 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 5:0) RG_SMAAEdgeDetection
+52 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 6:0) RG_SMAABlendWeight
+53 UniversalRenderPipeline.RenderSingleCameraInternal: Seeded player view/ExecuteRenderGraph/(RP 7:0) RG_SMAANeighborhoodBlend

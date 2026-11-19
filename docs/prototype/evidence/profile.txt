@@ -1,0 +1,12 @@
+unity=6000.3.28f1
+GPU=Intel(R) Arc(TM) Graphics
+graphics=Direct3D12
+renderer_mode=Offscreen + synchronized 1px readback
+screen=1920x1080
+frames=420
+draw_calls_peak=593
+render_thread_peak_ms=0.00
+frame_p95_ms=21.62
+offscreen_render_p95_ms=17.63
+gpu_p95_ms=NA
+allocated_mb=106.41

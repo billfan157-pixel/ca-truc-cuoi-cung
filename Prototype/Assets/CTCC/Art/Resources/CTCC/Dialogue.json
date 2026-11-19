@@ -1,0 +1,186 @@
+{
+  "entries": [
+    {
+      "id": "CH01-D01",
+      "chapter": "CH01",
+      "speaker": "Minh",
+      "context": "CH01; điều kiện trong text",
+      "copy": "Chú Bảy bảo hoãn. Sao trong kia lại có đèn?"
+    },
+    {
+      "id": "CH01-D02",
+      "chapter": "CH01",
+      "speaker": "Minh",
+      "context": "CH01; điều kiện trong text",
+      "copy": "Chỗ này đã đóng cửa từ lâu. Sao lại sáng đèn?"
+    },
+    {
+      "id": "CH01-D03",
+      "chapter": "CH01",
+      "speaker": "Lan",
+      "context": "CH01; điều kiện trong text",
+      "copy": "“Anh đến trễ rồi.” — giữ nguyên cadence cho END01."
+    },
+    {
+      "id": "CH01-D04",
+      "chapter": "CH01",
+      "speaker": "Minh",
+      "context": "CH01; điều kiện trong text",
+      "copy": "Lan…? Không thể nào. Anh đã đến đám tang em."
+    },
+    {
+      "id": "CH01-D05",
+      "chapter": "CH01",
+      "speaker": "Lan",
+      "context": "CH01; điều kiện trong text",
+      "copy": "“Anh xem giúp em phòng 101 nhé. Mình nói chuyện sau.”"
+    },
+    {
+      "id": "CH01-D06",
+      "chapter": "CH01",
+      "speaker": "Minh",
+      "context": "CH01; điều kiện trong text",
+      "copy": "Anh đang nhìn nhầm thôi. Chỗ này đã đóng cửa lâu rồi."
+    },
+    {
+      "id": "CH01-D07",
+      "chapter": "CH01",
+      "speaker": "Lan",
+      "context": "CH01; điều kiện trong text",
+      "copy": "“Kiểm tra trước khi ký, như hồi đó thôi.”"
+    },
+    {
+      "id": "CH01-D08",
+      "chapter": "CH01",
+      "speaker": "Lan / optional",
+      "context": "CH01; điều kiện trong text",
+      "copy": "“Có người gọi C01… À, anh cứ xem phòng 101 trước.”"
+    },
+    {
+      "id": "CH01-D09",
+      "chapter": "CH01",
+      "speaker": "Lan / optional",
+      "context": "CH01; điều kiện trong text",
+      "copy": "“Em còn ca trực. Anh cứ kiểm tra phòng giúp em.”"
+    },
+    {
+      "id": "CH01-D10",
+      "chapter": "CH01",
+      "speaker": "/ D11 / D12 Minh",
+      "context": "CH01; điều kiện trong text",
+      "copy": "A “Vậy là xong…?” / B “Chưa đủ căn cứ.” / C “Phiếu này không khớp.”"
+    },
+    {
+      "id": "CH01-D13",
+      "chapter": "CH01",
+      "speaker": "/ D14 Minh",
+      "context": "CH01; điều kiện trong text",
+      "copy": "“Lan? …Lan!” / “Không thể nào. Mình vừa đi ra mà…”"
+    },
+    {
+      "id": "CH01-PA01",
+      "chapter": "CH01",
+      "speaker": "/ A",
+      "context": "CH01; điều kiện trong text",
+      "copy": "“Phòng 101. Đã xác nhận không còn bệnh nhân chưa bàn giao.”"
+    },
+    {
+      "id": "CH01-PA02",
+      "chapter": "CH01",
+      "speaker": "/ B",
+      "context": "CH01; điều kiện trong text",
+      "copy": "“Phòng 101. Chờ… xác nhận.”"
+    },
+    {
+      "id": "CH01-PA03",
+      "chapter": "CH01",
+      "speaker": "/ C",
+      "context": "CH01; điều kiện trong text",
+      "copy": "“Phòng 101. Yêu cầu kiểm tra lại.”"
+    },
+    {
+      "id": "CH01-PA04",
+      "chapter": "CH01",
+      "speaker": "/ B06",
+      "context": "CH01; điều kiện trong text",
+      "copy": "“Đề nghị nhân viên hoàn tất ca…” [ngắt]"
+    },
+    {
+      "id": "CH01-OBJ01–05",
+      "chapter": "CH01",
+      "speaker": "",
+      "context": "CH01; điều kiện trong text",
+      "copy": "Đến An Sinh → Tìm người đã hẹn → Kiểm tra phòng 101 → Mang phiếu về bàn trực → Thử ra cổng."
+    },
+    {
+      "id": "CH01-OBJ06",
+      "chapter": "CH01",
+      "speaker": "",
+      "context": "CH01; điều kiện trong text",
+      "copy": "Tìm lối ra. (Handoff CH02)"
+    },
+    {
+      "id": "CH02-D01",
+      "chapter": "CH02",
+      "speaker": "Minh",
+      "context": "Tầng trệt",
+      "copy": "Lan? Em nghe thấy anh không?"
+    },
+    {
+      "id": "CH02-D02",
+      "chapter": "CH02",
+      "speaker": "Minh",
+      "context": "Xem dấu bánh",
+      "copy": "Ba giường... nhưng có bốn chỗ cắm."
+    },
+    {
+      "id": "CH02-D03",
+      "chapter": "CH02",
+      "speaker": "An",
+      "context": "Vignette sau PZ02",
+      "copy": "Chú có thấy cửa nhà con không?"
+    },
+    {
+      "id": "CH02-D04",
+      "chapter": "CH02",
+      "speaker": "Minh",
+      "context": "Xác thực tên",
+      "copy": "An. Chú sẽ giữ lại cái tên này."
+    },
+    {
+      "id": "CH02-D05",
+      "chapter": "CH02",
+      "speaker": "Gatekeeper",
+      "context": "LOC04",
+      "copy": "Phòng này không có bệnh nhân. Yêu cầu rời khỏi khu vực."
+    },
+    {
+      "id": "CH02-D06",
+      "chapter": "CH02",
+      "speaker": "UI",
+      "context": "Phiếu A đã sửa",
+      "copy": "Đã sửa xác nhận trước đó. Vật chứng được giữ lại."
+    },
+    {
+      "id": "CH02-D07",
+      "chapter": "CH02",
+      "speaker": "UI",
+      "context": "Phiếu B/C",
+      "copy": "Đối chiếu hoàn tất. Hồ sơ bệnh nhân C01 được ghi nhận."
+    },
+    {
+      "id": "CH01-D15",
+      "chapter": "CH01",
+      "speaker": "Bảy (SMS)",
+      "context": "Sân; trước AN01",
+      "copy": "Tôi đang ở viện. Hoãn nhé, cậu đừng vào trong."
+    },
+    {
+      "id": "CH01-D16",
+      "chapter": "CH01",
+      "speaker": "Lan",
+      "context": "CH01 B03; optional hỏi ký ức chung, không có prompt hỏi trực tiếp kết cục tại C",
+      "copy": "Anh nhớ phần anh đã chứng kiến mà. Còn chuyện sau đó, anh đã nghe ai kể?"
+    }
+  ]
+}

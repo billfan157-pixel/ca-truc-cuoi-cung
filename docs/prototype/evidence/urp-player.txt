@@ -1,0 +1,4 @@
+Initialize engine version: 6000.3.28f1 (8f082d2fe476)
+    Renderer:        Intel(R) Arc(TM) Graphics (ID=0x7d55)
+gpu=Intel(R) Arc(TM) Graphics
+graphics_mb=9045

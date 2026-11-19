@@ -1,0 +1,47 @@
+{
+  "rooms": [
+    { "id": "LOC01", "label": "Sân / cổng", "x": -5, "z": -20, "w": 18, "d": 12 },
+    { "id": "LOC02", "label": "Lễ tân", "x": -1, "z": -8, "w": 10, "d": 8 },
+    { "id": "HALL", "label": "Hành lang", "x": 2.5, "z": 0, "w": 3, "d": 16 },
+    { "id": "STAFF", "label": "Lối phụ", "x": -1, "z": 0, "w": 2.1, "d": 16 },
+    { "id": "LOC03", "label": "Phòng 101", "x": 5.7, "z": 2, "w": 8, "d": 6 },
+    { "id": "STORE", "label": "Kho giường", "x": 13.9, "z": 2, "w": 3.2, "d": 3.6 },
+    { "id": "LOC04", "label": "Cấp cứu", "x": -1, "z": 16, "w": 10, "d": 6 }
+  ],
+  "openings": [
+    { "id": "GATE-CONG", "x": 4, "z": -20, "width": 2.4, "alongX": true },
+    { "id": "ENTRY", "x": 4, "z": -8, "width": 1.8, "alongX": true },
+    { "id": "ENTRY-HALL", "x": 4, "z": 0, "width": 3, "alongX": true },
+    { "id": "ENTRY-STAFF", "x": 0.05, "z": 0, "width": 1.4, "alongX": true },
+    { "id": "GATE-101", "x": 5.6, "z": 4.75, "width": 1.2, "alongX": false },
+    { "id": "GATE-STORE", "x": 13.8, "z": 3.62, "width": 1.22, "alongX": false },
+    { "id": "GATE-CAPCUU", "x": 4, "z": 16, "width": 1.4, "alongX": true },
+    { "id": "GATE-CAPCUU-B", "x": 0.05, "z": 16, "width": 1.4, "alongX": true }
+  ],
+  "pads": [
+    { "id": "AP00", "x": 4, "z": -22.2, "yaw": 0 },
+    { "id": "AP01", "x": 4, "z": -18, "yaw": 0 },
+    { "id": "AP02", "x": 4, "z": -3.3, "yaw": -70 },
+    { "id": "AP03", "x": 6.55, "z": -4.1, "yaw": -50 },
+    { "id": "AP04", "x": 6.52, "z": 4.93, "yaw": 89 },
+    { "id": "AP05", "x": 4, "z": 19.7, "yaw": 180 }
+  ],
+  "beds": [
+    { "id": "1", "x": 7.25, "z": 6.97, "yaw": 0 },
+    { "id": "2", "x": 10.25, "z": 6.97, "yaw": 0 },
+    { "id": "3", "x": 7.9, "z": 3.03, "yaw": 180 },
+    { "id": "4", "x": 11.55, "z": 3.03, "yaw": 180 }
+  ],
+  "bedWidth": 0.88,
+  "bedLength": 2.06,
+  "wallHeight": 3.6,
+  "floorToFloor": 4.0,
+  "levels": [
+    { "id": "B1", "y": -3.4 },
+    { "id": "SAN-SAU", "y": -1.9 },
+    { "id": "TRET", "y": 0 },
+    { "id": "TANG-2", "y": 4 },
+    { "id": "TANG-3", "y": 8 },
+    { "id": "MAI", "y": 11.7 }
+  ]
+}
