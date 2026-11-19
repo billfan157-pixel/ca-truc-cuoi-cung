@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Rendering;
@@ -79,11 +80,32 @@ namespace CTCC
         public EnvironmentalAudio atmosphere;
         public InteractableRig interactables;
         public bool referenceArt;
+        [SerializeField] private Bounds navigationBounds = new(new Vector3(5, 1, 0), new Vector3(42, 8, 59));
         [NonSerialized] public bool smoothPresentation;
         private bool themeReady;
         private bool showedReport;
         private NavMeshDataInstance navigation;
-        private NavMeshData navData;
+        private NavigationSnapshot activeNavigation;
+        private readonly List<NavigationSnapshot> navigationCache = new();
+        private readonly List<NavMeshBuildSource> navigationSources = new();
+        private readonly List<NavMeshBuildMarkup> navigationMarkups = new();
+        private static readonly ProfilerMarker CollectNavigationMarker = new("CTCC.Navigation.Collect");
+        private static readonly ProfilerMarker BuildNavigationMarker = new("CTCC.Navigation.Build");
+        private static readonly ProfilerMarker ProbeMarker = new("CTCC.Reflection.Schedule");
+        private const int NavigationCacheCapacity = 8;
+        private ReflectionProbe renderingProbe;
+        private int reflectionRequest;
+        private int reflectionVersion;
+        private int renderingVersion;
+        private int nextProbe;
+
+        private sealed class NavigationSnapshot
+        {
+            public NavMeshBuildSource[] Sources;
+            public Vector3 Origin;
+            public Quaternion Rotation;
+            public NavMeshData Data;
+        }
 
         public Transform Pad(string id)
         {
@@ -141,11 +163,7 @@ namespace CTCC
                     RenderSettings.fogDensity = 0.019f;
                 }
 
-                if (Application.isPlaying)
-                {
-                    if (localReflection != null) localReflection.RenderProbe();
-                    if (corridorReflection != null) corridorReflection.RenderProbe();
-                }
+                if (Application.isPlaying) reflectionVersion++;
                 if (motion != null) motion.reportLayer = layerB;
                 if (atmosphere != null) atmosphere.ReportLayer = layerB;
                 showedReport = layerB;
@@ -204,42 +222,104 @@ namespace CTCC
 
         public NavMeshData BuildNavigation()
         {
-            var bounds = new Bounds(new Vector3(5, 1, 0), new Vector3(42, 8, 59));
-            var sources = new List<NavMeshBuildSource>();
-            NavMeshBuilder.CollectSources(bounds, SolidMask, NavMeshCollectGeometry.PhysicsColliders, 0,
-                new List<NavMeshBuildMarkup>(), sources);
+            CollectNavigation();
+            return BakeNavigation();
+        }
+
+        private void CollectNavigation()
+        {
+            using var marker = CollectNavigationMarker.Auto();
+            // The scene-owned root keeps an additively loaded zone out of this zone's source set.
+            NavMeshBuilder.CollectSources(transform, SolidMask, NavMeshCollectGeometry.PhysicsColliders, 0,
+                navigationMarkups, navigationSources);
+        }
+
+        private NavMeshData BakeNavigation()
+        {
+            using var marker = BuildNavigationMarker.Auto();
             var build = NavMesh.GetSettingsByIndex(0);
             build.agentRadius = Radius;
             build.agentHeight = Height;
             build.agentClimb = 0.25f;
             build.overrideVoxelSize = true;
             build.voxelSize = 0.14f;
-            return NavMeshBuilder.BuildNavMeshData(build, sources, bounds, Vector3.zero, Quaternion.identity);
+            return NavMeshBuilder.BuildNavMeshData(build, navigationSources, navigationBounds, transform.position, transform.rotation);
         }
 
         public bool TryRefreshNavigation(Vector3 landing)
         {
-            var proposed = BuildNavigation();
-            if (proposed == null) return false;
+            CollectNavigation();
+            var proposed = navigationCache.Find(MatchesNavigation);
+            if (proposed == activeNavigation && navigation.valid)
+                return NavMesh.SamplePosition(landing, out _, 0.36f, NavMesh.AllAreas);
+            bool missed = proposed == null;
+            if (missed)
+            {
+                var data = BakeNavigation();
+                if (data == null) return false;
+                proposed = new NavigationSnapshot { Sources = navigationSources.ToArray(), Data = data,
+                    Origin = transform.position, Rotation = transform.rotation };
+            }
+
             if (navigation.valid) navigation.Remove();
-            var candidate = NavMesh.AddNavMeshData(proposed);
+            var candidate = NavMesh.AddNavMeshData(proposed.Data);
             if (!candidate.valid || !NavMesh.SamplePosition(landing, out _, 0.36f, NavMesh.AllAreas))
             {
                 if (candidate.valid) candidate.Remove();
-                Destroy(proposed);
-                if (navData != null) navigation = NavMesh.AddNavMeshData(navData);
+                if (missed) Destroy(proposed.Data);
+                if (activeNavigation != null) navigation = NavMesh.AddNavMeshData(activeNavigation.Data);
                 return false;
             }
-            if (navData != null) Destroy(navData);
-            navData = proposed;
+            navigationCache.Remove(proposed);
+            navigationCache.Add(proposed);
+            if (navigationCache.Count > NavigationCacheCapacity)
+            {
+                Destroy(navigationCache[0].Data);
+                navigationCache.RemoveAt(0);
+            }
+            activeNavigation = proposed;
             navigation = candidate;
             return true;
+        }
+
+        private bool MatchesNavigation(NavigationSnapshot snapshot)
+        {
+            if (snapshot.Sources.Length != navigationSources.Count || !snapshot.Origin.Equals(transform.position) ||
+                !snapshot.Rotation.Equals(transform.rotation)) return false;
+            for (int i = 0; i < snapshot.Sources.Length; i++)
+            {
+                var a = snapshot.Sources[i];
+                var b = navigationSources[i];
+                if (a.shape != b.shape || a.area != b.area || a.sourceObject != b.sourceObject ||
+                    a.component != b.component || !a.size.Equals(b.size) || !a.transform.Equals(b.transform)) return false;
+            }
+            return true;
+        }
+
+        private void LateUpdate()
+        {
+            if (renderingProbe != null && renderingProbe.isActiveAndEnabled && !renderingProbe.IsFinishedRendering(reflectionRequest)) return;
+            renderingProbe = null;
+            if (renderingVersion != reflectionVersion)
+            {
+                renderingVersion = reflectionVersion;
+                nextProbe = 0;
+            }
+            while (nextProbe < 2)
+            {
+                var probe = nextProbe++ == 0 ? localReflection : corridorReflection;
+                if (probe == null || !probe.isActiveAndEnabled) continue;
+                using var marker = ProbeMarker.Auto();
+                reflectionRequest = probe.RenderProbe();
+                if (reflectionRequest >= 0) renderingProbe = probe;
+                break;
+            }
         }
 
         private void OnDestroy()
         {
             if (navigation.valid) navigation.Remove();
-            if (navData != null) Destroy(navData);
+            foreach (var snapshot in navigationCache) Destroy(snapshot.Data);
         }
     }
 }

@@ -142,7 +142,7 @@ namespace CTCC.Editor
         {
             PlayerSettings.companyName = "An Sinh Project";
             PlayerSettings.productName = "Ca trực cuối cùng";
-            PlayerSettings.bundleVersion = "0.2.0";
+            PlayerSettings.bundleVersion = "0.2.1";
             PlayerSettings.colorSpace = ColorSpace.Linear;
             PlayerSettings.defaultScreenWidth = 1920;
             PlayerSettings.defaultScreenHeight = 1080;

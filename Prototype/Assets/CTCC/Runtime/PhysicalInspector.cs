@@ -19,8 +19,11 @@ namespace CTCC
         private Light keyLight;
         private Light rimLight;
         private GameObject currentModel;
+        private Mesh documentMesh;
+        private Material documentMaterial;
         private DepthOfField activeDof;
         private float baseDofDist = 4.5f;
+        private bool baseDofActive;
         private float rotX, rotY, zoom = 0.44f;
         private bool active;
         private bool reducedMotion;
@@ -106,6 +109,7 @@ namespace CTCC
             {
                 activeDof = dof;
                 baseDofDist = dof.focusDistance.value;
+                baseDofActive = dof.active;
                 activeDof.active = !reducedMotion;
                 activeDof.focusDistance.value = 0.42f;
             }
@@ -121,19 +125,32 @@ namespace CTCC
         {
             if (currentModel != null)
             {
+                currentModel.SetActive(false);
                 Destroy(currentModel);
                 currentModel = null;
             }
+            if (documentMesh != null) Destroy(documentMesh);
+            if (documentMaterial != null) Destroy(documentMaterial);
+            documentMesh = null;
+            documentMaterial = null;
             if (activeDof != null)
             {
                 activeDof.focusDistance.value = baseDofDist;
-                activeDof.active = false;
+                activeDof.active = baseDofActive;
                 activeDof = null;
             }
             active = false;
             if (stage != null) stage.gameObject.SetActive(false);
             if (keyLight != null) keyLight.enabled = false;
             if (rimLight != null) rimLight.enabled = false;
+        }
+
+        private void OnDestroy()
+        {
+            Close();
+            if (stage != null) Destroy(stage.gameObject);
+            if (keyLight != null) Destroy(keyLight.gameObject);
+            if (rimLight != null) Destroy(rimLight.gameObject);
         }
 
         private void Update()
@@ -211,7 +228,7 @@ namespace CTCC
             }
         }
 
-        private static GameObject BuildCurvedPaperSheet(Texture tex, float aspect)
+        private GameObject BuildCurvedPaperSheet(Texture tex, float aspect)
         {
             float h = 0.28f;
             float w = h * Mathf.Clamp(aspect, 0.45f, 1.85f);
@@ -242,21 +259,19 @@ namespace CTCC
                     }
                 }
             }
-            var mesh = new Mesh { name = "InspectPaperSheet" };
-            mesh.vertices = verts;
-            mesh.uv = uvs;
-            mesh.triangles = tris;
-            mesh.RecalculateNormals();
+            documentMesh = new Mesh { name = "InspectPaperSheet", vertices = verts, uv = uvs, triangles = tris };
+            documentMesh.RecalculateNormals();
+            documentMesh.UploadMeshData(true);
 
             var go = new GameObject("InspectDocument");
-            go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            mat.SetTexture("_BaseMap", tex);
-            mat.SetColor("_BaseColor", Color.white);
-            mat.SetFloat("_Smoothness", 0.14f);
-            mat.SetFloat("_Cull", 0);
+            go.AddComponent<MeshFilter>().sharedMesh = documentMesh;
+            documentMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "InspectPaperMaterial" };
+            documentMaterial.SetTexture("_BaseMap", tex);
+            documentMaterial.SetColor("_BaseColor", Color.white);
+            documentMaterial.SetFloat("_Smoothness", 0.14f);
+            documentMaterial.SetFloat("_Cull", 0);
             var mr = go.AddComponent<MeshRenderer>();
-            mr.sharedMaterial = mat;
+            mr.sharedMaterial = documentMaterial;
             mr.shadowCastingMode = ShadowCastingMode.Off;
             return go;
         }

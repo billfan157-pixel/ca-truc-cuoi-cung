@@ -36,6 +36,17 @@ namespace CTCC
 
         private void Awake()
         {
+            string requestedQuality = Argument("-ctcc-quality");
+            if (requestedQuality != null)
+            {
+                int preset = Array.IndexOf(QualitySettings.names, requestedQuality);
+                if (preset >= 0) QualitySettings.SetQualityLevel(preset, true);
+            }
+            else if (Argument("-ctcc-qa") == null && Argument("-ctcc-input-qa") == null)
+            {
+                int preset = Array.IndexOf(QualitySettings.names, PlayerPrefs.GetString("CTCC.GraphicsQuality"));
+                if (preset >= 0) QualitySettings.SetQualityLevel(preset, true);
+            }
             scene = GetComponent<HospitalScene>();
             var lineSheet = Resources.Load<TextAsset>("CTCC/Dialogue");
             foreach (var entry in JsonUtility.FromJson<DialogueSheet>(lineSheet.text).entries)
@@ -68,12 +79,20 @@ namespace CTCC
 
         private void Start()
         {
+            string benchmark = Argument("-ctcc-benchmark");
+            if (benchmark != null)
+            {
+                StartCoroutine(BenchmarkVisit(Path.GetFullPath(benchmark)));
+                return;
+            }
             if (qaFolder != null)
             {
                 StartCoroutine(AutomatedVisit());
                 return;
             }
             MainMenu();
+            string inputQa = Argument("-ctcc-input-qa");
+            if (inputQa != null) StartCoroutine(FinishVerification(VerifyPlayerInput(), Path.GetFullPath(inputQa)));
         }
 
         private static string Argument(string label)

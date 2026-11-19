@@ -1,14 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
-using System.Linq;
-using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
-using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
@@ -25,6 +21,7 @@ namespace CTCC
             bool passed=false;
             try
             {
+                Require(Argument("-ctcc-qa-probe") != "module-failure", "intentional QA module failure");
                 var settings=new VisitSettings { volume=0, reduceMotion=true, captions=false, alternateBindings=true, textScale=1.3f };
                 foreach(var form in new[]{FormStatus.Affirmed,FormStatus.Unverified,FormStatus.Refuted})
                     WalkCase(form,settings);
@@ -39,11 +36,60 @@ namespace CTCC
                 verification.Add("FAIL: "+e.ToString());
                 Debug.LogException(e);
             }
-            if(passed)
-                yield return VerifyKeyboard();
-            File.WriteAllLines(Path.Combine(qaFolder,"gameplay.txt"),verification);
-            if(passed && SystemInfo.graphicsDeviceType!=GraphicsDeviceType.Null)
-                yield return VerifyRender();
+            if (passed) yield return FinishVerification(VerifyModuleStages(), qaFolder);
+            else CompleteVerification(qaFolder, false);
+        }
+
+        private IEnumerator VerifyModuleStages()
+        {
+            yield return VerifyKeyboard();
+            if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
+        }
+
+        private IEnumerator FinishVerification(IEnumerator checks, string directory)
+        {
+            var stack = new Stack<IEnumerator>();
+            stack.Push(checks);
+            bool passed = true;
+            while (stack.Count > 0)
+            {
+                object yielded = null;
+                try
+                {
+                    var stage = stack.Peek();
+                    if (stage.MoveNext()) yielded = stage.Current;
+                    else
+                    {
+                        (stack.Pop() as IDisposable)?.Dispose();
+                        continue;
+                    }
+                }
+                catch (Exception e)
+                {
+                    verification.Add("FAIL: " + e);
+                    Debug.LogException(e);
+                    passed = false;
+                    break;
+                }
+                if (yielded is IEnumerator child) stack.Push(child);
+                else yield return yielded;
+            }
+            while (stack.Count > 0) (stack.Pop() as IDisposable)?.Dispose();
+            CompleteVerification(directory, passed);
+        }
+
+        private void CompleteVerification(string directory, bool passed)
+        {
+            try
+            {
+                verification.Add(passed ? "RESULT=PASS" : "RESULT=FAIL");
+                File.WriteAllLines(Path.Combine(directory, "gameplay.txt"), verification);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                passed = false;
+            }
             FinishQa(passed);
         }
 
@@ -76,10 +122,10 @@ namespace CTCC
                 InputSystem.settings.updateMode=before;
                 InputSystem.settings.backgroundBehavior=background;
             }
-            if(second && !first && escaped && State.settings.alternateBindings && State.settings.textScale>1.25f)
-                verification.Add("T06 keyboard subtest PASS: Tab focus within modal, Enter action, Esc dismiss, alternate binding and 130% font settings kept.");
-            else
-                verification.Add($"T06 keyboard subtest UNVERIFIED: first={first} second={second} escaped={escaped} alt={State.settings.alternateBindings} scale={State.settings.textScale:0.00}.");
+            Require(Argument("-ctcc-qa-probe") != "keyboard-failure" && second && !first && escaped &&
+                State.settings.alternateBindings && State.settings.textScale > 1.25f,
+                $"T06 keyboard: first={first} second={second} escaped={escaped} alt={State.settings.alternateBindings} scale={State.settings.textScale:0.00}");
+            verification.Add("T06 keyboard subtest PASS: Tab focus within modal, Enter action, Esc dismiss, alternate binding and 130% font settings kept.");
             ui.Close();
             yield return null;
         }
@@ -289,52 +335,7 @@ namespace CTCC
                 yield return RecordWalkthrough(camera, Path.GetFullPath(recordDir));
             }
 
-            ui.Close();
-            player.Teleport(scene.Pad("AP04"));
-            Apply(casework.SwitchIn101(player.Feet), "capture back to R");
-            const int count=420;
-            var elapsed=new double[count];
-            var gpu=new double[count];
-            var roundtrip=new double[count];
-            var timing=new FrameTiming[1];
-            using var calls=ProfilerRecorder.StartNew(ProfilerCategory.Render,"Draw Calls Count");
-            using var renderThread=ProfilerRecorder.StartNew(ProfilerCategory.Internal,"Render Thread");
-            long peakDraws=0,peakRender=0;
-            var request=new UniversalRenderPipeline.SingleCameraRequest { destination=target };
-            for(int i=-125;i<count;i++)
-            {
-                float t=Mathf.Repeat(i/300f,1);
-                camera.transform.parent.position=Vector3.Lerp(new Vector3(4.07f,.02f,4.8f),new Vector3(9.64f,.02f,5.32f),t);
-                camera.transform.LookAt(new Vector3(12.05f,1.02f,6.56f));
-                long started=System.Diagnostics.Stopwatch.GetTimestamp();
-                RenderPipeline.SubmitRenderRequest(camera,request);
-                var fence=AsyncGPUReadback.Request(target,0,0,1,0,1,0,1);
-                fence.WaitForCompletion();
-                if(fence.hasError) throw new InvalidOperationException("Graphics test readback failed.");
-                if(i>=0)
-                    roundtrip[i]=(System.Diagnostics.Stopwatch.GetTimestamp()-started)*1000d/System.Diagnostics.Stopwatch.Frequency;
-                FrameTimingManager.CaptureFrameTimings();
-                yield return null;
-                if (i<0) continue;
-                elapsed[i]=Time.unscaledDeltaTime*1000;
-                if(FrameTimingManager.GetLatestTimings(1,timing)>0) gpu[i]=timing[0].gpuFrameTime;
-                peakDraws=Math.Max(peakDraws,calls.LastValue);
-                peakRender=Math.Max(peakRender,renderThread.LastValue);
-            }
-            File.WriteAllLines(Path.Combine(qaFolder,"profile.txt"),new[]{
-                "unity="+Application.unityVersion,
-                "GPU="+SystemInfo.graphicsDeviceName,
-                "graphics="+SystemInfo.graphicsDeviceType,
-                "renderer_mode=Offscreen + synchronized 1px readback",
-                "screen="+target.width+"x"+target.height,
-                "frames="+count,
-                "draw_calls_peak="+peakDraws,
-                "render_thread_peak_ms="+(peakRender/1000000d).ToString("0.00",CultureInfo.InvariantCulture),
-                "frame_p95_ms="+Percentile(elapsed),
-                "offscreen_render_p95_ms="+Percentile(roundtrip),
-                "gpu_p95_ms="+Percentile(gpu.Where(x=>x>0).ToArray()),
-                "allocated_mb="+(Profiler.GetTotalAllocatedMemoryLong()/1048576d).ToString("0.00",CultureInfo.InvariantCulture)
-            });
+            Require(Argument("-ctcc-qa-probe") != "visual-failure", "intentional QA visual failure");
             target.Release();
             Destroy(target);
         }
@@ -422,13 +423,6 @@ namespace CTCC
             File.WriteAllBytes(Path.Combine(qaFolder,name+".png"),screenshot.EncodeToPNG());
             Destroy(screenshot);
             RenderTexture.active=previous;
-        }
-
-        private static string Percentile(double[] sample)
-        {
-            if(sample.Length==0) return "NA";
-            Array.Sort(sample);
-            return sample[(int)Math.Ceiling(.95*sample.Length)-1].ToString("0.00",CultureInfo.InvariantCulture);
         }
 
         private static void FinishQa(bool passed)

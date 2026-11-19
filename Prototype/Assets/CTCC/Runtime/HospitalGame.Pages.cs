@@ -100,7 +100,7 @@ namespace CTCC
             }
 
             float sensVal = current.mouseSensitivity > 0.05f ? current.mouseSensitivity : 1f;
-            float ambVal = current.ambienceVolume > 0.001f ? current.ambienceVolume : 0.85f;
+            float ambVal = Mathf.Clamp01(current.ambienceVolume);
             ui.Show("TRỢ NĂNG & HIỂN THỊ", "Cài đặt",
                 "Tab hoặc mũi tên để chuyển nút. Enter để chọn. Esc để quay lại.",
                 new[]
@@ -108,13 +108,21 @@ namespace CTCC
                     new ActionChoice(current.reduceMotion ? "Chuyển động · Giảm (An toàn)" : "Chuyển động · Đầy đủ", () => Change(x => x.reduceMotion = !x.reduceMotion)),
                     new ActionChoice(current.captions ? "Chú thích âm thanh · Bật" : "Chú thích âm thanh · Tắt", () => Change(x => x.captions = !x.captions)),
                     new ActionChoice("Âm lượng tổng · " + Mathf.RoundToInt(current.volume * 100) + "%", () => Change(x => x.volume = x.volume <= 0.01f ? 0.50f : x.volume < 0.70f ? 0.72f : x.volume < 0.95f ? 1f : 0f)),
-                    new ActionChoice("Âm nền môi trường · " + Mathf.RoundToInt(ambVal * 100) + "%", () => Change(x => x.ambienceVolume = ambVal >= 0.95f ? 0.45f : ambVal + 0.25f)),
+                    new ActionChoice("Âm nền môi trường · " + Mathf.RoundToInt(ambVal * 100) + "%", () => Change(x => x.ambienceVolume = ambVal >= 0.95f ? 0f : Mathf.Min(1f, ambVal + 0.25f))),
                     new ActionChoice(current.monoAudio ? "Âm thanh · Mono" : "Âm thanh · Không gian 3D", () => Change(x => x.monoAudio = !x.monoAudio)),
                     new ActionChoice("Cỡ chữ · " + Mathf.RoundToInt(current.textScale * 100) + "%", () => Change(x => x.textScale = x.textScale >= 1.30f ? 1f : 1.30f)),
                     new ActionChoice("Độ sáng / Gamma · " + (current.visibility <= 0.05f ? "Chuẩn" : current.visibility < 0.7f ? "Sáng vừa" : "Tăng sáng"), () => Change(x => x.visibility = x.visibility <= 0.05f ? 0.5f : x.visibility < 0.7f ? 1f : 0f)),
                     new ActionChoice("Độ nhạy chuột · " + sensVal.ToString("0.0") + "x", () => Change(x => x.mouseSensitivity = sensVal >= 1.7f ? 0.6f : sensVal + 0.4f)),
                     new ActionChoice(current.alternateBindings ? "Phím · Mũi tên / K / J / L" : "Phím · WASD / E / Tab / F", () => Change(x => x.alternateBindings = !x.alternateBindings)),
                     new ActionChoice("Góc nhìn (FOV) · " + Mathf.RoundToInt(current.fov) + "°", () => Change(x => x.fov = x.fov >= 78 ? 62 : x.fov + 8)),
+                    new ActionChoice("Chất lượng đồ họa · " + QualitySettings.names[QualitySettings.GetQualityLevel()], () =>
+                    {
+                        int preset = (QualitySettings.GetQualityLevel() + 1) % QualitySettings.names.Length;
+                        QualitySettings.SetQualityLevel(preset, true);
+                        PlayerPrefs.SetString("CTCC.GraphicsQuality", QualitySettings.names[preset]);
+                        PlayerPrefs.Save();
+                        Settings(back);
+                    }),
                     new ActionChoice("Quay lại", back)
                 }, back);
         }
@@ -351,13 +359,18 @@ namespace CTCC
                     new ActionChoice("Có một chỗ kê chưa ghi trong bản kê — Đẩy tủ kho", () =>
                     {
                         CloseModal();
-                        if (Report(casework.SolvePz01(player.Feet)))
+                        CommitResult outcome;
+                        bool smooth = scene.smoothPresentation;
+                        scene.smoothPresentation = false;
+                        try { outcome = casework.SolvePz01(player.Feet); }
+                        finally { scene.smoothPresentation = smooth; }
+                        if (Report(outcome))
                         {
                             // Smoothly roll heavy steel cabinet away in interactive play!
                             if (scene.interactables != null && scene.cabinet != null)
                             {
                                 scene.cabinet.localPosition = scene.cabinetClosed;
-                                scene.interactables.MoveCabinet(scene.cabinetOpen, false, scene.atmosphere);
+                                scene.interactables.MoveCabinet(scene.cabinetOpen, !smooth, scene.atmosphere);
                             }
                             ui.Toast("ĐÃ GHI NHẬN E12", "Tủ sắt đang lăn khỏi cửa kho giường. Hãy vào kiểm tra tủ khô.", 5.5f);
                         }

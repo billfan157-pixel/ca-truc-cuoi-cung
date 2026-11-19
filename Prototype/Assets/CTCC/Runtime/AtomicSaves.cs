@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace CTCC
@@ -22,6 +24,9 @@ namespace CTCC
 
         private readonly string directory;
         private static readonly Encoding Utf8 = new UTF8Encoding(false, true);
+        private static readonly ProfilerMarker WriteMarker = new("CTCC.Save.AtomicWrite");
+        private static readonly ProfilerMarker FlushMarker = new("CTCC.Save.DurableFlush");
+        private static readonly ProfilerMarker PublishMarker = new("CTCC.Save.Publish");
 
         public AtomicSaves(string directory) { this.directory = directory; }
 
@@ -41,11 +46,12 @@ namespace CTCC
 
         public void Write(SaveSlot slot,Investigation state,Action afterFlush=null)
         {
+            using var write = WriteMarker.Auto();
             if (!Valid(state))
                 throw new InvalidDataException("Snapshot is inconsistent.");
             Directory.CreateDirectory(directory);
             string path=SlotPath(slot);
-            using var slotLock=new FileStream(path+".lock",FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None);
+            using var slotLock = RetrySharing(() => new FileStream(path + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None));
             string temp=path+".tmp";
             string payload=JsonUtility.ToJson(state);
             var bytes=Utf8.GetBytes(JsonUtility.ToJson(new Envelope
@@ -54,24 +60,47 @@ namespace CTCC
                 payload=payload,
                 checksum=Hash(payload)
             }));
-            using (var stream=new FileStream(temp,FileMode.Create,FileAccess.Write,FileShare.None,4096,FileOptions.WriteThrough))
+            try
             {
-                stream.Write(bytes,0,bytes.Length);
-                stream.Flush(true);
+                using (var stream = RetrySharing(() => new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None)))
+                {
+                    using var flush = FlushMarker.Auto();
+                    stream.Write(bytes, 0, bytes.Length);
+                    stream.Flush(true);
+                }
+                if (RetrySharing(() => ReadFile(temp, out _, true)) != SaveRead.Valid)
+                    throw new IOException("Temporary save did not validate.");
+                afterFlush?.Invoke();
+                using var publish = PublishMarker.Auto();
+                if (File.Exists(path))
+                {
+                    bool mainValid = RetrySharing(() => ReadFile(path, out _, true)) == SaveRead.Valid;
+                    string backup = path + (mainValid ? ".bak" : ".replaced");
+                    RetrySharing(() => { File.Replace(temp, path, backup); return true; });
+                }
+                else RetrySharing(() => { File.Move(temp, path); return true; });
             }
-            if (ReadFile(temp,out _) != SaveRead.Valid)
-                throw new IOException("Temporary save did not validate.");
-            afterFlush?.Invoke();
-            if (File.Exists(path))
+            finally
             {
-                string backup=ReadFile(path,out _) == SaveRead.Valid ? path+".bak" : path+".replaced";
-                File.Replace(temp,path,backup);
+                // The same slot lock covers any leftover temp from an interrupted write.
+                try { File.Delete(temp); }
+                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                { Debug.LogWarning($"CTCC temporary save could not be removed (0x{e.HResult:X8})."); }
             }
-            else
-                File.Move(temp,path);
         }
 
-        private static SaveRead ReadFile(string path,out Investigation state)
+        private static bool IsSharingError(IOException error) => (error.HResult & 0xffff) is 32 or 33;
+
+        private static T RetrySharing<T>(Func<T> operation)
+        {
+            for (int attempt = 0;; attempt++)
+            {
+                try { return operation(); }
+                catch (IOException e) when (attempt < 2 && IsSharingError(e)) { Thread.Sleep(4 << attempt); }
+            }
+        }
+
+        private static SaveRead ReadFile(string path,out Investigation state,bool throwSharingError=false)
         {
             state=null;
             if (!File.Exists(path)) return SaveRead.Empty;
@@ -89,6 +118,7 @@ namespace CTCC
                 state=decoded;
                 return SaveRead.Valid;
             }
+            catch (IOException e) when (throwSharingError && IsSharingError(e)) { throw; }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException ||
                                      e is ArgumentException || e is DecoderFallbackException)
             {

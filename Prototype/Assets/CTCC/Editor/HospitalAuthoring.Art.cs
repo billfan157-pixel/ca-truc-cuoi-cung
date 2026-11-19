@@ -170,12 +170,14 @@ namespace CTCC.Editor
                 bool mask = path.EndsWith("_Mask.png", StringComparison.Ordinal);
                 bool repeat = path.EndsWith("_Color.png", StringComparison.Ordinal) || normal || mask;
                 bool leaf = path.EndsWith("TropicalLeaf_Color.png", StringComparison.Ordinal);
+                string family = Path.GetFileNameWithoutExtension(path).Split('_')[0];
+                bool stream = repeat && !leaf && family is not ("WaterRun" or "PaintLoss" or "DampFloor" or "RustRun" or "WallBaseGrime");
                 var wantedType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
                 var wrap = repeat && !leaf ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
                 bool wantAlpha = !repeat || leaf;
                 if (importer.textureType == wantedType && importer.sRGBTexture == !mask &&
                     importer.wrapMode == wrap && importer.anisoLevel == 8 && importer.maxTextureSize == 2048 &&
-                    importer.alphaIsTransparency == wantAlpha)
+                    importer.alphaIsTransparency == wantAlpha && importer.streamingMipmaps == stream)
                     continue;
                 importer.textureType = wantedType;
                 importer.sRGBTexture = !mask;
@@ -183,6 +185,7 @@ namespace CTCC.Editor
                 importer.maxTextureSize = 2048;
                 importer.anisoLevel = 8;
                 importer.alphaIsTransparency = wantAlpha;
+                importer.streamingMipmaps = stream;
                 importer.textureCompression = TextureImporterCompression.Compressed;
                 importer.SaveAndReimport();
             }

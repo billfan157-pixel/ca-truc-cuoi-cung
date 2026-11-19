@@ -81,8 +81,8 @@ namespace CTCC
         public void Apply(VisitSettings options)
         {
             AudioListener.volume = Mathf.Clamp01(options.volume);
-            ambienceScale = options.ambienceVolume > 0.001f ? Mathf.Clamp01(options.ambienceVolume) : 0.85f;
-            sfxScale = options.sfxVolume > 0.001f ? Mathf.Clamp01(options.sfxVolume) : 0.90f;
+            ambienceScale = Mathf.Clamp01(options.ambienceVolume);
+            sfxScale = Mathf.Clamp01(options.sfxVolume);
             mono = options.monoAudio;
             foreach (var loop in loops)
                 if (loop.source != null)

@@ -42,6 +42,7 @@ namespace CTCC
         private float scale = 1f;
         private bool captions = true;
         private int selected;
+        private int modalOpenedFrame = -1;
 
         public bool IsModal => modal != null && modal.gameObject.activeSelf;
         public event Action OpenChanged;
@@ -304,6 +305,7 @@ namespace CTCC
             }
 
             modal.gameObject.SetActive(true);
+            modalOpenedFrame = Time.frameCount;
             hud.gameObject.SetActive(false);
             OpenChanged?.Invoke();
             MoveFocus(1);
@@ -334,7 +336,7 @@ namespace CTCC
         {
             if (cueBacking != null && Time.unscaledTime > cueUntil) cueBacking.gameObject.SetActive(false);
             if (toastBacking != null && Time.unscaledTime > toastUntil) toastBacking.gameObject.SetActive(false);
-            if (modal == null || !IsModal) return;
+            if (modal == null || !IsModal || modalOpenedFrame == Time.frameCount) return;
             HandleNavigation(Keyboard.current);
         }
 

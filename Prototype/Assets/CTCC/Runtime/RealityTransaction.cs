@@ -47,7 +47,7 @@ namespace CTCC
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
             {
                 Revert(landing);
-                Debug.LogWarning("CTCC snapshot write failed: "+e.GetType().Name);
+                Debug.LogWarning($"CTCC snapshot write failed: {e.GetType().Name} (0x{e.HResult:X8}) {e.Message}");
                 return CommitResult.SaveUnavailable;
             }
             Current=proposed;
@@ -87,7 +87,7 @@ namespace CTCC
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
             {
-                Debug.LogWarning("CTCC manual save failed: "+e.GetType().Name);
+                Debug.LogWarning($"CTCC manual save failed: {e.GetType().Name} (0x{e.HResult:X8}) {e.Message}");
                 return false;
             }
         }

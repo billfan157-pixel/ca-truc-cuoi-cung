@@ -156,7 +156,7 @@ namespace CTCC.Editor
 
         private void ConfigureUrpPipeline()
         {
-            if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset pipeline)
+            if (AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/PC_RPAsset.asset") is { } pipeline)
             {
                 pipeline.renderScale = art ? 0.88f : 1.0f;
                 pipeline.shadowDistance = 24f;
