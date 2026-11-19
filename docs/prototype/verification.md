@@ -42,19 +42,9 @@ Toàn bộ ảnh BEFORE (M1 baseline dùng khối primitive) và AFTER (M0-R t�
 - [Bảng tổng hợp 8 góc M0-R Showcase](evidence/m0r-showcase-board.jpg)
 - [Ảnh cùng góc nhìn R/B](evidence/room-101-r-b.jpg) · [Hành lang](evidence/corridor-r.png)
 
-## Hiệu năng Intel Arc tích hợp (BEFORE M1 vs AFTER M0-R, cùng cấu hình 1080p)
+## Hiệu năng và nghiệm thu hiện hành
 
-| Chỉ số (420 khung, D3D12, 1920 × 1080, URP renderScale 0,88, đồng bộ 1px readback) | M1 Baseline (BEFORE) | M0-R Reconstruction (AFTER) | Đánh giá |
-| --- | --- | --- | --- |
-| `frame_p95_ms` (bao gồm đồng bộ đọc 1px CPU–GPU) | 21,62 ms | **21,36 ms** | Nhanh hơn baseline (`−0,26 ms`) dù thêm 36 mesh Blender, 22 DBuffer decals, bóng đổ Spot thật & shader mưa/lá |
-| `offscreen_render_p95_ms` | 17,63 ms | **17,76 ms** | Tương đương (`+0,13 ms`) trên cùng Intel Arc iGPU |
-| `draw_calls_peak` | 593 | **838** | Giảm 36% so với M0-R Pass 1 (`1306 → 838`) nhờ 1 shadow cascade, static batching & tắt shadow trên prop nhỏ |
-| `allocated_mb` (Unity heap) | 106,41 MiB | **112,97 MiB** | Chỉ tăng `+6,56 MiB` cho toàn bộ 36 model FBX, 17 bộ PBR 2048² và 19 tệp âm thanh |
-| Lỗi / Exception lúc chạy (`player.log`) | 0 | **0** | Không lỗi biên dịch, không lỗi shader, không `MissingComponent` / `isReadable` |
-
-Ngân sách 60 fps là `16,67 ms`. Phép đo offscreen 1080p có `AsyncGPUReadback.WaitForCompletion()` đồng bộ CPU–GPU mỗi khung cho `21,36 ms` (cải thiện so với `21,62 ms` trước tái dựng); cần bổ sung đo cửa sổ thực không readback stall và playtest 1080p trọn tuyến ở cổng nghiệm thu M1/M2.
-
-[Unity ProfilerRecorder](evidence/profile.txt) · [Frame Debugger M1](evidence/frame-debugger.txt) · [Mẫu PresentMon](evidence/presents-720p.csv)
+[Hồ sơ M1-P](m1p-acceptance.md) thay phép đo hiệu năng hiện hành bằng dữ liệu từ Windows player 1080p, camera chính và ETW PresentMon. Số liệu M0-R đọc lại 1 pixel đồng bộ mỗi frame chỉ thuộc thử nghiệm ngoài màn hình trước đây. [Log thử nghiệm lịch sử](evidence/profile.txt).
 
 ## Đối chiếu bản đóng gói M0-R
 

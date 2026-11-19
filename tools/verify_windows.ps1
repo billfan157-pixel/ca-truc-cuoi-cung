@@ -27,6 +27,14 @@ if($RecordDir -ne "") {
 $ctccRun=Start-Process -FilePath $ctccExe -WorkingDirectory (Split-Path -Parent $ctccExe) -ArgumentList $ctccArgs -PassThru
 if ($PlayerInput) {
     Show-CtccPlayerWindow $ctccRun
+    $startupLimit = [DateTime]::UtcNow.AddSeconds(5)
+    while ([DateTime]::UtcNow -lt $startupLimit -and !$ctccRun.WaitForExit(250)) {
+        $ctccRun.Refresh()
+        if ($ctccRun.MainWindowHandle -ne [IntPtr]::Zero -and
+            [CtccPlayerWindow]::GetForegroundWindow() -ne $ctccRun.MainWindowHandle) {
+            Show-CtccPlayerWindow $ctccRun
+        }
+    }
 }
 if(!$ctccRun.WaitForExit(180000)) { $ctccRun.Kill(); throw "Windows verification timed out. Check $ctccLog." }
 if ($ProbeFailure) {

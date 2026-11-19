@@ -1,0 +1,6 @@
+INPUT PASS E11/E12/G02: 3 clues, animated cabinet, 3 fragments, wristband, transfer, assembly, identify and exit.
+INPUT PASS Affirmed: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.
+INPUT PASS Unverified: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.
+INPUT PASS Refuted: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.
+INPUT STRESS PASS: 100 paper open/close cycles; 0 live paper meshes, 0 live paper materials, Unity allocated bytes 134675278→133623015.
+RESULT=PASS

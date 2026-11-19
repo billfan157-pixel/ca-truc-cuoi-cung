@@ -1,0 +1,7 @@
+view,mean_abs_delta_r,mean_abs_delta_g,mean_abs_delta_b,baseline_rgb_mean,candidate_rgb_mean
+room101-R,0.144,0.497,0.721,3.582,3.317
+room101-B,3.869,5.086,3.363,15.158,17.322
+corridor-R,0.164,0.611,0.91,3.332,2.824
+closeup-bed-iv,0.178,0.631,0.931,4.739,4.503
+closeup-window-rain,0.211,0.689,1.074,3.795,3.786
+closeup-inspect-3d,0.31,0.68,0.898,16.09,15.717

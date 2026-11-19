@@ -1,0 +1,4 @@
+Release assembly SHA-256 40699ecaf8baaffd00f443880f2d3b1a6a28527daf0328cdcb9232d8736f79cc
+module-failure: Windows exit=1, RESULT=FAIL, FAIL: System.InvalidOperationException: intentional QA module failure
+keyboard-failure: Windows exit=1, RESULT=FAIL, FAIL: System.InvalidOperationException: T06 keyboard: first=False second=True escaped=True alt=True scale=1,30
+visual-failure: Windows exit=1, RESULT=FAIL, FAIL: System.InvalidOperationException: intentional QA visual failure
