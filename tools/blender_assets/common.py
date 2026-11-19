@@ -21,13 +21,13 @@ ROOT = Path(__file__).resolve().parents[2]
 BLEND_DIR = ROOT / "ArtSource" / "Blender"
 FBX_DIR = ROOT / "Prototype" / "Assets" / "CTCC" / "Art" / "Meshes"
 TEX_DIR = ROOT / "Prototype" / "Assets" / "CTCC" / "Art" / "Textures"
-RENDER_DIR = ROOT / "output" / "m0r-evidence" / "blender-renders"
+RENDER_DIR = ROOT / "output" / "m2-evidence" / "blender-renders"
 
 # Material preview definitions matching Unity PBR library names
 PREVIEW_PALETTE = {
-    "PlasterR": ((0.50, 0.53, 0.48), 0.0, 0.84, "PlasterR"),
+    "PlasterR": ((0.54, 0.56, 0.50), 0.0, 0.84, "PlasterR"),
     "PlasterB": ((0.76, 0.77, 0.69), 0.0, 0.80, "PlasterB"),
-    "DadoR": ((0.21, 0.31, 0.28), 0.0, 0.66, "DadoR"),
+    "DadoR": ((0.24, 0.35, 0.31), 0.0, 0.64, "DadoR"),
     "DadoB": ((0.28, 0.46, 0.39), 0.0, 0.54, "DadoB"),
     "WoodDoor": ((0.25, 0.16, 0.09), 0.0, 0.58, "WoodDoorR"),
     "Wood": ((0.28, 0.19, 0.11), 0.0, 0.62, "WoodDoorR"),
@@ -60,10 +60,33 @@ PREVIEW_PALETTE = {
     "ReedMat": ((0.64, 0.57, 0.37), 0.0, 0.82, "CottonOld"),
     "Bark": ((0.22, 0.18, 0.14), 0.0, 0.88, "Bark"),
     "TropicalLeaf": ((0.20, 0.34, 0.18), 0.0, 0.52, "TropicalLeaf"),
-    "KraftPaper": ((0.52, 0.42, 0.27), 0.0, 0.90, None),
+    "TropicalShrub": ((0.18, 0.35, 0.17), 0.0, 0.42, "TropicalShrub"),
+    "KraftPaper": ((0.64, 0.53, 0.36), 0.0, 0.90, "KraftPaper"),
     "GreenOxygen": ((0.16, 0.38, 0.26), 0.20, 0.44, "PaintedMetalB"),
     "SalineFluid": ((0.75, 0.84, 0.86), 0.0, 0.08, None),
     "PlasticIvory": ((0.74, 0.71, 0.60), 0.0, 0.46, None),
+    # M2 Exterior, ER & Character Materials
+    "WetAsphalt": ((0.18, 0.19, 0.20), 0.0, 0.40, "WetAsphalt"),
+    "ExteriorFacade": ((0.64, 0.59, 0.44), 0.0, 0.82, "ExteriorFacade"),
+    "WeatheredBrick": ((0.42, 0.23, 0.16), 0.0, 0.84, "WeatheredBrick"),
+    "TerrazzoBench": ((0.48, 0.50, 0.48), 0.0, 0.42, "TerrazzoBench"),
+    "MotorbikePaint": ((0.30, 0.09, 0.10), 0.35, 0.28, None),
+    "CrimsonGlow": ((0.85, 0.18, 0.14), 0.0, 0.25, None),
+    "MonitorScreen": ((0.08, 0.20, 0.16), 0.0, 0.20, None),
+    "WarmGlow": ((0.96, 0.78, 0.46), 0.0, 0.25, None),
+    "NurseBlouse": ((0.84, 0.82, 0.74), 0.0, 0.88, "NurseBlouse"),
+    "NurseTrim": ((0.26, 0.44, 0.42), 0.0, 0.84, None),
+    "LanSkin": ((0.76, 0.59, 0.47), 0.0, 0.66, "LanSkin"),
+    "LanLip": ((0.58, 0.33, 0.30), 0.0, 0.52, None),
+    "LanHair": ((0.065, 0.052, 0.044), 0.0, 0.48, "LanHair"),
+    "LanEyeWhite": ((0.82, 0.80, 0.77), 0.0, 0.15, None),
+    "LanIris": ((0.11, 0.075, 0.055), 0.0, 0.10, None),
+    "LanBadgeMat": ((0.84, 0.81, 0.72), 0.0, 0.32, None),
+    "DarkTrouser": ((0.11, 0.13, 0.15), 0.0, 0.86, "DarkTrouser"),
+    "CharredBlouse": ((0.18, 0.18, 0.16), 0.0, 0.92, "CharredBlouse"),
+    "ObscuredFace": ((0.075, 0.078, 0.076), 0.0, 0.90, "ObscuredFace"),
+    "AnCotton": ((0.64, 0.68, 0.66), 0.0, 0.88, "AnCotton"),
+    "AnSkin": ((0.72, 0.62, 0.54), 0.0, 0.74, None),
 }
 
 
@@ -107,7 +130,7 @@ def get_material(key):
         mix.inputs["B"].default_value = (*col, 1.0)
         links.new(tex_col.outputs["Color"], mix.inputs["A"])
         links.new(mix.outputs["Result"], bsdf.inputs["Base Color"])
-        if key == "TropicalLeaf":
+        if key in ("TropicalLeaf", "TropicalShrub"):
             links.new(tex_col.outputs["Alpha"], bsdf.inputs["Alpha"])
 
         norm_path = TEX_DIR / f"{tex_prefix}_Normal.png"
@@ -561,3 +584,99 @@ def export_asset(name, build_fn, make_lods=True, render=True, cam_dir=(1.45, -1.
     dims = bmax - bmin
     print(f"[BLENDER ASSET] {name}: LOD0={lod0_tris} tris | size=({dims.x:.2f}x{dims.y:.2f}x{dims.z:.2f}m) -> {fbx_path.name}")
     return lod0_tris
+
+
+def export_character(name, arm_obj, mesh_objs, render=True, cam_dir=(0.35, -1.85, 0.22), closeup_cam=None):
+    """Save editable rigged .blend and export Unity-ready skinned FBX with Armature, Shape Keys & Actions intact.
+    CRITICAL (R49): use_mesh_modifiers=False preserves all facial Shape Keys (BlendShapes) on export!"""
+    BLEND_DIR.mkdir(parents=True, exist_ok=True)
+    FBX_DIR.mkdir(parents=True, exist_ok=True)
+
+    if render:
+        render_preview(name, mesh_objs, cam_dir=cam_dir, resolution=(720, 900))
+        if closeup_cam is not None:
+            # Render close-up face/bust inspection portrait
+            RENDER_DIR.mkdir(parents=True, exist_ok=True)
+            scene = bpy.context.scene
+            scene.render.engine = "CYCLES"
+            scene.cycles.device = "CPU"
+            scene.cycles.samples = 32
+            scene.cycles.use_denoising = False
+            scene.render.resolution_x = 640
+            scene.render.resolution_y = 640
+            scene.view_settings.view_transform = "AgX"
+            world = bpy.data.worlds.new("PortraitWorld")
+            world.use_nodes = True
+            bg = world.node_tree.nodes.get("Background")
+            bg.inputs["Color"].default_value = (0.045, 0.058, 0.056, 1.0)
+            bg.inputs["Strength"].default_value = 0.65
+            scene.world = world
+            target_pt = Vector(closeup_cam["target"])
+            cam_pt = Vector(closeup_cam["pos"])
+            def _al(lname, pos, energy, color, sz):
+                ld = bpy.data.lights.new(lname, type="AREA")
+                ld.energy = energy
+                ld.color = color
+                ld.size = sz
+                lo = bpy.data.objects.new(lname, ld)
+                lo.location = pos
+                lo.rotation_euler = (target_pt - lo.location).to_track_quat("-Z", "Y").to_euler()
+                bpy.context.collection.objects.link(lo)
+                return lo
+            lights = [
+                _al("_PKey", target_pt + Vector((0.65, -0.75, 0.45)), 55.0, (1.0, 0.95, 0.88), 0.7),
+                _al("_PFill", target_pt + Vector((-0.75, -0.55, 0.15)), 20.0, (0.70, 0.85, 0.95), 0.8),
+                _al("_PRim", target_pt + Vector((-0.25, 0.70, 0.35)), 38.0, (0.78, 0.94, 0.88), 0.5),
+            ]
+            cd = bpy.data.cameras.new("_PCam")
+            cd.lens = 72.0
+            co = bpy.data.objects.new("_PCam", cd)
+            co.location = cam_pt
+            co.rotation_euler = (target_pt - cam_pt).to_track_quat("-Z", "Y").to_euler()
+            bpy.context.collection.objects.link(co)
+            scene.camera = co
+            scene.render.filepath = str(RENDER_DIR / f"{name}_Portrait.png")
+            bpy.ops.render.render(write_still=True)
+            for tmp in [co, *lights]:
+                bpy.data.objects.remove(tmp, do_unlink=True)
+            bpy.data.worlds.remove(world, do_unlink=True)
+
+    blend_path = BLEND_DIR / f"{name}.blend"
+    bpy.ops.wm.save_as_mainfile(filepath=str(blend_path))
+
+    bpy.ops.object.select_all(action="DESELECT")
+    arm_obj.select_set(True)
+    for m in mesh_objs:
+        m.select_set(True)
+    bpy.context.view_layer.objects.active = arm_obj
+
+    fbx_path = FBX_DIR / f"{name}.fbx"
+    bpy.ops.export_scene.fbx(
+        filepath=str(fbx_path),
+        use_selection=True,
+        apply_unit_scale=True,
+        apply_scale_options="FBX_SCALE_UNITS",
+        axis_forward="-Z",
+        axis_up="Y",
+        object_types={"ARMATURE", "MESH"},
+        mesh_smooth_type="FACE",
+        use_mesh_modifiers=False,
+        use_tspace=True,
+        primary_bone_axis="Y",
+        secondary_bone_axis="X",
+        armature_nodetype="NULL",
+        use_armature_deform_only=True,
+        add_leaf_bones=False,
+        bake_anim=True,
+        bake_anim_use_all_bones=True,
+        bake_anim_use_nla_strips=False,
+        bake_anim_use_all_actions=True,
+        bake_anim_force_startend_keying=True,
+        bake_anim_step=1.0,
+        embed_textures=False,
+    )
+    tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in mesh_objs)
+    sk_count = sum(len(o.data.shape_keys.key_blocks) - 1 for o in mesh_objs if o.data.shape_keys)
+    act_count = len(bpy.data.actions)
+    print(f"[BLENDER CHARACTER] {name}: {tris} tris | {len(arm_obj.data.bones)} bones | {sk_count} shape keys | {act_count} actions -> {fbx_path.name}")
+    return tris
