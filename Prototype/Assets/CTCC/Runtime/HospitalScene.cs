@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AI;
@@ -697,6 +698,15 @@ namespace CTCC
             activeNavigation = proposed;
             navigation = candidate;
             return true;
+        }
+
+        public async Task<bool> TryRefreshNavigationAsync(Vector3 landing)
+        {
+            if (registeredZones.Count == 0) return TryRefreshNavigation(landing);
+            foreach (var zone in registeredZones.ToArray())
+                if (zone == null || !zone.isActiveAndEnabled || !await zone.RefreshRegionalNavMeshAsync())
+                    return false;
+            return NavMesh.SamplePosition(landing, out _, 0.36f, NavMesh.AllAreas);
         }
 
         private bool MatchesNavigation(NavigationSnapshot snapshot)

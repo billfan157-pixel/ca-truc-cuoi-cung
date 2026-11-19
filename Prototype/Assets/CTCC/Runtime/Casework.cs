@@ -20,11 +20,16 @@ namespace CTCC
         public CommitResult ReadLetter(Vector3 feet) =>
             Record("E10a.SMSRead", feet);
 
+        public Task<CommitResult> ReadLetterAsync(Vector3 feet) => RecordAsync("E10a.SMSRead", feet);
+
         public CommitResult OpenGate(Vector3 feet)
         {
             if (!State.Happened("E10a.SMSRead")) return CommitResult.PadRequired;
             return Record("CH01-T02", feet, "CH01-S1", true);
         }
+
+        public Task<CommitResult> OpenGateAsync(Vector3 feet) => State.Happened("E10a.SMSRead")
+            ? RecordAsync("CH01-T02", feet, "CH01-S1", true) : Task.FromResult(CommitResult.PadRequired);
 
         public CommitResult AtHub(Vector3 feet, out bool warp)
         {
@@ -77,12 +82,22 @@ namespace CTCC
         }
 
         public CommitResult Board(Vector3 feet) =>
-            State.layer == Reality.B && State.chapter == "CH01" && State.Happened("CH01-T03")
+            MayTakeBoard
                 ? Record("CH01-T05", feet, "CH01-CP01", true) : CommitResult.PadRequired;
 
+        private bool MayTakeBoard => State.layer == Reality.B && State.chapter == "CH01" && State.Happened("CH01-T03");
+
+        public Task<CommitResult> BoardAsync(Vector3 feet) => MayTakeBoard
+            ? RecordAsync("CH01-T05", feet, "CH01-CP01", true) : Task.FromResult(CommitResult.PadRequired);
+
         public CommitResult EnterRoom(Vector3 feet) =>
-            State.chapter == "CH01" && State.Happened("CH01-T05")
+            MayEnterRoom
                 ? Record("CH01-T06", feet, "CH01-CP02") : CommitResult.Applied;
+
+        private bool MayEnterRoom => State.chapter == "CH01" && State.Happened("CH01-T05");
+
+        public Task<CommitResult> EnterRoomAsync(Vector3 feet) => MayEnterRoom
+            ? RecordAsync("CH01-T06", feet, "CH01-CP02") : Task.FromResult(CommitResult.Applied);
 
         public CommitResult OutsideAttempt(Vector3 feet)
         {
@@ -134,13 +149,27 @@ namespace CTCC
 
         public CommitResult Observe(string id, Vector3 feet)
         {
+            var result = PrepareObservation(id, out var next);
+            return next == null ? result : reality.Commit(next, feet);
+        }
+
+        public Task<CommitResult> ObserveAsync(string id)
+        {
+            var result = PrepareObservation(id, out var next);
+            return next == null ? Task.FromResult(result) : reality.CommitEvidenceAsync(next);
+        }
+
+        private CommitResult PrepareObservation(string id, out Investigation next)
+        {
+            next = null;
             if ((id == "OBS101A" || id == "OBS101B") && State.layer != Reality.B ||
                 (id == "LIST" || id == "SOCKETS" || id == "WHEELS") && (State.layer != Reality.R || State.chapter != "CH02"))
                 return CommitResult.PadRequired;
-            var next = State.Copy();
-            return next.Observe(id) ? reality.Commit(next, feet) : CommitResult.Applied;
+            if (State.Observed(id)) return CommitResult.Applied;
+            next = State.Copy();
+            next.Observe(id);
+            return CommitResult.Applied;
         }
-
         public CommitResult Submit(FormStatus form, bool pairedObservations, Vector3 feet)
         {
             var status = PrepareSubmit(form, pairedObservations, feet, out var next);
@@ -181,14 +210,27 @@ namespace CTCC
 
         public CommitResult SolvePz01(Vector3 feet)
         {
+            var result = PreparePz01(out var next);
+            return next == null ? result : reality.Commit(next, feet, geometryChanges: true);
+        }
+
+        public Task<CommitResult> SolvePz01Async(Vector3 feet)
+        {
+            var result = PreparePz01(out var next);
+            return next == null ? Task.FromResult(result) : reality.CommitAsync(next, feet, geometryChanges: true);
+        }
+
+        private CommitResult PreparePz01(out Investigation next)
+        {
+            next = null;
             if (State.layer != Reality.R || State.chapter != "CH02" || MissingPhysicalObservations() != null)
                 return CommitResult.PadRequired;
             if (State.Has("E12")) return CommitResult.Applied;
-            var next = State.Copy();
+            next = State.Copy();
             EvidenceRegistry.Grant(next, "E12", Reality.R, "LOC03");
             next.checkpoint = "CH02-CP02";
             next.Remember("CH02-T03");
-            return reality.Commit(next, feet, geometryChanges: true);
+            return CommitResult.Applied;
         }
 
         public CommitResult Take(string id, Vector3 feet)
@@ -216,15 +258,28 @@ namespace CTCC
 
         public CommitResult VerifyAn(Vector3 feet)
         {
+            var result = PrepareVerifyAn(out var next);
+            return next == null ? result : reality.Commit(next, feet, "AP04", false, true);
+        }
+
+        public Task<CommitResult> VerifyAnAsync(Vector3 feet)
+        {
+            var result = PrepareVerifyAn(out var next);
+            return next == null ? Task.FromResult(result) : reality.CommitAsync(next, feet, "AP04", false, true);
+        }
+
+        private CommitResult PrepareVerifyAn(out Investigation next)
+        {
+            next = null;
             if (!State.Has("E12") || !EvidenceRegistry.BundleComplete(State) || State.layer != Reality.R)
                 return CommitResult.PadRequired;
             if (GateService.G02(State)) return CommitResult.Applied;
-            var next = State.Copy();
+            next = State.Copy();
             next.Remember("C01.verified");
             next.Remember("CH02-T05");
             next.Remember("G02.opened");
             next.checkpoint = "CH02-CP03";
-            return reality.Commit(next, feet, "AP04", false, true);
+            return CommitResult.Applied;
         }
 
         public Task<CommitResult> SaveEmergencyAsync(Vector3 feet, bool finish, bool encounterActive,
@@ -263,11 +318,26 @@ namespace CTCC
 
         public CommitResult Record(string id, Vector3 feet, string checkpoint = null, bool geometryChanges = false)
         {
-            if (State.Happened(id)) return CommitResult.Applied;
+            var proposed = PrepareRecord(id, checkpoint);
+            return proposed == null ? CommitResult.Applied : reality.Commit(proposed, feet, geometryChanges: geometryChanges);
+        }
+
+        public Task<CommitResult> RecordAsync(string id, Vector3 feet, string checkpoint = null, bool geometryChanges = false)
+        {
+            var proposed = PrepareRecord(id, checkpoint);
+            if (proposed == null) return Task.FromResult(CommitResult.Applied);
+            return geometryChanges
+                ? reality.CommitAsync(proposed, feet, geometryChanges: true)
+                : reality.CommitEvidenceAsync(proposed);
+        }
+
+        private Investigation PrepareRecord(string id, string checkpoint)
+        {
+            if (State.Happened(id)) return null;
             var proposed = State.Copy();
             proposed.Remember(id);
             if (checkpoint != null) proposed.checkpoint = checkpoint;
-            return reality.Commit(proposed, feet, geometryChanges: geometryChanges);
+            return proposed;
         }
     }
 }

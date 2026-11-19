@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AI;
@@ -125,14 +126,7 @@ namespace CTCC
 
         public bool RefreshRegionalNavMesh()
         {
-            using (CollectMarker.Auto())
-            {
-                navSources.Clear();
-                NavMeshBuilder.CollectSources(transform, HospitalScene.SolidMask, NavMeshCollectGeometry.PhysicsColliders,
-                    0, navMarkups, navSources);
-            }
-
-            var match = navCache.Find(Matches);
+            var match = CollectNavigation();
             if (match == activeSnapshot && localNav.valid)
                 return true;
 
@@ -142,24 +136,66 @@ namespace CTCC
                 NavMeshData data;
                 using (BakeMarker.Auto())
                 {
-                    var settings = NavMesh.GetSettingsByIndex(0);
-                    settings.agentRadius = HospitalScene.Radius;
-                    settings.agentHeight = HospitalScene.Height;
-                    settings.agentClimb = 0.25f;
-                    settings.overrideVoxelSize = true;
-                    settings.voxelSize = 0.14f;
-                    data = NavMeshBuilder.BuildNavMeshData(settings, navSources, navigationBounds, transform.position, transform.rotation);
+                    data = NavMeshBuilder.BuildNavMeshData(BuildSettings(), navSources, navigationBounds, transform.position, transform.rotation);
                 }
                 if (data == null) return false;
-                match = new RegionalNavSnapshot
-                {
-                    Sources = navSources.ToArray(),
-                    Origin = transform.position,
-                    Rotation = transform.rotation,
-                    Data = data
-                };
+                match = Snapshot(data);
             }
+            return Activate(match, created);
+        }
 
+        public async Task<bool> RefreshRegionalNavMeshAsync()
+        {
+            var match = CollectNavigation();
+            if (match != null)
+                return match == activeSnapshot && localNav.valid || Activate(match, false);
+
+            var settings = BuildSettings();
+            var data = new NavMeshData(settings.agentTypeID) { position = transform.position, rotation = transform.rotation };
+            match = Snapshot(data);
+            var sources = new List<NavMeshBuildSource>(match.Sources);
+            AsyncOperation operation;
+            using (BakeMarker.Auto())
+                operation = NavMeshBuilder.UpdateNavMeshDataAsync(data, settings, sources, navigationBounds);
+            while (!operation.isDone) await Awaitable.NextFrameAsync();
+            if (this == null || !isActiveAndEnabled)
+            {
+                Destroy(data);
+                return false;
+            }
+            return Activate(match, true);
+        }
+
+        private RegionalNavSnapshot CollectNavigation()
+        {
+            using var _ = CollectMarker.Auto();
+            navSources.Clear();
+            NavMeshBuilder.CollectSources(transform, HospitalScene.SolidMask, NavMeshCollectGeometry.PhysicsColliders,
+                0, navMarkups, navSources);
+            return navCache.Find(Matches);
+        }
+
+        private static NavMeshBuildSettings BuildSettings()
+        {
+            var settings = NavMesh.GetSettingsByIndex(0);
+            settings.agentRadius = HospitalScene.Radius;
+            settings.agentHeight = HospitalScene.Height;
+            settings.agentClimb = 0.25f;
+            settings.overrideVoxelSize = true;
+            settings.voxelSize = 0.14f;
+            return settings;
+        }
+
+        private RegionalNavSnapshot Snapshot(NavMeshData data) => new()
+        {
+            Sources = navSources.ToArray(),
+            Origin = transform.position,
+            Rotation = transform.rotation,
+            Data = data
+        };
+
+        private bool Activate(RegionalNavSnapshot match, bool created)
+        {
             if (localNav.valid) localNav.Remove();
             var instance = NavMesh.AddNavMeshData(match.Data);
             if (!instance.valid)

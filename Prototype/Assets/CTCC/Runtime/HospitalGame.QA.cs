@@ -70,6 +70,8 @@ namespace CTCC
                 Destroy(dupGo);
 
                 // Async unload & reload of LOC04_Emergency without breaking persistent state or AP05
+                Apply(casework.Record("QA.loc04-restore", scene.Pad("AP05").position, "CH02-CP04"),
+                    "seed committed ER checkpoint before scene removal");
                 var originalDoor = scene.emergencyDoorA;
                 long sequence = State.sequence;
                 yield return scene.UnloadZoneAsync("LOC04_Emergency");
@@ -140,6 +142,10 @@ namespace CTCC
             {
                 Require(State.chapter == "CH02" && GateService.G02(State), "Ready in CH02 post-G02 for cameo test");
                 if (State.layer == Reality.B) Apply(casework.SwitchIn101(scene.Pad("AP04").position), "return R for cameo");
+                var beforeEncounter = State.Copy();
+                beforeEncounter.events.Remove("M1-complete");
+                beforeEncounter.checkpoint = "CH02-CP03";
+                Apply(transaction.Commit(beforeEncounter, scene.Pad("AP04").position), "seed pre-encounter checkpoint");
                 Require(gatekeeperCameo.ShouldTrigger(State, new Vector3(4.0f, 0.02f, 4.75f)), "Gatekeeper triggers in CH02 post-G02 corridor");
                 gatekeeperCameo.BeginCameo(State, Line);
                 Require(gatekeeperCameo.IsActive, "Gatekeeper cameo active");
@@ -154,7 +160,8 @@ namespace CTCC
                 while (!fault.IsCompleted) yield return null;
                 Require(fault.GetAwaiter().GetResult() == CommitResult.SaveUnavailable && gatekeeperCameo.IsActive &&
                     !gatekeeperCameo.WasResolved && State.sequence == previous && !State.Happened("CH02-T06") &&
-                    saves.Read(SaveSlot.Auto, out var beforeEscape) == SaveRead.Valid && !beforeEscape.Happened("CH02-T06"),
+                    !State.Happened("M1-complete") && saves.Read(SaveSlot.Auto, out var beforeEscape) == SaveRead.Valid &&
+                    !beforeEscape.Happened("CH02-T06") && !beforeEscape.Happened("M1-complete"),
                     "Failed escape publication retains live encounter and previous snapshot");
                 var retry = casework.SaveEmergencyAsync(safe, true, gatekeeperCameo.IsActive);
                 while (!retry.IsCompleted) yield return null;

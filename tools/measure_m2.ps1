@@ -22,12 +22,23 @@ $logman = Join-Path $env:SystemRoot 'System32/logman.exe'
 try {
     Start-Sleep -Milliseconds 600
     if ($capture.HasExited) { throw "PresentMon startup failed. See $out/presentmon-error.txt" }
+    $launchQpc = [Diagnostics.Stopwatch]::GetTimestamp()
     $player = Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) -ArgumentList "-force-d3d12 -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 -ctcc-quality $Quality -ctcc-vsync $VSync -ctcc-gi $GiMode -ctcc-benchmark `"$out`" -ctcc-save `"$out/save`" -ctcc-ablation $Ablation -logFile `"$out/player.log`"" -PassThru
     Show-CtccPlayerWindow $player
-    if (!$player.WaitForExit(180000)) { $player.Kill(); throw "Timed out: $out/player.log" }
+    $deadline = [Diagnostics.Stopwatch]::StartNew()
+    $processSamples = [Collections.Generic.List[string]]::new()
+    $processSamples.Add('qpc,working_set_bytes,private_bytes,foreground')
+    while (!$player.WaitForExit(500)) {
+        $player.Refresh()
+        $focused = [int]($player.MainWindowHandle -ne [IntPtr]::Zero -and
+            [CtccPlayerWindow]::GetForegroundWindow() -eq $player.MainWindowHandle)
+        $processSamples.Add("$([Diagnostics.Stopwatch]::GetTimestamp()),$($player.WorkingSet64),$($player.PrivateMemorySize64),$focused")
+        if ($deadline.Elapsed.TotalSeconds -gt 180) { $player.Kill(); throw "Timed out: $out/player.log" }
+    }
+    $processSamples | Set-Content -LiteralPath "$out/process.csv"
     if ($player.ExitCode -ne 0) { throw "Benchmark player exited $($player.ExitCode). See $out/result.txt and player.log" }
     $managed = Join-Path (Split-Path -Parent $exe) "$([IO.Path]::GetFileNameWithoutExtension($exe))_Data/Managed/Assembly-CSharp.dll"
-    "pid=$($player.Id)`nassembly_sha256=$((Get-FileHash -LiteralPath $managed).Hash.ToLowerInvariant())`nexe_sha256=$((Get-FileHash -LiteralPath $exe).Hash.ToLowerInvariant())`nrequested_quality=$Quality`ngi_mode=$GiMode`nablation=$Ablation" | Set-Content -LiteralPath "$out/identity.txt"
+    "pid=$($player.Id)`nlaunch_qpc=$launchQpc`nassembly_sha256=$((Get-FileHash -LiteralPath $managed).Hash.ToLowerInvariant())`nexe_sha256=$((Get-FileHash -LiteralPath $exe).Hash.ToLowerInvariant())`nrequested_quality=$Quality`ngi_mode=$GiMode`nablation=$Ablation" | Set-Content -LiteralPath "$out/identity.txt"
     if (!$capture.WaitForExit(1500)) {
         & $logman stop $session -ets | Out-Null
         if (!$capture.WaitForExit(10000)) { throw "Could not finalize ETW session $session" }

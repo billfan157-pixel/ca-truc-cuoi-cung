@@ -73,9 +73,8 @@ namespace CTCC
         }
 
         /// <summary>
-        /// M2 Zero-Spike Atomic Commit: runs preflight, presentation & regional NavMesh validation on main thread,
-        /// then offloads durable NTFS Flush(true) to a background worker thread during the transition fade peak!
-        /// Preserves 100% atomic 'save before publish' and full geometric/state rollback on I/O failure.
+        /// Stages presentation and validates regional navigation before writing
+        /// the snapshot on a worker. Publishes committed state after the write succeeds.
         /// </summary>
         public async Task<CommitResult> CommitAsync(Investigation proposed, Vector3 feet, string requiredPad = null,
             bool warp = false, bool geometryChanges = false, Action afterFlush = null)
@@ -99,12 +98,12 @@ namespace CTCC
                     if (!warp || proposed.checkpoint != "CH01-CP00")
                         proposed.torchSeconds = ReadCharge?.Invoke() ?? proposed.torchSeconds;
                     Present(proposed);
-                    if ((geometryChanges || warp) &&
-                        (HospitalScene.Occupied(landing) || !scene.TryRefreshNavigation(landing)))
-                    {
-                        Revert(landing);
-                        return CommitResult.Obstructed;
-                    }
+                }
+                if ((geometryChanges || warp) &&
+                    (HospitalScene.Occupied(landing) || !await scene.TryRefreshNavigationAsync(landing)))
+                {
+                    Revert(landing);
+                    return CommitResult.Obstructed;
                 }
 
                 int included = IncludePendingDialogue(proposed);
@@ -216,7 +215,10 @@ namespace CTCC
 
         private void Revert(Vector3 point)
         {
-            Present(Current);
+            bool smooth = scene.smoothPresentation;
+            scene.smoothPresentation = false;
+            try { Present(Current); }
+            finally { scene.smoothPresentation = smooth; }
             if (HospitalScene.Occupied(point) && scene.TryPad(SafeCheckpoints.Pad(Current.checkpoint), out var fallback))
                 point = fallback.position;
             if (!HospitalScene.Occupied(point))

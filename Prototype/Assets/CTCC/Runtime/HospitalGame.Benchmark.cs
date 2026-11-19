@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Unity.Profiling;
+using Unity.Profiling.Memory;
 using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.Rendering;
@@ -27,7 +28,7 @@ namespace CTCC
 
         private string benchmarkStage;
         private Light benchmarkTorch;
-        private Func<string, Task<CommitResult>> benchmarkTake;
+        private long benchmarkAwakeQpc, benchmarkReadyQpc;
         private readonly List<(string name, long qpc, double milliseconds)> benchmarkActions = new();
 
         private IEnumerator BenchmarkVisit(string folder)
@@ -55,6 +56,13 @@ namespace CTCC
             Application.targetFrameRate = -1;
             player.CanPlay = false;
             ui.Close();
+            string profilerTrace = Argument("-ctcc-profiler-trace");
+            if (profilerTrace != null)
+            {
+                Profiler.logFile = profilerTrace;
+                Profiler.enableBinaryLog = true;
+                Profiler.enabled = true;
+            }
             var warmup = Time.realtimeSinceStartupAsDouble;
             while (Time.realtimeSinceStartupAsDouble - warmup < 5) yield return null;
 
@@ -77,8 +85,6 @@ namespace CTCC
                 if (Screen.width != 1920 || Screen.height != 1080 || player.Eye.targetTexture != null)
                     throw new InvalidOperationException($"Expected onscreen 1920x1080; got {Screen.width}x{Screen.height}.");
                 benchmarkTorch = player.Eye.GetComponentInChildren<Light>(true);
-                var takeAsync = typeof(Casework).GetMethod("TakeAsync");
-                if (takeAsync != null) benchmarkTake = (Func<string, Task<CommitResult>>)takeAsync.CreateDelegate(typeof(Func<string, Task<CommitResult>>), casework);
                 ApplyBenchmarkAblation(Argument("-ctcc-ablation") ?? "none");
             }
             catch (Exception ex) { error = ex; }
@@ -103,6 +109,11 @@ namespace CTCC
                 yield return null;
             }
 
+            if (profilerTrace != null)
+            {
+                Profiler.enabled = false;
+                Profiler.enableBinaryLog = false;
+            }
             using (var frames = File.CreateText(Path.Combine(folder, "frames.csv")))
             {
                 frames.WriteLine("stage,qpc,wall_ms,main_ms,render_ms,gpu_ms,draws,setpass,triangles,system_bytes,unity_bytes,nav_collect_ns,nav_bake_ns,probe_schedule_ns,save_ns,save_flush_ns,focused");
@@ -124,10 +135,21 @@ namespace CTCC
                 $"lod_bias={QualitySettings.lodBias}", $"streaming={QualitySettings.streamingMipmapsActive}",
                 $"streaming_textures={Texture.streamingTextureCount}", $"active_mips_bytes={Texture.currentTextureMemory}",
                 $"lod_groups={FindObjectsByType<LODGroup>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length}",
-                $"qpc_hz={Stopwatch.Frequency}", $"draw_counter={draws.Valid}", $"system_memory_counter={native.Valid}",
+                $"qpc_hz={Stopwatch.Frequency}", $"awake_qpc={benchmarkAwakeQpc}", $"ready_qpc={benchmarkReadyQpc}",
+                $"draw_counter={draws.Valid}", $"system_memory_counter={native.Valid}",
                 $"frames={samples.Count}", $"development={Debug.isDebugBuild}"
             });
             if (error != null) Debug.LogException(error);
+            string memorySnapshot = Argument("-ctcc-memory-snapshot");
+            if (memorySnapshot != null && passed)
+            {
+                bool? captured = null;
+                MemoryProfiler.TakeSnapshot(memorySnapshot, (_, success) => captured = success,
+                    CaptureFlags.ManagedObjects | CaptureFlags.NativeObjects | CaptureFlags.NativeAllocations);
+                float deadline = Time.realtimeSinceStartup + 40f;
+                while (!captured.HasValue && Time.realtimeSinceStartup < deadline) yield return null;
+                File.WriteAllText(Path.Combine(folder, "memory-capture.txt"), $"success={captured == true}\n");
+            }
             Application.Quit(passed ? 0 : 1);
         }
 
@@ -189,15 +211,26 @@ namespace CTCC
         private IEnumerator<BenchmarkStep> BenchmarkSteps()
         {
             yield return new("begin", () => casework.Begin(player.Feet, new VisitSettings()));
-            yield return new("read-letter", () => casework.ReadLetter(player.Feet));
-            yield return new("open-gate", () => casework.OpenGate(player.Feet));
+            yield return new("inspect-letter", () =>
+            {
+                inspector.Open(scene.InspectTemplate("E10a"), null, 1f, ActiveVolume());
+                return CommitResult.Applied;
+            }, 1.1f);
+            yield return new("read-letter", () => { inspector.Close(); return casework.ReadLetterAsync(player.Feet); });
+            yield return new("open-gate", () => casework.OpenGateAsync(player.Feet));
             yield return new("gate-R", 4, -17.9f);
             yield return new("approach-R", 4, -3.3f);
             yield return new("swap-R-B", async () => { var r = await casework.AtHubAsync(player.Feet); player.Teleport(scene.Pad("AP02")); return r; });
-            yield return new("board", () => casework.Board(player.Feet));
+            yield return new("lan-reception-B", () =>
+            {
+                player.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+                lanDirector.StartEncounter(Line);
+                return CommitResult.Applied;
+            }, 3.8f);
+            yield return new("board", () => { lanDirector.StopEncounter(true); voice.StopCurrent(); return casework.BoardAsync(player.Feet); });
             yield return new("hall-B", 4, 4.75f);
             yield return new("room-entry-B", 6.52f, 4.88f);
-            yield return new("enter-room", () => casework.EnterRoom(player.Feet));
+            yield return new("enter-room", () => casework.EnterRoomAsync(player.Feet));
             yield return new("submit-F101-B", () => casework.SubmitAsync(FormStatus.Unverified, false, player.Feet));
             yield return new("room-exit-B", 4, 4.75f);
             yield return new("hall-return-B", 4, -3.29f);
@@ -205,8 +238,8 @@ namespace CTCC
             yield return new("approach-return-R", 4, -20.30f);
             yield return new("seam", async () => { var r = await casework.OutsideAttemptAsync(player.Feet); player.Teleport(scene.Pad("AP01")); return r; });
             yield return new("reception-return-R", 4, -3.30f);
-            yield return new("handoff-and-load", () => {
-                var r = casework.AtHub(player.Feet, out _);
+            yield return new("handoff-and-load", async () => {
+                var r = await casework.AtHubAsync(player.Feet);
                 Require(r == CommitResult.Applied && transaction.Restore(SaveSlot.Auto, out _) == SaveRead.Valid, "CP04 reload");
                 player.Teleport(scene.Pad("AP02"));
                 benchmarkTorch.enabled = true;
@@ -214,18 +247,23 @@ namespace CTCC
             });
             yield return new("hall-R-torch", 4, 4.75f);
             yield return new("room-entry-R-torch", 6.52f, 4.91f);
-            foreach (string id in new[] { "LIST", "SOCKETS", "WHEELS" }) yield return new("observe-" + id, () => casework.Observe(id, player.Feet));
+            foreach (string id in new[] { "LIST", "SOCKETS", "WHEELS" }) yield return new("observe-" + id, () => casework.ObserveAsync(id));
             yield return new("room-cross-R-torch", 12.60f, 4.87f);
             yield return new("cabinet-approach", 12.61f, 3.62f);
-            yield return new("resolve-E12", () => casework.SolvePz01(player.Feet));
+            yield return new("resolve-E12", () => casework.SolvePz01Async(player.Feet));
             yield return new("store-R-torch", 15f, 3.64f);
             foreach (string id in EvidenceRegistry.DrawingFragments.Concat(new[] { EvidenceRegistry.Drawing, EvidenceRegistry.Wristband, EvidenceRegistry.Transfer }))
-                yield return benchmarkTake == null ? new BenchmarkStep("take-" + id, () => casework.Take(id, player.Feet))
-                    : new BenchmarkStep("take-" + id, () => benchmarkTake(id));
+                yield return new BenchmarkStep("take-" + id, () => casework.TakeAsync(id));
             yield return new("store-return", 12.61f, 3.62f);
             yield return new("cabinet-return", 12.60f, 4.87f);
             yield return new("room-return", 6.52f, 4.93f);
-            yield return new("verify-C01", () => casework.VerifyAn(player.Feet));
+            yield return new("verify-C01", () => casework.VerifyAnAsync(player.Feet));
+            yield return new("an-vignette-R", () =>
+            {
+                player.transform.rotation = Quaternion.Euler(0f, 105f, 0f);
+                anDirector.PlayPostVerifyVignette(Line("CH02-D03"), Options.reduceMotion);
+                return CommitResult.Applied;
+            }, 3.2f);
             yield return new("gatekeeper-start", () => {
                 gatekeeperCameo?.BeginCameo(State, Line);
                 return CommitResult.Applied;
@@ -255,7 +293,7 @@ namespace CTCC
                     else Apply(step.Action(), step.Name);
                     benchmarkActions.Add((step.Name, PerformanceCounter(), (Stopwatch.GetTimestamp() - start) * 1000d / Stopwatch.Frequency));
                     // Leave enough real frames for frame timing and time-sliced probe work after commits.
-                    double until = Time.realtimeSinceStartupAsDouble + 0.40;
+                    double until = Time.realtimeSinceStartupAsDouble + step.SettleSeconds;
                     while (Time.realtimeSinceStartupAsDouble < until) yield return null;
                 }
                 else
@@ -271,9 +309,10 @@ namespace CTCC
             public readonly Vector3 Destination;
             public readonly Func<CommitResult> Action;
             public readonly Func<Task<CommitResult>> AsyncAction;
-            public BenchmarkStep(string name, float x, float z) { Name = name; Destination = new Vector3(x, 0, z); Action = null; AsyncAction = null; }
-            public BenchmarkStep(string name, Func<CommitResult> action) { Name = name; Destination = default; Action = action; AsyncAction = null; }
-            public BenchmarkStep(string name, Func<Task<CommitResult>> action) { Name = name; Destination = default; Action = null; AsyncAction = action; }
+            public readonly float SettleSeconds;
+            public BenchmarkStep(string name, float x, float z) { Name = name; Destination = new Vector3(x, 0, z); Action = null; AsyncAction = null; SettleSeconds = 0f; }
+            public BenchmarkStep(string name, Func<CommitResult> action, float settleSeconds = 0.4f) { Name = name; Destination = default; Action = action; AsyncAction = null; SettleSeconds = settleSeconds; }
+            public BenchmarkStep(string name, Func<Task<CommitResult>> action) { Name = name; Destination = default; Action = null; AsyncAction = action; SettleSeconds = 0.4f; }
         }
 
         private readonly struct BenchmarkFrame

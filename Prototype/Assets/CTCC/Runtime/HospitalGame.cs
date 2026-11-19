@@ -28,6 +28,7 @@ namespace CTCC
         private LanDirector lanDirector;
         private GatekeeperCameo gatekeeperCameo;
         private float retryEmergencySaveAt;
+        private float retryAutomaticCheckpointAt;
         private float dialogueSaveAt;
         private AnApparitionDirector anDirector;
         private RealityTransaction transaction;
@@ -83,6 +84,7 @@ namespace CTCC
                 revealConditions.Add(condition.id, condition);
 
             qaFolder = Argument("-ctcc-qa");
+            if (Argument("-ctcc-benchmark") != null) benchmarkAwakeQpc = PerformanceCounter();
         }
 
         private void Start() => StartCoroutine(BootAndRun());
@@ -152,6 +154,7 @@ namespace CTCC
             string benchmark = Argument("-ctcc-benchmark");
             if (benchmark != null)
             {
+                benchmarkReadyQpc = PerformanceCounter();
                 StartCoroutine(BenchmarkVisit(Path.GetFullPath(benchmark)));
                 yield break;
             }
@@ -281,18 +284,27 @@ namespace CTCC
 
             // CH01 Room 101 threshold checkpoint
             if (State.chapter == "CH01" && State.Happened("CH01-T05") && !State.Happened("CH01-T06") &&
-                feet.x > 5.82f && feet.z > 2.01f && feet.z < 7.99f)
-                casework.EnterRoom(feet);
+                feet.x > 5.82f && feet.z > 2.01f && feet.z < 7.99f && Time.unscaledTime >= retryAutomaticCheckpointAt)
+            {
+                retryAutomaticCheckpointAt = Time.unscaledTime + 2f;
+                SaveCheckpoint(() => casework.EnterRoomAsync(feet));
+                return;
+            }
 
             // CH02 B02: Slipper cue + gentle Bé An glimpse near Room 101 doorway
             if (State.chapter == "CH02" && State.layer == Reality.R && !State.Happened("CH02-T02") &&
                feet.z > 1.25f && feet.z < 7.9f && feet.x > 2.55f && feet.x < 6f &&
-               casework.Record("CH02-T02", feet) == CommitResult.Applied)
+               Time.unscaledTime >= retryAutomaticCheckpointAt)
             {
-                scene.atmosphere?.From("slippers", new Vector3(10.3f, 0.1f, 4.74f));
-                anDirector?.PlaySlipperGlimpse(Options.reduceMotion);
-                voice?.Speak("CH02-D02", "Minh", Line("CH02-D02"),
-                    directionalPrefix: "[Tiếng dép tổ ong · bên phải — phía phòng 101]");
+                retryAutomaticCheckpointAt = Time.unscaledTime + 2f;
+                SaveCheckpoint(() => casework.RecordAsync("CH02-T02", feet), () =>
+                {
+                    scene.atmosphere?.From("slippers", new Vector3(10.3f, 0.1f, 4.74f));
+                    anDirector?.PlaySlipperGlimpse(Options.reduceMotion);
+                    voice?.Speak("CH02-D02", "Minh", Line("CH02-D02"),
+                        directionalPrefix: "[Tiếng dép tổ ong · bên phải — phía phòng 101]");
+                });
+                return;
             }
 
             // CH02 B06: Gatekeeper scripted cameo (strictly after G02, once-only, non-lethal, escapable via Door A or Door B!)
@@ -419,12 +431,12 @@ namespace CTCC
             {
                 case "GATE-CONG":
                     if (!State.Happened("E10a.SMSRead")) Letter();
-                    else if (Report(casework.OpenGate(player.Feet)))
+                    else SaveCheckpoint(() => casework.OpenGateAsync(player.Feet), () =>
                     {
                         scene.atmosphere?.From("doorCreak", new Vector3(4, 1.2f, -20f));
                         scene.atmosphere?.From("distantThunder", new Vector3(4, 6f, -15f), 0.7f);
                         ui.Caption("Cổng phụ đã mở. [Tiếng mưa nặng hạt trên sân xi măng]", 4.2f);
-                    }
+                    });
                     break;
                 case "BATTERY":
                     if (Report(casework.TakeSpareBattery(player.Feet)))
@@ -438,7 +450,7 @@ namespace CTCC
                     ui.Caption("Cầu thang lên Khu B đã bị rào chắn và khóa xích trước ngày tháo dỡ.", 4.5f, true);
                     break;
                 case "DOOR-101":
-                    if (scene.interactables != null && scene.roomDoor.pivot != null)
+                    if (scene.interactables != null && scene.roomDoor?.pivot != null)
                     {
                         scene.roomDoor.isOpen = !scene.roomDoor.isOpen;
                         scene.interactables.MoveDoor(scene.roomDoor.pivot, scene.roomDoor.isOpen ? scene.roomDoor.openAngle : 0f, false, scene.atmosphere);
@@ -459,13 +471,13 @@ namespace CTCC
                     break;
                 case "E10a": Letter(); break;
                 case "BOARD":
-                    if (Report(casework.Board(player.Feet)))
+                    SaveCheckpoint(() => casework.BoardAsync(player.Feet), () =>
                     {
                         scene.atmosphere?.From("paper", player.Feet + Vector3.up);
                         lanDirector?.PlayHandoverGesture();
                         voice?.Speak("CH01-D06", "Lan", Line("CH01-D06"), scene.LanVoiceAnchor, scene.LanActor);
                         ui.Toast("PHIẾU BÀN GIAO 101", "Đã nhận bảng kẹp từ Lan. Cửa phòng 101 cuối hành lang bên phải đã mở.", 5f);
-                    }
+                    });
                     break;
                 case "AN01":
                     if (NeedsHub() && State.chapter == "CH01") Hub();
@@ -475,10 +487,11 @@ namespace CTCC
                 case "F101": Form(); break;
                 case "OBS101A":
                     DiegeticObservation(id, "Dấu sử dụng giường thứ tư",
-                        "Có vết bánh cao su cạnh rèm và dấu đồ dùng đã bị dời đi. Ổ cắm số 4 vẫn gắn trên tường.");
-                    // HE02 subtle curtain rustle + Minh observation whisper
-                    scene.atmosphere?.From("curtainSlide", new Vector3(11.4f, 1.8f, 4.3f), 0.55f);
-                    voice?.Speak("CH01-D10", "Minh", Line("CH01-D10"), essential: false);
+                        "Có vết bánh cao su cạnh rèm và dấu đồ dùng đã bị dời đi. Ổ cắm số 4 vẫn gắn trên tường.", () =>
+                        {
+                            scene.atmosphere?.From("curtainSlide", new Vector3(11.4f, 1.8f, 4.3f), 0.55f);
+                            voice?.Speak("CH01-D10", "Minh", Line("CH01-D10"), essential: false);
+                        });
                     break;
                 case "OBS101B":
                     InspectDocumentObservation(id, "Thẻ bàn giao giường 4",

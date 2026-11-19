@@ -55,6 +55,7 @@ namespace CTCC
                     "physical inspector keyboard rotation and zoom");
             }
             yield return Choose("Ghi tin nhắn");
+            yield return Until(() => !busy && State.Happened("E10a.SMSRead"), "letter checkpoint");
             Require(!inspector.IsInspecting && State.Happened("E10a.SMSRead"), "letter closes and enters journal");
             yield return UseFrom("GATE-CONG", scene.Pad("AP00").position);
             yield return Until(() => State.Happened("CH01-T02"), "gate unlocked");
@@ -97,11 +98,13 @@ namespace CTCC
             if (branch == FormStatus.Refuted)
             {
                 yield return UseFrom("OBS101A", new Vector3(10.85f, 0.02f, 5.25f));
+                yield return Until(() => !busy && State.Observed("OBS101A"), "floor observation checkpoint");
                 Require(State.Observed("OBS101A"), "B floor observation");
                 yield return OpenFormInput();
                 Require(!ButtonMatching("C    Đối chiếu").interactable, "refutation disabled with only one observation");
                 yield return Tap(Key.Escape);
                 yield return UseFrom("OBS101B", new Vector3(11.37f, 0.02f, 5.10f));
+                yield return Until(() => !busy && inspector.IsInspecting, "bed tag checkpoint");
                 Require(State.Observed("OBS101B") && inspector.IsInspecting, "B paper observation and inspector");
                 yield return Choose("Mở bản chữ lớn");
                 Require(!inspector.IsInspecting && ui.IsModal, "large print fallback");
@@ -164,12 +167,16 @@ namespace CTCC
         private IEnumerator InputPhysicalCase(bool sideDoor)
         {
             yield return UseFrom("LIST", new Vector3(6.69f, 0.02f, 3.35f));
+            yield return Until(() => !busy && inspector.IsInspecting, "room list checkpoint");
             Require(inspector.IsInspecting, "R list opens physical paper");
             yield return Tap(Key.Escape);
             yield return UseFrom("SOCKETS", new Vector3(11.53f, 0.02f, 3.14f));
+            yield return Until(() => !busy && State.Observed("SOCKETS"), "sockets checkpoint");
             yield return UseFrom("WHEELS", new Vector3(11.63f, 0.02f, 4.88f));
+            yield return Until(() => !busy && State.Observed("WHEELS"), "wheel marks checkpoint");
             yield return UseFrom("PZ01", new Vector3(12.60f, 0.02f, 3.63f));
             yield return Choose("Có một chỗ kê");
+            yield return Until(() => !busy && State.Has("E12"), "E12 checkpoint");
             Require(State.Has("E12") && (scene.cabinet.localPosition - scene.cabinetOpen).sqrMagnitude > 0.001f,
                 "PZ01 opens cabinet with animation");
             yield return Until(() => (scene.cabinet.localPosition - scene.cabinetOpen).sqrMagnitude < 0.0004f,
@@ -187,11 +194,12 @@ namespace CTCC
             yield return Choose("Ghép tranh theo đường mép");
             yield return Until(() => !busy && State.Has(EvidenceRegistry.Drawing), "assembled drawing was saved");
             yield return Choose("Đối chiếu An");
+            yield return Until(() => !busy && GateService.G02(State), "C01 checkpoint");
             Require(GateService.G02(State), "G02 opens through physical evidence and UI");
             float x = sideDoor ? 0.05f : 4f;
-            player.Teleport(new Vector3(x, 0.02f, 13.2f), Quaternion.identity);
+            player.Teleport(new Vector3(x, 0.02f, 10.4f), Quaternion.identity);
             yield return Until(() => gatekeeperCameo.IsActive, "Gatekeeper begins from the corridor trigger");
-            yield return Hold(Key.W, 2.3f);
+            yield return Hold(Key.W, 3.6f);
             yield return Until(() => !busy && State.Happened("CH02-T06") && !gatekeeperCameo.IsActive,
                 sideDoor ? "walked through Door B" : "walked through Door A");
             yield return UseFrom("EXIT", scene.Pad("AP05").position);

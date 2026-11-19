@@ -161,14 +161,11 @@ namespace CTCC
                 "Mẩu báo cũ\nVụ cháy 18/11/2005 ở An Sinh có 13 người tử vong. Minh đã đến đám tang Lan.\n\n" +
                 "Trong bì thư có chìa cổng phụ và chìa khu C đã thay khóa.";
             var envModel = scene.InspectTemplate("E10a");
-            Action confirmRead = () =>
-            {
-                if (Report(casework.ReadLetter(player.Feet)))
+            Action confirmRead = () => SaveCheckpoint(() => casework.ReadLetterAsync(player.Feet), () =>
                 {
                     CloseModal();
                     voice?.Speak("CH01-D01", "Minh", Line("CH01-D01"));
-                }
-            };
+                });
 
             if (envModel != null && inspector != null && qaFolder == null)
             {
@@ -240,18 +237,19 @@ namespace CTCC
                 }, closeEncounter);
         }
 
-        private void DiegeticObservation(string id, string title, string copy)
-        {
-            var outcome = casework.Observe(id, player.Feet);
-            if (!Report(outcome)) return;
-            scene.atmosphere?.From("paper", player.Feet + player.transform.forward * 0.5f + Vector3.up);
-            ui.Toast("ĐÃ GHI QUAN SÁT  ·  " + title.ToUpperInvariant(), copy, 6.2f);
-        }
+        private void DiegeticObservation(string id, string title, string copy, Action after = null) =>
+            SaveCheckpoint(() => casework.ObserveAsync(id), () =>
+            {
+                scene.atmosphere?.From("paper", player.Feet + player.transform.forward * 0.5f + Vector3.up);
+                ui.Toast("ĐÃ GHI QUAN SÁT  ·  " + title.ToUpperInvariant(), copy, 6.2f);
+                after?.Invoke();
+            });
 
-        private void InspectDocumentObservation(string id, string title, string copy, string imageId)
+        private void InspectDocumentObservation(string id, string title, string copy, string imageId) =>
+            SaveCheckpoint(() => casework.ObserveAsync(id), () => ShowObservedDocument(title, copy, imageId));
+
+        private void ShowObservedDocument(string title, string copy, string imageId)
         {
-            var outcome = casework.Observe(id, player.Feet);
-            if (!Report(outcome)) return;
             scene.atmosphere?.From("paper", player.Feet + player.transform.forward * 0.5f + Vector3.up);
             var tex = Image(imageId);
             if (tex != null && inspector != null && qaFolder == null)
@@ -317,12 +315,15 @@ namespace CTCC
             }
         }
 
-        private void SaveEvidence(string id, Action committed)
+        private void SaveEvidence(string id, Action committed) =>
+            SaveCheckpoint(() => casework.TakeAsync(id), committed, closeOnFailure: true);
+
+        private void SaveCheckpoint(Func<System.Threading.Tasks.Task<CommitResult>> save, Action committed = null, bool closeOnFailure = false)
         {
-            if (!busy) StartCoroutine(WaitForEvidenceSave(id, committed));
+            if (!busy) StartCoroutine(WaitForCheckpoint(save, committed, closeOnFailure));
         }
 
-        private IEnumerator WaitForEvidenceSave(string id, Action committed)
+        private IEnumerator WaitForCheckpoint(Func<System.Threading.Tasks.Task<CommitResult>> save, Action committed, bool closeOnFailure)
         {
             busy = true;
             ui.ModalInputBlocked = true;
@@ -330,7 +331,7 @@ namespace CTCC
             System.Threading.Tasks.Task<CommitResult> pending;
             try
             {
-                pending = casework.TakeAsync(id);
+                pending = save();
                 while (!pending.IsCompleted) yield return null;
             }
             finally
@@ -342,14 +343,14 @@ namespace CTCC
             if (pending.IsFaulted)
             {
                 Debug.LogException(pending.Exception);
-                CloseModal();
+                if (closeOnFailure) CloseModal();
                 Report(CommitResult.SaveUnavailable);
             }
             else
             {
                 var result = pending.GetAwaiter().GetResult();
-                if (result != CommitResult.Applied) CloseModal();
-                if (Report(result)) committed();
+                if (result != CommitResult.Applied && closeOnFailure) CloseModal();
+                if (Report(result)) committed?.Invoke();
             }
         }
 
@@ -432,12 +433,13 @@ namespace CTCC
                     new ActionChoice("Có một chỗ kê chưa ghi trong bản kê — Đẩy tủ kho", () =>
                     {
                         CloseModal();
-                        CommitResult outcome;
                         bool smooth = scene.smoothPresentation;
-                        scene.smoothPresentation = false;
-                        try { outcome = casework.SolvePz01(player.Feet); }
-                        finally { scene.smoothPresentation = smooth; }
-                        if (Report(outcome))
+                        SaveCheckpoint(async () =>
+                        {
+                            scene.smoothPresentation = false;
+                            try { return await casework.SolvePz01Async(player.Feet); }
+                            finally { scene.smoothPresentation = smooth; }
+                        }, () =>
                         {
                             if (scene.interactables != null && scene.cabinet != null)
                             {
@@ -445,7 +447,7 @@ namespace CTCC
                                 scene.interactables.MoveCabinet(scene.cabinetOpen, !smooth, scene.atmosphere);
                             }
                             ui.Toast("ĐÃ GHI NHẬN E12", "Tủ sắt đang lăn khỏi cửa kho giường. Bên trong còn khung giường tháo rời và tủ khô.", 5.5f);
-                        }
+                        });
                     }, missing == null),
                     new ActionChoice("Quay lại kiểm tra", CloseModal)
                 }, CloseModal, Image("BedList"));
@@ -467,13 +469,13 @@ namespace CTCC
                 choices.Add(new ActionChoice("Đối chiếu An · 101/4 → C01", () =>
                 {
                     CloseModal();
-                    if (Report(casework.VerifyAn(player.Feet)))
+                    SaveCheckpoint(() => casework.VerifyAnAsync(player.Feet), () =>
                     {
                         scene.atmosphere?.From("doorCreak", new Vector3(4f, 1.5f, 16f));
                         anDirector?.PlayPostVerifyVignette(Line("CH02-D03"), Options.reduceMotion);
                         ui.Toast("CỬA CẤP CỨU ĐÃ MỞ · G02", "Minh · " + Line("CH02-D04") + " (Có thể đi hành lang chính hoặc hành lang nhân viên.)", 6.5f);
                         voice?.RecordTranscriptOnly("CH02-D04", "Minh", Line("CH02-D04"));
-                    }
+                    });
                 }));
             choices.Add(new ActionChoice("Trở lại điểm neo", Anchor));
             ui.Show("HỒ SƠ TRONG KHO 101", "Bức tranh của An", missing ??
