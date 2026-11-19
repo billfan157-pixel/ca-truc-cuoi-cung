@@ -34,6 +34,7 @@ namespace CTCC
             }
             if (scene?.AnActor != null)
             {
+                voice?.StopFor(scene.AnActor);
                 scene.AnActor.SetApparitionAlpha(0f);
                 scene.AnActor.gameObject.SetActive(false);
             }
@@ -80,9 +81,9 @@ namespace CTCC
             an.PlayAction("An_IdleLook", 0.2f, restart: true);
 
             yield return Fade(an, 0f, 0.68f, reducedMotion ? 0.3f : 1.0f);
-            bool done = false;
+            bool done = voice == null;
             voice?.Speak("CH02-D03", "Bé An", string.IsNullOrWhiteSpace(lineText) ? "Chú có thấy cửa nhà con không?" : lineText,
-                scene.AnVoiceAnchor, an, "[Giọng trẻ nhỏ rất khẽ · góc giường 4]", () => done = true);
+                scene.AnVoiceAnchor, an, "[Giọng trẻ nhỏ rất khẽ · góc giường 4]", _ => done = true);
             while (!done) yield return null;
 
             yield return new WaitForSecondsRealtime(0.4f);

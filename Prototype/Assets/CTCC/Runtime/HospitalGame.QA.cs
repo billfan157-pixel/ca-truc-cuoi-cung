@@ -62,24 +62,62 @@ namespace CTCC
                 var dupRegion = dupGo.AddComponent<ZoneRegion>();
                 dupRegion.zoneId = "LOC01";
                 bool acceptedDup = scene.RegisterZone(dupRegion);
-                Destroy(dupGo);
                 Require(!acceptedDup, "Duplicate ZoneRegion LOC01 rejected");
+                dupRegion.zoneId = "QA-DUPLICATE-PADS";
+                dupRegion.pads = new[] { new MarkerPose { id = "QA-PAD", point = dupGo.transform },
+                    new MarkerPose { id = "qa-pad", point = dupGo.transform } };
+                Require(!scene.RegisterZone(dupRegion) && !scene.TryPad("QA-PAD", out _), "One zone cannot claim the same pad twice");
+                Destroy(dupGo);
 
                 // Async unload & reload of LOC04_Emergency without breaking persistent state or AP05
+                var originalDoor = scene.emergencyDoorA;
+                long sequence = State.sequence;
                 yield return scene.UnloadZoneAsync("LOC04_Emergency");
-                Require(scene.LoadedZoneCount == 3 && !scene.HasZone("LOC04"), "LOC04 unloaded cleanly");
+                Require(scene.LoadedZoneCount == 3 && !scene.HasZone("LOC04") && scene.emergencyDoorA == null &&
+                    !scene.TryPad("AP05", out _) && scene.GatekeeperWaypoints.Length == 0, "LOC04 released pad, actor and door bindings");
+                Require(transaction.Restore(SaveSlot.Auto, out var missing) == SaveRead.Damaged && missing == null &&
+                    State.sequence == sequence, "An unloaded checkpoint preserves committed investigation");
                 yield return scene.LoadZoneAsync("LOC04_Emergency");
                 Require(scene.LoadedZoneCount == 4 && scene.HasZone("LOC04") && scene.Pad("AP05") != null, "LOC04 reloaded cleanly");
-                verification.Add("M2-ADDITIVE PASS: 4 additive scenes loaded, duplicate zoneId rejected, async unload/reload of LOC04_Emergency preserved AP05 & state.");
+                Require(scene.emergencyDoorA != null && !ReferenceEquals(scene.emergencyDoorA, originalDoor) &&
+                    transaction.Restore(SaveSlot.Auto, out var restored) == SaveRead.Valid && restored == scene.Pad("AP05") &&
+                    State.sequence == sequence, "Reload rebinds door and restores the same revision at AP05");
+                verification.Add("M2-ADDITIVE PASS: duplicate zone/pad rejected; LOC04 released bindings, rejected unloaded restore, then rebound and restored AP05.");
             }
 
-            // 2) LOCK-V22-02 / V22-Q03 runtime VO & Transcript guard
+            // 2) LOCK-V22-02 / V22-Q03 runtime VO & transcript guard
             Require(voice != null && !voice.HasClip("CH01-D16b") && !voice.HasClip("CH04-D06"), "Forbidden CH04 VO absent");
             int beforeT = voice.Transcript.Count;
-            voice.Speak("CH01-D16b", "Lan", "Forbidden test");
-            voice.Speak("CH04-D06", "Lan", "Forbidden test");
-            Require(voice.Transcript.Count == beforeT, "Forbidden CH04 lines blocked from Transcript");
-            verification.Add("V22-Q03 runtime PASS: CH01-D16b & CH04-D06 blocked in Dialogue, VoiceDirector clips, and Transcript.");
+            int blocked = 0;
+            foreach (string id in new[] { "CH01-D16b", "CH04-D06" })
+            {
+                voice.Speak(id, "Lan", "Forbidden test", onComplete: heard => { if (!heard) blocked++; }, beat: "B06");
+                var future = Investigation.New();
+                var condition = revealConditions[id];
+                Require(!condition.Allows(future, "B06"), "CH01 must not expose " + id);
+                future.chapter = "CH04";
+                future.Remember("H05.verified");
+                Require(!condition.Allows(future, "B06"), "H05 alone must not expose " + id);
+                future.Remember("PT02.presented");
+                Require(!condition.Allows(future, "B05") && condition.Allows(future, "B06"), "Exact beat and prerequisites for " + id);
+            }
+            Require(blocked == 2 && voice.Transcript.Count == beforeT, "Blocked lines settle callbacks without exposing transcript");
+            verification.Add("V22-Q03 runtime PASS: text/VO/transcript blocked in slice; CH04 B06 condition admits both guarded IDs only with both prerequisites.");
+
+            int interrupted = 0;
+            voice.Speak("CH02-D03", "Bé An", Line("CH02-D03"), onComplete: heard => { if (!heard) interrupted++; });
+            voice.Speak("CH02-D04", "Minh", Line("CH02-D04"));
+            voice.StopCurrent();
+            Require(interrupted == 1 && !voice.IsSpeaking, "Interrupted speech settles once and releases active playback");
+            var journalSave = transaction.SaveDialogueAsync();
+            while (!journalSave.IsCompleted) yield return null;
+            Apply(journalSave.GetAwaiter().GetResult(), "transcript autosave");
+            Require(saves.Read(SaveSlot.Auto, out var journal) == SaveRead.Valid &&
+                journal.transcript.Exists(entry => entry.LineId == "CH02-D03") &&
+                journal.transcript.Exists(entry => entry.LineId == "CH02-D04"), "Spoken and interrupted lines round-trip");
+            RestoreJournal(journal);
+            Require(voice.Transcript.Count == journal.transcript.Count, "Journal restores delivered IDs");
+            verification.Add("M2A-DIALOGUE PASS: interruption settles once, allowed transcript persists through the snapshot and restore.");
 
             // 3) Characters, BlendShapes & Dual-Scenario GI Probes check
             if (scene.referenceArt)
@@ -108,10 +146,25 @@ namespace CTCC
                 // Verify both Door A (x=4.0, z=16.5) and Door B (x=0.05, z=16.5) count as valid escape routes!
                 Require(gatekeeperCameo.CheckEscapedToEmergency(new Vector3(4.0f, 0.02f, 16.5f)), "Door A escape valid");
                 Require(gatekeeperCameo.CheckEscapedToEmergency(new Vector3(0.05f, 0.02f, 16.5f)), "Door B staff escape valid");
-                gatekeeperCameo.CompleteEscape(() => Apply(casework.RecordGatekeeperResolved(scene.Pad("AP05").position), "CH02-T06 persisted"));
+                Require(!gatekeeperCameo.CheckEscapedToEmergency(new Vector3(11f, 0.02f, 16.5f)), "Outside ER is not an escape");
+                Vector3 safe = scene.Pad("AP05").position;
+                long previous = State.sequence;
+                var fault = casework.SaveEmergencyAsync(safe, true, gatekeeperCameo.IsActive,
+                    () => throw new IOException("QA interruption while saving CH02-T06"));
+                while (!fault.IsCompleted) yield return null;
+                Require(fault.GetAwaiter().GetResult() == CommitResult.SaveUnavailable && gatekeeperCameo.IsActive &&
+                    !gatekeeperCameo.WasResolved && State.sequence == previous && !State.Happened("CH02-T06") &&
+                    saves.Read(SaveSlot.Auto, out var beforeEscape) == SaveRead.Valid && !beforeEscape.Happened("CH02-T06"),
+                    "Failed escape publication retains live encounter and previous snapshot");
+                var retry = casework.SaveEmergencyAsync(safe, true, gatekeeperCameo.IsActive);
+                while (!retry.IsCompleted) yield return null;
+                Apply(retry.GetAwaiter().GetResult(), "CH02-T06 persisted");
                 Require(State.Happened("CH02-T06") && !gatekeeperCameo.IsActive && !gatekeeperCameo.ShouldTrigger(State, new Vector3(4.0f, 0.02f, 4.75f)),
                     "CH02-T06 persisted and Gatekeeper never repeats");
-                verification.Add("CH02-Q05 PASS: Gatekeeper dormant in CH01, triggers post-G02 in CH02, escapable via Door A & Door B, CH02-T06 once-only persisted.");
+                Require(saves.Read(SaveSlot.Auto, out var ended) == SaveRead.Valid && ended.Happened("CH02-T06") &&
+                    ended.Happened("M1-complete") && ended.checkpoint == "CH02-CP04" && ended.sequence == previous + 1,
+                    "Escape and ending coexist in one durable revision");
+                verification.Add("CH02-Q05 PASS: both escape thresholds, outside rejected, failed publication keeps cameo live, retry durably commits T06/CP04 once.");
             }
         }
 

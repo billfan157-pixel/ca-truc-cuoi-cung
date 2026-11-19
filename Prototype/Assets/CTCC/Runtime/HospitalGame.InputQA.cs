@@ -128,7 +128,7 @@ namespace CTCC
             player.Teleport(scene.Pad("AP02"));
             yield return Until(() => !busy && State.chapter == "CH02", "CH02 handoff");
 
-            if (branch == FormStatus.Affirmed) yield return InputPhysicalCase();
+            if (branch != FormStatus.Refuted) yield return InputPhysicalCase(branch == FormStatus.Unverified);
             player.Teleport(scene.Pad("AP02"));
             yield return Tap(Key.Escape);
             if (branch == FormStatus.Refuted)
@@ -147,6 +147,7 @@ namespace CTCC
             yield return Choose("Mở bản lưu tay");
             Require(!ui.IsModal && State.chapter == "CH02" && State.f101.firstDecision == branch &&
                 transaction.OnPad(player.Feet, SafeCheckpoints.Pad(State.checkpoint)), "manual load restores state and checkpoint");
+            Require(voice.Transcript.Any(entry => entry.LineId == "CH01-D07"), "Skipped Lan transcript survives actual manual load");
             if (branch == FormStatus.Refuted)
             {
                 Require(State.settings.alternateBindings && State.settings.textScale > 1.25f && AudioListener.volume == 0,
@@ -160,7 +161,7 @@ namespace CTCC
             yield return Choose("Về màn hình đầu");
         }
 
-        private IEnumerator InputPhysicalCase()
+        private IEnumerator InputPhysicalCase(bool sideDoor)
         {
             yield return UseFrom("LIST", new Vector3(6.69f, 0.02f, 3.35f));
             Require(inspector.IsInspecting, "R list opens physical paper");
@@ -187,10 +188,16 @@ namespace CTCC
             yield return Until(() => !busy && State.Has(EvidenceRegistry.Drawing), "assembled drawing was saved");
             yield return Choose("Đối chiếu An");
             Require(GateService.G02(State), "G02 opens through physical evidence and UI");
+            float x = sideDoor ? 0.05f : 4f;
+            player.Teleport(new Vector3(x, 0.02f, 13.2f), Quaternion.identity);
+            yield return Until(() => gatekeeperCameo.IsActive, "Gatekeeper begins from the corridor trigger");
+            yield return Hold(Key.W, 2.3f);
+            yield return Until(() => !busy && State.Happened("CH02-T06") && !gatekeeperCameo.IsActive,
+                sideDoor ? "walked through Door B" : "walked through Door A");
             yield return UseFrom("EXIT", scene.Pad("AP05").position);
-            Require(State.Happened("M1-complete"), "exit reached and recorded");
+            yield return Until(() => !busy && State.Happened("M1-complete") && ui.IsModal, "exit reached and recorded");
             yield return Choose("Ở lại khám phá");
-            verification.Add("INPUT PASS E11/E12/G02: 3 clues, animated cabinet, 3 fragments, wristband, transfer, assembly, identify and exit.");
+            verification.Add($"INPUT PASS E11/E12/G02 & CH02-Q05 Door {(sideDoor ? "B" : "A")}: physical clues, cabinet, assembly, identification, walking escape and ER ledger.");
         }
 
         private IEnumerator OpenFormInput()

@@ -14,7 +14,7 @@ namespace CTCC
         {
             var proposed = Investigation.New();
             proposed.settings = options;
-            return reality.Commit(proposed, feet, warp: true, geometryChanges: true);
+            return reality.Commit(proposed, feet, warp: true, geometryChanges: true, newVisit: true);
         }
 
         public CommitResult ReadLetter(Vector3 feet) =>
@@ -227,8 +227,26 @@ namespace CTCC
             return reality.Commit(next, feet, "AP04", false, true);
         }
 
-        public CommitResult RecordGatekeeperResolved(Vector3 feet) =>
-            GateService.G02(State) ? Record("CH02-T06", feet) : CommitResult.PadRequired;
+        public Task<CommitResult> SaveEmergencyAsync(Vector3 feet, bool finish, bool encounterActive,
+            Action afterFlush = null)
+        {
+            if (!GateService.G02(State) || State.layer != Reality.R || !GatekeeperCameo.InEmergency(feet))
+                return Task.FromResult(CommitResult.PadRequired);
+            bool escaped = State.Happened("CH02-T06");
+            if (!escaped && !encounterActive)
+                return Task.FromResult(CommitResult.PadRequired);
+            if (escaped && (!finish || State.Happened("M1-complete")))
+                return Task.FromResult(CommitResult.Applied);
+
+            var next = State.Copy();
+            next.Remember("CH02-T06");
+            if (finish)
+            {
+                next.Remember("M1-complete");
+                next.checkpoint = "CH02-CP04";
+            }
+            return reality.CommitEvidenceAsync(next, afterFlush);
+        }
 
         public CommitResult TakeSpareBattery(Vector3 feet) =>
             Record("CH01-BATTERY", feet);

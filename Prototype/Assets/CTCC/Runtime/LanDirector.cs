@@ -93,6 +93,7 @@ namespace CTCC
 
         public void PlayOptionalLine(string lineId, string speaker, string text, float warm, float concern, float sorrow)
         {
+            StopEncounter(true);
             var lan = scene?.LanActor;
             if (lan != null && lan.gameObject.activeInHierarchy)
             {
@@ -150,6 +151,7 @@ namespace CTCC
             foreach (var b in beats)
             {
                 bool finished = false;
+                bool completed = false;
                 if (b.isLan)
                 {
                     lan.SetExpression(b.warm, b.concern, b.sorrow);
@@ -159,11 +161,17 @@ namespace CTCC
                 {
                     lan.PlayAction("Lan_IdleDesk", 0.28f);
                 }
-                voice?.Speak(b.id, b.speaker, lineLookup(b.id, 1),
+                voice.Speak(b.id, b.speaker, lineLookup(b.id, 1),
                     b.isLan ? scene.LanVoiceAnchor : null,
                     b.isLan ? lan : null,
-                    onComplete: () => finished = true);
+                    onComplete: heard => { completed = heard; finished = true; });
                 while (!finished) yield return null;
+                if (!completed)
+                {
+                    encounterRoutine = null;
+                    lan.PlayAction("Lan_IdleDesk", 0.28f);
+                    yield break;
+                }
                 yield return new WaitForSecondsRealtime(0.28f);
             }
 

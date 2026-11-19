@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Stop'
 $exe = (Resolve-Path -LiteralPath $Executable).Path
 $captureExe = (Resolve-Path -LiteralPath $PresentMon).Path
 $out = [IO.Path]::GetFullPath($Evidence)
-if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
+if (Test-Path -LiteralPath $out) { throw "Use a new evidence directory for each run." }
 New-Item -ItemType Directory -Path $out | Out-Null
 $session = "CTCC-M2-$([Guid]::NewGuid().ToString('N').Substring(0,8))"
 $capture = Start-Process -FilePath $captureExe -ArgumentList "--process_name $([IO.Path]::GetFileName($exe)) --session_name $session --no_console_stats --v2_metrics --qpc_time --output_file `"$out/presents.csv`" --terminate_on_proc_exit" -RedirectStandardError "$out/presentmon-error.txt" -RedirectStandardOutput "$out/presentmon-output.txt" -WindowStyle Hidden -PassThru

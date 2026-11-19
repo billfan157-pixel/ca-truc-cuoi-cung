@@ -129,6 +129,9 @@ namespace CTCC
         private bool lastLayerB;
         private int lastForm;
         private bool lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate;
+        private bool seamClosed, spareTaken;
+        public event Action<ZoneRegion> ZoneUnregistering;
+        public event Action ZoneReloaded;
 
         // Legacy single-scene NavMesh fallback (also used when additiveZoneScenes is empty)
         private NavMeshDataInstance navigation;
@@ -167,7 +170,7 @@ namespace CTCC
 
             // Register any ZoneRegions already present in open scenes (e.g. Editor multi-scene play)
             foreach (var region in FindObjectsByType<ZoneRegion>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                RegisterZone(region);
+                if (region.isActiveAndEnabled) RegisterZone(region);
         }
 
         /// <summary>
@@ -193,7 +196,7 @@ namespace CTCC
                 while (!pending[i].isDone)
                     yield return null;
             foreach (var region in FindObjectsByType<ZoneRegion>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                RegisterZone(region);
+                if (region.isActiveAndEnabled) RegisterZone(region);
             RebuildPadLookup();
             RebuildProbeLookup();
         }
@@ -204,10 +207,23 @@ namespace CTCC
             if (sc.IsValid() && sc.isLoaded) yield break;
             var op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
             while (op != null && !op.isDone) yield return null;
-            foreach (var region in FindObjectsByType<ZoneRegion>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                RegisterZone(region);
+            sc = SceneManager.GetSceneByName(sceneName);
+            if (!sc.isLoaded) yield break;
+            foreach (var root in sc.GetRootGameObjects())
+                foreach (var region in root.GetComponentsInChildren<ZoneRegion>())
+                    if (region.isActiveAndEnabled) RegisterZone(region);
             themeReady = false;
-            Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate);
+            bool restoreSmooth = smoothPresentation;
+            smoothPresentation = false;
+            try
+            {
+                Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate);
+                PresentCheckpointProps(seamClosed, spareTaken);
+            }
+            finally { smoothPresentation = restoreSmooth; }
+            foreach (var region in registeredZones)
+                if (region.gameObject.scene == sc) region.RefreshRegionalNavMesh();
+            ZoneReloaded?.Invoke();
         }
 
         public IEnumerator UnloadZoneAsync(string sceneName)
@@ -236,12 +252,14 @@ namespace CTCC
             }
             if (region.pads != null)
             {
+                var localIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var pad in region.pads)
                 {
-                    if (pad == null || string.IsNullOrEmpty(pad.id)) continue;
-                    if (padsById.ContainsKey(pad.id))
+                    if (pad == null || pad.point == null || string.IsNullOrWhiteSpace(pad.id) ||
+                        pad.point.gameObject.scene != region.gameObject.scene ||
+                        !localIds.Add(pad.id) || padsById.ContainsKey(pad.id))
                     {
-                        Debug.LogWarning($"CTCC M2-Handoff rejected ZoneRegion '{region.zoneId}' due to duplicate safe pad '{pad.id}'.");
+                        Debug.LogWarning($"CTCC rejected ZoneRegion '{region.zoneId}' due to invalid or duplicate safe pad '{pad?.id}'.");
                         return false;
                     }
                 }
@@ -312,12 +330,58 @@ namespace CTCC
         public void UnregisterZone(ZoneRegion region)
         {
             if (region == null || !registeredZones.Remove(region)) return;
+            ZoneUnregistering?.Invoke(region);
             if (!string.IsNullOrEmpty(region.zoneId) && zonesById.TryGetValue(region.zoneId, out var cur) && cur == region)
                 zonesById.Remove(region.zoneId);
             motion?.Unregister(region.movingFans, region.livingTubes, region.movingCloth);
             atmosphere?.UnregisterZoneLoops(region.roomLoops);
+            ClearOwned(ref outerGate, region.outerGate);
+            ClearOwned(ref roomDoor, region.roomDoor);
+            ClearOwned(ref emergencyDoorA, region.emergencyDoorA);
+            ClearOwned(ref emergencyDoorB, region.emergencyDoorB);
+            ClearOwned(ref seamBlocker, region.seamBlocker);
+            ClearOwned(ref pendingBay, region.pendingBay);
+            ClearOwned(ref deniedBay, region.deniedBay);
+            ClearOwned(ref statusA, region.statusA);
+            ClearOwned(ref statusB, region.statusB);
+            ClearOwned(ref statusC, region.statusC);
+            ClearOwned(ref paperAfter, region.paperAfter);
+            ClearOwned(ref storeClues, region.storeClues);
+            ClearOwned(ref clockHandsR, region.clockHandsR);
+            ClearOwned(ref clockHandsB, region.clockHandsB);
+            ClearOwned(ref realProps, region.realProps);
+            ClearOwned(ref reportProps, region.reportProps);
+            if (region.cabinet != null && cabinet == region.cabinet)
+            {
+                cabinet = null;
+                interactables?.ConfigureCabinet(null, Vector3.zero);
+            }
+            if (interactables != null && region.roomDoor?.pivot != null)
+                interactables.ConfigureDoor(null, 0f);
+            if (interactables != null && interactables.curtainCloth == region.curtainCloth)
+                interactables.curtainCloth = null;
+            if (SpareBatteryProp == region.spareBatteryProp) SpareBatteryProp = null;
+            if (ReceptionGlassSilhouette == region.receptionGlassSilhouette) ReceptionGlassSilhouette = null;
+            if (TrolleyShadowProp == region.trolleyShadowProp) TrolleyShadowProp = null;
+            if (LanActor == region.lanActor) LanActor = null;
+            if (GatekeeperActor == region.gatekeeperActor) GatekeeperActor = null;
+            if (AnActor == region.anActor) AnActor = null;
+            if (GatekeeperWaypoints == region.gatekeeperWaypoints) GatekeeperWaypoints = Array.Empty<Transform>();
+            if (LanSilhouettePoint == region.lanSilhouettePoint) LanSilhouettePoint = null;
+            if (LanDeskPoint == region.lanDeskPoint) LanDeskPoint = null;
+            if (LanStepOutPoint == region.lanStepOutPoint) LanStepOutPoint = null;
+            if (PaSpeakerAnchor == region.paSpeakerAnchor) PaSpeakerAnchor = null;
+            if (PhoneAnchor == region.phoneAnchor) PhoneAnchor = null;
+            if (LanVoiceAnchor == region.lanVoiceAnchor) LanVoiceAnchor = null;
+            if (GatekeeperVoiceAnchor == region.gatekeeperVoiceAnchor) GatekeeperVoiceAnchor = null;
+            if (AnVoiceAnchor == region.anVoiceAnchor) AnVoiceAnchor = null;
             RebuildPadLookup();
             RebuildProbeLookup();
+        }
+
+        private static void ClearOwned<T>(ref T binding, T owner) where T : class
+        {
+            if (ReferenceEquals(binding, owner)) binding = null;
         }
 
         private void RebuildPadLookup()
@@ -355,12 +419,22 @@ namespace CTCC
 
         public Transform Pad(string id)
         {
-            if (padsById.TryGetValue(id, out var cached) && cached != null)
-                return cached;
-            RebuildPadLookup();
-            if (padsById.TryGetValue(id, out cached) && cached != null)
-                return cached;
+            if (TryPad(id, out var pad)) return pad;
             throw new InvalidOperationException("Missing safe pad " + id);
+        }
+
+        public bool TryPad(string id, out Transform pad)
+        {
+            pad = null;
+            return id != null && padsById.TryGetValue(id, out pad) && pad != null;
+        }
+
+        public void PresentCheckpointProps(bool closeSeam, bool takeSpare)
+        {
+            seamClosed = closeSeam;
+            spareTaken = takeSpare;
+            Toggle(seamBlocker, closeSeam);
+            Toggle(SpareBatteryProp, !takeSpare);
         }
 
         public GameObject InspectTemplate(string id)

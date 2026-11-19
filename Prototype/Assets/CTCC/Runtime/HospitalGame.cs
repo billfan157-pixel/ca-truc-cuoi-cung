@@ -13,8 +13,13 @@ namespace CTCC
     public sealed partial class HospitalGame : MonoBehaviour
     {
         [Serializable] private sealed class DialogueEntry { public string id, chapter, speaker, context, copy; }
-        [Serializable] private sealed class DialogueSheet { public DialogueEntry[] entries; }
+        [Serializable] private sealed class DialogueSheet
+        {
+            public DialogueEntry[] entries;
+            public DialogueCondition[] conditions;
+        }
         private readonly Dictionary<string, DialogueEntry> dialogue = new();
+        private readonly Dictionary<string, DialogueCondition> revealConditions = new();
         private HospitalScene scene;
         private FirstPerson player;
         private HospitalUI ui;
@@ -22,6 +27,8 @@ namespace CTCC
         private VoiceDirector voice;
         private LanDirector lanDirector;
         private GatekeeperCameo gatekeeperCameo;
+        private float retryEmergencySaveAt;
+        private float dialogueSaveAt;
         private AnApparitionDirector anDirector;
         private RealityTransaction transaction;
         private Casework casework;
@@ -69,8 +76,11 @@ namespace CTCC
                 scene.giMode = requestedGi.ToLowerInvariant();
 
             var lineSheet = Resources.Load<TextAsset>("CTCC/Dialogue");
-            foreach (var entry in JsonUtility.FromJson<DialogueSheet>(lineSheet.text).entries)
+            var sheet = JsonUtility.FromJson<DialogueSheet>(lineSheet.text);
+            foreach (var entry in sheet.entries)
                 dialogue.Add(entry.id, entry);
+            foreach (var condition in sheet.conditions)
+                revealConditions.Add(condition.id, condition);
 
             qaFolder = Argument("-ctcc-qa");
         }
@@ -96,7 +106,7 @@ namespace CTCC
             ui.OpenChanged += RefreshControls;
 
             voice = gameObject.AddComponent<VoiceDirector>();
-            voice.Initialize(scene.atmosphere?.voiceClips, scene.atmosphere?.lanMotif, scene.atmosphere, ui);
+            voice.Initialize(scene.atmosphere?.voiceClips, scene.atmosphere?.lanMotif, scene.atmosphere, ui, MayDeliver);
 
             lanDirector = gameObject.AddComponent<LanDirector>();
             lanDirector.Initialize(scene, voice, player);
@@ -112,8 +122,24 @@ namespace CTCC
             saves = new AtomicSaves(saveDirectory);
             transaction = new RealityTransaction(scene, saves);
             transaction.ReadCharge = () => player.BatterySeconds;
+            voice.Recorded += entry =>
+            {
+                transaction.RecordDialogue(entry);
+                dialogueSaveAt = Time.unscaledTime + 2f;
+            };
             casework = new Casework(transaction);
             transaction.Committed += ApplyCommitted;
+            scene.ZoneUnregistering += zone =>
+            {
+                if (zone.lanActor != null)
+                {
+                    voice.StopFor(zone.lanActor);
+                    lanDirector.StopEncounter(false);
+                }
+                if (zone.gatekeeperActor != null) gatekeeperCameo.StopAndHide();
+                if (zone.anActor != null) anDirector.HideImmediately();
+            };
+            scene.ZoneReloaded += () => ApplyCommitted(State);
 
             // Pre-warm BOTH R and B regional NavMesh caches behind startup so the very first R->B swap never hitches!
             scene.smoothPresentation = false;
@@ -238,8 +264,10 @@ namespace CTCC
                 TransitionAsync(() => casework.OutsideAttemptAsync(player.Feet), true, () =>
                 {
                     scene.atmosphere?.From("distantThunder", new Vector3(4f, 4f, -18f));
-                    voice?.Speak("CH01-D13", "Minh", Line("CH01-D13", 2), onComplete: () =>
-                        voice?.Speak("CH01-D14", "Minh", Line("CH01-D14")));
+                    voice?.Speak("CH01-D13", "Minh", Line("CH01-D13", 2), onComplete: heard =>
+                    {
+                        if (heard) voice.Speak("CH01-D14", "Minh", Line("CH01-D14"));
+                    });
                 });
                 return;
             }
@@ -274,9 +302,10 @@ namespace CTCC
                 {
                     gatekeeperCameo.BeginCameo(State, Line);
                 }
-                else if (gatekeeperCameo.CheckEscapedToEmergency(feet))
+                else if (gatekeeperCameo.CheckEscapedToEmergency(feet) && Time.unscaledTime >= retryEmergencySaveAt)
                 {
-                    gatekeeperCameo.CompleteEscape(() => casework.RecordGatekeeperResolved(player.Feet));
+                    StartCoroutine(SaveEmergency(false));
+                    return;
                 }
             }
 
@@ -297,6 +326,17 @@ namespace CTCC
                 Use(target.id);
             else if (use && transaction.OnPad(feet, "AP04") && casework.CanRevise)
                 Anchor();
+            else if (!busy && !ui.IsModal && transaction.HasPendingDialogue && Time.unscaledTime >= dialogueSaveAt)
+                StartCoroutine(SaveDialogue());
+        }
+
+        private IEnumerator SaveDialogue()
+        {
+            busy = true;
+            var task = transaction.SaveDialogueAsync();
+            while (!task.IsCompleted) yield return null;
+            busy = false;
+            if (task.GetAwaiter().GetResult() != CommitResult.Applied) dialogueSaveAt = Time.unscaledTime + 10f;
         }
 
         private IEnumerator PlayHe01TrolleyShadow()
@@ -473,13 +513,28 @@ namespace CTCC
                             : "Cấp cứu tạm đóng. Hãy đối chiếu hồ sơ phòng 101.", 5, true);
                     break;
                 case "EXIT":
-                    if (Report(casework.Complete(player.Feet)))
-                    {
-                        gatekeeperCameo?.CompleteEscape(() => casework.RecordGatekeeperResolved(player.Feet));
-                        EndOfVisit();
-                    }
+                    StartCoroutine(SaveEmergency(true));
                     break;
             }
+        }
+
+        private IEnumerator SaveEmergency(bool finish)
+        {
+            busy = true;
+            RefreshControls();
+            bool firstEscape = !State.Happened("CH02-T06");
+            var save = casework.SaveEmergencyAsync(player.Feet, finish, gatekeeperCameo.IsActive);
+            while (!save.IsCompleted) yield return null;
+            busy = false;
+            RefreshControls();
+            if (!Report(save.GetAwaiter().GetResult()))
+            {
+                retryEmergencySaveAt = Time.unscaledTime + 5f;
+                yield break;
+            }
+            if (firstEscape)
+                ui.Caption("[Tiếng chùm chìa khóa xa dần sau cánh cửa kính mờ Cấp cứu]", 4.5f, true);
+            if (finish) EndOfVisit();
         }
 
         private void Hub()
@@ -506,8 +561,10 @@ namespace CTCC
                 else if (collapsingR)
                 {
                     lanDirector?.StopEncounter(false);
-                    voice?.Speak("CH01-D11", "Minh", Line("CH01-D11"), onComplete: () =>
-                        voice?.Speak("CH01-D12", "Minh", Line("CH01-D12")));
+                    voice?.Speak("CH01-D11", "Minh", Line("CH01-D11"), onComplete: heard =>
+                    {
+                        if (heard) voice.Speak("CH01-D12", "Minh", Line("CH01-D12"));
+                    });
                 }
                 else if (startingCh02)
                 {
@@ -646,10 +703,23 @@ namespace CTCC
             return false;
         }
 
-        private string Line(string id, int ordinal = 1)
+        private bool MayDeliver(string id, string beat)
         {
-            if (id == "CH01-D16b" || id == "CH04-D06") return "";
-            if (!dialogue.TryGetValue(id, out var entry) || string.IsNullOrWhiteSpace(entry.copy)) return "";
+            if (string.IsNullOrEmpty(id) || !dialogue.ContainsKey(id)) return false;
+            return !revealConditions.TryGetValue(id, out var condition) || condition.Allows(State, beat);
+        }
+
+        private void RestoreJournal(Investigation state) =>
+            voice.RestoreTranscript(state.transcript, id => dialogue.ContainsKey(id) &&
+                (!revealConditions.TryGetValue(id, out var condition) || condition.HasPrerequisites(state)));
+
+        private string Line(string id, int ordinal = 1) => LineAtBeat(id, ordinal, null);
+
+        private string LineAtBeat(string id, int ordinal, string beat)
+        {
+            if (!MayDeliver(id, beat)) return "";
+            var entry = dialogue[id];
+            if (string.IsNullOrWhiteSpace(entry.copy)) return "";
             var quotes = System.Text.RegularExpressions.Regex.Matches(entry.copy, "“([^”]+)”");
             return ordinal <= quotes.Count ? quotes[ordinal - 1].Groups[1].Value : entry.copy;
         }

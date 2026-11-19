@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Unity.Profiling;
@@ -17,6 +18,16 @@ namespace CTCC
         public event Action<Investigation> Committed;
         public Func<int> ReadCharge { get; set; }
         private bool savingAsync;
+        private readonly List<TranscriptEntry> newDialogue = new();
+
+        public void RecordDialogue(TranscriptEntry entry) => newDialogue.Add(entry);
+        public bool HasPendingDialogue => newDialogue.Count != 0;
+
+        private int IncludePendingDialogue(Investigation proposed)
+        {
+            proposed.transcript.AddRange(newDialogue);
+            return newDialogue.Count;
+        }
 
         public RealityTransaction(HospitalScene scene, AtomicSaves saves)
         {
@@ -26,13 +37,14 @@ namespace CTCC
         }
 
         public CommitResult Commit(Investigation proposed, Vector3 feet, string requiredPad = null, bool warp = false,
-            bool geometryChanges = false)
+            bool geometryChanges = false, bool newVisit = false)
         {
             using var _ = CommitMarker.Auto();
             if (savingAsync) return CommitResult.SaveUnavailable;
             if (requiredPad != null && !OnPad(feet, requiredPad))
                 return CommitResult.PadRequired;
-            Transform checkpoint = scene.Pad(SafeCheckpoints.Pad(proposed.checkpoint));
+            if (!scene.TryPad(SafeCheckpoints.Pad(proposed.checkpoint), out var checkpoint))
+                return CommitResult.Obstructed;
             Vector3 landing = warp ? checkpoint.position : feet;
             if ((geometryChanges || warp) && HospitalScene.Occupied(landing))
                 return CommitResult.Obstructed;
@@ -46,6 +58,7 @@ namespace CTCC
                 Revert(landing);
                 return CommitResult.Obstructed;
             }
+            int included = newVisit ? newDialogue.Count : IncludePendingDialogue(proposed);
             try { saves.Write(SaveSlot.Auto, proposed); }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
             {
@@ -54,6 +67,7 @@ namespace CTCC
                 return CommitResult.SaveUnavailable;
             }
             Current = proposed;
+            newDialogue.RemoveRange(0, included);
             Committed?.Invoke(Current);
             return CommitResult.Applied;
         }
@@ -70,7 +84,8 @@ namespace CTCC
             if (requiredPad != null && !OnPad(feet, requiredPad))
                 return CommitResult.PadRequired;
 
-            Transform checkpoint = scene.Pad(SafeCheckpoints.Pad(proposed.checkpoint));
+            if (!scene.TryPad(SafeCheckpoints.Pad(proposed.checkpoint), out var checkpoint))
+                return CommitResult.Obstructed;
             Vector3 landing = warp ? checkpoint.position : feet;
             if ((geometryChanges || warp) && HospitalScene.Occupied(landing))
                 return CommitResult.Obstructed;
@@ -92,6 +107,7 @@ namespace CTCC
                     }
                 }
 
+                int included = IncludePendingDialogue(proposed);
                 try { await Task.Run(() => saves.Write(SaveSlot.Auto, proposed, afterFlush)); }
                 catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
                 {
@@ -101,6 +117,7 @@ namespace CTCC
                 }
 
                 Current = proposed;
+                newDialogue.RemoveRange(0, included);
                 Committed?.Invoke(Current);
                 return CommitResult.Applied;
             }
@@ -111,14 +128,18 @@ namespace CTCC
         }
 
         // Evidence pickups change the snapshot only. Geometry and the committed state stay live until durable publication.
-        internal async Task<CommitResult> CommitEvidenceAsync(Investigation proposed, Action afterFlush = null)
+        internal async Task<CommitResult> CommitEvidenceAsync(Investigation proposed, Action afterFlush = null,
+            bool publishGameplay = true)
         {
             if (savingAsync) return CommitResult.SaveUnavailable;
+            if (!scene.TryPad(SafeCheckpoints.Pad(proposed.checkpoint), out _))
+                return CommitResult.Obstructed;
             savingAsync = true;
             try
             {
                 proposed.sequence = Current.sequence + 1;
                 proposed.torchSeconds = ReadCharge?.Invoke() ?? proposed.torchSeconds;
+                int included = IncludePendingDialogue(proposed);
                 try { await Task.Run(() => saves.Write(SaveSlot.Auto, proposed, afterFlush)); }
                 catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
                 {
@@ -126,11 +147,15 @@ namespace CTCC
                     return CommitResult.SaveUnavailable;
                 }
                 Current = proposed;
-                Committed?.Invoke(Current);
+                newDialogue.RemoveRange(0, included);
+                if (publishGameplay) Committed?.Invoke(Current);
                 return CommitResult.Applied;
             }
             finally { savingAsync = false; }
         }
+
+        public Task<CommitResult> SaveDialogueAsync() =>
+            HasPendingDialogue ? CommitEvidenceAsync(Current.Copy(), publishGameplay: false) : Task.FromResult(CommitResult.Applied);
 
         public SaveRead Inspect(SaveSlot slot) => saves.Read(slot, out _);
 
@@ -141,14 +166,16 @@ namespace CTCC
             SaveRead result = saves.Read(slot, out var proposed);
             if (proposed == null)
                 return result;
-            Transform checkpoint = scene.Pad(SafeCheckpoints.Pad(proposed.checkpoint));
+            if (!scene.TryPad(SafeCheckpoints.Pad(proposed.checkpoint), out var checkpoint))
+                return SaveRead.Damaged;
             Present(proposed);
             if (HospitalScene.Occupied(checkpoint.position) || !scene.TryRefreshNavigation(checkpoint.position))
             {
-                Revert(scene.Pad(SafeCheckpoints.Pad(Current.checkpoint)).position);
+                Revert(checkpoint.position);
                 return SaveRead.Damaged;
             }
             Current = proposed;
+            newDialogue.Clear();
             landing = checkpoint;
             Committed?.Invoke(Current);
             return result;
@@ -161,6 +188,7 @@ namespace CTCC
             {
                 var snapshot = Current.Copy();
                 snapshot.torchSeconds = ReadCharge?.Invoke() ?? snapshot.torchSeconds;
+                IncludePendingDialogue(snapshot);
                 saves.Write(SaveSlot.Manual, snapshot);
                 return true;
             }
@@ -173,7 +201,8 @@ namespace CTCC
 
         public bool OnPad(Vector3 feet, string id)
         {
-            Vector3 offset = feet - scene.Pad(id).position;
+            if (!scene.TryPad(id, out var pad)) return false;
+            Vector3 offset = feet - pad.position;
             return Mathf.Abs(offset.y) < .22f && new Vector2(offset.x, offset.z).sqrMagnitude < .58f * .58f;
         }
 
@@ -182,14 +211,14 @@ namespace CTCC
             scene.Present(snapshot.layer == Reality.B, (int)snapshot.f101.current,
                 snapshot.Happened("CH01-T02"), snapshot.Happened("CH01-T05"),
                 snapshot.Has("E12"), GateService.G02(snapshot));
-            if (scene.seamBlocker != null) scene.seamBlocker.SetActive(snapshot.Happened("CH01-T09"));
-            if (scene.SpareBatteryProp != null) scene.SpareBatteryProp.SetActive(!snapshot.Happened("CH01-BATTERY"));
+            scene.PresentCheckpointProps(snapshot.Happened("CH01-T09"), snapshot.Happened("CH01-BATTERY"));
         }
 
         private void Revert(Vector3 point)
         {
             Present(Current);
-            if (HospitalScene.Occupied(point)) point = scene.Pad(SafeCheckpoints.Pad(Current.checkpoint)).position;
+            if (HospitalScene.Occupied(point) && scene.TryPad(SafeCheckpoints.Pad(Current.checkpoint), out var fallback))
+                point = fallback.position;
             if (!HospitalScene.Occupied(point))
                 scene.TryRefreshNavigation(point);
         }

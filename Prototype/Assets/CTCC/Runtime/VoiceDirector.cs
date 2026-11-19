@@ -12,32 +12,31 @@ namespace CTCC
         public AudioClip clip;
     }
 
-    public readonly struct TranscriptEntry
+    [Serializable]
+    public struct TranscriptEntry
     {
-        public readonly string LineId;
-        public readonly string Speaker;
-        public readonly string Text;
+        [SerializeField] private string lineId;
+        [SerializeField] private string speaker;
+        [SerializeField] private string text;
+        public string LineId => lineId;
+        public string Speaker => speaker;
+        public string Text => text;
 
         public TranscriptEntry(string lineId, string speaker, string text)
         {
-            LineId = lineId;
-            Speaker = speaker;
-            Text = text;
+            this.lineId = lineId;
+            this.speaker = speaker;
+            this.text = text;
         }
     }
 
     /// <summary>
     /// Plays canonical Vietnamese Temp VO clips (TASK009-B), original 5-note Lan motif (MUS-LAN),
     /// ducks ambient audio by -5 dB during speech, drives CharacterActor lip-sync, logs every spoken/skipped line
-    /// to the persistent Journal Transcript, and hard-blocks LOCK-V22-02 forbidden lines (CH01-D16b, CH04-D06).
+    /// to the journal, subject to the same reveal policy as dialogue text.
     /// </summary>
     public sealed class VoiceDirector : MonoBehaviour
     {
-        private static readonly HashSet<string> ForbiddenLines = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "CH01-D16b", "CH04-D06"
-        };
-
         private readonly Dictionary<string, AudioClip> clipMap = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<TranscriptEntry> transcript = new();
         private readonly HashSet<string> recordedIds = new(StringComparer.OrdinalIgnoreCase);
@@ -49,6 +48,9 @@ namespace CTCC
         private EnvironmentalAudio ambience;
         private HospitalUI ui;
         private Coroutine activeRoutine;
+        private Action<bool> speechEnded;
+        private Func<string, string, bool> mayDeliver;
+        public event Action<TranscriptEntry> Recorded;
 
         private float voiceVolume = 0.92f;
         private float musicVolume = 0.65f;
@@ -56,19 +58,20 @@ namespace CTCC
         private float musicTarget;
 
         public IReadOnlyList<TranscriptEntry> Transcript => transcript;
-        public bool IsSpeaking => activeVoice != null && activeVoice.isPlaying;
+        public bool IsSpeaking => activeRoutine != null;
 
-        public void Initialize(VoiceClipEntry[] voiceEntries, AudioClip lanMotif, EnvironmentalAudio envAudio, HospitalUI hud)
+        public void Initialize(VoiceClipEntry[] voiceEntries, AudioClip lanMotif, EnvironmentalAudio envAudio,
+            HospitalUI hud, Func<string, string, bool> mayDeliver)
         {
             ambience = envAudio;
             ui = hud;
+            this.mayDeliver = mayDeliver;
             clipMap.Clear();
             if (voiceEntries != null)
             {
                 foreach (var entry in voiceEntries)
                 {
                     if (entry == null || string.IsNullOrEmpty(entry.id) || entry.clip == null) continue;
-                    if (ForbiddenLines.Contains(entry.id)) continue;
                     clipMap[entry.id] = entry.clip;
                 }
             }
@@ -87,27 +90,31 @@ namespace CTCC
 
         public void Apply(VisitSettings settings)
         {
-            voiceVolume = Mathf.Clamp01(settings.voiceVolume > 0.001f ? settings.voiceVolume : 0.92f);
+            voiceVolume = Mathf.Clamp01(settings.voiceVolume);
             musicVolume = Mathf.Clamp01(settings.musicVolume >= 0f ? settings.musicVolume : 0.65f);
             monoAudio = settings.monoAudio;
             if (activeVoice != null)
                 activeVoice.volume = voiceVolume;
         }
 
-        public bool HasClip(string lineId) => !string.IsNullOrEmpty(lineId) && !ForbiddenLines.Contains(lineId) && clipMap.ContainsKey(lineId);
+        public bool HasClip(string lineId, string beat = null) => mayDeliver(lineId, beat) && clipMap.ContainsKey(lineId);
 
-        public void RecordTranscriptOnly(string lineId, string speaker, string text)
+        public void RecordTranscriptOnly(string lineId, string speaker, string text, string beat = null)
         {
-            if (string.IsNullOrEmpty(lineId) || ForbiddenLines.Contains(lineId)) return;
-            if (string.IsNullOrWhiteSpace(text)) return;
+            if (!mayDeliver(lineId, beat) || string.IsNullOrWhiteSpace(text)) return;
             if (!recordedIds.Add(lineId)) return;
-            transcript.Add(new TranscriptEntry(lineId, speaker, text));
+            var entry = new TranscriptEntry(lineId, speaker, text);
+            transcript.Add(entry);
+            Recorded?.Invoke(entry);
         }
 
-        public void ClearTranscript()
+        public void RestoreTranscript(IEnumerable<TranscriptEntry> entries, Func<string, bool> mayRead)
         {
             transcript.Clear();
             recordedIds.Clear();
+            foreach (var entry in entries)
+                if (mayRead(entry.LineId) && recordedIds.Add(entry.LineId))
+                    transcript.Add(entry);
         }
 
         public void SetLanMotif(bool active, float level = 0.24f)
@@ -124,7 +131,17 @@ namespace CTCC
                 StopCoroutine(activeRoutine);
                 activeRoutine = null;
             }
-            if (activeVoice != null && activeVoice.isPlaying)
+            FinishSpeech(false);
+        }
+
+        public void StopFor(CharacterActor actor)
+        {
+            if (actor != null && activeSpeaker == actor) StopCurrent();
+        }
+
+        private void FinishSpeech(bool completed)
+        {
+            if (activeVoice != null)
                 activeVoice.Stop();
             if (activeSpeaker != null)
             {
@@ -133,19 +150,25 @@ namespace CTCC
             }
             activeVoice = null;
             ambience?.SetVoiceDucking(false);
+            activeRoutine = null;
+            var callback = speechEnded;
+            speechEnded = null;
+            callback?.Invoke(completed);
         }
 
         public void Speak(string lineId, string speakerLabel, string text, AudioSource spatialAnchor = null,
-            CharacterActor speakerActor = null, string directionalPrefix = null, Action onComplete = null, bool essential = true)
+            CharacterActor speakerActor = null, string directionalPrefix = null, Action<bool> onComplete = null,
+            bool essential = true, string beat = null)
         {
-            if (string.IsNullOrEmpty(lineId) || ForbiddenLines.Contains(lineId))
+            if (!mayDeliver(lineId, beat) || string.IsNullOrWhiteSpace(text))
             {
-                Debug.LogWarning($"CTCC LOCK-V22-02 blocked forbidden line '{lineId}'.");
+                onComplete?.Invoke(false);
                 return;
             }
 
             StopCurrent();
-            RecordTranscriptOnly(lineId, speakerLabel, text);
+            RecordTranscriptOnly(lineId, speakerLabel, text, beat);
+            activeSpeaker = speakerActor;
 
             string caption = string.IsNullOrEmpty(directionalPrefix)
                 ? $"{speakerLabel} · {text}"
@@ -164,16 +187,16 @@ namespace CTCC
                 activeVoice.Play();
                 if (speakerActor != null)
                 {
-                    activeSpeaker = speakerActor;
                     speakerActor.voiceSource = activeVoice;
                 }
                 ambience?.SetVoiceDucking(true);
             }
 
-            activeRoutine = StartCoroutine(TrackSpeech(duration, onComplete));
+            speechEnded = onComplete;
+            activeRoutine = StartCoroutine(TrackSpeech(duration));
         }
 
-        private IEnumerator TrackSpeech(float duration, Action onComplete)
+        private IEnumerator TrackSpeech(float duration)
         {
             float until = Time.unscaledTime + duration;
             while (Time.unscaledTime < until)
@@ -182,15 +205,7 @@ namespace CTCC
                     break;
                 yield return null;
             }
-            if (activeSpeaker != null)
-            {
-                activeSpeaker.voiceSource = null;
-                activeSpeaker = null;
-            }
-            activeVoice = null;
-            ambience?.SetVoiceDucking(false);
-            activeRoutine = null;
-            onComplete?.Invoke();
+            FinishSpeech(true);
         }
 
         private void Update()

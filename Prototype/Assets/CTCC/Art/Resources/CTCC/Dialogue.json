@@ -182,5 +182,25 @@
       "context": "CH01 B03; optional hỏi ký ức chung, không có prompt hỏi trực tiếp kết cục tại C",
       "copy": "Anh nhớ phần anh đã chứng kiến mà. Còn chuyện sau đó, anh đã nghe ai kể?"
     }
+  ],
+  "conditions": [
+    {
+      "id": "CH04-D06",
+      "chapter": "CH04",
+      "beat": "B06",
+      "requiredEvents": [
+        "H05.verified",
+        "PT02.presented"
+      ]
+    },
+    {
+      "id": "CH01-D16b",
+      "chapter": "CH04",
+      "beat": "B06",
+      "requiredEvents": [
+        "H05.verified",
+        "PT02.presented"
+      ]
+    }
   ]
 }

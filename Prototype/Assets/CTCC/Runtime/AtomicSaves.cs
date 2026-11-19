@@ -115,6 +115,7 @@ namespace CTCC
                     return SaveRead.Unsupported;
                 var decoded=JsonUtility.FromJson<Investigation>(data.payload);
                 if (!Valid(decoded)) return SaveRead.Damaged;
+                decoded.transcript ??= new();
                 state=decoded;
                 return SaveRead.Valid;
             }
@@ -147,6 +148,13 @@ namespace CTCC
                 s.chapter=="CH02" && (!GateService.G01(s) || !s.Happened("CH01-T10")) ||
                 s.chapter=="CH01" && s.evidence.Count!=1)
                 return false;
+            if (s.transcript != null)
+            {
+                var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var entry in s.transcript)
+                    if (string.IsNullOrEmpty(entry.LineId) || string.IsNullOrWhiteSpace(entry.Text) || !ids.Add(entry.LineId))
+                        return false;
+            }
             return true;
         }
 

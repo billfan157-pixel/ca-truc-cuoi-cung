@@ -65,18 +65,11 @@ namespace CTCC
 
         public bool CheckEscapedToEmergency(Vector3 playerFeet)
         {
-            // Escaped cleanly through EITHER Main Corridor Door A (x~4, z>16.05) OR Side Staff Door B (x~0.05, z>16.05)
-            return active && playerFeet.z >= 16.05f;
+            return active && InEmergency(playerFeet);
         }
 
-        public void CompleteEscape(Action onPersisted = null)
-        {
-            if (!active) return;
-            resolved = true;
-            StopAndHide();
-            ui?.Caption("[Tiếng chùm chìa khóa xa dần sau cánh cửa kính mờ Cấp cứu]", 4.5f, true);
-            onPersisted?.Invoke();
-        }
+        public static bool InEmergency(Vector3 feet) =>
+            feet.z >= 16.05f && feet.z <= 22f && feet.x >= -1f && feet.x <= 9f && Mathf.Abs(feet.y) <= 0.35f;
 
         public void StopAndHide()
         {
@@ -87,7 +80,10 @@ namespace CTCC
             }
             active = false;
             if (scene?.GatekeeperActor != null)
+            {
+                voice?.StopFor(scene.GatekeeperActor);
                 scene.GatekeeperActor.gameObject.SetActive(false);
+            }
             ResetEmergencyLights();
         }
 

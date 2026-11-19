@@ -47,8 +47,8 @@ namespace CTCC
             heardLobbySilhouette = false;
             playedHe01Trolley = false;
             playedHe04CorridorCut = false;
-            voice?.ClearTranscript();
             if (!Report(casework.Begin(player.Feet, startOptions))) return;
+            RestoreJournal(State);
             live = true;
             player.Teleport(scene.Pad("AP00"));
             player.RestoreBattery(State.torchSeconds);
@@ -67,6 +67,10 @@ namespace CTCC
                     new[] { new ActionChoice("Quay lại", live ? Pause : MainMenu) }, live ? Pause : MainMenu);
                 return;
             }
+            lanDirector?.StopEncounter(false);
+            gatekeeperCameo?.StopAndHide();
+            anDirector?.HideImmediately();
+            RestoreJournal(State);
             live = true;
             player.Teleport(safe);
             player.RestoreBattery(State.torchSeconds);

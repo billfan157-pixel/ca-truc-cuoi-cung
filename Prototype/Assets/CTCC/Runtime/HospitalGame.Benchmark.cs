@@ -232,11 +232,8 @@ namespace CTCC
             });
             yield return new("hall-junction", 4, 4.75f);
             yield return new("emergency-R-torch", 4, 19.70f);
-            yield return new("gatekeeper-resolve", () => {
-                gatekeeperCameo?.CompleteEscape();
-                return casework.RecordGatekeeperResolved(player.Feet);
-            });
-            yield return new("finish", () => casework.Complete(player.Feet));
+            yield return new("gatekeeper-resolve", () => casework.SaveEmergencyAsync(player.Feet, false, gatekeeperCameo.IsActive));
+            yield return new("finish", () => casework.SaveEmergencyAsync(player.Feet, true, gatekeeperCameo.IsActive));
         }
 
         private IEnumerator<IDisposable> BenchmarkRoute()

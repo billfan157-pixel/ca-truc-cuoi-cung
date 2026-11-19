@@ -36,6 +36,21 @@ namespace CTCC
     }
 
     [Serializable]
+    public sealed class DialogueCondition
+    {
+        public string id;
+        public string chapter;
+        public string beat;
+        public string[] requiredEvents;
+
+        public bool Allows(Investigation state, string currentBeat) =>
+            state.chapter == chapter && currentBeat == beat && HasPrerequisites(state);
+
+        public bool HasPrerequisites(Investigation state) =>
+            requiredEvents != null && Array.TrueForAll(requiredEvents, state.Happened);
+    }
+
+    [Serializable]
     public sealed class Investigation
     {
         public const int Schema = 1;
@@ -53,6 +68,7 @@ namespace CTCC
         public List<string> events = new();
         public List<string> evidence = new();
         public List<string> observed = new();
+        public List<TranscriptEntry> transcript = new();
 
         public Investigation Copy() => JsonUtility.FromJson<Investigation>(JsonUtility.ToJson(this));
         public bool Happened(string id) => events.Contains(id);
