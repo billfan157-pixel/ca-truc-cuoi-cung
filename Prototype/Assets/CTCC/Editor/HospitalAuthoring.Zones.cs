@@ -216,7 +216,7 @@ namespace CTCC.Editor
 
             // Rigged CHAR007 / C01 Bé An Apparition (hidden by default; gentle Fresnel fade during CH02-T02 & post-VerifyAn!)
             var anActor = PlaceCharacterActor("CTCC_CHR_AnApparition", perm, new Vector3(10.85f, 0f, 3.65f), -68f, "CHAR007_An",
-                isApparition: true, enableBlink: false, enableLipSync: false);
+                isApparition: true, enableBlink: true, enableLipSync: true);
             anActor.gameObject.SetActive(false);
 
             var anVoice = CreateVoiceAnchor("AnVoiceAnchor", anActor.transform, new Vector3(0f, 1.02f, 0f), 11f);
@@ -300,7 +300,7 @@ namespace CTCC.Editor
 
             // Rigged, Animated CHAR005 Kẻ Giữ Cửa (The Gatekeeper) — STRICTLY DORMANT until CH02 B06 after G02!
             var gkActor = PlaceCharacterActor("CTCC_CHR_Gatekeeper", perm, new Vector3(4.0f, 0f, -1.2f), 0f, "CHAR005_Gatekeeper",
-                isApparition: false, enableBlink: false, enableLipSync: false);
+                isApparition: false, enableBlink: false, enableLipSync: true);
             gkActor.gameObject.SetActive(false);
             var gkVoice = CreateVoiceAnchor("GatekeeperVoiceAnchor", gkActor.transform, new Vector3(0f, 1.78f, 0f), 20f);
 

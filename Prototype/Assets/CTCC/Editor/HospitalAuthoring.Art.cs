@@ -93,25 +93,184 @@ namespace CTCC.Editor
                 EditorUtility.SetDirty(Mat("MonitorScreen"));
             }
 
-            // Character PBR Materials (Lan, Gatekeeper, Bé An)
-            Lit("NurseBlouse", 1f, 1f, 1f, maps: "NurseBlouse", bump: 0.26f, ao: 0.72f);
-            Lit("NurseTrim", 0.24f, 0.45f, 0.44f, smooth: 0.20f);
-            Lit("DarkTrouser", 1f, 1f, 1f, maps: "DarkTrouser", bump: 0.32f, ao: 0.76f);
-            Lit("LanSkin", 1f, 1f, 1f, maps: "LanSkin", bump: 0.18f, ao: 0.65f);
+            // M2-C High-Fidelity Digital Human URP 17.3 Forward+ Materials (Lan, Bé An, Gatekeeper)
+            var dhSkinShader = Shader.Find("CTCC/DigitalHumanSkin");
+            var dhEyeShader = Shader.Find("CTCC/DigitalHumanEye");
+            var dhHairShader = Shader.Find("CTCC/DigitalHumanHair");
+            var dhFabricShader = Shader.Find("CTCC/DigitalHumanFabric");
+            var appHumanShader = Shader.Find("CTCC/ApparitionHuman");
+
+            Material MakeSkinMat(string name, string prefix, float sss, float backScatter, float spec, float detailScale, float bump)
+            {
+                if (dhSkinShader != null && art)
+                {
+                    var m = MaterialAsset(name, dhSkinShader);
+                    m.SetTexture("_BaseMap", Tex(prefix + "_Color"));
+                    m.SetTexture("_BumpMap", Tex(prefix + "_Normal"));
+                    m.SetTexture("_DetailNormalMap", Tex("SkinMicroPore_Normal"));
+                    m.SetTexture("_MaskMap", Tex(prefix + "_Mask"));
+                    m.SetColor("_BaseColor", Color.white);
+                    m.SetFloat("_BumpScale", bump);
+                    m.SetFloat("_DetailTiling", 14.0f);
+                    m.SetFloat("_DetailScale", detailScale);
+                    m.SetFloat("_DetailFadeDist", 2.8f);
+                    m.SetFloat("_SmoothnessScale", 0.90f);
+                    m.SetFloat("_OcclusionStrength", 0.72f);
+                    m.SetColor("_SSSColor", new Color(0.86f, 0.24f, 0.14f, 1f));
+                    m.SetFloat("_SSSStrength", sss);
+                    m.SetFloat("_BackScatter", backScatter);
+                    m.SetFloat("_SpecIntensity", spec);
+                    EditorUtility.SetDirty(m);
+                    return m;
+                }
+                return Lit(name, 1f, 1f, 1f, maps: prefix, bump: 0.22f, ao: 0.65f);
+            }
+
+            Material MakeFabricMat(string name, string prefix, Color tint, float sheen, float bump, float tile = 1.6f)
+            {
+                if (dhFabricShader != null && art)
+                {
+                    var m = MaterialAsset(name, dhFabricShader);
+                    if (!string.IsNullOrEmpty(prefix))
+                    {
+                        m.SetTexture("_BaseMap", Tex(prefix + "_Color"));
+                        m.SetTexture("_BumpMap", Tex(prefix + "_Normal"));
+                        m.SetTexture("_MaskMap", Tex(prefix + "_Mask"));
+                        m.SetTextureScale("_BaseMap", new Vector2(tile, tile));
+                        m.SetTextureScale("_BumpMap", new Vector2(tile, tile));
+                        m.SetTextureScale("_MaskMap", new Vector2(tile, tile));
+                    }
+                    m.SetColor("_BaseColor", tint);
+                    m.SetFloat("_BumpScale", bump);
+                    m.SetFloat("_SmoothnessScale", 0.62f);
+                    m.SetFloat("_OcclusionStrength", 0.78f);
+                    m.SetColor("_SheenColor", new Color(0.92f, 0.93f, 0.90f, 1f));
+                    m.SetFloat("_SheenIntensity", sheen);
+                    m.SetFloat("_SheenRoughness", 0.56f);
+                    EditorUtility.SetDirty(m);
+                    return m;
+                }
+                return string.IsNullOrEmpty(prefix)
+                    ? Lit(name, tint.r, tint.g, tint.b, smooth: 0.18f)
+                    : Lit(name, tint.r, tint.g, tint.b, maps: prefix, bump: 0.30f, ao: 0.72f);
+            }
+
+            Material MakeHairMat(string name, string colorKey, string normKey, string flowKey, float cutoff, float specInt)
+            {
+                if (dhHairShader != null && art)
+                {
+                    var m = MaterialAsset(name, dhHairShader);
+                    m.SetTexture("_BaseMap", Tex(colorKey));
+                    if (!string.IsNullOrEmpty(normKey)) m.SetTexture("_BumpMap", Tex(normKey));
+                    if (!string.IsNullOrEmpty(flowKey)) m.SetTexture("_FlowMap", Tex(flowKey));
+                    m.SetColor("_BaseColor", Color.white);
+                    m.SetFloat("_BumpScale", 0.55f);
+                    m.SetFloat("_Cutoff", cutoff);
+                    m.SetColor("_SpecColorPrimary", new Color(0.34f, 0.28f, 0.24f, 1f));
+                    m.SetColor("_SpecColorSecondary", new Color(0.24f, 0.14f, 0.09f, 1f));
+                    m.SetFloat("_SpecPowerPrimary", 128f);
+                    m.SetFloat("_SpecPowerSecondary", 48f);
+                    m.SetFloat("_SpecIntensity", specInt);
+                    m.SetFloat("_BackScatter", 0.14f);
+                    EditorUtility.SetDirty(m);
+                    return m;
+                }
+                return Lit(name, 0.06f, 0.05f, 0.045f, smooth: 0.35f, twoSided: true);
+            }
+
+            // Skin (Lan, An, Gatekeeper)
+            MakeSkinMat("LanSkin", "LanSkin", sss: 0.58f, backScatter: 0.24f, spec: 0.68f, detailScale: 0.32f, bump: 0.75f);
+            MakeSkinMat("AnSkin", "AnSkin", sss: 0.62f, backScatter: 0.28f, spec: 0.62f, detailScale: 0.24f, bump: 0.62f);
+            MakeSkinMat("GatekeeperSkin", "GatekeeperSkin", sss: 0.14f, backScatter: 0.05f, spec: 0.32f, detailScale: 0.45f, bump: 0.95f);
+
+            // Anatomical Eyes (Cornea IOR 1.376 parallax refraction + anterior chamber caustics)
+            if (dhEyeShader != null && art)
+            {
+                var eyeM = MaterialAsset("LanEye", dhEyeShader);
+                eyeM.SetTexture("_BaseMap", Tex("LanEye_Color"));
+                eyeM.SetTexture("_BumpMap", Tex("LanEye_Normal"));
+                eyeM.SetColor("_BaseColor", Color.white);
+                eyeM.SetFloat("_BumpScale", 0.72f);
+                eyeM.SetFloat("_IrisRadius", 0.122f);
+                eyeM.SetFloat("_RefractionDepth", 0.015f);
+                eyeM.SetColor("_CausticTint", new Color(0.68f, 0.38f, 0.18f, 1f));
+                eyeM.SetFloat("_CausticStrength", 1.25f);
+                eyeM.SetFloat("_CorneaRoughness", 0.026f);
+                eyeM.SetFloat("_CorneaSpecIntensity", 1.45f);
+                eyeM.SetFloat("_LimbalDarkening", 0.38f);
+                EditorUtility.SetDirty(eyeM);
+            }
+            else
+            {
+                Lit("LanEye", 0.85f, 0.84f, 0.82f, smooth: 0.92f);
+            }
+
+            // Oral cavity (Teeth & Tongue)
+            var teethM = Lit("LanTeeth", 1f, 1f, 1f, smooth: 0.76f);
+            if (art) { teethM.SetTexture("_BaseMap", Tex("LanTeeth_Color")); EditorUtility.SetDirty(teethM); }
+            var tongueM = Lit("LanTongue", 1f, 1f, 1f, smooth: 0.62f);
+            if (art) { tongueM.SetTexture("_BaseMap", Tex("LanTongue_Color")); EditorUtility.SetDirty(tongueM); }
+
+            // Hair, Eyebrows & Eyelashes (Anisotropic Kajiya-Kay dual-pass — silky dark Vietnamese hair, zero chalky glare!)
+            MakeHairMat("LanHairCard", "LanHair_Color", "LanHair_Normal", "LanHair_Flow", cutoff: 0.48f, specInt: 0.15f);
+            MakeHairMat("AnHairCard", "AnHair_Color", "AnHair_Normal", "AnHair_Flow", cutoff: 0.44f, specInt: 0.14f);
+            MakeHairMat("GatekeeperHairCard", "GatekeeperHair_Color", "GatekeeperHair_Normal", "GatekeeperHair_Flow", cutoff: 0.44f, specInt: 0.10f);
+            MakeHairMat("LanEyebrow", "LanEyebrow_Color", null, null, cutoff: 0.34f, specInt: 0.06f);
+            MakeHairMat("LanEyelash", "LanEyelash_Color", null, null, cutoff: 0.34f, specInt: 0.05f);
+
+            // Cloth-Simulated Garments (Charlie microfiber sheen)
+            MakeFabricMat("NurseBlouse", "NurseBlouse", Color.white, sheen: 0.26f, bump: 0.78f, tile: 1.6f);
+            MakeFabricMat("NurseTrim", null, new Color(0.56f, 0.72f, 0.74f, 1f), sheen: 0.22f, bump: 0.40f, tile: 1.0f);
+            MakeFabricMat("DarkTrouser", "DarkTrouser", Color.white, sheen: 0.22f, bump: 0.82f, tile: 1.5f);
+            MakeFabricMat("CharredBlouse", "CharredBlouse", Color.white, sheen: 0.12f, bump: 1.05f, tile: 1.4f);
+            MakeFabricMat("AnCotton", "AnCotton", Color.white, sheen: 0.28f, bump: 0.65f, tile: 1.4f);
+
+            // Clinical Footwear, ID Badge, Hair Clip & Watch Trim
+            Lit("ClinicalShoe", 1f, 1f, 1f, maps: "ClinicalShoe", bump: 0.52f, ao: 0.78f);
+            var badgeM = Lit("LanBadge", 1f, 1f, 1f, smooth: 0.62f);
+            if (art) { badgeM.SetTexture("_BaseMap", Tex("LanBadge")); EditorUtility.SetDirty(badgeM); }
+            materials["LanBadgeMat"] = badgeM;
+            Lit("MetalTrim", 0.74f, 0.76f, 0.78f, metal: 0.86f, smooth: 0.68f);
+            Lit("EnamelBlue", 0.06f, 0.14f, 0.24f, smooth: 0.76f);
+            Lit("SlipperYellow", 0.86f, 0.70f, 0.22f, smooth: 0.32f);
+
+            // Legacy compatibility aliases (if old FBX slots still referenced before scaling An/Gatekeeper)
             Lit("LanLip", 0.60f, 0.34f, 0.31f, smooth: 0.42f);
-            Lit("LanHair", 1f, 1f, 1f, maps: "LanHair", bump: 0.40f, ao: 0.75f);
+            materials["LanHair"] = Mat("LanHairCard");
             Lit("LanEyeWhite", 0.88f, 0.86f, 0.84f, smooth: 0.82f);
             Lit("LanIris", 0.14f, 0.09f, 0.06f, smooth: 0.88f);
-            Lit("LanBadgeMat", 1f, 1f, 1f, smooth: 0.50f);
-            if (art)
-            {
-                Mat("LanBadgeMat").SetTexture("_BaseMap", Tex("LanBadge"));
-                EditorUtility.SetDirty(Mat("LanBadgeMat"));
-            }
-            Lit("CharredBlouse", 1f, 1f, 1f, maps: "CharredBlouse", bump: 0.55f, ao: 0.84f);
             Lit("ObscuredFace", 1f, 1f, 1f, maps: "ObscuredFace", bump: 0.28f, ao: 0.85f);
-            Lit("AnCotton", 1f, 1f, 1f, maps: "AnCotton", bump: 0.28f, ao: 0.70f);
-            Lit("AnSkin", 0.76f, 0.68f, 0.62f, smooth: 0.26f);
+
+            // Bé An Per-Slot Human-Beneath-Apparition Materials (preserves real child skin/hair/clothes/slippers!)
+            Material MakeApparitionHumanMat(string name, string colorKey, string normKey, string maskKey, Color tint, float cutoff = 0f, float rimStr = 0.32f)
+            {
+                if (appHumanShader != null && art)
+                {
+                    var m = MaterialAsset(name, appHumanShader);
+                    if (!string.IsNullOrEmpty(colorKey)) m.SetTexture("_BaseMap", Tex(colorKey));
+                    if (!string.IsNullOrEmpty(normKey)) m.SetTexture("_BumpMap", Tex(normKey));
+                    if (!string.IsNullOrEmpty(maskKey)) m.SetTexture("_MaskMap", Tex(maskKey));
+                    m.SetColor("_BaseColor", tint);
+                    m.SetFloat("_BumpScale", 0.68f);
+                    m.SetFloat("_Cutoff", cutoff);
+                    m.SetColor("_RimColor", new Color(0.76f, 0.90f, 0.88f, 1f));
+                    m.SetFloat("_RimPower", 2.55f);
+                    m.SetFloat("_RimStrength", rimStr);
+                    m.SetFloat("_Desaturate", 0.12f);
+                    m.SetFloat("_Alpha", 0f);
+                    EditorUtility.SetDirty(m);
+                    return m;
+                }
+                return Mat("AnCotton");
+            }
+
+            MakeApparitionHumanMat("AnSkin_Apparition", "AnSkin_Color", "AnSkin_Normal", "AnSkin_Mask", Color.white, 0f, 0.30f);
+            MakeApparitionHumanMat("AnCotton_Apparition", "AnCotton_Color", "AnCotton_Normal", "AnCotton_Mask", Color.white, 0f, 0.34f);
+            MakeApparitionHumanMat("AnHair_Apparition", "AnHair_Color", "AnHair_Normal", null, Color.white, 0.42f, 0.26f);
+            MakeApparitionHumanMat("AnEye_Apparition", "LanEye_Color", "LanEye_Normal", null, Color.white, 0f, 0.18f);
+            MakeApparitionHumanMat("AnEyebrow_Apparition", "LanEyebrow_Color", null, null, Color.white, 0.34f, 0.15f);
+            MakeApparitionHumanMat("AnEyelash_Apparition", "LanEyelash_Color", null, null, Color.white, 0.34f, 0.15f);
+            MakeApparitionHumanMat("AnSlipper_Apparition", null, null, null, new Color(0.88f, 0.72f, 0.24f, 1f), 0f, 0.28f);
 
             var appShader = Shader.Find("CTCC/ApparitionSoft");
             if (appShader != null)
@@ -247,21 +406,31 @@ namespace CTCC.Editor
                 var importer = AssetImporter.GetAtPath(path) as TextureImporter;
                 if (importer == null) continue;
                 bool normal = path.EndsWith("_Normal.png", StringComparison.Ordinal);
-                bool mask = path.EndsWith("_Mask.png", StringComparison.Ordinal);
-                bool repeat = path.EndsWith("_Color.png", StringComparison.Ordinal) || normal || mask;
-                bool leaf = path.EndsWith("TropicalLeaf_Color.png", StringComparison.Ordinal) ||
-                            path.EndsWith("TropicalShrub_Color.png", StringComparison.Ordinal);
+                bool linearData = path.EndsWith("_Mask.png", StringComparison.Ordinal) ||
+                                  path.EndsWith("_Flow.png", StringComparison.Ordinal);
+                bool repeat = path.EndsWith("_Color.png", StringComparison.Ordinal) || normal || linearData;
+                bool leafOrHairAlpha = path.EndsWith("TropicalLeaf_Color.png", StringComparison.Ordinal) ||
+                                       path.EndsWith("TropicalShrub_Color.png", StringComparison.Ordinal) ||
+                                       path.EndsWith("HairCards_Color.png", StringComparison.Ordinal) ||
+                                       path.EndsWith("LanHair_Color.png", StringComparison.Ordinal) ||
+                                       path.EndsWith("AnHair_Color.png", StringComparison.Ordinal) ||
+                                       path.EndsWith("GatekeeperHair_Color.png", StringComparison.Ordinal) ||
+                                       path.EndsWith("LanEyebrow_Color.png", StringComparison.Ordinal) ||
+                                       path.EndsWith("LanEyelash_Color.png", StringComparison.Ordinal);
                 string family = Path.GetFileNameWithoutExtension(path).Split('_')[0];
-                bool stream = repeat && !leaf && family is not ("WaterRun" or "PaintLoss" or "DampFloor" or "RustRun" or "WallBaseGrime" or "LanSkin" or "LanHair" or "ObscuredFace");
+                bool clampedAtlas = leafOrHairAlpha || family is "LanSkin" or "AnSkin" or "GatekeeperSkin"
+                    or "LanEye" or "LanTeeth" or "LanTongue" or "LanBadge" or "LanHair" or "AnHair"
+                    or "GatekeeperHair" or "HairCards" or "LanEyebrow" or "LanEyelash" or "ObscuredFace";
+                bool stream = repeat && !clampedAtlas && family is not ("WaterRun" or "PaintLoss" or "DampFloor" or "RustRun" or "WallBaseGrime" or "SkinMicroPore");
                 var wantedType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
-                var wrap = repeat && !leaf && family != "LanSkin" ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
-                bool wantAlpha = !repeat || leaf;
-                if (importer.textureType == wantedType && importer.sRGBTexture == !mask &&
+                var wrap = repeat && !clampedAtlas ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
+                bool wantAlpha = !repeat || leafOrHairAlpha;
+                if (importer.textureType == wantedType && importer.sRGBTexture == !linearData &&
                     importer.wrapMode == wrap && importer.anisoLevel == 8 && importer.maxTextureSize == 2048 &&
                     importer.alphaIsTransparency == wantAlpha && importer.streamingMipmaps == stream)
                     continue;
                 importer.textureType = wantedType;
-                importer.sRGBTexture = !mask;
+                importer.sRGBTexture = !linearData;
                 importer.wrapMode = wrap;
                 importer.maxTextureSize = 2048;
                 importer.anisoLevel = 8;
@@ -281,9 +450,14 @@ namespace CTCC.Editor
 
                 if (isCharacter)
                 {
+                    var defaultClips = importer.defaultClipAnimations;
+                    bool clipsMatch = defaultClips != null && importer.clipAnimations != null &&
+                        importer.clipAnimations.Length == defaultClips.Length &&
+                        importer.clipAnimations.Select(c => $"{c.name}|{c.takeName}|{Mathf.RoundToInt(c.lastFrame)}")
+                            .SequenceEqual(defaultClips.Select(c => $"{c.name}|{c.takeName}|{Mathf.RoundToInt(c.lastFrame)}"));
                     if (importer.importBlendShapes && importer.importAnimation &&
                         importer.animationType == ModelImporterAnimationType.Generic &&
-                        importer.importTangents == ModelImporterTangents.CalculateMikk)
+                        importer.importTangents == ModelImporterTangents.CalculateMikk && clipsMatch)
                         continue;
                     importer.importBlendShapes = true;
                     importer.importAnimation = true;
@@ -294,8 +468,6 @@ namespace CTCC.Editor
                     importer.importNormals = ModelImporterNormals.Import;
                     importer.importTangents = ModelImporterTangents.CalculateMikk;
                     importer.generateSecondaryUV = false;
-                    // Loop all embedded character clips smoothly (Idle, StalkWalk, TalkGesture, etc.)
-                    var defaultClips = importer.defaultClipAnimations;
                     if (defaultClips != null && defaultClips.Length > 0)
                     {
                         foreach (var clip in defaultClips)
@@ -574,6 +746,10 @@ namespace CTCC.Editor
             // The FBX importer maps Blender's authored front to local +Z.
             inst.transform.localRotation = Quaternion.identity;
 
+            var lod0List = new List<Renderer>();
+            var lod1List = new List<Renderer>();
+            var lod2List = new List<Renderer>();
+
             foreach (var smr in inst.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
                 smr.updateWhenOffscreen = true;
@@ -582,15 +758,43 @@ namespace CTCC.Editor
                 var remapped = new Material[orig.Length];
                 for (int i = 0; i < orig.Length; i++)
                 {
+                    string raw = orig[i] != null ? CleanMatName(orig[i].name) : "NurseBlouse";
                     if (isApparition)
-                        remapped[i] = Mat("AnApparitionMat");
+                    {
+                        string appKey = raw switch
+                        {
+                            "AnSkin" => "AnSkin_Apparition",
+                            "AnCotton" => "AnCotton_Apparition",
+                            "AnHairCard" => "AnHair_Apparition",
+                            "LanEye" => "AnEye_Apparition",
+                            "LanEyebrow" => "AnEyebrow_Apparition",
+                            "LanEyelash" => "AnEyelash_Apparition",
+                            "SlipperYellow" => "AnSlipper_Apparition",
+                            _ => "AnApparitionMat"
+                        };
+                        remapped[i] = Mat(appKey);
+                    }
                     else
                     {
-                        string raw = orig[i] != null ? CleanMatName(orig[i].name) : "NurseBlouse";
                         remapped[i] = Mat(raw);
                     }
                 }
                 smr.sharedMaterials = remapped;
+
+                if (smr.name.Contains("_LOD0")) lod0List.Add(smr);
+                else if (smr.name.Contains("_LOD1")) lod1List.Add(smr);
+                else if (smr.name.Contains("_LOD2")) lod2List.Add(smr);
+            }
+
+            // Configure game-ready LODGroup automatically when character FBX supplies LOD0 / LOD1 / LOD2!
+            if (lod0List.Count > 0 && (lod1List.Count > 0 || lod2List.Count > 0))
+            {
+                var lodGroup = inst.GetComponent<LODGroup>() ?? inst.AddComponent<LODGroup>();
+                var lods = new List<LOD> { new LOD(0.22f, lod0List.ToArray()) };
+                if (lod1List.Count > 0) lods.Add(new LOD(0.08f, lod1List.ToArray()));
+                if (lod2List.Count > 0) lods.Add(new LOD(0.01f, lod2List.ToArray()));
+                lodGroup.SetLODs(lods.ToArray());
+                lodGroup.RecalculateBounds();
             }
 
             var clips = AssetDatabase.LoadAllAssetsAtPath(fbxPath)
@@ -605,6 +809,39 @@ namespace CTCC.Editor
             actor.enableBlink = enableBlink;
             actor.enableLipSync = enableLipSync;
             actor.enableLookAt = true;
+
+            // Attach toggleable physical 3D F101 Clipboard prop directly onto Lan's right-hand ClipboardSocket_R!
+            if (charId.Contains("CHAR002"))
+            {
+                var sock = FindDescendant(inst.transform, "ClipboardSocket_R");
+                if (sock != null)
+                {
+                    var clipPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(Models + "CTCC_PROP_ClipboardF101.fbx");
+                    if (clipPrefab != null)
+                    {
+                        var held = (GameObject)PrefabUtility.InstantiatePrefab(clipPrefab, sock);
+                        held.name = "Lan_HeldClipboardF101";
+                        held.transform.localPosition = new Vector3(0.02f, 0.07f, -0.02f);
+                        held.transform.localRotation = Quaternion.Euler(-48f, 0f, 14f);
+                        held.transform.localScale = Vector3.one * 0.90f;
+                        foreach (var col in held.GetComponentsInChildren<Collider>(true))
+                            UnityEngine.Object.DestroyImmediate(col);
+                        foreach (var mr in held.GetComponentsInChildren<MeshRenderer>(true))
+                        {
+                            var ms = mr.sharedMaterials;
+                            for (int i = 0; i < ms.Length; i++)
+                            {
+                                string mname = ms[i] != null ? CleanMatName(ms[i].name) : "";
+                                if (mname == "Paper" || mname == "F101") ms[i] = Mat("F101");
+                                else if (materials.ContainsKey(mname)) ms[i] = Mat(mname);
+                            }
+                            mr.sharedMaterials = ms;
+                        }
+                        held.SetActive(false);
+                        actor.heldClipboard = held;
+                    }
+                }
+            }
             return actor;
         }
 

@@ -145,7 +145,7 @@ namespace CTCC
                 activeVoice.Stop();
             if (activeSpeaker != null)
             {
-                activeSpeaker.voiceSource = null;
+                activeSpeaker.EndSpeech();
                 activeSpeaker = null;
             }
             activeVoice = null;
@@ -187,7 +187,7 @@ namespace CTCC
                 activeVoice.Play();
                 if (speakerActor != null)
                 {
-                    speakerActor.voiceSource = activeVoice;
+                    speakerActor.BeginSpeech(lineId, activeVoice);
                 }
                 ambience?.SetVoiceDucking(true);
             }

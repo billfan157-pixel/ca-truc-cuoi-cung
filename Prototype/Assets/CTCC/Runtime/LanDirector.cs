@@ -46,6 +46,7 @@ namespace CTCC
             if (beforeFirstReception)
             {
                 lan.gameObject.SetActive(true);
+                lan.SetHeldClipboardVisible(false);
                 if (scene.LanSilhouettePoint != null)
                     lan.transform.SetPositionAndRotation(scene.LanSilhouettePoint.position, scene.LanSilhouettePoint.rotation);
                 lan.PlayAction("Lan_IdleDesk", 0.2f);
@@ -54,6 +55,9 @@ namespace CTCC
             else if (inOperationalReception)
             {
                 lan.gameObject.SetActive(true);
+                // Hide held F101 clipboard cleanly once Minh has already accepted BOARD (CH01-T05)
+                if (state.Happened("CH01-T05"))
+                    lan.SetHeldClipboardVisible(false);
                 if (!steppingOut)
                 {
                     var anchor = state.Happened("CH01-T05") ? scene.LanDeskPoint : (scene.LanStepOutPoint != null ? scene.LanStepOutPoint : scene.LanDeskPoint);
@@ -67,6 +71,7 @@ namespace CTCC
             {
                 // CH01 B06 collapse & all of CH02: Lan is simply absent (canonical restraint, no vanish jumpscare)
                 StopEncounter(false);
+                lan.SetHeldClipboardVisible(false);
                 lan.gameObject.SetActive(false);
             }
         }
@@ -89,6 +94,7 @@ namespace CTCC
             var lan = scene?.LanActor;
             if (lan == null || !lan.gameObject.activeInHierarchy) return;
             lan.SetExpression(0.45f, 0.28f, 0.10f);
+            lan.SetHeldClipboardVisible(false);
             lan.PlayAction("Lan_Handover", 0.25f, restart: true);
         }
 
@@ -170,7 +176,9 @@ namespace CTCC
                 }
                 else
                 {
-                    lan.PlayAction("Lan_IdleDesk", 0.28f);
+                    // Empathetic attentive listening performance while Minh speaks CH01-D04!
+                    lan.SetExpression(b.warm, b.concern, b.sorrow);
+                    lan.PlayAction("Lan_Listen", 0.30f, restart: true);
                 }
                 voice.Speak(b.id, b.speaker, lineLookup(b.id, 1),
                     b.isLan ? scene.LanVoiceAnchor : null,
@@ -186,6 +194,8 @@ namespace CTCC
                 yield return new WaitForSecondsRealtime(0.28f);
             }
 
+            // Hold and present physical 3D F101 Clipboard cleanly toward Minh!
+            lan.SetHeldClipboardVisible(true);
             lan.PlayAction("Lan_Handover", 0.30f, restart: true);
             encounterRoutine = null;
         }

@@ -498,7 +498,28 @@ namespace CTCC
                 player.Teleport(new Vector3(3.85f, 0.02f, 8.25f), Quaternion.Euler(0, 4, 0));
                 camera.transform.localRotation = Quaternion.Euler(-2, 0, 0);
                 SaveFrame(camera, target, "loc04-gatekeeper-R");
+                // M2-C Gatekeeper closer corridor detail inspection (~1.9 m)
+                player.Teleport(new Vector3(3.92f, 0.02f, 9.48f), Quaternion.Euler(0, 3, 0));
+                camera.transform.localRotation = Quaternion.Euler(-4, 0, 0);
+                for (int i = 0; i < 6; i++) yield return null;
+                SaveFrame(camera, target, "m2c-gatekeeper-closeup-R");
                 scene.GatekeeperActor.gameObject.SetActive(false);
+            }
+
+            // M2-C CHAR007 Bé An Room 101 Bed 4 Human-Beneath-Apparition Close-Up Capture (R)
+            if (scene.AnActor != null)
+            {
+                scene.AnActor.gameObject.SetActive(true);
+                scene.AnActor.transform.SetPositionAndRotation(new Vector3(10.85f, 0f, 3.65f), Quaternion.Euler(0f, -68f, 0f));
+                scene.AnActor.LookTarget = camera.transform;
+                scene.AnActor.SetApparitionAlpha(0.84f);
+                scene.AnActor.PlayAction("An_IdleLook", 0.01f, restart: true);
+                player.Teleport(new Vector3(9.45f, 0.02f, 4.18f), Quaternion.Euler(0f, 110f, 0f));
+                camera.transform.localRotation = Quaternion.Euler(12f, 0f, 0f);
+                for (int i = 0; i < 10; i++) yield return null;
+                SaveFrame(camera, target, "m2c-an-vignette-R");
+                scene.AnActor.SetApparitionAlpha(0f);
+                scene.AnActor.gameObject.SetActive(false);
             }
 
             // 3D Physical Inspector close-up capture (Bảy's kraft envelope + brass/steel keys in 3D!)
@@ -523,20 +544,81 @@ namespace CTCC
             camera.transform.localRotation = Quaternion.identity;
             SaveFrame(camera, target, "corridor-B");
 
-            // M2 CHAR002 Trần Ngọc Lan Live Reception Encounter Capture (B 2005!)
+            // M2-C CHAR002 Trần Ngọc Lan Multi-Distance In-Game + Neutral Studio Lighting Validation (B 2005!)
             if (scene.LanActor != null)
             {
-                scene.LanActor.gameObject.SetActive(true);
+                var lan = scene.LanActor;
+                lan.gameObject.SetActive(true);
                 if (scene.LanStepOutPoint != null)
-                    scene.LanActor.transform.SetPositionAndRotation(scene.LanStepOutPoint.position, scene.LanStepOutPoint.rotation);
-                scene.LanActor.LookTarget = camera.transform;
-                scene.LanActor.SetExpression(0.65f, 0.12f, 0f);
-                scene.LanActor.PlayAction("Lan_TalkGesture", 0.01f, restart: true);
+                    lan.transform.SetPositionAndRotation(scene.LanStepOutPoint.position, scene.LanStepOutPoint.rotation);
+                lan.LookTarget = camera.transform;
+                lan.SetExpression(0.62f, 0.14f, 0f);
+                lan.PlayAction("Lan_TalkGesture", 0.01f, restart: true);
+                lan.ForceSpeechTime("CH01-D03", 0.10f);
+
+                // 1) Conversation distance (~1.55 m, canonical LOC02 B lighting)
                 player.Teleport(new Vector3(4.15f, 0.02f, -3.55f), Quaternion.Euler(0, -82, 0));
                 camera.transform.localRotation = Quaternion.Euler(3, 0, 0);
-                for (int i = 0; i < 12; i++) yield return null;
+                for (int i = 0; i < 14; i++) yield return null;
                 SaveFrame(camera, target, "loc02-lan-B");
-                scene.LanActor.gameObject.SetActive(false);
+
+                // 2) Close-up portrait distance (~0.82 m: eyes, SSS skin, pores, lashes, hairline, collar, ID badge!)
+                Vector3 lanPos = lan.transform.position;
+                Vector3 lanFwd = lan.transform.forward;
+                Vector3 lanRight = lan.transform.right;
+                Vector3 closeFeet = lanPos + lanFwd * 0.84f + lanRight * 0.14f;
+                player.Teleport(new Vector3(closeFeet.x, 0.02f, closeFeet.z), Quaternion.LookRotation(new Vector3(lanPos.x - closeFeet.x, 0f, lanPos.z - closeFeet.z)));
+                camera.transform.localRotation = Quaternion.Euler(9.5f, 0f, 0f);
+                lan.ForceSpeechTime("CH01-D03", 0.58f);
+                for (int i = 0; i < 10; i++) yield return null;
+                SaveFrame(camera, target, "m2c-lan-closeup-B");
+
+                // 3) Handover with physical 3D F101 clipboard held on ClipboardSocket_R!
+                lan.EndSpeech();
+                lan.SetHeldClipboardVisible(true);
+                lan.SetExpression(0.45f, 0.24f, 0.08f);
+                lan.PlayAction("Lan_Handover", 0.01f, restart: true);
+                Vector3 handFeet = lanPos + lanFwd * 1.48f - lanRight * 0.36f;
+                player.Teleport(new Vector3(handFeet.x, 0.02f, handFeet.z), Quaternion.LookRotation(new Vector3(lanPos.x - handFeet.x, 0f, lanPos.z - handFeet.z)));
+                camera.transform.localRotation = Quaternion.Euler(10f, 0f, 0f);
+                for (int i = 0; i < 36; i++) yield return null;
+                SaveFrame(camera, target, "m2c-lan-handover-B");
+                lan.SetHeldClipboardVisible(false);
+
+                // 4) Medium full-body distance (~2.95 m: silhouette, uniform drape, shoes, LOD0->LOD1 readability)
+                lan.PlayAction("Lan_IdleDesk", 0.01f, restart: true);
+                lan.SetExpression(0.55f, 0.10f, 0f);
+                Vector3 medFeet = lanPos + lanFwd * 2.85f + lanRight * 0.45f;
+                player.Teleport(new Vector3(medFeet.x, 0.02f, medFeet.z), Quaternion.LookRotation(new Vector3(lanPos.x - medFeet.x, 0f, lanPos.z - medFeet.z)));
+                camera.transform.localRotation = Quaternion.Euler(11f, 0f, 0f);
+                for (int i = 0; i < 10; i++) yield return null;
+                SaveFrame(camera, target, "m2c-lan-medium-B");
+
+                // 5) Unity Neutral 5500K Studio Lighting Validation Rig (verifying skin/eye/hair/fabric shaders neutral!)
+                var studioRig = new GameObject("_M2C_NeutralStudioRig");
+                Light AddStudioLight(string nm, Vector3 offset, Color col, float inten, float range)
+                {
+                    var go = new GameObject(nm);
+                    go.transform.SetParent(studioRig.transform, false);
+                    go.transform.position = lanPos + offset;
+                    var l = go.AddComponent<Light>();
+                    l.type = LightType.Point;
+                    l.color = col;
+                    l.intensity = inten;
+                    l.range = range;
+                    l.shadows = LightShadows.None;
+                    return l;
+                }
+                AddStudioLight("Key5500K", lanFwd * 1.45f + lanRight * 0.90f + Vector3.up * 2.05f, new Color(1.0f, 0.98f, 0.96f), 1.65f, 6.0f);
+                AddStudioLight("FillCool", lanFwd * 1.25f - lanRight * 1.15f + Vector3.up * 1.55f, new Color(0.90f, 0.95f, 1.0f), 0.78f, 6.0f);
+                AddStudioLight("RimBack", -lanFwd * 0.95f - lanRight * 0.55f + Vector3.up * 2.00f, new Color(0.95f, 0.97f, 1.0f), 1.05f, 5.0f);
+                player.Teleport(new Vector3(closeFeet.x, 0.02f, closeFeet.z), Quaternion.LookRotation(new Vector3(lanPos.x - closeFeet.x, 0f, lanPos.z - closeFeet.z)));
+                camera.transform.localRotation = Quaternion.Euler(9.5f, 0f, 0f);
+                for (int i = 0; i < 8; i++) yield return null;
+                SaveFrame(camera, target, "m2c-lan-neutral-studio");
+                Destroy(studioRig);
+
+                lan.gameObject.SetActive(false);
             }
 
             // Optional 30fps Gameplay Walkthrough Video Sequence (-ctcc-record <framesDir>)
@@ -577,89 +659,156 @@ namespace CTCC
                 frameIdx++;
             }
 
-            // 1) LOC01 Exterior Arrival (R 2012, 90 frames = 3s)
+            // M2-C 30fps Character Performance & Gameplay Showcase (570 frames = 19s @ 30fps + audio_cues.json!)
+            var cues = new List<string>();
+            void LogCue(string assetRel, int startFrame, float gain = 1.0f) =>
+                cues.Add($"{{\"asset\":\"{assetRel}\",\"frame\":{startFrame},\"time\":{(startFrame / 30.0f):F3},\"gain\":{gain:F2}}}");
+
+            // Segment 1 (Frames 0..330 = 11.0 s): LOC02 Hero Reception Encounter with CHAR002 Trần Ngọc Lan (B 2005)
             player.Teleport(scene.Pad("AP04"));
-            if (State.layer == Reality.B) Apply(casework.SwitchIn101(player.Feet), "record R");
+            if (State.layer == Reality.R) Apply(casework.SwitchIn101(player.Feet), "record B");
             for (int i = 0; i < 12; i++) yield return null;
 
-            for (int f = 0; f < 90; f++)
-            {
-                float s = Smooth(f / 89f);
-                Vector3 pos = Vector3.Lerp(new Vector3(3.85f, 0.02f, -24.0f), new Vector3(4.0f, 0.02f, -13.5f), s);
-                Vector3 look = Vector3.Lerp(new Vector3(4.2f, 2.4f, -10.0f), new Vector3(4.0f, 2.8f, -7.8f), s);
-                CapturePose(pos, look);
-                yield return null;
-            }
-
-            // 2) LOC02 Reception & Live Trần Ngọc Lan (B 2005, 90 frames = 3s)
-            player.Teleport(scene.Pad("AP04"));
-            Apply(casework.SwitchIn101(player.Feet), "record B");
+            LogCue("Prototype/Assets/CTCC/Art/Audio/MUS_LanMotif.wav", 0, 0.24f);
             if (scene.LanActor != null)
             {
-                scene.LanActor.gameObject.SetActive(true);
-                if (scene.LanStepOutPoint != null)
-                    scene.LanActor.transform.SetPositionAndRotation(scene.LanStepOutPoint.position, scene.LanStepOutPoint.rotation);
-                scene.LanActor.LookTarget = camera.transform;
-                scene.LanActor.SetExpression(0.62f, 0.14f, 0f);
-                scene.LanActor.PlayAction("Lan_TalkGesture", 0.01f, restart: true);
-            }
-            for (int i = 0; i < 12; i++) yield return null;
-            for (int f = 0; f < 90; f++)
-            {
-                float s = Smooth(f / 89f);
-                Vector3 pos = Vector3.Lerp(new Vector3(4.6f, 0.02f, -5.6f), new Vector3(3.95f, 0.02f, -3.35f), s);
-                Vector3 look = Vector3.Lerp(new Vector3(2.4f, 1.48f, -3.28f), new Vector3(2.65f, 1.48f, -3.28f), s);
-                CapturePose(pos, look);
-                yield return null;
-            }
-            if (scene.LanActor != null) scene.LanActor.gameObject.SetActive(false);
+                var lan = scene.LanActor;
+                lan.gameObject.SetActive(true);
+                lan.LookTarget = camera.transform;
+                Vector3 deskPos = scene.LanDeskPoint != null ? scene.LanDeskPoint.position : new Vector3(2.0f, 0f, -3.3f);
+                Vector3 stepPos = scene.LanStepOutPoint != null ? scene.LanStepOutPoint.position : new Vector3(2.85f, 0f, -3.3f);
+                Quaternion stepRot = scene.LanStepOutPoint != null ? scene.LanStepOutPoint.rotation : Quaternion.Euler(0, 90, 0);
 
-            // 3) LOC03 Room 101 B -> R contrast + Store Room (120 frames = 4s)
-            for (int f = 0; f < 60; f++)
-            {
-                float s = Smooth(f / 59f);
-                Vector3 pos = Vector3.Lerp(new Vector3(7.4f, 0.02f, 4.75f), new Vector3(9.6f, 0.02f, 5.15f), s);
-                Vector3 look = Vector3.Lerp(new Vector3(11.4f, 1.35f, 5.8f), new Vector3(11.6f, 1.15f, 3.65f), s);
-                CapturePose(pos, look);
-                yield return null;
+                // 1A: Stepping out from behind reception desk (Frames 0..55, 1.83s)
+                lan.PlayAction("Lan_StepOut", 0.05f, restart: true);
+                lan.SetExpression(0.65f, 0.12f, 0f);
+                for (int f = 0; f < 55; f++)
+                {
+                    float s = Smooth(f / 54f);
+                    lan.transform.SetPositionAndRotation(Vector3.Lerp(deskPos, stepPos, s), stepRot);
+                    Vector3 camPos = Vector3.Lerp(new Vector3(4.55f, 0.02f, -4.40f), new Vector3(4.12f, 0.02f, -3.48f), s);
+                    CapturePose(camPos, Vector3.Lerp(deskPos + Vector3.up * 1.44f, stepPos + Vector3.up * 1.46f, s));
+                    yield return null;
+                }
+
+                // 1B: CH01-D03 ("Anh đến trễ rồi.") close-up with synced 30Hz Vietnamese lip-sync (Frames 55..110)
+                LogCue("Prototype/Assets/CTCC/Art/Audio/VO/CH01-D03.wav", frameIdx, 1.0f);
+                lan.transform.SetPositionAndRotation(stepPos, stepRot);
+                lan.PlayAction("Lan_TalkGesture", 0.20f, restart: true);
+                lan.SetExpression(0.70f, 0.10f, 0f);
+                Vector3 lanFwd = lan.transform.forward;
+                Vector3 lanRight = lan.transform.right;
+                for (int f = 0; f < 55; f++)
+                {
+                    float s = Smooth(f / 54f);
+                    lan.ForceSpeechTime("CH01-D03", f / 30f);
+                    Vector3 camPos = Vector3.Lerp(stepPos + lanFwd * 1.30f + lanRight * 0.22f, stepPos + lanFwd * 0.88f + lanRight * 0.14f, s);
+                    camPos.y = 0.02f;
+                    CapturePose(camPos, stepPos + Vector3.up * 1.48f);
+                    yield return null;
+                }
+
+                // 1C: CH01-D04 Minh speaks while Lan listens attentively with Lan_Listen + subtle nod (Frames 110..175)
+                LogCue("Prototype/Assets/CTCC/Art/Audio/VO/CH01-D04.wav", frameIdx, 0.92f);
+                lan.EndSpeech();
+                lan.PlayAction("Lan_Listen", 0.24f, restart: true);
+                lan.SetExpression(0.38f, 0.28f, 0.06f);
+                for (int f = 0; f < 65; f++)
+                {
+                    float s = Smooth(f / 64f);
+                    Vector3 camPos = Vector3.Lerp(stepPos + lanFwd * 0.88f + lanRight * 0.14f, stepPos + lanFwd * 1.02f - lanRight * 0.12f, s);
+                    camPos.y = 0.02f;
+                    CapturePose(camPos, stepPos + Vector3.up * 1.46f);
+                    yield return null;
+                }
+
+                // 1D: CH01-D05 ("Em giữ bảng hồ sơ đây rồi.") speaking with warm gesture & lip-sync (Frames 175..255)
+                LogCue("Prototype/Assets/CTCC/Art/Audio/VO/CH01-D05.wav", frameIdx, 1.0f);
+                lan.PlayAction("Lan_TalkGesture", 0.22f, restart: true);
+                lan.SetExpression(0.56f, 0.24f, 0.06f);
+                for (int f = 0; f < 80; f++)
+                {
+                    float s = Smooth(f / 79f);
+                    lan.ForceSpeechTime("CH01-D05", f / 30f);
+                    Vector3 camPos = Vector3.Lerp(stepPos + lanFwd * 1.02f - lanRight * 0.12f, stepPos + lanFwd * 1.42f - lanRight * 0.30f, s);
+                    camPos.y = 0.02f;
+                    CapturePose(camPos, stepPos + Vector3.up * 1.40f);
+                    yield return null;
+                }
+
+                // 1E: Lan_Handover presenting physical 3D F101 clipboard toward Minh (Frames 255..330)
+                lan.EndSpeech();
+                lan.SetHeldClipboardVisible(true);
+                lan.PlayAction("Lan_Handover", 0.20f, restart: true);
+                lan.SetExpression(0.46f, 0.22f, 0.10f);
+                for (int f = 0; f < 75; f++)
+                {
+                    float s = Smooth(f / 74f);
+                    Vector3 camPos = Vector3.Lerp(stepPos + lanFwd * 1.42f - lanRight * 0.30f, stepPos + lanFwd * 1.56f + lanRight * 0.28f, s);
+                    camPos.y = 0.02f;
+                    CapturePose(camPos, stepPos + Vector3.up * 1.24f);
+                    yield return null;
+                }
+                lan.SetHeldClipboardVisible(false);
+                lan.gameObject.SetActive(false);
             }
+
+            // Segment 2 (Frames 330..450 = 4.0 s): LOC03 Room 101 Bé An Apparition Vignette (R 2012, CH02-D03!)
             player.Teleport(scene.Pad("AP04"));
-            Apply(casework.SwitchIn101(player.Feet), "record R 101");
+            Apply(casework.SwitchIn101(player.Feet), "record R");
             for (int i = 0; i < 12; i++) yield return null;
-            for (int f = 0; f < 60; f++)
+
+            if (scene.AnActor != null)
             {
-                float s = Smooth(f / 59f);
-                Vector3 pos = Vector3.Lerp(new Vector3(9.6f, 0.02f, 5.15f), new Vector3(14.3f, 0.02f, 3.65f), s);
-                Vector3 look = Vector3.Lerp(new Vector3(12.2f, 1.15f, 3.85f), new Vector3(15.6f, 0.95f, 4.2f), s);
-                CapturePose(pos, look);
-                yield return null;
+                var an = scene.AnActor;
+                an.gameObject.SetActive(true);
+                an.transform.SetPositionAndRotation(new Vector3(10.85f, 0f, 3.65f), Quaternion.Euler(0f, -68f, 0f));
+                an.LookTarget = camera.transform;
+                an.PlayAction("An_IdleLook", 0.05f, restart: true);
+                LogCue("Prototype/Assets/CTCC/Art/Audio/VO/CH02-D03.wav", frameIdx + 18, 0.96f);
+                for (int f = 0; f < 120; f++)
+                {
+                    float alpha = f < 20 ? (f / 20f) * 0.84f : (f > 90 ? Mathf.Lerp(0.84f, 0f, (f - 90) / 30f) : 0.84f);
+                    an.SetApparitionAlpha(alpha);
+                    if (f >= 18 && f < 86) an.ForceSpeechTime("CH02-D03", (f - 18) / 30f);
+                    else an.EndSpeech();
+                    if (f == 86) an.PlayAction("An_TurnFade", 0.22f, restart: true);
+                    float s = Smooth(f / 119f);
+                    Vector3 camPos = Vector3.Lerp(new Vector3(9.10f, 0.02f, 4.35f), new Vector3(9.58f, 0.02f, 4.10f), s);
+                    CapturePose(camPos, new Vector3(10.85f, 0.96f, 3.65f));
+                    yield return null;
+                }
+                an.EndSpeech();
+                an.SetApparitionAlpha(0f);
+                an.gameObject.SetActive(false);
             }
 
-            // 4) LOC04 Gatekeeper Corridor Tension & Emergency Department (120 frames = 4s)
+            // Segment 3 (Frames 450..570 = 4.0 s): LOC03/LOC04 Gatekeeper Corridor Cameo (R 2012, SFX-KEY + CH02-D05!)
             if (scene.GatekeeperActor != null)
             {
-                scene.GatekeeperActor.gameObject.SetActive(true);
-                scene.GatekeeperActor.transform.SetPositionAndRotation(new Vector3(4.0f, 0f, 12.2f), Quaternion.Euler(0, 180, 0));
-                scene.GatekeeperActor.PlayAction("GK_StalkWalk", 0.01f, restart: true);
+                var gk = scene.GatekeeperActor;
+                gk.gameObject.SetActive(true);
+                gk.transform.SetPositionAndRotation(new Vector3(4.0f, 0f, 12.6f), Quaternion.Euler(0, 180, 0));
+                gk.LookTarget = camera.transform;
+                gk.PlayAction("GK_StalkWalk", 0.05f, restart: true);
+                LogCue("Prototype/Assets/CTCC/Art/Audio/KeyJingle.wav", frameIdx + 4, 0.85f);
+                LogCue("Prototype/Assets/CTCC/Art/Audio/VO/CH02-D05.wav", frameIdx + 12, 1.0f);
+                LogCue("Prototype/Assets/CTCC/Art/Audio/KeyJingle.wav", frameIdx + 62, 0.90f);
+                for (int f = 0; f < 120; f++)
+                {
+                    float s = Smooth(f / 119f);
+                    Vector3 gkPos = Vector3.Lerp(new Vector3(4.0f, 0f, 12.6f), new Vector3(4.0f, 0f, 9.8f), s);
+                    gk.transform.position = gkPos;
+                    if (f >= 12 && f < 112) gk.ForceSpeechTime("CH02-D05", (f - 12) / 30f);
+                    Vector3 camPos = Vector3.Lerp(new Vector3(3.88f, 0.02f, 7.65f), new Vector3(3.92f, 0.02f, 8.15f), s);
+                    CapturePose(camPos, gkPos + Vector3.up * 1.56f);
+                    yield return null;
+                }
+                gk.EndSpeech();
+                gk.gameObject.SetActive(false);
             }
-            for (int f = 0; f < 60; f++)
-            {
-                float s = Smooth(f / 59f);
-                if (scene.GatekeeperActor != null)
-                    scene.GatekeeperActor.transform.position = Vector3.Lerp(new Vector3(4.0f, 0f, 12.2f), new Vector3(4.0f, 0f, 10.6f), s);
-                Vector3 pos = Vector3.Lerp(new Vector3(3.9f, 0.02f, 7.6f), new Vector3(3.95f, 0.02f, 8.8f), s);
-                CapturePose(pos, new Vector3(4.0f, 1.55f, 11.4f));
-                yield return null;
-            }
-            if (scene.GatekeeperActor != null) scene.GatekeeperActor.gameObject.SetActive(false);
-            for (int f = 0; f < 60; f++)
-            {
-                float s = Smooth(f / 59f);
-                Vector3 pos = Vector3.Lerp(new Vector3(3.8f, 0.02f, 16.8f), new Vector3(4.5f, 0.02f, 18.8f), s);
-                Vector3 look = Vector3.Lerp(new Vector3(7.2f, 1.1f, 19.0f), new Vector3(7.9f, 1.25f, 19.8f), s);
-                CapturePose(pos, look);
-                yield return null;
-            }
+
+            File.WriteAllText(Path.Combine(dir, "audio_cues.json"), "{\"fps\":30,\"frames\":" + frameIdx + ",\"cues\":[" + string.Join(",", cues) + "]}");
 
             static float Smooth(float t) => t * t * (3f - 2f * t);
 
