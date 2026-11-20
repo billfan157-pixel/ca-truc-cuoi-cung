@@ -124,7 +124,7 @@ namespace CTCC
                 return;
             }
 
-            if (!activeInChapter || role != next)
+            if (!activeInChapter || role != next || !actor.gameObject.activeSelf)
             {
                 role = next;
                 activeInChapter = true;

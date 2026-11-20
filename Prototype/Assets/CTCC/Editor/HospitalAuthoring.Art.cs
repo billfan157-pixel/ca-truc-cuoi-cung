@@ -1342,7 +1342,7 @@ namespace CTCC.Editor
             CapsuleTarget("TRANSFER", "Phiếu chuyển 101/4", new Vector3(16.13f, 0.98f, 2.75f), new Vector3(0.30f, 0.20f, 0.25f), store);
             CapsuleTarget("G02", "Cửa cấp cứu", new Vector3(4, 1.25f, 15.82f), new Vector3(1.04f, 0.88f, 0.18f));
             CapsuleTarget("G02", "Cửa cấp cứu", new Vector3(0.05f, 1.25f, 15.82f), new Vector3(1.04f, 0.88f, 0.18f));
-            CapsuleTarget("EXIT", "Sổ giao ca · cấp cứu", new Vector3(4, 1.05f, 20.84f), new Vector3(0.72f, 0.64f, 0.54f));
+            CapsuleTarget("EXIT", "Sổ giao ca · cấp cứu", new Vector3(2.15f, 1.05f, 20.84f), new Vector3(0.72f, 0.64f, 0.54f));
 
             var statusAObj = Group("Biển xác nhận", loc03Perm).gameObject;
             var statusBObj = Group("Biển chờ", loc03Perm).gameObject;
@@ -1413,8 +1413,8 @@ namespace CTCC.Editor
             Box("Pad · brass threshold marker", new Vector3(6.52f, 0.008f, 4.95f), new Vector3(0.96f, 0.014f, 0.092f), Mat("Brass"), isStatic: true);
             // Brass reception anchor strip (vạch đồng AP02) in front of reception counter!
             Box("Pad · brass reception marker", new Vector3(3.78f, 0.008f, -3.28f), new Vector3(0.092f, 0.014f, 1.15f), Mat("Brass"), isStatic: true);
-            Box("Hub ledger ledge", new Vector3(4, 0.91f, 21.02f), new Vector3(1.17f, 0.10f, 0.72f), Mat("Ceramic"), solid: true, isStatic: true);
-            Box("Ledger", new Vector3(4, 0.973f, 20.85f), new Vector3(0.41f, 0.03f, 0.27f), Mat("Paper"), isStatic: true);
+            Box("ER ledger side counter", new Vector3(2.15f, 0.91f, 21.02f), new Vector3(1.17f, 0.10f, 0.72f), Mat("Ceramic"), solid: true, isStatic: true);
+            Box("Ledger", new Vector3(2.15f, 0.973f, 20.85f), new Vector3(0.41f, 0.03f, 0.27f), Mat("Paper"), isStatic: true);
         }
 
         private void GroupFixedSurfaces()

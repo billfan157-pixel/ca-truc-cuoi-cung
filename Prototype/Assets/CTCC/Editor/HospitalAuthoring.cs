@@ -763,6 +763,11 @@ namespace CTCC.Editor
                 throw new InvalidOperationException("0.72 m stretcher proxy collided at the 101 doorway.");
             world.Present(false, 4, true, true, true, true, false, true, true);
             VerifyNav("CH03–04 / connected hospital", new[] { "AP02", "AP05", "AP06", "AN03", "AP07", "AP08", "AP09" });
+            Physics.SyncTransforms();
+            var erFeet = world.Pad("AP05").position;
+            if (Physics.CapsuleCast(erFeet + Vector3.up * .46f, erFeet + Vector3.up * 1.40f,
+                HospitalScene.Radius, Vector3.forward, 2.21f, HospitalScene.SolidMask, QueryTriggerInteraction.Ignore))
+                throw new InvalidOperationException("The ER ledger or another fixture blocks the ward stair approach.");
             world.Present(false, 0, false, false, false, false);
             Debug.Log("CTCC_GREYBOX_PASS R, three B branches, LOC04 routes, upper and basement safe pads, 0.72 m stretcher");
         }

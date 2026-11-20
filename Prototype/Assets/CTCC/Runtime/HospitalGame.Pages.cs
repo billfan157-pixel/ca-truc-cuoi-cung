@@ -63,6 +63,7 @@ namespace CTCC
         {
             if (busy) yield break;
             voice?.StopCurrent();
+            gatekeeperCameo?.StopAndHide();
             busy = true;
             ui.ModalInputBlocked = true;
             RefreshControls();
@@ -97,12 +98,11 @@ namespace CTCC
                 yield break;
             }
             lanDirector?.StopEncounter(false);
-            gatekeeperCameo?.StopAndHide();
             anDirector?.HideImmediately();
-            orderlyAi?.SyncState(State);
             RestoreJournal(State);
             live = true;
             player.Teleport(safe);
+            orderlyAi?.SyncState(State);
             player.RestoreBattery(State.torchSeconds);
             CloseModal();
             if (result == SaveRead.Backup)
@@ -579,7 +579,7 @@ namespace CTCC
             ui.Show("SỔ GIAO CA CẤP CỨU", "Hồ sơ C01 · Phòng 101",
                 "Đã xác thực Bé An từ bản lưu 101/4, vòng tay C01 và phiếu chuyển nội bộ ngày 17/11/2005. Vị trí tìm thấy An ở khu sau vẫn để ngỏ cho phần tiếp theo.\n\n" +
                 $"• Quyết định F101 hiện tại: {Status(r.current)} (lần đầu: {Status(r.firstDecision)}, số lần sửa: {r.revision})\n" +
-                $"• Chỉ số sai lệch báo cáo (Distortion): {FormService.Distortion(State)}\n" +
+                $"• Sai lệch tại khu phòng 101: {FormService.Distortion(State, "LOC03")}\n" +
                 $"• Vật chứng thực thể đã lưu: {State.evidence.Count} mục · Sự kiện Cấp cứu: {(State.Happened("CH02-T06") ? "Đã thoát khỏi Kẻ giữ cửa" : "Đã vào khu Cấp cứu")}\n\n" +
                 "Phiếu 101, lịch sử sửa phiếu và toàn bộ vật chứng đã được giữ nguyên trong bản lưu.",
                 new[]

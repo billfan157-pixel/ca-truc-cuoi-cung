@@ -312,13 +312,20 @@ namespace CTCC
             gatekeeperCameo?.StopAndHide();
             anDirector?.HideImmediately();
             AudioListener.pause = true;
-            // Wait for Unity 6000.3 D3D12 split-job initial texture streaming & PSO upload queues to settle
-            // before draining the 3-frame ring buffer, preventing D3D12Core.dll 1.618.1.0 +0xa1f5 crash on early quit!
+            // Keep submitting frames during teardown so a failure on the first gameplay frame also drains uploads.
             if (player?.Eye != null) player.Eye.enabled = true;
-            float streamDeadline = Time.realtimeSinceStartup + 5.5f;
-            while ((Time.realtimeSinceStartup < 4.5f || Texture.streamingTextureLoadingCount > 0 ||
-                    Texture.streamingTexturePendingLoadCount > 0) && Time.realtimeSinceStartup < streamDeadline)
+            float drainStart = Time.realtimeSinceStartup;
+            while ((Time.realtimeSinceStartup - drainStart < 1.5f || Texture.streamingTextureLoadingCount > 0 ||
+                    Texture.streamingTexturePendingLoadCount > 0) && Time.realtimeSinceStartup - drainStart < 5.5f)
                 yield return null;
+            if (SystemInfo.supportsAsyncGPUReadback)
+            {
+                var drain = RenderTexture.GetTemporary(8, 8, 0, RenderTextureFormat.ARGB32);
+                Graphics.Blit(Texture2D.blackTexture, drain);
+                var marker = AsyncGPUReadback.Request(drain);
+                while (!marker.done) yield return null;
+                RenderTexture.ReleaseTemporary(drain);
+            }
             AsyncGPUReadback.WaitAllRequests();
             GL.Flush();
             for (int i = 0; i < 8; i++)

@@ -272,8 +272,14 @@ namespace CTCC
             } while (Time.unscaledTime < deadline);
             InputSystem.QueueStateEvent(qaKeys, new KeyboardState());
             yield return Until(() => !qaKeys[forward].isPressed, "walk release");
+            string blocker = "none";
+            if (offset.sqrMagnitude >= .20f * .20f &&
+                Physics.CapsuleCast(player.Feet + Vector3.up * .46f, player.Feet + Vector3.up * 1.40f,
+                    HospitalScene.Radius, offset.normalized, out var hit, .50f,
+                    HospitalScene.SolidMask, QueryTriggerInteraction.Ignore))
+                blocker = hit.collider.name;
             Require(offset.sqrMagnitude < .20f * .20f && Mathf.Abs(player.Feet.y - destination.y) < .32f,
-                $"Input route from controller reached {destination}, ended at {player.Feet}");
+                $"Input route to {destination} ended at {player.Feet}; blocker={blocker}, controls={player.CanPlay}, modal={ui.IsModal}");
         }
 
         private IEnumerator CaptureExpansionFrames(string directory)

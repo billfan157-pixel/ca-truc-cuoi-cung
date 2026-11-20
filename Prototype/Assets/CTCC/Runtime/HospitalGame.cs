@@ -208,7 +208,8 @@ namespace CTCC
                 report.postExposure.value = -0.02f + current.settings.visibility * 0.45f;
 
             lanDirector?.SyncState(current);
-            gatekeeperCameo?.SyncState(current);
+            if (current.chapter is ("CH01" or "CH02") || gatekeeperCameo.IsActive)
+                gatekeeperCameo.SyncState(current);
             if (current.chapter == "CH01" || current.layer == Reality.B)
                 anDirector?.HideImmediately();
             orderlyAi?.SyncState(current);

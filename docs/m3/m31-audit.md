@@ -1,5 +1,7 @@
 # M3.1 — Independent repository audit (baseline `31e06c2`)
 
+This records the starting findings and proposals. The current graph and implementation scope are in the [M3.1 world record](m31-world.md).
+
 Scope: everything claimed by M3.0 ([m30-foundation-and-art-lock.md](m30-foundation-and-art-lock.md)) re-read against the owning sources (Core 02/03/04/06, `07/Chapter gates`, `Events`, `Patients`, `Puzzle specs`, `Dialogue`, `QA`) and against the code at `31e06c2`.
 Method: static review of `Prototype/Assets/CTCC/{Runtime,Editor}`, `tools/`, `ArtSource/`, plus a re-run of the module QA suite on the locked M3.0 build (`output/m31/baseline-qa-medium`, `RESULT=PASS`, exit 0).
 A green M3.0 QA does **not** imply the defects below are absent: the suite asserts the M3.0 behaviour, not the Core contracts.
@@ -79,7 +81,7 @@ Severity: **P0** = blocks design contract or can corrupt state, **P1** = visible
 | V-03 | P1 | Controlled 1080p/60 Hz PresentMon re-benchmark and the 3rd consecutive `-PlayerInput` run were never completed (desktop lock). |
 | V-04 | P2 | Evidence is published only as numbers; no commit-linked Blender renders of CH03 interiors, no CH04 footage. |
 
-## 2. Disposition (what M3.1 does about each)
+## 2. Proposed dispositions at baseline
 
 | Finding | M3.1 action |
 | --- | --- |

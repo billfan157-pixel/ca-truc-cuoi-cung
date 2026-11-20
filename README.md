@@ -1,8 +1,8 @@
 # Ca trực cuối cùng
 
-Vertical slice Windows x64 của **Ca trực cuối cùng** đi từ cổng phụ bệnh viện An Sinh qua lễ tân, phòng 101 và kho giường đến Cấp cứu. Người chơi có thể chọn một trong ba cách xử lý F101, quay lại sửa phiếu, đổi giữa R và B tại điểm neo, đối chiếu E11/E12 và tải lại ca đã lưu.
+Ứng viên M3.1 của **Ca trực cuối cùng** chạy trên Windows x64. Tuyến CH01–02 đi từ cổng phụ qua phòng 101 đến Cấp cứu, với ba cách xử lý F101 và đối chiếu E11/E12. CH03 nối khu B và kho tầng 3 bằng cầu thang. Tuyến thử CH04 đi từ phòng trực đến nhà xác, với sổ ca, bảng tải và đối chiếu E04/E07. [Mặt cắt và căn cứ của M3.1](docs/m3/m31-world.md)
 
-Ứng viên **M2-A** dùng Unity 6.3 LTS, URP 17.3 và nguồn Blender 4.5. [Hồ sơ M2-A](docs/m2/acceptance.md) ghi revision, bằng chứng, điều kiện nghiệm thu còn mở và đường găng M3. [Hồ sơ M1-P](docs/prototype/m1p-acceptance.md) giữ kết quả nền trước vertical slice.
+Project dùng Unity 6.3 LTS, URP 17.3 và nguồn Blender 4.5. [Audit M3.1](docs/m3/m31-audit.md) ghi các vấn đề tại mốc M3.0. [Hồ sơ M2-A](docs/m2/acceptance.md) và [hồ sơ M1-P](docs/prototype/m1p-acceptance.md) lưu kết quả các mốc trước.
 
 ## Điều khiển
 
@@ -21,7 +21,7 @@ Trong Cài đặt có mức đồ họa Low/Medium/High, phím mũi tên, K tư�
 
 ## Nguồn và cách dựng
 
-Mở thư mục `Prototype` với Unity 6.3 LTS `6000.3.28f1`. Trên Windows, khi đường dẫn repo có dấu, dùng junction ASCII `C:\CTCC-Unity-Workspace` trỏ đến repo cho trình dựng Unity. `AnSinh_Bootstrap.unity` tải bốn scene LOC01–04. Nguồn chỉnh sửa được nằm tại `ArtSource/Blender/*.blend`, cùng công cụ xuất FBX trong `tools/blender_assets/`.
+Mở thư mục `Prototype` với Unity 6.3 LTS `6000.3.28f1`. Trên Windows, khi đường dẫn repo có dấu, dùng junction ASCII `C:\CTCC-Unity-Workspace` trỏ đến repo cho trình dựng Unity. `AnSinh_Bootstrap.unity` tải bốn scene nền LOC01–04 rồi tải vùng tầng trên hoặc tầng hầm khi đi tới đầu mối. Nguồn chỉnh sửa nằm tại `ArtSource/Blender/*.blend`, cùng công cụ xuất FBX trong `tools/blender_assets/`.
 
 ```powershell
 ./tools/build_m2.ps1 -SkipGenerate -Output output/m2a/repro-windows
