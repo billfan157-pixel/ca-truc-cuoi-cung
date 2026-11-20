@@ -675,7 +675,7 @@ namespace CTCC
                 ui.Show("KÝ ỨC · KHO HỒ SƠ", named ? "Bà Lành" : "Chiếc ghế cạnh cửa sổ", caption,
                     new[] { new ActionChoice("Trở về kho hồ sơ", EndKnittingMemory) }, EndKnittingMemory);
                 if (named) voice?.Speak("CH03-D03", "Bà Lành", caption, directionalPrefix: "[Tiếng kim đan]");
-                else scene.atmosphere?.From("clothShift", scene.Pad("AN03").position);
+                else scene.atmosphere?.From("curtainSlide", scene.Pad("AN03").position, .4f);
             });
         }
 

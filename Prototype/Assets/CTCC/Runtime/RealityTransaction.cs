@@ -214,6 +214,7 @@ namespace CTCC
                 snapshot.Happened("CH01-T02"), snapshot.Happened("CH01-T05"),
                 snapshot.Has("E12"), GateService.G02(snapshot),
                 snapshot.layer == Reality.M, GateService.G03(snapshot), snapshot.chapter == "CH04");
+            scene.PresentCasework(snapshot);
             scene.PresentCheckpointProps(snapshot.Happened("CH01-T09"), snapshot.Happened("CH01-BATTERY"));
         }
 

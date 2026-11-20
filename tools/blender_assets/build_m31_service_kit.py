@@ -95,11 +95,30 @@ def medicine_cart():
     return parts
 
 
+def archive_chair():
+    parts = [
+        C.make_box("Curved seat blank", (0, 0, .46), (.445, .406, .048), "Wood", bevel=.021, segments=4),
+        C.make_box("Hand-polished chair back", (0, .181, .843), (.416, .038, .17),
+                   "WoodDoor", bevel=.023, segments=4, rot=(-.085, 0, 0)),
+    ]
+    for x in (-.178, .178):
+        parts.append(C.make_box("Front foot", (x, -.157, .222), (.044, .047, .444), "WoodDoor", bevel=.006))
+        parts.append(C.make_box("Rear stile", (x, .171, .453), (.046, .049, .906), "WoodDoor",
+                                bevel=.006, rot=(-.034, 0, 0)))
+        parts.append(C.make_box("Side bracing", (x, 0, .227), (.032, .37, .036), "Wood", bevel=.005))
+        parts.append(C.make_cylinder("Dark nail head", (x, .156, .842), (x, .149, .842), .005, "MetalOld", segments=10))
+    parts.append(C.make_box("Lower front brace", (0, -.16, .231), (.36, .031, .036), "WoodDoor", bevel=.006))
+    return parts
+
+
 if __name__ == "__main__":
+    requested = set(sys.argv[sys.argv.index("--") + 1:]) if "--" in sys.argv else set()
     for name, builder in (
         ("CTCC_ENV_TerrazzoTread", stair_tread),
         ("CTCC_PROP_MorgueDryCabinet", dry_cabinet),
         ("CTCC_PROP_ServiceLoadPanel", load_panel),
         ("CTCC_PROP_MedicineCart", medicine_cart),
+        ("CTCC_PROP_ArchiveChair", archive_chair),
     ):
-        C.export_asset(name, builder)
+        if not requested or name in requested:
+            C.export_asset(name, builder)

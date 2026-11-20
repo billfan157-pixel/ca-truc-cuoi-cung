@@ -382,7 +382,7 @@ namespace CTCC
                 pathDestination = destination;
                 PathQueries++;
                 if (!NavMesh.SamplePosition(pos, out var start, 0.45f, NavMesh.AllAreas) ||
-                    !NavMesh.SamplePosition(destination, out var end, 0.45f, NavMesh.AllAreas) ||
+                    !NavMesh.SamplePosition(destination, out var end, 1.20f, NavMesh.AllAreas) ||
                     !NavMesh.CalculatePath(start.position, end.position, NavMesh.AllAreas, navPath) ||
                     navPath.status != NavMeshPathStatus.PathComplete)
                 {

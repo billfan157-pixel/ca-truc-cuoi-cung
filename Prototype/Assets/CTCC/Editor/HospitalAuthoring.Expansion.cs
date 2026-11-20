@@ -68,6 +68,9 @@ namespace CTCC.Editor
             RoomShell(service, "LOC09 · Kỹ thuật", BasementLevel, 3.1f, 4.5f, 10.5f, 31.1f, 45.5f,
                 southDoor: 7f, westDoor: 39f, eastDoor: 42f);
             RoomShell(service, "LOC10 · Nhà xác", BasementLevel, 3.1f, -1.5f, 4.5f, 36f, 42f, eastDoor: 39f);
+            var morgueLock = Box("Cabinet wing lock", new(4.5f, BasementLevel + 1.19f, 39),
+                new(.10f, 2.38f, 1.80f), Mat("MetalOld"), service, solid: true);
+            morgueLock.SetActive(false);
             RoomShell(service, "LOC11 · Tiền sảnh C", BasementLevel, 3.1f, 10.5f, 14.5f, 39f, 45f,
                 westDoor: 42f, eastDoor: 42f);
             RoomShell(service, "LOC12 · Khu C", BasementLevel, 3.1f, 14.5f, 34.5f, 35f, 49f, westDoor: 42f);
@@ -92,9 +95,9 @@ namespace CTCC.Editor
                 cabinetProxy.GetComponent<Renderer>().enabled = false;
                 panelProxy.GetComponent<Renderer>().enabled = false;
                 staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_MorgueDryCabinet", service,
-                    new(-.9f, BasementLevel, 39), 90f));
+                    new(-.9f, BasementLevel, 39), -90f));
                 staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_ServiceLoadPanel", service,
-                    new(9.98f, BasementLevel + 1.37f, 34.5f), -90f));
+                    new(9.98f, BasementLevel + 1.37f, 34.5f), 90f));
                 staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_MedicineCart", upper,
                     new(3.05f, WardLevel, 42), 90f));
             }
@@ -103,9 +106,24 @@ namespace CTCC.Editor
             CapsuleTarget("AN04", "Phòng trực · lịch và băng họp", new(3.88f, WardLevel + 1.16f, 46.78f), new(.7f, .8f, .4f), upper);
             for (int i = 0; i < 3; i++)
                 Lamp("B1 · bulkhead", LightType.Point, new(7.4f, BasementLevel + 2.6f, 33.4f + 5f * i),
-                    1.45f, 7.3f, new Color(.68f, .77f, .81f), service);
+                    2.3f, 7.3f, new Color(.74f, .84f, .80f), service);
             Lamp("Nhà xác · desk spill", LightType.Point, new(1, BasementLevel + 2.49f, 39),
-                1.95f, 6.7f, new Color(.79f, .82f, .72f), service);
+                2.8f, 6.7f, new Color(.85f, .90f, .77f), service);
+            var relayLight = Lamp("Workshop · circuit fill", LightType.Point, new(7.7f, BasementLevel + 2.62f, 36.3f),
+                4.0f, 8f, new Color(.82f, .95f, .82f), service);
+            var cabinetLight = Lamp("Nhà xác · switched task light", LightType.Point, new(.7f, BasementLevel + 2.3f, 39.2f),
+                6.1f, 5.5f, new Color(1f, .92f, .79f), service);
+            relayLight.enabled = false;
+            cabinetLight.enabled = false;
+            if (multiScene)
+            {
+                zones["LOC09"].region.morgueLock = morgueLock;
+                zones["LOC09"].region.circuitLights = new[] { relayLight, cabinetLight };
+            }
+            Sign("Ward stairs", "M31_KhuB", new(4, 2.85f, 21.985f), Vector3.back, new(1.72f, .45f));
+            Sign("Service stairs", "M31_Service", new(7, 2.85f, 21.985f), Vector3.back, new(1.72f, .45f));
+            Sign("Archive stairs", "M31_Kho", new(-3.39f, WardLevel + 2.76f, 34.35f), Vector3.right, new(1.72f, .45f), upper);
+            Sign("Morgue entrance", "M31_Morgue", new(4.605f, BasementLevel + 2.77f, 39), Vector3.right, new(1.45f, .38f), service);
         }
 
         private void Flight(Transform parent, string name, Vector3 start, Vector3 end, float width)
@@ -181,12 +199,20 @@ namespace CTCC.Editor
             void Segment(float from, float to, float low, float tall)
             {
                 if (to <= from) return;
+                if (low == 0 && tall > 1.2f)
+                {
+                    Segment(from, to, 0, 1.15f);
+                    Segment(from, to, 1.15f, tall - 1.15f);
+                    return;
+                }
                 float middle = (from + to) * .5f;
                 float center = y + low + tall * .5f;
+                string real = low == 0 && tall < 1.2f ? "DadoR" : "PlasterR";
+                string report = real == "DadoR" ? "DadoB" : "PlasterB";
                 var part = Box(name, alongX ? new(middle, center, axis) : new(axis, center, middle),
                     alongX ? new(to - from, tall, .18f) : new(.18f, tall, to - from),
-                    Mat("PlasterR"), parent, solid: true, tile: 2f, isStatic: true);
-                AddFinish(new LayerFinish { renderer = part.GetComponent<Renderer>(), real = Mat("PlasterR"), report = Mat("PlasterB") });
+                    Mat(real), parent, solid: true, tile: 2f, isStatic: true);
+                AddFinish(new LayerFinish { renderer = part.GetComponent<Renderer>(), real = Mat(real), report = Mat(report) });
             }
             if (float.IsNaN(door)) Segment(a, b, 0, height);
             else

@@ -6,7 +6,8 @@ param(
     [ValidateSet(0,1)][int]$VSync = 0,
     [ValidateSet('dual-probes','trilight','apv')][string]$GiMode = 'dual-probes',
     [ValidateSet('none','ssao','decals','shadows','probes','transparency','geometry')][string]$Ablation = 'none',
-    [switch]$CharacterStress
+    [switch]$CharacterStress,
+    [switch]$Expansion
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,7 +26,8 @@ try {
     if ($capture.HasExited) { throw "PresentMon startup failed. See $out/presentmon-error.txt" }
     $launchQpc = [Diagnostics.Stopwatch]::GetTimestamp()
     $stressArgs = if ($CharacterStress) { '-ctcc-character-stress true' } else { '' }
-    $player = Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) -ArgumentList "-force-d3d12 -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 -ctcc-quality $Quality -ctcc-vsync $VSync -ctcc-gi $GiMode -ctcc-benchmark `"$out`" -ctcc-save `"$out/save`" -ctcc-ablation $Ablation $stressArgs -logFile `"$out/player.log`"" -PassThru
+    $expansionArgs = if ($Expansion) { '-ctcc-expansion true' } else { '' }
+    $player = Start-Process -FilePath $exe -WorkingDirectory (Split-Path -Parent $exe) -ArgumentList "-force-d3d12 -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 -ctcc-quality $Quality -ctcc-vsync $VSync -ctcc-gi $GiMode -ctcc-benchmark `"$out`" -ctcc-save `"$out/save`" -ctcc-ablation $Ablation $stressArgs $expansionArgs -logFile `"$out/player.log`"" -PassThru
     Show-CtccPlayerWindow $player -CalibrationClick
     if (![CtccPlayerWindow]::IsForegroundProcess($player.Id)) {
         throw "The Windows benchmark player did not acquire foreground focus."
@@ -37,7 +39,7 @@ try {
         $player.Refresh()
         $focused = [int][CtccPlayerWindow]::IsForegroundProcess($player.Id)
         $processSamples.Add("$([Diagnostics.Stopwatch]::GetTimestamp()),$($player.WorkingSet64),$($player.PrivateMemorySize64),$focused")
-        if ($deadline.Elapsed.TotalSeconds -gt 180) { $player.Kill(); throw "Timed out: $out/player.log" }
+        if ($deadline.Elapsed.TotalSeconds -gt 240) { $player.Kill(); throw "Timed out: $out/player.log" }
     }
     $processSamples | Set-Content -LiteralPath "$out/process.csv"
     if ($player.ExitCode -ne 0) { throw "Benchmark player exited $($player.ExitCode). See $out/result.txt and player.log" }

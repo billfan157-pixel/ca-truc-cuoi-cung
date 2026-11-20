@@ -14,6 +14,7 @@ namespace CTCC
     public sealed partial class HospitalGame
     {
         private Keyboard qaKeys;
+        private bool captureExpansion;
 
         private IEnumerator VerifyPlayerInput()
         {
@@ -169,7 +170,13 @@ namespace CTCC
             }
             verification.Add($"INPUT PASS {branch}: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.");
             if (branch == FormStatus.Unverified)
-                yield return InputHospitalExpansion();
+            {
+                string record = Argument("-ctcc-record");
+                captureExpansion = !string.IsNullOrEmpty(record);
+                if (captureExpansion) StartCoroutine(CaptureExpansionFrames(Path.Combine(record, "ch03-04")));
+                try { yield return InputHospitalExpansion(); }
+                finally { captureExpansion = false; }
+            }
             yield return Tap(Key.Escape);
             yield return Choose("Về màn hình đầu");
         }
@@ -179,7 +186,7 @@ namespace CTCC
             yield return UseFrom("CH03_DOOR", new Vector3(2.9f, .015f, 20.45f));
             yield return Until(() => !busy && State.chapter == "CH03", "CH03 handoff");
             Require(player.Feet.y < .3f, "CH03 did not warp to the second floor");
-            yield return WalkWithInput(new Vector3(4, 0, 21.35f));
+            yield return WalkWithInput(new Vector3(4, 0, 19.95f));
             yield return WalkWithInput(new Vector3(4, 4, 33.73f));
             yield return WalkWithInput(new Vector3(-2.7f, 4, 34.35f));
             yield return WalkWithInput(new Vector3(-14.7f, 8, 34.35f));
@@ -245,7 +252,7 @@ namespace CTCC
             yield return Choose("Tải điểm lưu tự động");
             yield return Until(() => !busy && !ui.IsModal && transaction.OnPad(player.Feet, "AP09"), "B1 reload with actual menu");
             Require(GateService.G04(State) && State.Happened("CH04-T06") && !State.Has("E08"), "B1 autosave state");
-            verification.Add("INPUT CH03–04 PASS: W capsule on three flights, PZ03, C12, R/M, duty papers, overload controls, H05, dialogue guard and B1 autosave menu.");
+            verification.Add("INPUT CH03–04 PASS: W capsule on three flights, PZ03, C12, R/M, duty papers, circuit controls, H05, dialogue guard and B1 autosave menu.");
         }
 
         private IEnumerator WalkWithInput(Vector3 destination)
@@ -267,6 +274,25 @@ namespace CTCC
             yield return Until(() => !qaKeys[forward].isPressed, "walk release");
             Require(offset.sqrMagnitude < .20f * .20f && Mathf.Abs(player.Feet.y - destination.y) < .32f,
                 $"Input route from controller reached {destination}, ended at {player.Feet}");
+        }
+
+        private IEnumerator CaptureExpansionFrames(string directory)
+        {
+            Directory.CreateDirectory(directory);
+            var frameEnd = new WaitForEndOfFrame();
+            float nextFrame = Time.unscaledTime;
+            int index = 0;
+            while (captureExpansion)
+            {
+                yield return frameEnd;
+                if (Time.unscaledTime < nextFrame || !captureExpansion) continue;
+                nextFrame += 1f / 12f;
+                if (nextFrame < Time.unscaledTime - .24f) nextFrame = Time.unscaledTime;
+                var frame = ScreenCapture.CaptureScreenshotAsTexture();
+                if (frame == null) continue;
+                try { File.WriteAllBytes(Path.Combine(directory, $"frame-{index++:00000}.jpg"), frame.EncodeToJPG(78)); }
+                finally { Destroy(frame); }
+            }
         }
 
         private IEnumerator InputPhysicalCase(bool sideDoor)

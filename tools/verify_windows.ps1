@@ -3,6 +3,8 @@ param(
     [Parameter(Mandatory=$true)][string]$Evidence,
     [string]$RecordDir = "",
     [switch]$PlayerInput,
+    [ValidateSet('D3D12','D3D11')][string]$GraphicsApi = 'D3D12',
+    [ValidateRange(30,600)][int]$TimeoutSeconds = 240,
     [ValidateSet('module-failure','keyboard-failure','visual-failure','escape-premature','char-mesh','char-track','char-interruption')][string]$ProbeFailure,
     [ValidateSet('Low','Medium','High')][string]$Quality = 'Medium'
 )
@@ -18,7 +20,8 @@ if(Test-Path -LiteralPath (Join-Path $ctccEvidence 'gameplay.txt')) {
 New-Item -ItemType Directory -Path $ctccEvidence -Force | Out-Null
 $ctccLog=Join-Path $ctccEvidence 'player.log'
 $qaArgs = if ($PlayerInput) { "-ctcc-input-qa `"$ctccEvidence`" -ctcc-save `"$ctccEvidence/input-save`"" } else { "-ctcc-qa `"$ctccEvidence`"" }
-$ctccArgs="-force-d3d12 -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 -ctcc-quality $Quality $qaArgs -logFile `"$ctccLog`""
+$apiArg = "-force-" + $GraphicsApi.ToLowerInvariant()
+$ctccArgs="$apiArg -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 -ctcc-quality $Quality $qaArgs -logFile `"$ctccLog`""
 if ($ProbeFailure) { $ctccArgs += " -ctcc-qa-probe $ProbeFailure" }
 if($RecordDir -ne "") {
     $recFull = [System.IO.Path]::GetFullPath($RecordDir)
@@ -37,7 +40,7 @@ if ($PlayerInput) {
         }
     }
 }
-if(!$ctccRun.WaitForExit(180000)) { $ctccRun.Kill(); throw "Windows verification timed out. Check $ctccLog." }
+if(!$ctccRun.WaitForExit($TimeoutSeconds * 1000)) { $ctccRun.Kill(); throw "Windows verification timed out. Check $ctccLog." }
 if ($ProbeFailure) {
     $verdict = Join-Path $ctccEvidence 'gameplay.txt'
     $expected = switch ($ProbeFailure) {

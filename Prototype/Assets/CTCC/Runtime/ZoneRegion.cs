@@ -44,6 +44,10 @@ namespace CTCC
         public DoorPose archiveExitDoor;
         public GameObject[] upperConnectors = Array.Empty<GameObject>();
         public GameObject serviceConnector;
+        public GameObject morgueLock;
+        public Light[] circuitLights = Array.Empty<Light>();
+        public GameObject namedMemory;
+        public ArchiveMemoryMotion memoryMotion;
 
         public Transform[] ch03PatrolWaypoints = Array.Empty<Transform>();
         public Transform ch03RadioPoint;
@@ -121,6 +125,16 @@ namespace CTCC
             Toggle(memoryProps, layerM);
             Toggle(clockHandsR, !layerB);
             Toggle(clockHandsB, layerB);
+        }
+
+        public void PresentCasework(Investigation state)
+        {
+            bool hasMorgue = ChapterFour.MorguePower(state.servicePower);
+            Toggle(morgueLock, !hasMorgue && !GateService.H05(state));
+            foreach (var light in circuitLights)
+                if (light != null) light.enabled = hasMorgue;
+            Toggle(namedMemory, state.PatientIdentityVerified("C02"));
+            if (memoryMotion != null) memoryMotion.enabled = !state.settings.reduceMotion;
         }
 
         public void CollectRegionalSources(List<NavMeshBuildSource> destination)

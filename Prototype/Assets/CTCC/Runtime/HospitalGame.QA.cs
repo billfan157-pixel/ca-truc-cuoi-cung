@@ -979,6 +979,7 @@ namespace CTCC
             Apply(casework.AttemptCh03Pu01("C12", true, an03.position), "PZ03 second wrong code");
             Require(PuzzleService.ShouldShowFieldHint(State, "CH03-PU01") && !GateService.G03(State),
                 "CH03-Q02 incorrect matching keeps G03 closed");
+            yield return VerifyArchiveNavigation(an03);
             Apply(casework.AttemptCh03Pu01("C02", true, an03.position), "PZ03 correct code");
             Require(GateService.G03(State) && !State.PatientIdentityVerified("C02"), "CH03-Q01 gate opens on existence");
             Apply(casework.TakeCh03Evidence(EvidenceRegistry.C12UnnamedBox, "LOC07", an03.position), "Read C12 row and box");
@@ -990,7 +991,7 @@ namespace CTCC
             player.Teleport(an03);
             Apply(casework.SwitchMemoryVignetteAn03(an03.position), "Enter M");
             Require(State.layer == Reality.M && !orderlyAi.IsActive, "CH03-Q04 safe memory");
-            yield return CaptureHospitalFrame("ch03-memory", an03, 0f);
+            yield return CaptureHospitalFrame("ch03-memory", an03, 32f);
             Require(transaction.Restore(SaveSlot.Auto, out var restoredFromM) == SaveRead.Valid &&
                 State.layer == Reality.R && restoredFromM == an03 && State.Has(EvidenceRegistry.PatientRegister),
                 "CH03-Q04 restores at AN03 in R with E03");
@@ -1034,6 +1035,44 @@ namespace CTCC
                 "CH04-Q05 saved circuit and clues restored in reloaded B1");
             yield return CaptureHospitalFrame("ch04-morgue", restored, 0f);
             verification.Add("CH03-Q01/Q02/Q04/Q05 and CH04-Q02–Q06 module PASS. C02/C12, M restore, two legacy schemas, local forms, power and H05/guard, reloaded region save.");
+        }
+
+        private IEnumerator VerifyArchiveNavigation(Transform safe)
+        {
+            player.Teleport(safe);
+            ui.Close();
+            orderlyAi.SyncState(State);
+            var actor = scene.GatekeeperActor;
+            Require(orderlyAi.IsActive && actor != null, "Archive hunter active after E03");
+            Require(!orderlyAi.CheckLineOfSight(new Vector3(.2f, 8f, 34f), Vector3.right, new Vector3(2.3f, 8f, 34f)),
+                "CH03-Q03 occluding shelf partition blocks line of sight");
+            var start = scene.Ch03PatrolWaypoints[0].position;
+            actor.transform.SetPositionAndRotation(start, Quaternion.identity);
+            int blockedBefore = orderlyAi.InvalidPaths;
+            int queriesBefore = orderlyAi.PathQueries;
+            orderlyAi.TriggerDistraction(start - Vector3.up * 2.35f);
+            Require(orderlyAi.CurrentState == OrderlyState.Investigate, "Unreachable stimulus entered investigate");
+            double deadline = Time.realtimeSinceStartupAsDouble + .80;
+            while (Time.realtimeSinceStartupAsDouble < deadline)
+            {
+                orderlyAi.Tick(State, Time.unscaledDeltaTime, false, false, false, Line);
+                yield return null;
+            }
+            int rejected = orderlyAi.InvalidPaths - blockedBefore;
+            int queries = orderlyAi.PathQueries - queriesBefore;
+            Require(Vector3.Distance(start, actor.transform.position) < .015f && rejected >= 1 && queries <= 4,
+                $"CH03-Q03 no raw movement after invalid path, rejected={rejected}, queries={queries}");
+            orderlyAi.TriggerDistraction(scene.Ch03RadioPoint.position);
+            deadline = Time.realtimeSinceStartupAsDouble + 1.8;
+            while (Time.realtimeSinceStartupAsDouble < deadline)
+            {
+                orderlyAi.Tick(State, Time.unscaledDeltaTime, false, false, false, Line);
+                yield return null;
+            }
+            float travelled = Vector3.Distance(start, actor.transform.position);
+            Require(travelled > .45f && !HunterOrderlyAI.IsInSafeZone(actor.transform.position, scene),
+                $"CH03-Q03 hunter navigates toward the radio and stays outside safe pads, displacement={travelled:F2}");
+            verification.Add($"CH03-Q03 local module PASS: partition blocks LOS; {rejected} invalid paths in {queries} queries over 0.8 s, zero raw movement, radio displacement {travelled:F2} m.");
         }
 
         private void VerifyLegacySave(int schema)

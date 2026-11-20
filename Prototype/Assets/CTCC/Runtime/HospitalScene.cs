@@ -161,6 +161,12 @@ namespace CTCC
         public bool IsAdditiveMode => additiveZoneScenes != null && additiveZoneScenes.Length > 0;
         public int LoadedZoneCount => registeredZones.Count;
 
+        public void PresentCasework(Investigation state)
+        {
+            foreach (var region in registeredZones)
+                region.PresentCasework(state);
+        }
+
         private sealed class NavigationSnapshot
         {
             public NavMeshBuildSource[] Sources;
@@ -271,6 +277,7 @@ namespace CTCC
         }
 
         public bool HasZone(string zoneId) => !string.IsNullOrEmpty(zoneId) && zonesById.ContainsKey(zoneId);
+        internal bool RegionReady(string zoneId, string sceneName) => HasZone(zoneId) && !loading.Contains(sceneName);
 
         /// <summary>
         /// Registers an additive ZoneRegion while enforcing strict M2 Handoff uniqueness

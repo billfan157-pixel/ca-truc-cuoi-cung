@@ -367,7 +367,7 @@ namespace CTCC.Editor
                     "Demolition", "Staff", "Store", "Socket1", "Socket2", "Socket3", "Socket4",
                     "F101", "ObsCard", "BedList", "Transfer", "Drawing", "WardRules", "ChartCard",
                     "Sign_EmergencyBox", "Sign_KhuBClosed", "Sign_ReceptionWindow", "Sign_HospitalGate",
-                    "Calendar2005", "MonitorECG"
+                    "Calendar2005", "MonitorECG", "M31_KhuB", "M31_Kho", "M31_Service", "M31_Morgue"
                 })
                 {
                     var m = Lit(name, 1f, 1f, 1f, smooth: name is "Room101" or "Welcome" or "Emergency" or "Sign_HospitalGate" or "Sign_ReceptionWindow" ? 0.42f : 0.16f, twoSided: true);

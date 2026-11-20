@@ -358,44 +358,57 @@ namespace CTCC.Editor
             if (art)
             {
                 // Blender 4.5 CH03 Props & Architectural Modules
-                var rackA = PlaceBlenderModel("CTCC_ENV_ArchiveShelfRack", perm, new Vector3(-2.85f, 0f, 31.20f), 90f, pairRB: true);
+                var rackA = PlaceBlenderModel("CTCC_ENV_ArchiveShelfRack", perm, new Vector3(-2.85f, 0f, 31.20f), -90f, pairRB: true);
                 Box("Archive rack A col", new Vector3(-2.85f, 1.05f, 31.20f), new Vector3(0.54f, 2.10f, 1.84f),
                     Mat("MetalOld"), perm, solid: true).GetComponent<Renderer>().enabled = false;
                 staticArchitecture.Add(rackA);
 
-                var rackB = PlaceBlenderModel("CTCC_ENV_ArchiveShelfRack", perm, new Vector3(-2.85f, 0f, 33.40f), 90f, pairRB: true);
+                var rackB = PlaceBlenderModel("CTCC_ENV_ArchiveShelfRack", perm, new Vector3(-2.85f, 0f, 33.40f), -90f, pairRB: true);
                 Box("Archive rack B col", new Vector3(-2.85f, 1.05f, 33.40f), new Vector3(0.54f, 2.10f, 1.84f),
                     Mat("MetalOld"), perm, solid: true).GetComponent<Renderer>().enabled = false;
                 staticArchitecture.Add(rackB);
 
                 staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_PatientRegisterE03", perm, new Vector3(-1.65f, 0.925f, 32.05f), -90f, pairRB: false));
-                staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_KnittingBagC02", perm, new Vector3(-2.72f, 0.92f, 31.15f), 85f, pairRB: false));
-                staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_UnnamedBoxC12", perm, new Vector3(-2.72f, 0.92f, 33.45f), 92f, pairRB: false));
+                staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_KnittingBagC02", perm, new Vector3(-2.69f, 1.10f, 31.15f), -85f, pairRB: false));
+                staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_UnnamedBoxC12", perm, new Vector3(-2.69f, 1.10f, 33.45f), -92f, pairRB: false));
                 staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_VintageRadio", perm, new Vector3(-1.85f, 0.845f, 35.85f), 25f, pairRB: false));
 
                 // Atmospheric R/B/M lighting in LOC05–07
-                Lamp("LOC05 nurse station spill R", LightType.Point, new Vector3(4.2f, 2.65f, 27.2f), 1.35f, 8.5f, new Color(0.58f, 0.74f, 0.82f), wardR);
-                Lamp("LOC07 archive rack spill R", LightType.Point, new Vector3(-1.1f, 2.55f, 32.3f), 1.25f, 8.2f, new Color(0.54f, 0.70f, 0.80f), realRoot);
-                Lamp("LOC06 duty corridor spill R", LightType.Point, new Vector3(4.0f, 2.65f, 33.5f), 1.15f, 9.0f, new Color(0.52f, 0.68f, 0.78f), wardR);
+                Lamp("LOC05 nurse station spill R", LightType.Point, new Vector3(4.2f, 2.65f, 27.2f), 3.6f, 8.5f, new Color(0.78f, 0.86f, 0.84f), wardR);
+                Lamp("LOC07 archive rack spill R", LightType.Point, new Vector3(-0.9f, 2.15f, 32.35f), 3.4f, 7.7f, new Color(0.79f, 0.83f, 0.72f), realRoot);
+                Lamp("LOC07 bypass spill", LightType.Point, new Vector3(0.3f, 2.7f, 36.6f), 2.35f, 6f, new Color(.70f, .82f, .79f), realRoot);
+                Lamp("LOC06 duty corridor spill R", LightType.Point, new Vector3(4.0f, 2.65f, 33.5f), 2.7f, 9.0f, new Color(0.71f, 0.83f, 0.81f), wardR);
                 Lamp("LOC05 nurse tube B", LightType.Point, new Vector3(4.2f, 3.15f, 27.2f), 2.15f, 9.5f, new Color(0.86f, 0.96f, 0.87f), wardB);
                 Lamp("LOC07 archive tube B", LightType.Point, new Vector3(-0.8f, 3.15f, 32.5f), 2.10f, 9.5f, new Color(0.86f, 0.96f, 0.87f), repRoot);
                 Lamp("LOC06 corridor tube B", LightType.Point, new Vector3(4.0f, 3.15f, 33.5f), 2.05f, 9.5f, new Color(0.86f, 0.96f, 0.87f), wardB);
             }
 
             // Reality.M Memory Vignette Prop & Warm Golden Lamp (active only during Reality.M memory vignette!)
-            var memLamp = Lamp("Bà Lành memory vignette warm key M", LightType.Point, new Vector3(-1.85f, 2.15f, 31.35f),
-                2.85f, 6.5f, new Color(1.0f, 0.78f, 0.42f), memRoot);
-            Box("Memory vignette knitting glow marker", new Vector3(-1.65f, 0.94f, 32.2f), new Vector3(0.32f, 0.04f, 0.32f),
-                Mat("WarmGlow"), memRoot);
+            Lamp("Bà Lành memory vignette warm key M", LightType.Point, new Vector3(-1.18f, 1.94f, 33.38f),
+                4.6f, 6.5f, new Color(1.0f, 0.83f, 0.60f), memRoot);
+            if (art)
+            {
+                PlaceBlenderModel("CTCC_PROP_ArchiveChair", memRoot, new Vector3(-1.68f, 0, 33.08f), -76, pairRB: false);
+                PlaceBlenderModel("CTCC_PROP_KnittingBagC02", memRoot, new Vector3(-1.66f, .49f, 33.04f),
+                    -30, pairRB: false, scale: Vector3.one * .87f);
+            }
+            var knit = Group("Memory · named needle performance", memRoot, new Vector3(-1.59f, .62f, 33.05f));
+            var needleA = Box("Bamboo needle, near", new Vector3(0, 0, -.032f), new Vector3(.009f, .009f, .23f), Mat("Wood"), knit);
+            var needleB = Box("Bamboo needle, far", new Vector3(-.025f, .014f, .02f), new Vector3(.009f, .009f, .20f), Mat("Wood"), knit);
+            needleA.transform.localRotation = Quaternion.Euler(18, -36, 0);
+            needleB.transform.localRotation = Quaternion.Euler(-12, 45, 0);
+            var memoryMotion = knit.gameObject.AddComponent<ArchiveMemoryMotion>();
+            memoryMotion.needleA = needleA.transform;
+            memoryMotion.needleB = needleB.transform;
 
             // CH03 Interactive Targets (LOC05 Nurse Station, LOC07 Archive & Meeting Loop, LOC06 Duty Corridor)
             CapsuleTarget("E03", "Sổ đăng ký bệnh nhân 12 mã (E03)", new Vector3(-1.56f, 1.05f, 31.85f), new Vector3(0.55f, 0.29f, 0.40f), perm);
             Box("Folded note · B/2", new Vector3(-1.63f, .929f, 32.49f), new Vector3(.17f, .018f, .12f), Mat("Paper"), perm);
             CapsuleTarget("C02_NOTE", "Mảnh ghi chú kẹp sợi len đỏ", new Vector3(-1.57f, 1.04f, 32.57f), new Vector3(0.40f, 0.23f, 0.23f), perm);
             CapsuleTarget("AN03", "Điểm neo phòng hồ sơ & Sổ tên (AN03 / PZ03)", new Vector3(-1.65f, 1.08f, 32.20f), new Vector3(0.55f, 0.48f, 0.65f), perm);
-            CapsuleTarget("C02_BAG", "Túi vải ở kệ số 2", new Vector3(-2.65f, 1.02f, 31.15f), new Vector3(0.48f, 0.42f, 0.48f), perm);
+            CapsuleTarget("C02_BAG", "Túi vải ở kệ số 2", new Vector3(-2.62f, 1.20f, 31.15f), new Vector3(0.48f, 0.42f, 0.48f), perm);
             CapsuleTarget("C02_LETTER", "Phong thư thăm bệnh", new Vector3(-2.65f, 1.54f, 31.65f), new Vector3(0.42f, 0.35f, 0.42f), perm);
-            CapsuleTarget("C12_BOX", "Hộp đồ cá nhân không tên", new Vector3(-2.65f, 1.02f, 33.45f), new Vector3(0.48f, 0.42f, 0.48f), perm);
+            CapsuleTarget("C12_BOX", "Hộp đồ cá nhân không tên", new Vector3(-2.62f, 1.20f, 33.45f), new Vector3(0.48f, 0.42f, 0.48f), perm);
             CapsuleTarget("FS10_LOCK", "Ổ khóa tủ hồ sơ niêm phong năm 2005", new Vector3(2.87f, 1.48f, 36.4f), new Vector3(0.40f, 0.36f, 0.40f), ward);
             CapsuleTarget("RADIO_LOC07", "Đài cassette cũ trong phòng họp (Đánh lạc hướng)", new Vector3(-1.85f, 0.98f, 35.85f), new Vector3(0.48f, 0.42f, 0.48f), perm);
             CapsuleTarget("G03", "Cửa thoát khu lưu trữ (G03)", new Vector3(4.0f, 1.25f, 37.05f), new Vector3(1.04f, 0.88f, 0.22f), ward);
@@ -412,6 +425,8 @@ namespace CTCC.Editor
 
             if (loc05 != null)
             {
+                loc05.region.namedMemory = knit.gameObject;
+                loc05.region.memoryMotion = memoryMotion;
                 loc05.region.ch03PatrolWaypoints = wps;
                 loc05.region.ch03RadioPoint = radioPt;
                 if (art)

@@ -103,7 +103,8 @@ if (!$SkipBuild) {
     Copy-Item -LiteralPath (Join-Path $project 'ThirdPartyNotices.md') -Destination $outAbs
 
     $revision = & git -C $repo rev-parse HEAD
-    $protoDiff = (& git -C $repo status --porcelain -- Prototype) -join ';'
+    $protoDiff = (@(& git -C $repo diff HEAD --name-status -- Prototype) +
+        @(& git -C $repo ls-files --others --exclude-standard -- Prototype)) -join ';'
     $managed = Join-Path $outAbs 'CaTrucCuoiCung_Data\Managed\Assembly-CSharp.dll'
     $lines = @(
         "revision=$revision",

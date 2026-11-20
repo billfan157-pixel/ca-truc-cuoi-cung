@@ -95,7 +95,8 @@ namespace CTCC
                 {
                     if (!route.MoveNext())
                     {
-                        passed = State.Happened("M1-complete") && GateService.G02(State);
+                        passed = State.Happened("M1-complete") && GateService.G02(State) &&
+                            (Argument("-ctcc-expansion") != "true" || GateService.G04(State));
                         break;
                     }
                 }
@@ -302,8 +303,88 @@ namespace CTCC
                     foreach (var unused in BenchmarkWalk(step.Name, step.Destination)) yield return null;
                 }
             }
+            if (Argument("-ctcc-expansion") == "true")
+                foreach (var unused in BenchmarkExpansion()) yield return null;
             if (Argument("-ctcc-character-stress") == "true")
                 foreach (var unused in BenchmarkCharacterStress()) yield return null;
+        }
+
+        private IEnumerable<object> BenchmarkExpansion()
+        {
+            foreach (var frame in BenchmarkLoadRegion("LOC05", RegionStreamer.Upper)) yield return frame;
+            foreach (var frame in BenchmarkCommit("ch03-handoff", casework.BeginCh03Async(player.Feet))) yield return frame;
+            foreach (var point in new[]
+            {
+                new Vector3(4, 0, 33.68f), new(-2.65f, 0, 34.35f), new(-14.7f, 0, 34.35f),
+                new(-14.7f, 0, 36.8f), new(-.60f, 0, 36.8f), new(-.60f, 0, 32.20f)
+            })
+                foreach (var unused in BenchmarkWalk("ch03-stairs-and-archive", point)) yield return null;
+            Require(transaction.OnPad(player.Feet, "AN03"), "Benchmark reached AN03 on the third floor");
+            foreach (var id in new[] { EvidenceRegistry.PatientRegister, EvidenceRegistry.C02CareNote,
+                EvidenceRegistry.C02YarnBag, EvidenceRegistry.C12UnnamedBox })
+                foreach (var frame in BenchmarkCommit("ch03-evidence-" + id, casework.TakeCh03EvidenceAsync(id, "LOC07")))
+                    yield return frame;
+            benchmarkStage = "ch03-hunter-functional";
+            var deadline = Time.realtimeSinceStartupAsDouble + 3;
+            while (Time.realtimeSinceStartupAsDouble < deadline)
+            {
+                orderlyAi.Tick(State, Time.unscaledDeltaTime, false, false, false, Line);
+                yield return null;
+            }
+            foreach (var frame in BenchmarkCommit("ch03-pz03", casework.AttemptCh03Pu01Async("C02", true, player.Feet)))
+                yield return frame;
+            foreach (var frame in BenchmarkCommit("ch03-enter-M", casework.SwitchMemoryVignetteAn03Async(player.Feet)))
+                yield return frame;
+            player.Teleport(scene.Pad("AN03"));
+            foreach (var frame in BenchmarkCommit("ch03-return-R", casework.SwitchMemoryVignetteAn03Async(player.Feet)))
+                yield return frame;
+            foreach (var point in new[]
+            {
+                new Vector3(-.60f, 0, 36.8f), new(-14.7f, 0, 36.8f), new(-14.7f, 0, 34.35f),
+                new(-2.60f, 0, 34.35f), new(4f, 0, 35.0f), new(4f, 0, 45.7f)
+            })
+                foreach (var unused in BenchmarkWalk("ch03-return-to-duty", point)) yield return null;
+            foreach (var frame in BenchmarkCommit("ch03-duty-checkpoint", casework.CompleteCh03Async(player.Feet))) yield return frame;
+            foreach (var frame in BenchmarkCommit("ch04-begin", casework.BeginCh04Async())) yield return frame;
+            foreach (var id in new[] { EvidenceRegistry.DutyOrders, EvidenceRegistry.DutyLog, EvidenceRegistry.MeetingTape })
+                foreach (var frame in BenchmarkCommit("ch04-evidence-" + id, ChapterFour.Take(transaction, id, "LOC06")))
+                    yield return frame;
+            foreach (var frame in BenchmarkCommit("ch04-meeting", ChapterFour.PresentMeeting(transaction))) yield return frame;
+            foreach (var point in new[] { new Vector3(4, 0, 33.5f), new(4, 0, 20.97f), new(7, 0, 21.18f) })
+                foreach (var unused in BenchmarkWalk("ch04-to-technical-stair", point)) yield return null;
+            foreach (var frame in BenchmarkLoadRegion("LOC09", RegionStreamer.Service)) yield return frame;
+            foreach (var unused in BenchmarkWalk("ch04-technical-stair", new Vector3(7, 0, 32.55f))) yield return null;
+            Require(Mathf.Abs(player.Feet.y + 3.4f) < .27f, "Benchmark reached B1");
+            foreach (var frame in BenchmarkCommit("ch04-power", ChapterFour.SetPower(transaction, 10))) yield return frame;
+            foreach (var point in new[] { new Vector3(7, 0, 39), new(1.5f, 0, 39) })
+                foreach (var unused in BenchmarkWalk("ch04-morgue", point)) yield return null;
+            foreach (var id in new[] { EvidenceRegistry.MorgueRegister, EvidenceRegistry.LanRecovery })
+                foreach (var frame in BenchmarkCommit("ch04-evidence-" + id, ChapterFour.Take(transaction, id, "LOC10")))
+                    yield return frame;
+            foreach (var frame in BenchmarkCommit("ch04-H05-PT02", ChapterFour.MatchRecovery(transaction))) yield return frame;
+            Require(transaction.Restore(SaveSlot.Auto, out var restored) == SaveRead.Valid && restored == scene.Pad("AP09"),
+                "Benchmark restored B1 checkpoint");
+        }
+
+        private IEnumerable<object> BenchmarkCommit(string name, Task<CommitResult> commit)
+        {
+            benchmarkStage = name;
+            long began = Stopwatch.GetTimestamp();
+            while (!commit.IsCompleted) yield return null;
+            Apply(commit.GetAwaiter().GetResult(), name);
+            benchmarkActions.Add((name, PerformanceCounter(), (Stopwatch.GetTimestamp() - began) * 1000d / Stopwatch.Frequency));
+            yield return null;
+        }
+
+        private IEnumerable<object> BenchmarkLoadRegion(string zone, string sceneName)
+        {
+            benchmarkStage = "load-" + zone;
+            long began = Stopwatch.GetTimestamp();
+            StartCoroutine(scene.LoadZoneAsync(sceneName));
+            double deadline = Time.realtimeSinceStartupAsDouble + 8d;
+            while (!scene.RegionReady(zone, sceneName) && Time.realtimeSinceStartupAsDouble < deadline) yield return null;
+            Require(scene.RegionReady(zone, sceneName), "Region did not load for benchmark: " + zone);
+            benchmarkActions.Add((benchmarkStage, PerformanceCounter(), (Stopwatch.GetTimestamp() - began) * 1000d / Stopwatch.Frequency));
         }
 
         private IEnumerable<object> BenchmarkCharacterStress()

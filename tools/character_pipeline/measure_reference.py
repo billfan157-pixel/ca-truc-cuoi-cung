@@ -41,6 +41,7 @@ def main():
     parser.add_argument("evidence", type=Path)
     parser.add_argument("--runs", type=int, default=3, choices=range(1, 10))
     parser.add_argument("--stress", action="store_true", help="Include the synthetic character stress stages")
+    parser.add_argument("--expansion", action="store_true", help="Include CH03–04 stairs and casework")
     parser.add_argument("--mode", choices=("both", "paced", "uncapped"), default="both")
     args = parser.parse_args()
     exe, presentmon = args.executable.resolve(strict=True), args.presentmon.resolve(strict=True)
@@ -74,6 +75,8 @@ def main():
                        "-VSync", str(vsync)]
                 if args.stress:
                     cmd.append("-CharacterStress")
+                if args.expansion:
+                    cmd.append("-Expansion")
                 subprocess.run(cmd, check=True)
                 shares = {"unity": foreground_share(dest / "frames.csv", "focused"),
                           "windows": foreground_share(dest / "process.csv", "foreground")}

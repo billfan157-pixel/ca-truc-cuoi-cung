@@ -188,6 +188,7 @@ namespace CTCC
 
         private void ApplyCommitted(Investigation current)
         {
+            scene.PresentCasework(current);
             player.Apply(current.settings);
             player.ReportLayer = current.layer == Reality.B;
             ui.Apply(current.settings);
@@ -246,9 +247,26 @@ namespace CTCC
             Vector3 feet = player.Feet;
             if (!streaming && Time.unscaledTime >= reconcileRegionsAt)
                 StartCoroutine(UpdateRegions());
+            if (State.chapter == "CH02" && GateService.G02(State) && transaction.OnPad(feet, "AP06"))
+            {
+                StartCoroutine(EnterCh03ArchiveWingAsync());
+                return;
+            }
             if (State.chapter == "CH03" && !State.Happened("CH03-T01") && transaction.OnPad(feet, "AP06"))
             {
                 SaveCheckpoint(() => casework.RecordAsync("CH03-T01", feet));
+                return;
+            }
+            if (State.chapter == "CH03" && GateService.G03(State) && !State.Happened("CH03-T06") &&
+                Mathf.Abs(feet.y - 8f) < .25f && feet.z > 34.3f)
+            {
+                SaveCheckpoint(() => casework.RecordAsync("CH03-T06", feet));
+                return;
+            }
+            if (State.chapter == "CH04" && !State.Happened("CH04-T02") &&
+                Mathf.Abs(feet.y - 4f) < .25f && feet.z > 33f && feet.z < 37f && feet.x > -3.4f && feet.x < 6f)
+            {
+                SaveCheckpoint(() => casework.RecordAsync("CH04-T02", feet));
                 return;
             }
             bool use = keys[Options.alternateBindings ? Key.K : Key.E].wasPressedThisFrame;
