@@ -5,6 +5,7 @@ import csv
 import ctypes as ct
 import json
 from pathlib import Path
+import shutil
 import struct
 import subprocess
 
@@ -67,7 +68,8 @@ def main():
             good_runs = 0
             for attempt in range(1, args.runs + 3):
                 dest = evidence / f"vsync{vsync}-{attempt}"
-                cmd = ["pwsh.exe", "-NoProfile", "-File", str(ROOT / "tools" / "measure_m2.ps1"),
+                shell = shutil.which("pwsh.exe") or shutil.which("powershell.exe") or "powershell.exe"
+                cmd = [shell, "-ExecutionPolicy", "Bypass", "-NoProfile", "-File", str(ROOT / "tools" / "measure_m2.ps1"),
                        "-Executable", str(exe), "-PresentMon", str(presentmon), "-Evidence", str(dest),
                        "-VSync", str(vsync)]
                 if args.stress:

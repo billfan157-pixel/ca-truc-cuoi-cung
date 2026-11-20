@@ -41,6 +41,7 @@ Shader "CTCC/ApparitionHuman"
         ENDHLSL
 
         // Depth prepass so Bé An's human body/clothes never show overlapping double-transparent limbs!
+        // In URP's transparent DrawObjectsPass, SRPDefaultUnlit executes BEFORE UniversalForward.
         Pass
         {
             Name "ApparitionDepthPrepass"
@@ -62,7 +63,8 @@ Shader "CTCC/ApparitionHuman"
             Varyings VertPre(Attributes input)
             {
                 Varyings o;
-                o.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+                VertexPositionInputs posInputs = GetVertexPositionInputs(input.positionOS.xyz);
+                o.positionCS = posInputs.positionCS;
                 o.uv = TRANSFORM_TEX(input.uv, _BaseMap);
                 return o;
             }

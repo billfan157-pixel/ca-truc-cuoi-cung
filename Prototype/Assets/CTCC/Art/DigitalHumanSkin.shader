@@ -130,32 +130,32 @@ Shader "CTCC/DigitalHumanSkin"
                 half NdotL = dot(N, L);
                 half NdotL_macro = dot(N_macro, L);
 
-                // Pre-integrated RGB skin wrap scatter (hemoglobin warmth across shadow terminator)
+                // Pre-integrated RGB skin wrap scatter (subtle warm dermal gradient without harsh orange terminator rings)
                 half sss = saturate(thickness * _SSSStrength);
-                half3 wrap = half3(0.46h, 0.19h, 0.09h) * sss;
+                half3 wrap = half3(0.32h, 0.18h, 0.11h) * sss;
                 half3 wrapDiff = saturate((NdotL_macro.xxx + wrap) / (1.0h + wrap));
-                half terminator = exp(-pow((NdotL_macro - 0.05h) / max(0.24h, 0.36h * sss), 2.0h));
-                half3 scatterTerm = _SSSColor.rgb * (terminator * 0.22h * sss);
+                half terminator = exp(-pow((NdotL_macro - 0.04h) / max(0.28h, 0.42h * sss), 2.0h));
+                half3 scatterTerm = _SSSColor.rgb * (terminator * 0.11h * sss);
 
-                half3 diffuse = lerp(saturate(NdotL).xxx, wrapDiff, saturate(0.45h + 0.50h * sss)) + scatterTerm;
+                half3 diffuse = lerp(saturate(NdotL).xxx, wrapDiff, saturate(0.38h + 0.42h * sss)) + scatterTerm;
 
                 // Soft back-scattering through thin skin (ears, nostrils, finger edges)
                 half3 backVec = -(L + N_macro * 0.45h);
-                half backAmt = pow(saturate(dot(V, normalize(backVec))), 3.0h) * thickness * _BackScatter;
-                half3 backLit = _SSSColor.rgb * backAmt * light.color * light.distanceAttenuation;
+                half backAmt = pow(saturate(dot(V, normalize(backVec))), 3.2h) * thickness * _BackScatter;
+                half3 backLit = _SSSColor.rgb * (backAmt * 0.65h) * light.color * light.distanceAttenuation;
 
-                // Dual-lobe human sebum specular (F0 = 0.028 dielectric skin oil)
+                // Dual-lobe human sebum specular (F0 = 0.028 dielectric skin oil, energy-conserving roll-off)
                 half3 H = normalize(L + V);
                 half NdotH = saturate(dot(N, H));
                 half NdotV = max(dot(N, V), 0.001h);
                 half VdotH = saturate(dot(V, H));
                 half fresnel = 0.028h + (1.0h - 0.028h) * pow(1.0h - VdotH, 5.0h);
 
-                half r1 = clamp(roughness * 0.64h, 0.16h, 0.88h);
-                half r2 = clamp(lerp(roughness, 0.88h, 0.52h), 0.38h, 0.96h);
-                half D = 0.72h * GGXDistribution(NdotH, r1) + 0.28h * GGXDistribution(NdotH, r2);
-                half vis = 0.25h / max(NdotV * max(NdotL, 0.08h), 0.15h);
-                half spec = D * vis * fresnel * saturate(NdotL * 4.0h) * _SpecIntensity;
+                half r1 = clamp(roughness * 0.74h, 0.24h, 0.90h);
+                half r2 = clamp(lerp(roughness, 0.90h, 0.56h), 0.42h, 0.96h);
+                half D = 0.64h * GGXDistribution(NdotH, r1) + 0.36h * GGXDistribution(NdotH, r2);
+                half vis = 0.25h / max(NdotV * max(NdotL, 0.12h), 0.20h);
+                half spec = min(0.45h, D * vis * fresnel * saturate(NdotL * 3.2h) * _SpecIntensity);
 
                 return (albedo * diffuse * ao + spec.xxx) * radiance + backLit * albedo;
             }

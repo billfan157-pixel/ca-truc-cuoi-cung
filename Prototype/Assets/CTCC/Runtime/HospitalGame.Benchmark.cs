@@ -150,6 +150,7 @@ namespace CTCC
                 while (!captured.HasValue && Time.realtimeSinceStartup < deadline) yield return null;
                 File.WriteAllText(Path.Combine(folder, "memory-capture.txt"), $"success={captured == true}\n");
             }
+            yield return PrepareForQuit();
             Application.Quit(passed ? 0 : 1);
         }
 

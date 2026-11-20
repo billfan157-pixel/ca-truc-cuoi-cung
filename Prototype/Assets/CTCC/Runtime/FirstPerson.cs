@@ -24,6 +24,9 @@ namespace CTCC
         public Vector3 Feet => transform.position;
         public Camera Eye => eye;
         public bool CanPlay { get; set; }
+        public bool IsCrouching => capsule != null && capsule.height < 1.35f;
+        public bool IsRunning => currentVelocity.sqrMagnitude > 9.0f;
+        public bool IsMoving => currentVelocity.sqrMagnitude > 0.05f;
         private readonly Collider[] nearby = new Collider[18];
 
         public void Initialize(Camera camera, EnvironmentalAudio bus)
@@ -76,6 +79,13 @@ namespace CTCC
 
         public void RestoreBattery(int charge) => battery = Mathf.Max(120, charge);
 
+        public void SetTorchEnabled(bool on)
+        {
+            torchOn = on;
+            if (torch != null)
+                torch.enabled = on && battery > 0f;
+        }
+
         public void Teleport(Transform target) => Teleport(target.position, target.rotation);
 
         public void Teleport(Vector3 point, Quaternion rotation)
@@ -93,7 +103,9 @@ namespace CTCC
 
         private void Update()
         {
-            if (!CanPlay || eye == null || !Application.isFocused)
+            bool focusedOrIgnored = Application.isFocused ||
+                InputSystem.settings.backgroundBehavior == InputSettings.BackgroundBehavior.IgnoreFocus;
+            if (!CanPlay || eye == null || !focusedOrIgnored)
                 return;
             var k = Keyboard.current;
             var m = Mouse.current;

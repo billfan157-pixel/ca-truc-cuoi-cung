@@ -21,7 +21,10 @@ namespace CTCC
             Require(Argument("-ctcc-save") != null && transaction.Inspect(SaveSlot.Auto) == SaveRead.Empty &&
                 transaction.Inspect(SaveSlot.Manual) == SaveRead.Empty, "Input QA requires isolated, empty save slots");
             yield return Until(() => Application.isFocused, "Input QA needs a focused Windows player");
+            var physicalKeyboards = InputSystem.devices.OfType<Keyboard>().Where(d => d.enabled).ToArray();
+            foreach (var kb in physicalKeyboards) InputSystem.DisableDevice(kb);
             qaKeys = InputSystem.AddDevice<Keyboard>();
+            qaKeys.MakeCurrent();
             var background = InputSystem.settings.backgroundBehavior;
             InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             try
@@ -35,6 +38,10 @@ namespace CTCC
             finally
             {
                 InputSystem.RemoveDevice(qaKeys);
+                foreach (var kb in physicalKeyboards)
+                {
+                    if (kb.added) InputSystem.EnableDevice(kb);
+                }
                 InputSystem.settings.backgroundBehavior = background;
             }
         }
@@ -194,13 +201,13 @@ namespace CTCC
             yield return Choose("Ghép tranh theo đường mép");
             yield return Until(() => !busy && State.Has(EvidenceRegistry.Drawing), "assembled drawing was saved");
             yield return Choose("Đối chiếu An");
-            yield return Until(() => !busy && GateService.G02(State), "C01 checkpoint");
+            yield return Until(() => !busy && !savingDialogue && GateService.G02(State), "C01 checkpoint");
             Require(GateService.G02(State), "G02 opens through physical evidence and UI");
             float x = sideDoor ? 0.05f : 4f;
             player.Teleport(new Vector3(x, 0.02f, 10.4f), Quaternion.identity);
             yield return Until(() => gatekeeperCameo.IsActive, "Gatekeeper begins from the corridor trigger");
-            yield return Hold(Key.W, 3.6f);
-            yield return Until(() => !busy && State.Happened("CH02-T06") && !gatekeeperCameo.IsActive,
+            yield return Hold(Key.W, 3.8f);
+            yield return Until(() => !busy && !savingDialogue && State.Happened("CH02-T06") && !gatekeeperCameo.IsActive,
                 sideDoor ? "walked through Door B" : "walked through Door A");
             yield return UseFrom("EXIT", scene.Pad("AP05").position);
             yield return Until(() => !busy && State.Happened("M1-complete") && ui.IsModal, "exit reached and recorded");
@@ -249,7 +256,7 @@ namespace CTCC
 
         private IEnumerator Choose(string label)
         {
-            yield return Until(() => ui.IsModal, "modal for " + label);
+            yield return Until(() => ui.IsModal && !busy && !savingDialogue, "modal for " + label);
             var button = ButtonMatching(label);
             Require(button.interactable, "enabled action " + label);
             for (int i = 0; i < 12 && EventSystem.current.currentSelectedGameObject != button.gameObject; i++)
@@ -258,18 +265,36 @@ namespace CTCC
             yield return Tap(Key.Enter);
         }
 
-        private IEnumerator Tap(Key key) => Hold(key, 0f);
+        private IEnumerator Tap(Key key)
+        {
+            yield return Until(() => !busy && !savingDialogue, "ready for tap " + key);
+            yield return Hold(key, 0f);
+        }
 
         private IEnumerator Hold(Key key, float duration)
         {
             qaKeys.MakeCurrent();
             InputSystem.QueueStateEvent(qaKeys, new KeyboardState(key));
-            double deadline = Time.realtimeSinceStartupAsDouble + duration;
-            yield return Until(() => qaKeys[key].isPressed, "queued keyboard input " + key);
-            // Let the normal Update handlers observe the pressed state before releasing it.
-            do { yield return null; } while (Time.realtimeSinceStartupAsDouble < deadline);
+            yield return Until(() =>
+            {
+                qaKeys.MakeCurrent();
+                return qaKeys[key].isPressed;
+            }, "queued keyboard input " + key);
+            // Let the normal Update handlers observe the pressed state across simulated time before releasing it.
+            float elapsed = 0f;
+            do
+            {
+                qaKeys.MakeCurrent();
+                yield return null;
+                elapsed += Mathf.Min(Time.deltaTime, 0.045f);
+            } while (elapsed < duration);
+            qaKeys.MakeCurrent();
             InputSystem.QueueStateEvent(qaKeys, new KeyboardState());
-            yield return Until(() => !qaKeys[key].isPressed, "keyboard release " + key);
+            yield return Until(() =>
+            {
+                qaKeys.MakeCurrent();
+                return !qaKeys[key].isPressed;
+            }, "keyboard release " + key);
         }
 
         private static IEnumerator Until(Func<bool> ready, string step)

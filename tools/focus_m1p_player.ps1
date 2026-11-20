@@ -24,14 +24,16 @@ public static class CtccPlayerWindow
 
     public static bool IsForegroundProcess(int process)
     {
-        GetWindowThreadProcessId(GetForegroundWindow(), out uint owner);
+        uint owner;
+        GetWindowThreadProcessId(GetForegroundWindow(), out owner);
         return owner == (uint)process;
     }
 
     public static void Show(IntPtr window)
     {
         uint caller = GetCurrentThreadId();
-        uint foreground = GetWindowThreadProcessId(GetForegroundWindow(), out _);
+        uint unused;
+        uint foreground = GetWindowThreadProcessId(GetForegroundWindow(), out unused);
         bool attached = foreground != 0 && foreground != caller && AttachThreadInput(caller, foreground, true);
         try
         {
@@ -44,14 +46,18 @@ public static class CtccPlayerWindow
 
     public static bool ClickBenchmarkWindow(IntPtr window, int process)
     {
-        if (!GetWindowRect(window, out var rect) || !GetCursorPos(out var prior)) return false;
+        Rect rect;
+        Point prior;
+        if (!GetWindowRect(window, out rect) || !GetCursorPos(out prior)) return false;
         // Direct foreground requests can be refused by Windows. Click only a pixel
         // currently owned by this freshly started benchmark player, never a covering app.
-        foreach (var fraction in new[] { (17, 19), (83, 19), (25, 79), (80, 78) })
+        int[][] fractions = new int[][] { new int[] { 17, 19 }, new int[] { 83, 19 }, new int[] { 25, 79 }, new int[] { 80, 78 } };
+        foreach (int[] fraction in fractions)
         {
-            var point = new Point { x = rect.left + (rect.right - rect.left) * fraction.Item1 / 100,
-                                    y = rect.top + (rect.bottom - rect.top) * fraction.Item2 / 100 };
-            GetWindowThreadProcessId(WindowFromPoint(point), out uint owner);
+            Point point = new Point { x = rect.left + (rect.right - rect.left) * fraction[0] / 100,
+                                      y = rect.top + (rect.bottom - rect.top) * fraction[1] / 100 };
+            uint owner;
+            GetWindowThreadProcessId(WindowFromPoint(point), out owner);
             if (owner != (uint)process || !SetCursorPos(point.x, point.y)) continue;
             try
             {

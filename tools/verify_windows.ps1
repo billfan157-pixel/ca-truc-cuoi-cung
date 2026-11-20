@@ -27,13 +27,13 @@ if($RecordDir -ne "") {
 }
 $ctccRun=Start-Process -FilePath $ctccExe -WorkingDirectory (Split-Path -Parent $ctccExe) -ArgumentList $ctccArgs -PassThru
 if ($PlayerInput) {
-    Show-CtccPlayerWindow $ctccRun
+    Show-CtccPlayerWindow $ctccRun -CalibrationClick
     $startupLimit = [DateTime]::UtcNow.AddSeconds(5)
     while ([DateTime]::UtcNow -lt $startupLimit -and !$ctccRun.WaitForExit(250)) {
         $ctccRun.Refresh()
         if ($ctccRun.MainWindowHandle -ne [IntPtr]::Zero -and
             [CtccPlayerWindow]::GetForegroundWindow() -ne $ctccRun.MainWindowHandle) {
-            Show-CtccPlayerWindow $ctccRun
+            Show-CtccPlayerWindow $ctccRun -CalibrationClick
         }
     }
 }
