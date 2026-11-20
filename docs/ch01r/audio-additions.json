@@ -1,0 +1,38 @@
+{
+  "DrawerSlide": {
+    "file": "DrawerSlide.wav",
+    "sample_rate_hz": 48000,
+    "channels": 1,
+    "duration_sec": 0.68,
+    "rms_dbfs": -22.0,
+    "true_peak_dbtp": -7.88,
+    "sha256": "9de0ae511ddf3e2e"
+  },
+  "PaperFlip": {
+    "file": "PaperFlip.wav",
+    "sample_rate_hz": 48000,
+    "channels": 1,
+    "duration_sec": 0.38,
+    "rms_dbfs": -23.5,
+    "true_peak_dbtp": -6.57,
+    "sha256": "f8f9162240750709"
+  },
+  "ClockTick": {
+    "file": "ClockTick.wav",
+    "sample_rate_hz": 48000,
+    "channels": 1,
+    "duration_sec": 0.42,
+    "rms_dbfs": -24.81,
+    "true_peak_dbtp": -4.0,
+    "sha256": "74b6210f4765c52d"
+  },
+  "DistantSteps": {
+    "file": "DistantSteps.wav",
+    "sample_rate_hz": 48000,
+    "channels": 1,
+    "duration_sec": 2.45,
+    "rms_dbfs": -27.5,
+    "true_peak_dbtp": -6.22,
+    "sha256": "3f193ac1744810c4"
+  }
+}

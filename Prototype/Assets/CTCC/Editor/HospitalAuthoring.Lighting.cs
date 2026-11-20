@@ -92,7 +92,10 @@ namespace CTCC.Editor
             Tube(new Vector3(2.15f, 3.59f, -3.20f), 0f, cleanTube, 2.8f, castShadow: false);
             Tube(new Vector3(6.32f, 3.59f, -4.58f), 0f, cleanTube, 2.2f, castShadow: false);
             Tube(new Vector3(7.80f, 3.59f, 5.00f), 90f, cleanTube, 3.4f, castShadow: art);
-            Tube(new Vector3(11.55f, 3.59f, 5.20f), 90f, cleanTube, 3.1f, castShadow: art);
+            var bed4Tube = Tube(new Vector3(11.55f, 3.59f, 5.20f), 90f, cleanTube, 3.1f, castShadow: art);
+            Tube(new Vector3(0.05f, 3.59f, 3.85f), 0f, cleanTube, 2.1f, castShadow: false);
+            if (multiScene && bed4Tube != null) zones["LOC03"].region.bed4TubeLight = bed4Tube;
+            else if (bed4Tube != null) world.bed4TubeLight = bed4Tube;
 
             Lamp("Room 101 GI bounce B", LightType.Point, new Vector3(9.65f, 0.85f, 5.0f), 0.82f, 8.8f, new Color(0.76f, 0.82f, 0.72f), report);
             Lamp("Corridor GI bounce B", LightType.Point, new Vector3(4.0f, 0.95f, 5.5f), 0.65f, 8.8f, new Color(0.74f, 0.80f, 0.72f), report);
@@ -400,7 +403,7 @@ namespace CTCC.Editor
             return l;
         }
 
-        private void Tube(Vector3 p, float yaw, Color clean, float intensity, bool castShadow = false)
+        private Light Tube(Vector3 p, float yaw, Color clean, float intensity, bool castShadow = false)
         {
             var lit = Lamp("Mains tube pool", castShadow ? LightType.Spot : LightType.Point,
                 p + Vector3.down * 0.14f, castShadow ? intensity * 2.2f : intensity, 7.8f, clean, report, shadow: castShadow);
@@ -413,9 +416,10 @@ namespace CTCC.Editor
             }
             if (multiScene) ZoneAt(p.z).tubes.Add(lit);
             else livingTubes.Add(lit);
-            if (!art) return;
+            if (!art) return lit;
             var fixture = PlaceBlenderModel("CTCC_ENV_FluorescentFixture", permanent, p, yaw, pairRB: true);
             staticArchitecture.Add(fixture);
+            return lit;
         }
 
         private void Fan(Vector3 p)
@@ -658,6 +662,10 @@ namespace CTCC.Editor
             bus.breakerCut = Clip("BreakerCut");
             bus.emergencyHum = Clip("EmergencyHum");
             bus.distantThunder = Clip("DistantThunder");
+            bus.drawerSlide = Clip("DrawerSlide");
+            bus.paperFlip = Clip("PaperFlip");
+            bus.clockTick = Clip("ClockTick");
+            bus.distantSteps = Clip("DistantSteps");
             bus.lanMotif = Clip("MUS_LanMotif");
 
             // Load canonical Vietnamese Temp VO clips (TASK009-B) with hard LOCK-V22-02 filter

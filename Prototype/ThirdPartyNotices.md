@@ -45,3 +45,9 @@ Toàn bộ tài sản môi trường/đạo cụ (36 tài sản M1 kế thừa +
 ## Bộ đạo cụ kỹ thuật M3.1
 
 Bậc terrazzo, xe thuốc, tủ khô và bảng tải là thiết kế hư cấu do dự án dựng bằng Blender 4.5, với mã dựng tại `tools/blender_assets/build_m31_service_kit.py`. Tệp `.blend` và FBX cùng tên đi kèm mã nguồn. Vật liệu dùng thư viện nội bộ và các lớp PBR CC0 đã kê ở trên. Không đưa ảnh hồ sơ, nhãn bệnh viện hoặc bản vẽ nhà sản xuất vào bản chơi. Tham chiếu và các chi tiết cần duyệt được ghi trong [mặt cắt M3.1](../docs/m3/m31-world.md).
+
+## Bộ tài sản điều tra & tương tác CH01-R
+
+- **7 mô hình Blender 4.5 LTS tự dựng** (`tools/blender_assets/build_ch01r_props.py`, nguồn `.blend` trong `ArtSource/Blender/`, FBX trong `Prototype/Assets/CTCC/Art/Meshes/`): `CTCC_PROP_Bed4ChartHolder`, `CTCC_PROP_NursingFilingDesk`, `CTCC_PROP_InteractiveDrawer`, `CTCC_PROP_Bed4BlanketTrace`, `CTCC_ENV_StaffCrossDoor`, bản UV-mapped tinh chỉnh `CTCC_PROP_ClipboardF101` và `CTCC_PROP_BayEnvelope`. Toàn bộ sử dụng hệ vật liệu PBR CC0 đã kê ở trên và mặt giấy nội bộ.
+- **Bộ giấy tờ hành chính y tế hư cấu 2005** (`tools/bake_ch01r_documents.py`): `F101` (mặt trước/mặt sau/3 bản đã ký `SignedA/B/C`), `ObsCard` (2 mặt), `Doc_Bed2Transfer` (2 mặt), `Doc_Bed3Meds` (2 mặt), `Doc_ShiftGuide` (2 mặt), `Doc_WardOverflow`, `Doc_DutyRoster`, `Doc_BayEnvelopeFront`, `Doc_BayLetter` (2 mặt), `Sign_NursingAlcove`, và góc giấy sáp màu `CH01_PR01_Corner`. Chỉ dùng phông chữ SIL OFL `Be Vietnam Pro` và nét mực/dấu cao su tổng hợp bằng Python/Pillow/NumPy; không dùng phông bản quyền hay mẫu bệnh viện có thật.
+- **4 tệp SFX foley & không khí mới** (`tools/bake_ch01r_audio.py`, dấu vân tay và thông số đo tại `docs/ch01r/audio-additions.json`): `DrawerSlide.wav`, `PaperFlip.wav`, `ClockTick.wav`, `DistantSteps.wav` — tổng hợp thuần NumPy (BSD-3-Clause) 48 kHz mono 16-bit PCM, true peak ≤ −4,0 dBTP, không phụ thuộc sample bên thứ ba.

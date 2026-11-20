@@ -117,13 +117,17 @@ namespace CTCC
                 if (decoded == null) return SaveRead.Damaged;
                 if (data.schemaVersion == 1 || decoded.schemaVersion == 1)
                     MigrateV1ToV2(decoded);
-                else if (data.schemaVersion == 2 && decoded.schemaVersion == 2)
+                else if (data.schemaVersion < Investigation.Schema || decoded.schemaVersion < Investigation.Schema)
                     UpgradeLegacy(decoded);
                 if (!Valid(decoded)) return SaveRead.Damaged;
                 decoded.transcript ??= new();
                 decoded.forms ??= new();
                 decoded.patients ??= new();
                 decoded.puzzles ??= new();
+                decoded.observationRecords ??= new();
+                decoded.f101History ??= new();
+                decoded.f101Argument ??= new();
+                decoded.dreadEventsSeen ??= new();
                 state = decoded;
                 return SaveRead.Valid;
             }
@@ -148,14 +152,79 @@ namespace CTCC
 
         private static void UpgradeLegacy(Investigation s)
         {
+            int fromVersion = s.schemaVersion;
             s.schemaVersion = Investigation.Schema;
-            s.forms?.Clear(); // Earlier releases only expose F101, stored separately.
-            if (s.evidence?.Remove(EvidenceRegistry.BayLockReceipt) == true)
-                s.Remember("FS10");
-            if (s.evidence?.Contains(EvidenceRegistry.C12UnnamedBox) == true)
+            if (fromVersion <= 2)
             {
-                s.Remember("FS19");
-                s.Remember("CH03-T05");
+                s.forms?.Clear(); // Earlier releases only expose F101, stored separately.
+                if (s.evidence?.Remove(EvidenceRegistry.BayLockReceipt) == true)
+                    s.Remember("FS10");
+                if (s.evidence?.Contains(EvidenceRegistry.C12UnnamedBox) == true)
+                {
+                    s.Remember("FS19");
+                    s.Remember("CH03-T05");
+                }
+            }
+            // Schema v1/v2/v3 -> v4 migration: synthesize ObservationRecords, F101 revision history & argument cleanly.
+            s.observationRecords ??= new();
+            s.f101History ??= new();
+            s.f101Argument ??= new();
+            s.dreadEventsSeen ??= new();
+            if (s.dreadSeed == 0) s.dreadSeed = 20051118;
+
+            if (s.observed != null)
+            {
+                for (int i = 0; i < s.observed.Count; i++)
+                {
+                    string obsId = s.observed[i];
+                    if (s.FindObservation(obsId) != null) continue;
+                    var spec = ObservationRegistry.Get(obsId);
+                    if (spec == null) continue;
+                    var defaultLayer = spec.AllowedLayers != null && spec.AllowedLayers.Length > 0 ? spec.AllowedLayers[0] : Reality.B;
+                    var defaultLoc = spec.AllowedLocations != null && spec.AllowedLocations.Length > 0 ? spec.AllowedLocations[0] : "LOC03";
+                    var defaultChap = spec.AllowedChapters != null && spec.AllowedChapters.Length > 0 ? spec.AllowedChapters[0] : "CH01";
+                    s.observationRecords.Add(new ObservationRecord
+                    {
+                        id = obsId,
+                        layer = defaultLayer,
+                        location = defaultLoc,
+                        chapter = defaultChap,
+                        stage = ObservationStage.Examined
+                    });
+                }
+            }
+
+            if (s.f101 != null && s.f101.revision > 0 && s.f101History.Count == 0)
+            {
+                if (s.f101.current == FormStatus.Refuted && FormService.RefutationAvailable(s))
+                {
+                    s.f101Argument = new DeductionSubmission
+                    {
+                        formId = "F101",
+                        selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
+                        claimId = HypothesisService.ClaimUnreliableZero
+                    };
+                    var recA = s.FindObservation(ObservationRegistry.Bed4Traces);
+                    var recB = s.FindObservation(ObservationRegistry.Bed4Card);
+                    if (recA != null) recA.stage = ObservationStage.Corroborated;
+                    if (recB != null) recB.stage = ObservationStage.Corroborated;
+                }
+                for (int r = 1; r <= s.f101.revision; r++)
+                {
+                    FormStatus stepDecision = r == 1 ? s.f101.firstDecision : (r == s.f101.revision ? s.f101.current : FormStatus.Unverified);
+                    bool stepRefuted = stepDecision == FormStatus.Refuted;
+                    s.f101History.Add(new FormRevisionEntry
+                    {
+                        revision = r,
+                        decision = stepDecision,
+                        claimId = stepRefuted ? HypothesisService.ClaimUnreliableZero : "",
+                        evidenceIds = stepRefuted
+                            ? new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card }
+                            : new List<string>(),
+                        chapter = r == 1 ? "CH01" : (s.chapter ?? "CH01"),
+                        layer = r == 1 ? Reality.B : s.layer
+                    });
+                }
             }
         }
 
@@ -193,9 +262,32 @@ namespace CTCC
                 return false;
             var puzzles = new HashSet<string>(StringComparer.Ordinal);
             if (s.puzzles != null && s.puzzles.Exists(p => p == null ||
-                p.puzzleId is not ("CH03-PU01" or "CH03-PU02") || !puzzles.Add(p.puzzleId) ||
+                p.puzzleId is not ("CH01-F101" or "CH03-PU01" or "CH03-PU02") || !puzzles.Add(p.puzzleId) ||
                 p.failedAttempts < 0 || p.solved != s.Happened(p.puzzleId + ".solved")))
                 return false;
+            if (s.observed.Exists(id => !ObservationRegistry.Registered(id)))
+                return false;
+            if (s.observationRecords != null)
+            {
+                var seenObs = new HashSet<string>(StringComparer.Ordinal);
+                for (int i = 0; i < s.observationRecords.Count; i++)
+                {
+                    var rec = s.observationRecords[i];
+                    if (rec == null || !ObservationRegistry.Registered(rec.id) || !seenObs.Add(rec.id) ||
+                        !s.Observed(rec.id) || !Enum.IsDefined(typeof(ObservationStage), rec.stage) ||
+                        !ObservationRegistry.ValidProvenance(rec.id, rec.layer, rec.location, rec.chapter))
+                        return false;
+                }
+            }
+            if (!HypothesisService.ValidPersistedF101(s))
+                return false;
+            if (s.dreadEventsSeen != null)
+            {
+                var seenDread = new HashSet<string>(StringComparer.Ordinal);
+                for (int i = 0; i < s.dreadEventsSeen.Count; i++)
+                    if (!DreadCatalog.IsRegistered(s.dreadEventsSeen[i]) || !seenDread.Add(s.dreadEventsSeen[i]))
+                        return false;
+            }
             // Canon CH03-Q03 invariant: C12 can never have a verified identity or fabricated name.
             if (s.patients != null)
             {

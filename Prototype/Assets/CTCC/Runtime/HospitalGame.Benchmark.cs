@@ -233,7 +233,7 @@ namespace CTCC
             yield return new("hall-B", 4, 4.75f);
             yield return new("room-entry-B", 6.52f, 4.88f);
             yield return new("enter-room", () => casework.EnterRoomAsync(player.Feet));
-            yield return new("submit-F101-B", () => casework.SubmitAsync(FormStatus.Unverified, false, player.Feet));
+            yield return new("submit-F101-B", () => casework.SubmitF101Async(FormStatus.Unverified, null, player.Feet));
             yield return new("room-exit-B", 4, 4.75f);
             yield return new("hall-return-B", 4, -3.29f);
             yield return new("swap-B-R", async () => { var r = await casework.AtHubAsync(player.Feet); player.Teleport(scene.Pad("AP02")); return r; });

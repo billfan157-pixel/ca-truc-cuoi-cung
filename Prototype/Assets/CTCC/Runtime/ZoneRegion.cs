@@ -24,11 +24,15 @@ namespace CTCC
         public GameObject memoryProps;
         public GameObject pendingBay;
         public GameObject deniedBay;
+        public GameObject refutedBay;
         public GameObject statusA;
         public GameObject statusB;
         public GameObject statusC;
         public GameObject paperAfter;
         public GameObject storeClues;
+        public Renderer f101WallRenderer;
+        public Material f101MatPending, f101MatA, f101MatB, f101MatC;
+        public Light bed4TubeLight;
         public GameObject seamBlocker;
         public GameObject clockHandsR;
         public GameObject clockHandsB;
@@ -39,9 +43,22 @@ namespace CTCC
 
         public DoorPose outerGate;
         public DoorPose roomDoor;
+        public DoorPose staffCrossDoor;
         public DoorPose emergencyDoorA;
         public DoorPose emergencyDoorB;
         public DoorPose archiveExitDoor;
+        public Transform drawerBed3;
+        public Vector3 drawerBed3ClosedPos;
+        public Vector3 drawerBed3OpenOffset;
+        public Transform drawerDesk;
+        public Vector3 drawerDeskClosedPos;
+        public Vector3 drawerDeskOpenOffset;
+        public Transform drawerNurse;
+        public Vector3 drawerNurseClosedPos;
+        public Vector3 drawerNurseOpenOffset;
+        public Vector3 curtainClosedPos;
+        public Vector3 curtainOpenPos;
+        public bool curtainHasPosTrack;
         public GameObject[] upperConnectors = Array.Empty<GameObject>();
         public GameObject serviceConnector;
         public GameObject morgueLock;

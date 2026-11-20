@@ -24,6 +24,7 @@ namespace CTCC
         public Vector3 Feet => transform.position;
         public Camera Eye => eye;
         public bool CanPlay { get; set; }
+        public bool LookSuppressed { get; set; }
         public bool IsCrouching => capsule != null && capsule.height < 1.35f;
         public bool IsRunning => currentVelocity.sqrMagnitude > 9.0f;
         public bool IsMoving => currentVelocity.sqrMagnitude > 0.05f;
@@ -114,7 +115,7 @@ namespace CTCC
             float dt = Mathf.Min(Time.deltaTime, 0.045f);
             float sens = settings.mouseSensitivity > 0.05f ? settings.mouseSensitivity : 1f;
             Vector2 lookDelta = Vector2.zero;
-            if (m != null && Cursor.lockState == CursorLockMode.Locked)
+            if (!LookSuppressed && m != null && Cursor.lockState == CursorLockMode.Locked)
             {
                 lookDelta = m.delta.ReadValue() * (0.079f * sens);
                 transform.Rotate(Vector3.up, lookDelta.x);

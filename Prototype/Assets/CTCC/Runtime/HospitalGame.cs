@@ -28,6 +28,7 @@ namespace CTCC
         private LanDirector lanDirector;
         private GatekeeperCameo gatekeeperCameo;
         private HunterOrderlyAI orderlyAi;
+        private AmbientDreadDirector dreadDirector;
         private RegionStreamer streamer;
         private bool streaming;
         private float reconcileRegionsAt;
@@ -109,7 +110,7 @@ namespace CTCC
             player.Teleport(scene.Pad("AP00"));
 
             inspector = gameObject.AddComponent<PhysicalInspector>();
-            inspector.Initialize(player.Eye);
+            inspector.Initialize(player.Eye, scene.atmosphere);
 
             ui = gameObject.AddComponent<HospitalUI>();
             ui.Initialize();
@@ -130,6 +131,8 @@ namespace CTCC
             orderlyAi = gameObject.AddComponent<HunterOrderlyAI>();
             orderlyAi.Initialize(scene, voice, player, ui, inspector);
 
+            dreadDirector = gameObject.AddComponent<AmbientDreadDirector>();
+
             var saveDirectory = qaFolder == null ? Argument("-ctcc-save") ?? Path.Combine(Application.persistentDataPath, "Patient101")
                 : Path.Combine(Path.GetFullPath(qaFolder), "isolated-save");
             saves = new AtomicSaves(saveDirectory);
@@ -142,6 +145,21 @@ namespace CTCC
             };
             casework = new Casework(transaction);
             transaction.Committed += ApplyCommitted;
+
+            int dreadSeed = State.dreadSeed;
+            string seedArg = Argument("-ctcc-dread-seed");
+            if (!string.IsNullOrEmpty(seedArg) && int.TryParse(seedArg, out int parsedSeed))
+                dreadSeed = parsedSeed;
+            dreadDirector.Initialize(
+                scene,
+                scene.atmosphere,
+                player,
+                () => State,
+                () => !live || busy || ui.IsModal || (inspector != null && inspector.IsInspecting) ||
+                      (voice != null && voice.IsSpeaking) || (lanDirector != null && lanDirector.IsEncounterRunning),
+                id => SaveCheckpoint(() => casework.RecordDreadEventAsync(id)),
+                cap => ui.Caption(cap, 4.4f),
+                dreadSeed);
             scene.ZoneUnregistering += zone =>
             {
                 if (zone.lanActor != null)
@@ -220,6 +238,9 @@ namespace CTCC
         private void RefreshControls()
         {
             bool play = live && !ui.IsModal && !busy && qaFolder == null;
+            if (!play && scene?.interactables != null && scene.interactables.IsDragging)
+                scene.interactables.EndDrag(scene.atmosphere);
+            player.LookSuppressed = false;
             player.CanPlay = play;
             if (qaFolder != null) return;
             Cursor.lockState = play ? CursorLockMode.Locked : CursorLockMode.None;
@@ -382,11 +403,44 @@ namespace CTCC
                 return;
             }
             var target = player.Focus(Available);
-            ui.Prompt(target == null
+            var mouse = Mouse.current;
+
+            // Optional physical hold-and-drag for doors, drawers, and privacy curtain (single-press E/K remains fully accessible!)
+            if (scene.interactables != null && mouse != null && Cursor.lockState == CursorLockMode.Locked)
+            {
+                if (scene.interactables.IsDragging)
+                {
+                    if (mouse.leftButton.isPressed)
+                    {
+                        scene.interactables.UpdateDrag(mouse.delta.ReadValue(), scene.atmosphere);
+                        ui.Prompt("[Giữ & kéo chuột]  Điều chỉnh · Thả để dừng");
+                        return;
+                    }
+                    scene.interactables.EndDrag(scene.atmosphere);
+                    player.LookSuppressed = false;
+                }
+                else if (target != null && IsDraggablePhysicalRig(target.id) && mouse.leftButton.wasPressedThisFrame)
+                {
+                    if (scene.interactables.BeginDrag(target.id))
+                    {
+                        player.LookSuppressed = true;
+                        dreadDirector?.NotifyInteraction(0.28f);
+                        return;
+                    }
+                }
+            }
+
+            string promptText = target == null
                 ? (transaction.OnPad(feet, "AP04") && State.chapter == "CH02" ? "[Q]   Điểm neo phòng 101" : null)
-                : "[" + UseKey + "]   " + target.title);
+                : IsDraggablePhysicalRig(target.id)
+                    ? "[" + UseKey + "]   " + target.title + "   ·   Giữ chuột trái để kéo"
+                    : "[" + UseKey + "]   " + target.title;
+            ui.Prompt(promptText);
             if (use && target != null)
+            {
+                dreadDirector?.NotifyInteraction(0.32f);
                 Use(target.id);
+            }
             else if (use && transaction.OnPad(feet, "AP04") && casework.CanRevise)
                 Anchor();
             else if (!busy && !savingDialogue && !ui.IsModal &&
@@ -394,6 +448,9 @@ namespace CTCC
                 transaction.HasPendingDialogue && Time.unscaledTime >= dialogueSaveAt)
                 StartCoroutine(SaveDialogue());
         }
+
+        private static bool IsDraggablePhysicalRig(string id) =>
+            id is "DOOR-101" or "DOOR-STAFF" or "CURTAIN-101" or "DRAWER-BED3" or "DRAWER-DESK" or "DRAWER-NURSE";
 
         private IEnumerator SaveDialogue()
         {
@@ -471,8 +528,19 @@ namespace CTCC
             "GATE-CONG" => !State.Happened("CH01-T02"),
             "SEAM" => State.Happened("CH01-T08"),
             "BOARD" => State.layer == Reality.B && State.chapter == "CH01" && !State.Happened("CH01-T05"),
+            "LAN_TALK" => State.layer == Reality.B && State.chapter == "CH01" && State.Happened("CH01-T03") && !State.Happened("CH01-T08"),
             "BATTERY" => !State.Happened("CH01-BATTERY") && State.Happened("CH01-T02"),
             "F101" or "AN02" => casework.CanRevise,
+            "OBS101A" or "OBS101B" or "OBS101C" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02"),
+            "OBS101D" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02") && (scene.interactables == null || scene.interactables.IsDrawerOpen("DRAWER-BED3")),
+            "OBS_SHIFT_LOG" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02") && (scene.interactables == null || scene.interactables.IsDrawerOpen("DRAWER-NURSE")),
+            "OBS_CORRIDOR_NOTICE" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02"),
+            "OBS_RECEPTION_DRAWER" => State.Happened("CH01-T03") && State.chapter is ("CH01" or "CH02") && (scene.interactables == null || scene.interactables.IsDrawerOpen("DRAWER-DESK")),
+            "OBS_CLOCK_0317" => State.Happened("CH01-T02") && State.chapter is ("CH01" or "CH02"),
+            "DRAWER-BED3" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02"),
+            "DRAWER-NURSE" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02"),
+            "DRAWER-DESK" => State.Happened("CH01-T03") && State.chapter is ("CH01" or "CH02"),
+            "DOOR-STAFF" => State.Happened("CH01-T03"),
             "LIST" or "SOCKETS" or "WHEELS" or "PZ01" => State.chapter == "CH02" && State.layer == Reality.R,
             "EXIT" => State.chapter == "CH02" && GateService.G02(State),
             "CH03_DOOR" => false,
@@ -512,7 +580,36 @@ namespace CTCC
                     if (scene.interactables != null && scene.roomDoor?.pivot != null)
                     {
                         scene.roomDoor.isOpen = !scene.roomDoor.isOpen;
-                        scene.interactables.MoveDoor(scene.roomDoor.pivot, scene.roomDoor.isOpen ? scene.roomDoor.openAngle : 0f, false, scene.atmosphere);
+                        scene.interactables.MoveDoor("DOOR-101", scene.roomDoor.pivot, scene.roomDoor.isOpen ? scene.roomDoor.openAngle : 0f, false, scene.atmosphere);
+                    }
+                    break;
+                case "DOOR-STAFF":
+                    if (scene.interactables != null && scene.staffCrossDoor?.pivot != null)
+                    {
+                        bool opened = scene.interactables.ToggleDoor("DOOR-STAFF", scene.atmosphere);
+                        scene.staffCrossDoor.isOpen = opened;
+                        ui.Caption(opened ? "[Cửa lối nhân viên đã mở — thông sang hành lang chính]" : "[Đã khép cửa lối nhân viên]", 2.8f);
+                    }
+                    break;
+                case "DRAWER-BED3":
+                    if (scene.interactables != null)
+                    {
+                        bool opened = scene.interactables.ToggleDrawer("DRAWER-BED3", scene.atmosphere);
+                        ui.Caption(opened ? "[Kéo ngăn tủ giường 03 — bên trong có Phiếu phát thuốc giường 03]" : "[Đóng ngăn tủ giường 03]", 3.2f);
+                    }
+                    break;
+                case "DRAWER-DESK":
+                    if (scene.interactables != null)
+                    {
+                        bool opened = scene.interactables.ToggleDrawer("DRAWER-DESK", scene.atmosphere);
+                        ui.Caption(opened ? "[Kéo ngăn kéo quầy tiếp nhận — thấy Sổ phân ca trực]" : "[Đóng ngăn kéo quầy tiếp nhận]", 3.2f);
+                    }
+                    break;
+                case "DRAWER-NURSE":
+                    if (scene.interactables != null)
+                    {
+                        bool opened = scene.interactables.ToggleDrawer("DRAWER-NURSE", scene.atmosphere);
+                        ui.Caption(opened ? "[Kéo ngăn bàn điều dưỡng — thấy Quy chế bàn giao AS-05]" : "[Đóng ngăn bàn điều dưỡng]", 3.2f);
                     }
                     break;
                 case "CURTAIN-101":
@@ -529,13 +626,22 @@ namespace CTCC
                     else ui.Caption("Không tìm được đường ra. Trở lại sổ trực.", 5, true);
                     break;
                 case "E10a": Letter(); break;
+                case "LAN_TALK":
+                    LanTranscript();
+                    break;
                 case "BOARD":
-                    SaveCheckpoint(() => casework.BoardAsync(player.Feet), () =>
+                    SaveCheckpoint(async () =>
+                    {
+                        var res = await casework.BoardAsync(player.Feet);
+                        if (res == CommitResult.Applied)
+                            await casework.ObserveAsync(ObservationRegistry.F101Sheet, "LOC02", ObservationStage.Examined);
+                        return res;
+                    }, () =>
                     {
                         scene.atmosphere?.From("paper", player.Feet + Vector3.up);
                         lanDirector?.PlayHandoverGesture();
                         voice?.Speak("CH01-D06", "Minh", Line("CH01-D06"));
-                        ui.Toast("PHIẾU BÀN GIAO 101", "Đã nhận bảng kẹp từ Lan. Cửa phòng 101 cuối hành lang bên phải đã mở.", 5f);
+                        ui.Toast("PHIẾU BÀN GIAO F101", "Đã nhận bảng kẹp từ Lan. Cửa phòng 101 và lối bàn điều dưỡng đều đã thông.", 5.2f);
                     });
                     break;
                 case "AN01":
@@ -545,15 +651,35 @@ namespace CTCC
                 case "AN02": Anchor(); break;
                 case "F101": Form(); break;
                 case "OBS101A":
-                    DiegeticObservation(id, "Dấu sử dụng giường thứ tư",
-                        "Có vết bánh cao su cạnh rèm và dấu đồ dùng đã bị dời đi. Ổ cắm số 4 vẫn gắn trên tường.", () =>
+                    DiegeticObservation(id, "Dấu sử dụng tại vị trí giường 4",
+                        "Sau rèm có vết kéo bánh giường in ngang nền, tấm chăn bông gấp vội và đôi dép nhỏ để lệch. Vị trí thứ tư vừa có người dùng gần đây — nhưng dấu vết tự nó chưa cho biết bệnh nhân đi đâu hay danh tính của họ.",
+                        "LOC03", () =>
                         {
-                            scene.atmosphere?.From("curtainSlide", new Vector3(11.4f, 1.8f, 4.3f), 0.55f);
+                            scene.atmosphere?.From("curtainSlide", new Vector3(11.4f, 1.8f, 4.3f), 0.45f);
                         });
                     break;
                 case "OBS101B":
-                    InspectDocumentObservation(id, "Thẻ bàn giao giường 4",
-                        "18/11/2005 · Phòng 101\n\nGiường 4 · CHƯA BÀN GIAO\nKiểm tra lại.\n\nThẻ không ghi tên hoặc nơi chuyển.", "ObsCard");
+                    InspectRegisteredObservation(ObservationRegistry.Bed4Card, "LOC03");
+                    break;
+                case "OBS101C":
+                    InspectRegisteredObservation(ObservationRegistry.Bed2Transfer, "LOC03");
+                    break;
+                case "OBS101D":
+                    InspectRegisteredObservation(ObservationRegistry.Bed3Meds, "LOC03");
+                    break;
+                case "OBS_SHIFT_LOG":
+                    InspectRegisteredObservation(ObservationRegistry.ShiftGuide, "STAFF");
+                    break;
+                case "OBS_CORRIDOR_NOTICE":
+                    InspectRegisteredObservation(ObservationRegistry.WardOverflowNotice, "STAFF");
+                    break;
+                case "OBS_RECEPTION_DRAWER":
+                    InspectRegisteredObservation(ObservationRegistry.ReceptionDrawerLog, "LOC02");
+                    break;
+                case "OBS_CLOCK_0317":
+                    DiegeticObservation(ObservationRegistry.StoppedClock0317, "Đồng hồ dừng ở 03:17",
+                        "Kim đồng hồ treo sau quầy đứng yên ở 03:17 — trùng thời điểm vụ cháy bệnh viện An Sinh đêm 18/11/2005.",
+                        "LOC02", () => scene.atmosphere?.From("clockTick", new Vector3(1.2f, 2.0f, -5.8f), 0.55f));
                     break;
                 case "LIST":
                     InspectDocumentObservation(id, "Bản kê phòng bệnh",
@@ -679,10 +805,16 @@ namespace CTCC
 
             TransitionAsync(() => casework.AtHubAsync(player.Feet), true, () =>
             {
+                dreadDirector?.NotifyMajorBeatQuietWindow(12f);
                 if (enteringB)
                 {
+                    // Preserve canonical core lines in transcript immediately (CH01-Q06) while letting Lan perform live in-world!
+                    voice?.RecordTranscriptOnly("CH01-D03", "Lan", Line("CH01-D03"));
+                    voice?.RecordTranscriptOnly("CH01-D04", "Minh", Line("CH01-D04"));
+                    voice?.RecordTranscriptOnly("CH01-D05", "Lan", Line("CH01-D05"));
+                    voice?.RecordTranscriptOnly("CH01-D07", "Lan", Line("CH01-D07"));
                     lanDirector?.StartEncounter(Line);
-                    LanTranscript();
+                    ui.Toast("BÀN TRỰC LỄ TÂN · LỚP B", "Lan đang bước ra từ bàn trực. Có thể trò chuyện trực tiếp với Lan hoặc nhận bảng kẹp F101 trên quầy.", 6.0f);
                 }
                 else if (collapsingR)
                 {
@@ -903,7 +1035,10 @@ namespace CTCC
             }
             string layerLabel = State.layer == Reality.M ? "M  ·  LỚP KÝ ỨC"
                 : State.layer == Reality.B ? "B  ·  BẢN BÁO CÁO 2005" : "R  ·  HIỆN TRƯỜNG 2012";
-            ui.Hud(layerLabel, task);
+            string hudLine = Options.hintsEnabled
+                ? task
+                : (State.chapter == "CH01" ? "Chương 01 · Người trở về (Nhấn Tab mở sổ điều tra)" : task);
+            ui.Hud(layerLabel, hudLine);
         }
     }
 }

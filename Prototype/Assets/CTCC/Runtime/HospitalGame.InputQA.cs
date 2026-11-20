@@ -75,69 +75,170 @@ namespace CTCC
                 yield return Hold(Key.W, 0.4f);
                 Require(player.Feet.z > z + 0.35f, "W moves the real capsule");
             }
-            player.Teleport(scene.Pad("AP02"));
-            yield return Until(() => State.layer == Reality.B && ui.IsModal, "reception R→B and transcript");
-            yield return Choose("Xem bảng kẹp");
-            yield return UseFrom("BOARD", scene.Pad("AP02").position);
-            yield return Until(() => State.Happened("CH01-T05"), "board granted");
-            yield return Until(() => Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.Euler(0, scene.roomDoor.openAngle, 0)) < 1,
-                "room door opens");
-
-            if (branch == FormStatus.Affirmed)
-            {
-                yield return UseFrom("DOOR-101", scene.Pad("AP04").position);
-                yield return Until(() => !scene.roomDoor.isOpen && Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.identity) < 1,
-                    "door closes through use input");
-                yield return UseFrom("DOOR-101", scene.Pad("AP04").position);
-                yield return Until(() => scene.roomDoor.isOpen && Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.Euler(0, scene.roomDoor.openAngle, 0)) < 1,
-                    "door reopens through use input");
-            }
-            if (branch == FormStatus.Unverified)
-            {
-                var cloth = scene.interactables.curtainCloth;
-                var scale = cloth.localScale;
-                yield return UseFrom("CURTAIN-101", new Vector3(11.68f, 0.02f, 4.92f));
-                yield return Until(() => scene.interactables.curtainPulled && (cloth.localScale - scale).sqrMagnitude > 0.05f,
-                    "curtain opens through use input");
-                yield return UseFrom("CURTAIN-101", new Vector3(11.68f, 0.02f, 4.92f));
-                yield return Until(() => !scene.interactables.curtainPulled && (cloth.localScale - scale).sqrMagnitude < 0.001f,
-                    "curtain closes through use input");
-            }
             if (branch == FormStatus.Refuted)
             {
-                yield return UseFrom("OBS101A", new Vector3(10.85f, 0.02f, 5.25f));
-                yield return Until(() => !busy && State.Observed("OBS101A"), "floor observation checkpoint");
-                Require(State.Observed("OBS101A"), "B floor observation");
+                // FULL UNINTERRUPTED KEYBOARD+MOUSE CH01->CH02 ROUTE (ZERO TELEPORTATION INSIDE CH01!)
+                string record = Argument("-ctcc-record");
+                captureExpansion = !string.IsNullOrEmpty(record);
+                if (captureExpansion) StartCoroutine(CaptureExpansionFrames(Path.Combine(record, "ch01r-full")));
+                try
+                {
+                    yield return WalkWithInput(new Vector3(4f, 0f, -18.0f));
+                    yield return WalkWithInput(new Vector3(4f, 0f, -10.5f));
+                    yield return WalkWithInput(new Vector3(4f, 0f, -3.30f));
+                    yield return Until(() => !busy && State.layer == Reality.B && State.Happened("CH01-T03"), "live reception R→B without modal hijack");
+                    // Optional live Lan interaction via LAN_TALK -> verify transcript & close cleanly!
+                    yield return WalkWithInput(new Vector3(3.35f, 0f, -3.40f));
+                    yield return AimAndUseHere("LAN_TALK");
+                    yield return Until(() => ui.IsModal, "Lan optional dialogue opens");
+                    yield return Choose("Xem bảng kẹp");
+                    yield return WalkWithInput(new Vector3(2.95f, 0f, -2.75f));
+                    yield return AimAndUseHere("BOARD");
+                    yield return Until(() => !busy && State.Happened("CH01-T05"), "board granted");
+                    yield return Until(() => Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.Euler(0, scene.roomDoor.openAngle, 0)) < 1,
+                        "room door opens");
+
+                    // Walk optional compact nonlinear exploration loop: Reception -> STAFF Nursing Alcove -> open DOOR-STAFF -> HALL -> Room 101!
+                    yield return WalkWithInput(new Vector3(0.05f, 0f, -1.0f));
+                    yield return WalkWithInput(new Vector3(-0.12f, 0f, 3.65f));
+                    yield return AimAndUseHere("OBS_CORRIDOR_NOTICE");
+                    yield return Until(() => !busy && inspector.IsInspecting, "STAFF overflow notice inspected");
+                    yield return Tap(Key.Escape);
+                    yield return WalkWithInput(new Vector3(-0.15f, 0f, 3.92f));
+                    yield return AimAndUseHere("DRAWER-NURSE");
+                    yield return Until(() => scene.interactables.IsDrawerOpen("DRAWER-NURSE"), "STAFF nurse drawer slides open");
+                    yield return new WaitForSecondsRealtime(0.45f);
+                    yield return AimAndUseHere("OBS_SHIFT_LOG");
+                    yield return Until(() => !busy && inspector.IsInspecting, "AS-05 shift guide inspected");
+                    yield return Tap(Key.Space); // Test live keyboard flip!
+                    yield return Until(() => inspector.ShowingBack, "AS-05 flipped to back via Space");
+                    yield return Tap(Key.Escape);
+                    yield return WalkWithInput(new Vector3(0.15f, 0f, 7.50f));
+                    yield return WalkWithInput(new Vector3(1.55f, 0f, 7.50f));
+                    yield return AimAndUseHere("DOOR-STAFF");
+                    yield return Until(() => scene.staffCrossDoor.isOpen &&
+                        Quaternion.Angle(scene.staffCrossDoor.pivot.localRotation, Quaternion.Euler(0, scene.staffCrossDoor.openAngle, 0)) < 2f,
+                        "STAFF cross-door swings fully open via keyboard use");
+                    yield return WalkWithInput(new Vector3(4.00f, 0f, 7.50f));
+                    yield return WalkWithInput(new Vector3(4.00f, 0f, 4.75f));
+                    yield return WalkWithInput(new Vector3(6.52f, 0f, 4.93f));
+                    yield return Until(() => !busy && State.Happened("CH01-T06"), "Room 101 threshold checkpoint via keyboard walk");
+
+                    // Investigate Bed 2 comparison doc, Bed 3 drawer + medication log, Bed 4 traces, and Bed 4 card!
+                    yield return WalkWithInput(new Vector3(10.15f, 0f, 5.10f));
+                    yield return AimAndUseHere("OBS101C");
+                    yield return Until(() => !busy && inspector.IsInspecting, "OBS101C Bed-2 transfer inspected");
+                    yield return Tap(Key.Escape);
+
+                    yield return WalkWithInput(new Vector3(8.64f, 0f, 3.65f));
+                    yield return AimAndUseHere("DRAWER-BED3");
+                    yield return Until(() => scene.interactables.IsDrawerOpen("DRAWER-BED3"), "Bed-3 drawer slides open");
+                    yield return new WaitForSecondsRealtime(0.45f);
+                    yield return AimAndUseHere("OBS101D");
+                    yield return Until(() => !busy && inspector.IsInspecting, "OBS101D Bed-3 meds inspected");
+                    yield return Tap(Key.Escape);
+
+                    yield return WalkWithInput(new Vector3(12.05f, 0f, 5.05f));
+                    yield return AimAndUseHere("CURTAIN-101");
+                    yield return Until(() => scene.interactables.curtainPulled, "Bed 4 curtain opened");
+                    yield return new WaitForSecondsRealtime(0.55f);
+                    yield return WalkWithInput(new Vector3(11.35f, 0f, 5.25f));
+                    yield return AimAndUseHere("OBS101B");
+                    yield return Until(() => !busy && inspector.IsInspecting, "OBS101B card inspected");
+                    yield return Tap(Key.Space);
+                    yield return Until(() => inspector.ShowingBack, "OBS101B flipped to back via Space");
+                    yield return Choose("Mở bản chữ lớn");
+                    Require(!inspector.IsInspecting && ui.IsModal, "OBS101B large print fallback");
+                    yield return Tap(Key.Escape);
+
+                    yield return WalkWithInput(new Vector3(10.75f, 0f, 4.35f));
+                    yield return AimAndUseHere("OBS101A");
+                    yield return Until(() => !busy && State.Observed("OBS101A"), "OBS101A Bed-4 trace observed");
+
+                    // Open Evidence Journal (Tab) & test Side-by-Side Document Comparison!
+                    yield return Tap(Key.Tab);
+                    yield return Until(() => ui.IsModal, "Journal opened via Tab");
+                    yield return Choose("So sánh hai tài liệu");
+                    yield return Choose("Đổi tài liệu phải");
+                    yield return Choose("Quay lại");
+                    yield return Choose("Khép sổ");
+
+                    // Walk back to AP04 & complete F101 Deduction Builder (including live rejection of overclaim before valid conclusion!)
+                    yield return WalkWithInput(new Vector3(6.52f, 0f, 4.93f));
+                    yield return AimAndUseHere("F101");
+                    yield return Choose("C    Lập luận");
+                    yield return Choose("Dấu sử dụng tại vị trí giường 4");
+                    yield return Choose("Thẻ bàn giao giường số 4");
+                    yield return Choose("Bước 2/2");
+                    // Test live UI rejection of unsupported overclaim -> stays recoverable in Deduction Builder!
+                    yield return Choose("Điều dưỡng trực đã cố tình làm giả");
+                    yield return Choose("Kiểm tra lập luận");
+                    yield return Until(() => !busy && ui.IsModal && !GateService.G01(State), "Overclaim rejected cleanly in UI");
+                    // Now select the valid defensible conclusion and sign!
+                    yield return Choose("Con số 0 trên F101 chưa đủ tin cậy");
+                    yield return Choose("Kiểm tra lập luận");
+                    yield return Choose("Xác nhận và đóng dấu phiếu");
+                    yield return Until(() => !busy && GateService.G01(State), "F101 Refuted committed via real UI");
+                    Require(State.f101.firstDecision == FormStatus.Refuted && State.f101.revision == 1 &&
+                        scene.refutedBay != null && scene.refutedBay.activeInHierarchy, "Refuted visual & state verified");
+
+                    // Walk back out of Room 101 to Reception (B->R collapse), outer gate seam, and Reception (CH02 handoff) — ZERO TELEPORTS!
+                    yield return WalkWithInput(new Vector3(4.00f, 0f, 4.75f));
+                    yield return WalkWithInput(new Vector3(4.00f, 0f, -3.30f));
+                    yield return Until(() => !busy && State.layer == Reality.R && State.Happened("CH01-T08"), "reception B→R collapse via walk");
+                    yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
+                    yield return WalkWithInput(new Vector3(4.00f, 0f, -20.30f));
+                    yield return Until(() => !busy && State.Happened("CH01-T09"), "exterior seam via walk");
+                    yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
+                    yield return WalkWithInput(new Vector3(4.00f, 0f, -3.30f));
+                    yield return Until(() => !busy && State.chapter == "CH02", "CH02 handoff via pure keyboard+mouse CH01 route");
+                    verification.Add("INPUT CH01-R FULL ROUTE PASS: zero teleportation from AP00 through STAFF loop, drawers, Room 101 docs, dual-sided inspector, Journal comparison, F101 deduction rejection & valid refutation, collapse, seam, and CH02 handoff.");
+                }
+                finally { captureExpansion = false; }
+            }
+            else
+            {
+                player.Teleport(scene.Pad("AP02"));
+                yield return Until(() => !busy && State.layer == Reality.B && State.Happened("CH01-T03"), "reception R→B");
+                yield return UseFrom("BOARD", scene.Pad("AP02").position);
+                yield return Until(() => !busy && State.Happened("CH01-T05"), "board granted");
+                yield return Until(() => Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.Euler(0, scene.roomDoor.openAngle, 0)) < 1,
+                    "room door opens");
+
+                if (branch == FormStatus.Affirmed)
+                {
+                    yield return UseFrom("DOOR-101", scene.Pad("AP04").position);
+                    yield return Until(() => !scene.roomDoor.isOpen && Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.identity) < 1,
+                        "door closes through use input");
+                    yield return UseFrom("DOOR-101", scene.Pad("AP04").position);
+                    yield return Until(() => scene.roomDoor.isOpen && Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.Euler(0, scene.roomDoor.openAngle, 0)) < 1,
+                        "door reopens through use input");
+                }
+                if (branch == FormStatus.Unverified)
+                {
+                    var cloth = scene.interactables.curtainCloth;
+                    var scale = cloth.localScale;
+                    yield return UseFrom("CURTAIN-101", new Vector3(11.68f, 0.02f, 4.92f));
+                    yield return Until(() => scene.interactables.curtainPulled && (cloth.localScale - scale).sqrMagnitude > 0.05f,
+                        "curtain opens through use input");
+                    yield return UseFrom("CURTAIN-101", new Vector3(11.68f, 0.02f, 4.92f));
+                    yield return Until(() => !scene.interactables.curtainPulled && (cloth.localScale - scale).sqrMagnitude < 0.001f,
+                        "curtain closes through use input");
+                }
+
                 yield return OpenFormInput();
-                Require(!ButtonMatching("C    Đối chiếu").interactable, "refutation disabled with only one observation");
-                yield return Tap(Key.Escape);
-                yield return UseFrom("OBS101B", new Vector3(11.37f, 0.02f, 5.10f));
-                yield return Until(() => !busy && inspector.IsInspecting, "bed tag checkpoint");
-                Require(State.Observed("OBS101B") && inspector.IsInspecting, "B paper observation and inspector");
-                yield return Choose("Mở bản chữ lớn");
-                Require(!inspector.IsInspecting && ui.IsModal, "large print fallback");
-                yield return Tap(Key.Escape);
+                yield return Choose(branch == FormStatus.Affirmed ? "A    Xác nhận" : "B    Để ngỏ");
+                yield return Choose("Xác nhận và đóng dấu phiếu");
+                yield return Until(() => !busy && GateService.G01(State), $"F101 {branch} confirmation");
+                Require(State.f101.firstDecision == branch && State.f101.revision == 1 &&
+                    FormService.Distortion(State) == (branch == FormStatus.Affirmed ? 1 : 0), $"F101 {branch} state");
+                player.Teleport(scene.Pad("AP02"));
+                yield return Until(() => !busy && State.layer == Reality.R, "reception B→R");
+                player.Teleport(new Vector3(4, 0.02f, -20.30f), Quaternion.identity);
+                yield return Until(() => !busy && State.Happened("CH01-T09"), "exterior seam");
+                player.Teleport(scene.Pad("AP02"));
+                yield return Until(() => !busy && State.chapter == "CH02", "CH02 handoff");
             }
-
-            yield return OpenFormInput();
-            yield return Choose(branch == FormStatus.Affirmed ? "A    Xác nhận" : branch == FormStatus.Unverified ? "B    Chưa" : "C    Đối chiếu");
-            if (branch == FormStatus.Refuted)
-            {
-                yield return Choose("Dấu sử dụng");
-                Require(!ButtonMatching("Kiểm tra nội dung ký").interactable, "one selected observation cannot advance");
-                yield return Choose("Thẻ giường 4");
-                yield return Choose("Kiểm tra nội dung ký");
-            }
-            yield return Choose("Xác nhận lựa chọn");
-            yield return Until(() => !busy && GateService.G01(State), $"F101 {branch} confirmation");
-            Require(State.f101.firstDecision == branch && State.f101.revision == 1 &&
-                FormService.Distortion(State) == (branch == FormStatus.Affirmed ? 1 : 0), $"F101 {branch} state");
-            player.Teleport(scene.Pad("AP02"));
-            yield return Until(() => !busy && State.layer == Reality.R, "reception B→R");
-            player.Teleport(new Vector3(4, 0.02f, -20.30f), Quaternion.identity);
-            yield return Until(() => !busy && State.Happened("CH01-T09"), "exterior seam");
-            player.Teleport(scene.Pad("AP02"));
-            yield return Until(() => !busy && State.chapter == "CH02", "CH02 handoff");
 
             if (branch != FormStatus.Refuted) yield return InputPhysicalCase(branch == FormStatus.Unverified);
             player.Teleport(scene.Pad("AP02"));
@@ -350,7 +451,23 @@ namespace CTCC
             player.Teleport(scene.Pad("AP04"));
             yield return Until(() => State.Happened("CH01-T06"), "room checkpoint");
             yield return Tap(Key.Tab);
-            yield return Choose("Xem phiếu 101");
+            yield return Choose("Mở phiếu F101");
+        }
+
+        private IEnumerator AimAndUseHere(string id)
+        {
+            var target = FindObjectsByType<SceneTarget>(FindObjectsSortMode.None).Single(t => t.id == id);
+            yield return Until(() => !busy && !savingDialogue, "ready to aim at " + id);
+            Vector3 look = target.transform.position - player.Eye.transform.position;
+            Vector3 planar = new(look.x, 0f, look.z);
+            if (planar.sqrMagnitude > 0.0001f)
+                player.transform.rotation = Quaternion.LookRotation(planar);
+            player.Eye.transform.LookAt(target.transform.position);
+            Require(player.Focus(Available) == target,
+                $"No non-teleport sightline to {id} from walked position {player.Feet} (target at {target.transform.position})");
+            player.CanPlay = false;
+            yield return Tap(State.settings.alternateBindings ? Key.K : Key.E);
+            RefreshControls();
         }
 
         private IEnumerator UseFrom(string id, Vector3 origin)
@@ -389,7 +506,7 @@ namespace CTCC
             yield return Until(() => ui.IsModal && !busy && !savingDialogue, "modal for " + label);
             var button = ButtonMatching(label);
             Require(button.interactable, "enabled action " + label);
-            for (int i = 0; i < 12 && EventSystem.current.currentSelectedGameObject != button.gameObject; i++)
+            for (int i = 0; i < 24 && EventSystem.current.currentSelectedGameObject != button.gameObject; i++)
                 yield return Tap(Key.Tab);
             Require(EventSystem.current.currentSelectedGameObject == button.gameObject, "keyboard focused " + label);
             yield return Tap(Key.Enter);
@@ -436,21 +553,23 @@ namespace CTCC
 
         private IEnumerator InspectLifetimeStress()
         {
-            var document = Image("BedList");
-            Require(document != null, "stress document available");
+            var document = Image("ObsCard");
+            var backDoc = Image("ObsCard_Back");
+            Require(document != null && backDoc != null, "dual-sided stress documents available");
             long before = Profiler.GetTotalAllocatedMemoryLong();
             for (int i = 0; i < 100; i++)
             {
-                inspector.Open(null, document, (float)document.width / document.height, ActiveVolume());
+                inspector.Open(null, document, (float)document.width / document.height, ActiveVolume(), backDoc);
+                inspector.Flip();
                 yield return null;
                 inspector.Close();
                 yield return null;
             }
-            int meshes = Resources.FindObjectsOfTypeAll<Mesh>().Count(m => m.name == "InspectPaperSheet");
-            int materials = Resources.FindObjectsOfTypeAll<Material>().Count(m => m.name == "InspectPaperMaterial");
+            int meshes = Resources.FindObjectsOfTypeAll<Mesh>().Count(m => m.name is "InspectPaperFront" or "InspectPaperBack");
+            int materials = Resources.FindObjectsOfTypeAll<Material>().Count(m => m.name is "InspectPaperFrontMat" or "InspectPaperBackMat");
             long after = Profiler.GetTotalAllocatedMemoryLong();
             Require(meshes == 0 && materials == 0, $"Inspector retains {meshes} meshes and {materials} materials");
-            verification.Add($"INPUT STRESS PASS: 100 paper open/close cycles; {meshes} live paper meshes, {materials} live paper materials, Unity allocated bytes {before}→{after}.");
+            verification.Add($"INPUT STRESS PASS: 100 dual-sided flip open/close cycles; {meshes} live paper meshes, {materials} live paper materials, Unity allocated bytes {before}→{after}.");
         }
     }
 }

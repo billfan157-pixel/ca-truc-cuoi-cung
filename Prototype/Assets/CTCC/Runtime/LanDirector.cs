@@ -19,6 +19,7 @@ namespace CTCC
         private FirstPerson player;
         private Coroutine encounterRoutine;
         private bool steppingOut;
+        public bool IsEncounterRunning => encounterRoutine != null || steppingOut;
 
         public void Initialize(HospitalScene world, VoiceDirector voiceDirector, FirstPerson fps)
         {

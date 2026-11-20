@@ -51,6 +51,7 @@ namespace CTCC
             yield return VerifyM2AdditiveAndCharacters();
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifySpatialAudio();
             yield return VerifyKeyboard();
+            yield return VerifyCh01RAdversarialSuite();
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
             yield return VerifyScalableM3AndCh03();
         }
@@ -392,6 +393,8 @@ namespace CTCC
         private void WalkCase(FormStatus route,VisitSettings settings)
         {
             Apply(casework.Begin(player.Feet,settings),"begin");
+            scene.interactables?.ResetSessionProps();
+            if (scene.staffCrossDoor != null) scene.staffCrossDoor.isOpen = false;
             player.Teleport(scene.Pad("AP00"));
             Require(casework.OpenGate(player.Feet)!=CommitResult.Applied,"gate before SMS");
             Apply(casework.ReadLetter(player.Feet),"SMS");
@@ -405,18 +408,28 @@ namespace CTCC
             Walk(new Vector3(4,0,4.75f));
             Walk(new Vector3(6.51f,0,4.88f));
             Apply(casework.EnterRoom(player.Feet),"room CP02");
+            var validRefutation = new DeductionSubmission
+            {
+                formId = "F101",
+                selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
+                claimId = HypothesisService.ClaimUnreliableZero
+            };
             if(route==FormStatus.Refuted)
             {
-                Apply(casework.Observe("OBS101A",player.Feet),"A observed");
-                Require(casework.Submit(route,true,player.Feet)!=CommitResult.Applied,"one observation denies C");
-                Apply(casework.Observe("OBS101B",player.Feet),"B observed");
-                Require(casework.Submit(route,false,player.Feet)!=CommitResult.Applied,"C without selected pair");
+                Apply(casework.Observe("OBS101A",player.Feet,"LOC03"),"A observed");
+                Require(casework.SubmitF101(route,validRefutation,player.Feet,out var eval1)!=CommitResult.Applied && !eval1.Accepted,"one observation denies C");
+                Apply(casework.Observe("OBS101B",player.Feet,"LOC03"),"B observed");
+                var partialSub = new DeductionSubmission { formId = "F101", selectedEvidenceIds = new List<string> { "OBS101A" }, claimId = HypothesisService.ClaimUnreliableZero };
+                Require(casework.SubmitF101(route,partialSub,player.Feet,out var eval2)!=CommitResult.Applied && eval2.Outcome==HypothesisOutcome.InsufficientEvidence,"C without selected pair");
             }
-            Apply(casework.Submit(route,true,player.Feet),"F101 confirmation");
+            Apply(casework.SubmitF101(route,route==FormStatus.Refuted?validRefutation:null,player.Feet,out var routeEval),"F101 confirmation");
+            Require(routeEval.Accepted,"F101 route evaluation accepted");
             Require(GateService.G01(State) && !GateService.G02(State) && State.f101.firstDecision==route &&
-                FormService.Distortion(State)==(route==FormStatus.Affirmed?1:0) && !State.Has("E12"),
+                FormService.Distortion(State)==(route==FormStatus.Affirmed?1:0) && !State.Has("E12") && State.evidence.Count==1,
                 "form result before G02");
-            Require(scene.deniedBay.activeInHierarchy==(route==FormStatus.Affirmed),"branch applied in B");
+            Require(scene.deniedBay.activeInHierarchy==(route==FormStatus.Affirmed),"branch A applied in B");
+            if (scene.refutedBay != null)
+                Require(scene.refutedBay.activeInHierarchy==(route==FormStatus.Refuted),"branch C refutedBay applied in B");
             Walk(new Vector3(4,0,4.75f));
             Walk(new Vector3(4,0,-3.29f));
             Apply(casework.AtHub(player.Feet,out _),"collapse");
@@ -449,13 +462,14 @@ namespace CTCC
             Require(GateService.G02(State) && GateService.H01Tutorial(State) && !GateService.H02(State),"G02/H01; H02 remains unknown");
             if(route==FormStatus.Affirmed)
             {
-                Apply(casework.Submit(FormStatus.Unverified,false,player.Feet),"revision A→B");
+                Apply(casework.SubmitF101(FormStatus.Unverified,null,player.Feet,out _),"revision A→B");
                 Apply(casework.SwitchIn101(player.Feet),"back to B for observations");
-                foreach(var id in new[]{"OBS101A","OBS101B"}) Apply(casework.Observe(id,player.Feet),id);
-                Apply(casework.Submit(FormStatus.Refuted,true,player.Feet),"revision B→C");
-                for(int i=0;i<10;i++) Apply(casework.Submit(FormStatus.Refuted,true,player.Feet),"duplicate F101");
+                foreach(var id in new[]{"OBS101A","OBS101B"}) Apply(casework.Observe(id,player.Feet,"LOC03"),id);
+                Apply(casework.SubmitF101(FormStatus.Refuted,validRefutation,player.Feet,out var revEval),"revision B→C");
+                Require(revEval.Accepted,"revision B→C accepted");
+                for(int i=0;i<10;i++) Apply(casework.SubmitF101(FormStatus.Refuted,validRefutation,player.Feet,out _),"duplicate F101");
                 Require(State.f101.firstDecision==FormStatus.Affirmed && State.f101.revision==3 &&
-                    FormService.Distortion(State)==0,"revision idempotence");
+                    State.f101History.Count==3 && FormService.Distortion(State)==0,"revision idempotence");
                 Apply(casework.SwitchIn101(player.Feet),"back to R");
             }
             Require(transaction.KeepManual(),"manual slot");
@@ -955,6 +969,7 @@ namespace CTCC
             Require(voice.HasClip("CH03-D01") && voice.HasClip("CH03-D03") && voice.HasClip("CH03-D05"), "Archive voice clips");
             VerifyLegacySave(1);
             VerifyLegacySave(2);
+            VerifyLegacySave(3);
 
             var multi = State.Copy();
             multi.f101.current = FormStatus.Affirmed;
@@ -1096,6 +1111,14 @@ namespace CTCC
             var seed = State.Copy();
             seed.schemaVersion = schema;
             if (schema == 1) seed.patients.Clear();
+            if (schema <= 3)
+            {
+                seed.observationRecords.Clear();
+                seed.f101History.Clear();
+                seed.f101Argument = new DeductionSubmission();
+                seed.dreadEventsSeen.Clear();
+                seed.dreadSeed = 0;
+            }
             string payload = JsonUtility.ToJson(seed);
             string checksum;
             using (var sha = System.Security.Cryptography.SHA256.Create())
@@ -1104,8 +1127,264 @@ namespace CTCC
             File.WriteAllText(isolated.SlotPath(SaveSlot.Auto),
                 $"{{\"schemaVersion\":{schema},\"payload\":{JsonEscape(payload)},\"checksum\":\"{checksum}\"}}");
             Require(isolated.Read(SaveSlot.Auto, out var upgraded) == SaveRead.Valid &&
-                upgraded.schemaVersion == Investigation.Schema && upgraded.PatientIdentityVerified("C01"),
+                upgraded.schemaVersion == Investigation.Schema && upgraded.PatientIdentityVerified("C01") &&
+                upgraded.f101History.Count == upgraded.f101.revision &&
+                upgraded.observationRecords.Count >= upgraded.observed.Count,
                 "Upgrade legacy schema " + schema);
+        }
+
+        private IEnumerator VerifyCh01RAdversarialSuite()
+        {
+            string probe = Argument("-ctcc-qa-probe");
+            // Preserve current CH02 end-state to restore cleanly after CH01-R adversarial tests
+            var savedBefore = State.Copy();
+            var isolatedDir = Path.Combine(qaFolder, "ch01r-adversarial");
+            Directory.CreateDirectory(isolatedDir);
+
+            // 1) Start clean CH01 in Layer B at Room 101 AP04
+            var advSettings = new VisitSettings { volume = 0f, reduceMotion = true, captions = true, hintsEnabled = true };
+            Apply(casework.Begin(scene.Pad("AP00").position, advSettings), "CH01-R begin");
+            scene.interactables?.ResetSessionProps();
+            if (scene.staffCrossDoor != null) scene.staffCrossDoor.isOpen = false;
+            player.Teleport(scene.Pad("AP00"));
+            Apply(casework.ReadLetter(player.Feet), "CH01-R SMS");
+            Apply(casework.OpenGate(player.Feet), "CH01-R gate");
+            player.Teleport(scene.Pad("AP02"));
+            Apply(casework.AtHub(player.Feet, out _), "CH01-R enter B");
+            player.Teleport(scene.Pad("AP02"));
+            Apply(casework.Board(player.Feet), "CH01-R take board");
+            Apply(casework.Observe(ObservationRegistry.F101Sheet, player.Feet, "LOC02"), "CH01-R observe F101");
+
+            // 2) Non-lethal CH01 guarantee: zero Hunter/Gatekeeper activation
+            Require((orderlyAi == null || !orderlyAi.IsActive) && (gatekeeperCameo == null || !gatekeeperCameo.IsActive),
+                "CH01-R remains strictly non-lethal");
+
+            // 3) Compact nonlinear loop reachability: LOC02 -> STAFF Nursing Alcove -> open DOOR-STAFF -> HALL -> AP04!
+            Require(scene.staffCrossDoor != null && scene.staffCrossDoor.pivot != null, "CH01-R STAFF cross-door exists");
+            Walk(new Vector3(0.05f, 0f, -1.2f));
+            Walk(new Vector3(0.05f, 0f, 3.65f)); // Inside STAFF Nursing Alcove!
+            Apply(casework.Observe(ObservationRegistry.WardOverflowNotice, player.Feet, "STAFF"), "CH01-R observe overflow notice in STAFF");
+            Require(scene.interactables != null && scene.interactables.ToggleDrawer("DRAWER-NURSE", scene.atmosphere, instant: true), "CH01-R nurse drawer opens");
+            Apply(casework.Observe(ObservationRegistry.ShiftGuide, player.Feet, "STAFF"), "CH01-R observe AS-05 shift guide in STAFF");
+
+            // Capture STAFF Nursing Alcove 1080p still (framing desk, open drawer, overflow notice & cross-door!)
+            if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
+            {
+                var staffPose = new GameObject("QA_StaffAlcovePose").transform;
+                staffPose.SetPositionAndRotation(new Vector3(-0.32f, 0.02f, 1.85f), Quaternion.Euler(0f, 34f, 0f));
+                yield return CaptureHospitalFrame("ch01r-staff-alcove-B", staffPose, 0f);
+                Destroy(staffPose.gameObject);
+            }
+
+            // Open STAFF cross-door and physically walk through into HALL -> Room 101 AP04!
+            Require(scene.interactables.ToggleDoor("DOOR-STAFF", scene.atmosphere, instant: true), "CH01-R STAFF cross-door opens");
+            scene.staffCrossDoor.isOpen = true;
+            Walk(new Vector3(0.15f, 0f, 7.50f));
+            Walk(new Vector3(1.80f, 0f, 7.50f));
+            Walk(new Vector3(4.00f, 0f, 7.50f));
+            Walk(new Vector3(4.00f, 0f, 4.75f));
+            Walk(new Vector3(6.52f, 0f, 4.93f));
+            Apply(casework.EnterRoom(player.Feet), "CH01-R enter Room 101 via nonlinear loop");
+
+            // 4) Provenance, unknown ID, and layer violation adversarial checks
+            Require(casework.Observe("OBS_UNKNOWN_999", player.Feet, "LOC03") != CommitResult.Applied, "Unknown observation ID rejected");
+            Require(casework.Observe(ObservationRegistry.Ch02List, player.Feet, "LOC03") != CommitResult.Applied, "CH02 R observation rejected in Layer B");
+            Require(casework.Observe(ObservationRegistry.Bed4Traces, player.Feet, "LOC01") != CommitResult.Applied, "Wrong location provenance rejected");
+
+            // 5) Alternate clue discovery order: Comparison docs first (OBS101C, DRAWER-BED3 -> OBS101D), then OBS101B, then OBS101A!
+            Apply(casework.Observe(ObservationRegistry.Bed2Transfer, player.Feet, "LOC03"), "OBS101C Bed-2 completed transfer");
+            Require(scene.interactables.ToggleDrawer("DRAWER-BED3", scene.atmosphere, instant: true), "DRAWER-BED3 opens");
+            Apply(casework.Observe(ObservationRegistry.Bed3Meds, player.Feet, "LOC03"), "OBS101D Bed-3 routine meds");
+            Apply(casework.Observe(ObservationRegistry.StoppedClock0317, player.Feet, "LOC02"), "OBS_CLOCK_0317 FS01");
+            Require(State.Happened("FS01"), "Stopped clock records FS01");
+
+            // Capture grounded Bed 4 Pending state before refutation
+            if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
+            {
+                var pPose = new GameObject("QA_Bed4Pose").transform;
+                pPose.SetPositionAndRotation(new Vector3(9.45f, 0.02f, 5.45f), Quaternion.Euler(0f, 134f, 0f));
+                yield return CaptureHospitalFrame("ch01r-bed4-pending-B", pPose, 0f);
+                Destroy(pPose.gameObject);
+            }
+
+            // Observe OBS101B first (reverse of legacy A->B order!), then dual-sided flip + detail stage advancement!
+            Apply(casework.Observe(ObservationRegistry.Bed4Card, player.Feet, "LOC03"), "OBS101B observed first");
+            Require(State.FindObservation(ObservationRegistry.Bed4Card).stage == ObservationStage.Examined, "OBS101B starts Examined");
+            yield return WaitForApplied(casework.MarkObservationDetailAsync(ObservationRegistry.Bed4Card, "BACK", flippedBack: true), "OBS101B back flip stage");
+            Require(State.FindObservation(ObservationRegistry.Bed4Card).stage == ObservationStage.Interpreted &&
+                    State.FindObservation(ObservationRegistry.Bed4Card).flippedBack, "OBS101B advances to Interpreted on flip");
+
+            // Dual-sided 3D PhysicalInspector flip + detail focus + interrupted close recovery!
+            if (inspector != null && Image("ObsCard") != null && Image("ObsCard_Back") != null)
+            {
+                inspector.SetReducedMotion(true);
+                inspector.Open(null, Image("ObsCard"), 1024f / 1360f, ActiveVolume(), Image("ObsCard_Back"), BuildDetailTargetsFor(ObservationRegistry.Bed4Card));
+                Require(inspector.IsInspecting && inspector.HasBackSide && !inspector.ShowingBack, "Inspector opens dual-sided front");
+                if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
+                {
+                    yield return null;
+                    yield return CaptureHospitalFrame("ch01r-inspector-obscard-front", player.transform, 0f);
+                }
+                inspector.Flip();
+                Require(inspector.ShowingBack, "Inspector flips cleanly to back side");
+                if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
+                {
+                    yield return null;
+                    yield return CaptureHospitalFrame("ch01r-inspector-obscard-back", player.transform, 0f);
+                }
+                inspector.FocusDetail(0);
+                Require(inspector.ActiveDetailIndex == 0 && !inspector.ShowingBack, "Detail focus snaps cleanly to front hotspot");
+                inspector.Close(); // Interrupted mid-inspection close!
+                Require(!inspector.IsInspecting, "Interrupted inspection closes cleanly");
+            }
+
+            // Incomplete evidence test: OBS101B + OBS101C without OBS101A MUST fail with InsufficientEvidence
+            player.Teleport(scene.Pad("AP04"));
+            var missingA = new DeductionSubmission
+            {
+                formId = "F101",
+                selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Card, ObservationRegistry.Bed2Transfer },
+                claimId = HypothesisService.ClaimUnreliableZero
+            };
+            Require(casework.SubmitF101(FormStatus.Refuted, missingA, player.Feet, out var evalMissA) != CommitResult.Applied &&
+                    evalMissA.Outcome == HypothesisOutcome.InsufficientEvidence, "OBS101B+OBS101C without OBS101A denied");
+
+            // Now observe OBS101A (physical trace) to complete the complementary Bed-4 pair
+            Apply(casework.Observe(ObservationRegistry.Bed4Traces, player.Feet, "LOC03"), "OBS101A observed second");
+
+            // Test Unexamined stage rejection directly on copied state
+            var unexaminedState = State.Copy();
+            unexaminedState.FindObservation(ObservationRegistry.Bed4Traces).stage = ObservationStage.Discovered;
+            var corePairValid = new DeductionSubmission
+            {
+                formId = "F101",
+                selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
+                claimId = HypothesisService.ClaimUnreliableZero
+            };
+            Require(HypothesisService.EvaluateF101(unexaminedState, FormStatus.Refuted, corePairValid).Outcome == HypothesisOutcome.UnexaminedEvidence,
+                "Discovered-only unexamined evidence rejected");
+
+            // Test tampered provenance rejection (OBS101A claiming Reality.R!)
+            var tamperedLayerState = State.Copy();
+            tamperedLayerState.FindObservation(ObservationRegistry.Bed4Traces).layer = Reality.R;
+            Require(HypothesisService.EvaluateF101(tamperedLayerState, FormStatus.Refuted, corePairValid).Outcome == HypothesisOutcome.InvalidProvenance,
+                "Tampered Layer R provenance rejected");
+
+            // Test Unknown ID in submission
+            var unknownSub = new DeductionSubmission
+            {
+                formId = "F101",
+                selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card, "FAKE_ID" },
+                claimId = HypothesisService.ClaimUnreliableZero
+            };
+            Require(casework.SubmitF101(FormStatus.Refuted, unknownSub, player.Feet, out var evalUnk) != CommitResult.Applied &&
+                    evalUnk.Outcome == HypothesisOutcome.UnknownEvidenceId, "Unknown evidence ID rejected");
+
+            // Test Irrelevant Bed-3 medication log & stopped clock rejection
+            var irrelSub = new DeductionSubmission
+            {
+                formId = "F101",
+                selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card, ObservationRegistry.Bed3Meds },
+                claimId = HypothesisService.ClaimUnreliableZero
+            };
+            Require(casework.SubmitF101(FormStatus.Refuted, irrelSub, player.Feet, out var evalIrr) != CommitResult.Applied &&
+                    evalIrr.Outcome == HypothesisOutcome.IrrelevantEvidence, "Irrelevant Bed-3 medication record rejected");
+
+            // Test ALL 3 invalid conclusion statements (overclaims + contradiction)
+            var overclaimPresent = new DeductionSubmission
+            {
+                formId = "F101",
+                selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
+                claimId = HypothesisService.ClaimPatientPresent
+            };
+            Require(casework.SubmitF101(FormStatus.Refuted, overclaimPresent, player.Feet, out var evalPres) != CommitResult.Applied &&
+                    evalPres.Outcome == HypothesisOutcome.UnsupportedConclusion, "Patient-present overclaim rejected");
+
+            var overclaimFalsify = new DeductionSubmission
+            {
+                formId = "F101",
+                selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
+                claimId = HypothesisService.ClaimFalsification
+            };
+            var falsifyEval = HypothesisService.EvaluateF101(State, FormStatus.Refuted, overclaimFalsify);
+            Require(probe != "invalid-reasoning" && !falsifyEval.Accepted && falsifyEval.Outcome == HypothesisOutcome.UnsupportedConclusion,
+                "CH01-R fault-injection guard: unsupported falsification overclaim must be rejected");
+
+            var contraSub = new DeductionSubmission
+            {
+                formId = "F101",
+                selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
+                claimId = HypothesisService.ClaimClericalOk
+            };
+            Require(casework.SubmitF101(FormStatus.Refuted, contraSub, player.Feet, out var evalContra) != CommitResult.Applied &&
+                    evalContra.Outcome == HypothesisOutcome.ContradictsDecision, "Contradictory conclusion rejected");
+
+            // Verify progressive hint unlocked cleanly after >= 2 failed attempts, while Unverified STILL permitted!
+            Require(PuzzleService.ShouldShowFieldHint(State, HypothesisService.F101PuzzleId), "F101 progressive hint activates after failed attempts");
+            Apply(casework.SubmitF101(FormStatus.Unverified, null, player.Feet, out var unvEval), "Unverified succeeds even after failed refutation");
+            Require(probe != "broken-progression" && unvEval.Accepted && GateService.G01(State),
+                "CH01-R fault-injection guard: Unverified must open G01 without blocking CH01 progression");
+
+            // Capture all 3 consequential F101 visual outcomes in Layer B!
+            if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
+            {
+                var bed4ShotPose = new GameObject("QA_F101OutcomePose").transform;
+                bed4ShotPose.SetPositionAndRotation(new Vector3(9.45f, 0.02f, 5.45f), Quaternion.Euler(0f, 134f, 0f));
+                yield return CaptureHospitalFrame("ch01r-f101-unverified-B", bed4ShotPose, 0f);
+
+                player.Teleport(scene.Pad("AP04"));
+                Apply(casework.SubmitF101(FormStatus.Affirmed, null, player.Feet, out _), "Revision B->A");
+                Require(scene.deniedBay.activeInHierarchy && !scene.refutedBay.activeInHierarchy, "Affirmed activates solid deniedBay");
+                yield return CaptureHospitalFrame("ch01r-f101-affirmed-B", bed4ShotPose, 0f);
+
+                // Valid Refuted with core pair + authentic comparison & context docs (OBS101A + OBS101B + OBS101C + OBS_SHIFT_LOG)
+                player.Teleport(scene.Pad("AP04"));
+                var richRefutation = new DeductionSubmission
+                {
+                    formId = "F101",
+                    selectedEvidenceIds = new List<string>
+                    {
+                        ObservationRegistry.Bed4Traces,
+                        ObservationRegistry.Bed4Card,
+                        ObservationRegistry.Bed2Transfer,
+                        ObservationRegistry.ShiftGuide
+                    },
+                    claimId = HypothesisService.ClaimUnreliableZero
+                };
+                Apply(casework.SubmitF101(FormStatus.Refuted, richRefutation, player.Feet, out var richEval), "Revision A->C rich evidence");
+                Require(richEval.Accepted && scene.refutedBay.activeInHierarchy && !scene.deniedBay.activeInHierarchy &&
+                        State.FindObservation(ObservationRegistry.Bed4Traces).stage == ObservationStage.Corroborated &&
+                        State.FindObservation(ObservationRegistry.Bed4Card).stage == ObservationStage.Corroborated &&
+                        State.f101.firstDecision == FormStatus.Unverified && State.f101.revision == 3 &&
+                        State.f101History.Count == 3 && State.evidence.Count == 1,
+                        "Refuted rich evidence corroborated, firstDecision immutable, CH01 evidence count stays 1");
+                yield return CaptureHospitalFrame("ch01r-f101-refuted-B", bed4ShotPose, 0f);
+                Destroy(bed4ShotPose.gameObject);
+            }
+
+            // 6) Persistent one-time AmbientDreadDirector event + modal suppression + save reload survival!
+            Require(dreadDirector != null, "AmbientDreadDirector active");
+            ui.Show("QA", "Modal suppression", "Testing dread suppression while modal open.", new[] { new ActionChoice("OK", () => ui.Close()) }, () => ui.Close());
+            Require(!dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B06ClockTick), "Dread strictly suppressed while modal is open");
+            ui.Close();
+            yield return null;
+            Require(dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B06ClockTick), "Dread triggers cleanly when unsuppressed");
+            yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.B06ClockTick), "Dread event persisted to state");
+            Require(transaction.Restore(SaveSlot.Auto, out _) == SaveRead.Valid && State.HasDreadEvent(DreadCatalog.B06ClockTick),
+                "Persisted dread event survives save/reload");
+            Require(!dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B06ClockTick), "One-time dread event never replays after reload");
+
+            // 7) Reality.R independence: collapse back to R and verify deniedBay/refutedBay are strictly inactive and CH02 clues untouched!
+            player.Teleport(scene.Pad("AP02"));
+            Apply(casework.AtHub(player.Feet, out _), "CH01-R collapse to R");
+            Require(State.layer == Reality.R && !scene.deniedBay.activeInHierarchy && !scene.refutedBay.activeInHierarchy &&
+                    !MayDeliver("CH01-D16b", "B06") && !MayDeliver("CH04-D06", "B06"),
+                    "Reality.R remains completely independent of F101 and canon reveal guards hold");
+
+            // Restore pre-test CH02 snapshot so VerifyRender + VerifyScalableM3AndCh03 continue seamlessly!
+            Apply(transaction.Commit(savedBefore, scene.Pad("AP05").position, warp: false, geometryChanges: true), "Restore post-CH02 snapshot");
+            player.Teleport(scene.Pad("AP05"));
+            verification.Add("CH01-R ADVERSARIAL PASS: F101 deduction validation (all 3 invalid claims, irrelevant Bed-3 log, incomplete/unexamined/unknown/tampered provenance), revisions, dual-sided inspector, STAFF nonlinear loop + drawers, persistent dread + modal suppression, and Reality.R independence.");
         }
 
         private IEnumerator WaitForApplied(Task<CommitResult> pending, string label)

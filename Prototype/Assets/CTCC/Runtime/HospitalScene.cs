@@ -78,10 +78,14 @@ namespace CTCC
         public MarkerPose[] pads = Array.Empty<MarkerPose>();
         public InspectImage[] inspectImages = Array.Empty<InspectImage>();
         public InspectModel[] inspectModels = Array.Empty<InspectModel>();
-        public DoorPose outerGate, roomDoor, emergencyDoorA, emergencyDoorB, archiveExitDoor;
+        public DoorPose outerGate, roomDoor, staffCrossDoor, emergencyDoorA, emergencyDoorB, archiveExitDoor;
         public GameObject seamBlocker;
-        public GameObject realProps, reportProps, memoryProps, pendingBay, deniedBay;
+        public GameObject realProps, reportProps, memoryProps, pendingBay, deniedBay, refutedBay;
         public GameObject statusA, statusB, statusC, paperAfter, storeClues;
+        public Renderer f101WallRenderer;
+        public Material f101MatPending, f101MatA, f101MatB, f101MatC;
+        public Light bed4TubeLight;
+        private float bed4TubeBaseIntensity;
         public GameObject clockHandsR, clockHandsB;
         public Transform cabinet;
         public Vector3 cabinetClosed;
@@ -322,17 +326,42 @@ namespace CTCC
             // Bind zone-owned doors, dynamic rigs, characters, audio anchors and motion
             if (region.outerGate != null && region.outerGate.pivot != null) outerGate = region.outerGate;
             if (region.roomDoor != null && region.roomDoor.pivot != null) roomDoor = region.roomDoor;
+            if (region.staffCrossDoor != null && region.staffCrossDoor.pivot != null)
+            {
+                staffCrossDoor = region.staffCrossDoor;
+                interactables?.ConfigureDoor("DOOR-STAFF", staffCrossDoor.pivot, staffCrossDoor.isOpen ? staffCrossDoor.openAngle : 0f, staffCrossDoor.openAngle);
+            }
             if (region.emergencyDoorA != null && region.emergencyDoorA.pivot != null) emergencyDoorA = region.emergencyDoorA;
             if (region.emergencyDoorB != null && region.emergencyDoorB.pivot != null) emergencyDoorB = region.emergencyDoorB;
             if (region.archiveExitDoor != null && region.archiveExitDoor.pivot != null) archiveExitDoor = region.archiveExitDoor;
             if (region.seamBlocker != null) seamBlocker = region.seamBlocker;
             if (region.pendingBay != null) pendingBay = region.pendingBay;
             if (region.deniedBay != null) deniedBay = region.deniedBay;
+            if (region.refutedBay != null) refutedBay = region.refutedBay;
             if (region.statusA != null) statusA = region.statusA;
             if (region.statusB != null) statusB = region.statusB;
             if (region.statusC != null) statusC = region.statusC;
             if (region.paperAfter != null) paperAfter = region.paperAfter;
             if (region.storeClues != null) storeClues = region.storeClues;
+            if (region.f101WallRenderer != null)
+            {
+                f101WallRenderer = region.f101WallRenderer;
+                f101MatPending = region.f101MatPending;
+                f101MatA = region.f101MatA;
+                f101MatB = region.f101MatB;
+                f101MatC = region.f101MatC;
+            }
+            if (region.bed4TubeLight != null)
+            {
+                bed4TubeLight = region.bed4TubeLight;
+                bed4TubeBaseIntensity = bed4TubeLight.intensity;
+            }
+            if (region.drawerBed3 != null)
+                interactables?.ConfigureDrawer("DRAWER-BED3", region.drawerBed3, region.drawerBed3ClosedPos, region.drawerBed3OpenOffset);
+            if (region.drawerDesk != null)
+                interactables?.ConfigureDrawer("DRAWER-DESK", region.drawerDesk, region.drawerDeskClosedPos, region.drawerDeskOpenOffset);
+            if (region.drawerNurse != null)
+                interactables?.ConfigureDrawer("DRAWER-NURSE", region.drawerNurse, region.drawerNurseClosedPos, region.drawerNurseOpenOffset);
             if (region.clockHandsR != null) clockHandsR = region.clockHandsR;
             if (region.clockHandsB != null) clockHandsB = region.clockHandsB;
             if (region.spareBatteryProp != null) SpareBatteryProp = region.spareBatteryProp;
@@ -347,9 +376,15 @@ namespace CTCC
             }
             if (region.curtainCloth != null && interactables != null)
             {
-                interactables.curtainCloth = region.curtainCloth;
-                interactables.curtainClosedScale = region.curtainClosedScale;
-                interactables.curtainOpenScale = region.curtainOpenScale;
+                if (region.curtainHasPosTrack)
+                    interactables.ConfigureCurtain(region.curtainCloth, region.curtainClosedScale, region.curtainOpenScale, region.curtainClosedPos, region.curtainOpenPos, true);
+                else
+                {
+                    interactables.curtainCloth = region.curtainCloth;
+                    interactables.curtainClosedScale = region.curtainClosedScale;
+                    interactables.curtainOpenScale = region.curtainOpenScale;
+                    interactables.curtainHasPosTrack = false;
+                }
             }
             if (region.lanActor != null) LanActor = region.lanActor;
             if (region.gatekeeperActor != null) GatekeeperActor = region.gatekeeperActor;
@@ -394,17 +429,21 @@ namespace CTCC
             atmosphere?.UnregisterZoneLoops(region.roomLoops);
             ClearOwned(ref outerGate, region.outerGate);
             ClearOwned(ref roomDoor, region.roomDoor);
+            ClearOwned(ref staffCrossDoor, region.staffCrossDoor);
             ClearOwned(ref emergencyDoorA, region.emergencyDoorA);
             ClearOwned(ref emergencyDoorB, region.emergencyDoorB);
             ClearOwned(ref archiveExitDoor, region.archiveExitDoor);
             ClearOwned(ref seamBlocker, region.seamBlocker);
             ClearOwned(ref pendingBay, region.pendingBay);
             ClearOwned(ref deniedBay, region.deniedBay);
+            ClearOwned(ref refutedBay, region.refutedBay);
             ClearOwned(ref statusA, region.statusA);
             ClearOwned(ref statusB, region.statusB);
             ClearOwned(ref statusC, region.statusC);
             ClearOwned(ref paperAfter, region.paperAfter);
             ClearOwned(ref storeClues, region.storeClues);
+            ClearOwned(ref f101WallRenderer, region.f101WallRenderer);
+            ClearOwned(ref bed4TubeLight, region.bed4TubeLight);
             ClearOwned(ref clockHandsR, region.clockHandsR);
             ClearOwned(ref clockHandsB, region.clockHandsB);
             ClearOwned(ref realProps, region.realProps);
@@ -586,11 +625,49 @@ namespace CTCC
 
             Toggle(pendingBay, layerB && (form < 2 || form == 3));
             Toggle(deniedBay, layerB && form == 2);
+            Toggle(refutedBay, layerB && form == 4);
             Toggle(statusA, layerB && form == 2);
             Toggle(statusB, layerB && form == 3);
             Toggle(statusC, layerB && form == 4);
             Toggle(paperAfter, layerB && form >= 2);
             Toggle(storeClues, !layerB && closetOpen);
+
+            // Dynamic F101 wall clipboard ink/stamp consequence in Layer B (Reality.R untouched!)
+            if (f101WallRenderer != null)
+            {
+                var targetMat = form switch
+                {
+                    2 => f101MatA,
+                    3 => f101MatB,
+                    4 => f101MatC,
+                    _ => f101MatPending
+                };
+                if (targetMat != null)
+                    f101WallRenderer.sharedMaterial = targetMat;
+            }
+
+            // Consequential Reality.B environmental atmosphere for each F101 outcome (Reality.R strictly unaltered!)
+            if (motion != null)
+            {
+                motion.fanSpeedScale = !layerB ? 1f : form switch
+                {
+                    2 => 1.14f, // Affirmed: unnaturally steady sterile airflow
+                    3 => 0.56f, // Unverified: uneasy lingering slowdown
+                    4 => 0.82f, // Refuted: destabilized rhythm
+                    _ => 1.00f
+                };
+            }
+            if (bed4TubeLight != null && bed4TubeBaseIntensity > 0f)
+            {
+                bed4TubeLight.intensity = layerB && form == 4
+                    ? bed4TubeBaseIntensity * 0.48f
+                    : (layerB && form == 2 ? bed4TubeBaseIntensity * 1.08f : bed4TubeBaseIntensity);
+            }
+            if (layerB && form == 4 && interactables != null)
+            {
+                // Refuted destabilizes the false curtain concealment around Bed 4
+                interactables.SetCurtainPulled(true, !smoothPresentation);
+            }
 
             if (cabinet != null)
             {

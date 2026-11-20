@@ -200,16 +200,89 @@ namespace CTCC
 
         public void Show(string section, string title, string body, ActionChoice[] buttons, Action close, Texture splitImage = null)
         {
-            ShowLayout(section, title, body, buttons, close, splitImage, sideInspectMode: false, onClose: null);
+            ShowLayout(section, title, body, buttons, close, splitImage, sideInspectMode: false, onClose: null, inspectHint: null);
         }
 
-        public void ShowInspectSidebar(string section, string title, string body, ActionChoice[] buttons, Action close, Action onClose = null)
+        public void ShowInspectSidebar(string section, string title, string body, ActionChoice[] buttons, Action close, Action onClose = null, string inspectHint = null)
         {
-            ShowLayout(section, title, body, buttons, close, splitImage: null, sideInspectMode: true, onClose: onClose);
+            ShowLayout(section, title, body, buttons, close, splitImage: null, sideInspectMode: true, onClose: onClose, inspectHint: inspectHint);
+        }
+
+        public void ShowComparison(
+            string section,
+            string title,
+            string leftLabel,
+            Texture leftTex,
+            string leftNotes,
+            string rightLabel,
+            Texture rightTex,
+            string rightNotes,
+            ActionChoice[] buttons,
+            Action close)
+        {
+            for (int i = panel.childCount - 1; i >= 0; i--)
+            {
+                panel.GetChild(i).gameObject.SetActive(false);
+                Destroy(panel.GetChild(i).gameObject);
+            }
+            dismiss = close;
+            onCloseExtra = null;
+            focus.Clear();
+            selected = -1;
+
+            modalBackdrop.color = new Color(0.012f, 0.020f, 0.017f, 0.78f);
+            modalBackdrop.raycastTarget = true;
+            panel.anchorMin = new Vector2(0.08f, 0.06f);
+            panel.anchorMax = new Vector2(0.92f, 0.94f);
+            panelBg.color = ScreenDark;
+
+            Graphic(Rect("BorderTop", panel, new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -2), Vector2.zero), Frame, false);
+            Graphic(Rect("BorderLeft", panel, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(2, 0)), Frame, false);
+
+            int padX = 36;
+            var h = Rect("Compare header", panel, new Vector2(0, 0.84f), new Vector2(1, 1), new Vector2(padX, 2), new Vector2(-padX, -18));
+            FloatText("Section", h, new Vector2(0, 1), new Vector2(0, -16), new Vector2(900, 30), 19, Accent, TextAnchor.MiddleLeft, true).text = section;
+            FillText("Title text", Rect("Title", h, new Vector2(0, 0.08f), new Vector2(1, 0.66f)), 36, Ink, TextAnchor.MiddleLeft, true).text = title;
+            Graphic(Rect("Header rule", panel, new Vector2(0, 0.835f), new Vector2(1, 0.836f), new Vector2(padX, 0), new Vector2(-padX, 0)), Frame, false);
+
+            float shelf = Mathf.Min(0.28f, 0.045f + buttons.Length * 0.056f);
+            BuildComparePane("LeftDoc", new Vector2(0f, shelf), new Vector2(0.495f, 0.825f), padX, 12, leftLabel, leftTex, leftNotes);
+            BuildComparePane("RightDoc", new Vector2(0.505f, shelf), new Vector2(1f, 0.825f), 12, padX, rightLabel, rightTex, rightNotes);
+            Graphic(Rect("MidDivider", panel, new Vector2(0.499f, shelf + 0.02f), new Vector2(0.501f, 0.815f)), Frame, false);
+
+            BuildActionShelf(buttons, padX, shelf, sideInspectMode: false);
+
+            modal.gameObject.SetActive(true);
+            modalOpenedFrame = Time.frameCount;
+            hud.gameObject.SetActive(false);
+            OpenChanged?.Invoke();
+            MoveFocus(1);
+        }
+
+        private void BuildComparePane(string name, Vector2 minAnchor, Vector2 maxAnchor, int leftPad, int rightPad,
+            string headerLabel, Texture tex, string notes)
+        {
+            var pane = Rect(name, panel, minAnchor, maxAnchor, new Vector2(leftPad, 8), new Vector2(-rightPad, -8));
+            FillText(name + "Label", Rect("Lbl", pane, new Vector2(0, 0.90f), new Vector2(1, 1)), 20, Accent, TextAnchor.MiddleLeft, true).text = headerLabel ?? "";
+            if (tex != null)
+            {
+                var imgHolder = Rect("ImgHolder", pane, new Vector2(0, 0.30f), new Vector2(1, 0.89f), Vector2.zero, new Vector2(0, -4));
+                var frame = Rect("Frame", imgHolder, Vector2.zero, Vector2.one);
+                var raw = frame.gameObject.AddComponent<RawImage>();
+                raw.texture = tex;
+                raw.raycastTarget = false;
+                var keep = frame.gameObject.AddComponent<AspectRatioFitter>();
+                keep.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+                keep.aspectRatio = (float)tex.width / Mathf.Max(1, tex.height);
+            }
+            var noteArea = Rect("Notes", pane, new Vector2(0, 0), new Vector2(1, tex != null ? 0.29f : 0.88f), new Vector2(4, 4), new Vector2(-4, -4));
+            var txt = FillText("NoteTxt", noteArea, 18, Ink, TextAnchor.UpperLeft, false);
+            txt.text = notes ?? "";
+            txt.lineSpacing = 1.12f;
         }
 
         private void ShowLayout(string section, string title, string body, ActionChoice[] buttons, Action close,
-            Texture splitImage, bool sideInspectMode, Action onClose)
+            Texture splitImage, bool sideInspectMode, Action onClose, string inspectHint)
         {
             for (int i = panel.childCount - 1; i >= 0; i--)
             {
@@ -226,16 +299,16 @@ namespace CTCC
                 // Leave left 62% completely clear for the live lit 3D Physical Inspector!
                 modalBackdrop.color = new Color(0.01f, 0.018f, 0.016f, 0.16f);
                 modalBackdrop.raycastTarget = false;
-                panel.anchorMin = new Vector2(0.625f, 0.085f);
-                panel.anchorMax = new Vector2(0.965f, 0.915f);
+                panel.anchorMin = new Vector2(0.625f, 0.065f);
+                panel.anchorMax = new Vector2(0.968f, 0.935f);
                 panelBg.color = InspectDark;
             }
             else
             {
                 modalBackdrop.color = new Color(0.012f, 0.020f, 0.017f, 0.72f);
                 modalBackdrop.raycastTarget = true;
-                panel.anchorMin = new Vector2(0.195f, 0.092f);
-                panel.anchorMax = new Vector2(0.805f, 0.908f);
+                panel.anchorMin = new Vector2(0.175f, 0.072f);
+                panel.anchorMax = new Vector2(0.825f, 0.928f);
                 panelBg.color = ScreenDark;
             }
 
@@ -243,19 +316,21 @@ namespace CTCC
             Graphic(Rect("BorderTop", panel, new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -2), Vector2.zero), Frame, false);
             Graphic(Rect("BorderLeft", panel, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(2, 0)), Frame, false);
 
-            int padX = sideInspectMode ? 32 : 49;
-            int titleSize = sideInspectMode ? 34 : 46;
-            var h = Rect("Document header", panel, new Vector2(0, 0.785f), new Vector2(1, 1), new Vector2(padX, 2), new Vector2(-padX, -28));
-            FloatText("Section", h, new Vector2(0, 1), new Vector2(0, -20), new Vector2(720, 34), sideInspectMode ? 18 : 21,
+            int padX = sideInspectMode ? 28 : 44;
+            int titleSize = sideInspectMode ? 32 : 42;
+            var h = Rect("Document header", panel, new Vector2(0, 0.80f), new Vector2(1, 1), new Vector2(padX, 2), new Vector2(-padX, -22));
+            FloatText("Section", h, new Vector2(0, 1), new Vector2(0, -18), new Vector2(720, 32), sideInspectMode ? 17 : 20,
                 Accent, TextAnchor.MiddleLeft, true).text = section;
-            var name = Rect("Title", h, new Vector2(0, 0.12f), new Vector2(1, 0.68f));
+            var name = Rect("Title", h, new Vector2(0, 0.10f), new Vector2(1, 0.68f));
             FillText("Title text", name, titleSize, Ink, TextAnchor.MiddleLeft, true).text = title;
-            Graphic(Rect("Header rule", panel, new Vector2(0, 0.782f), new Vector2(1, 0.783f), new Vector2(padX, 0), new Vector2(-padX, 0)), Frame, false);
+            Graphic(Rect("Header rule", panel, new Vector2(0, 0.796f), new Vector2(1, 0.797f), new Vector2(padX, 0), new Vector2(-padX, 0)), Frame, false);
 
-            float shelf = Mathf.Min(0.47f, 0.055f + buttons.Length * (sideInspectMode ? 0.076f : 0.068f));
+            float maxShelf = buttons.Length > 7 ? 0.56f : 0.49f;
+            float perBtn = buttons.Length > 8 ? 0.049f : (sideInspectMode ? 0.068f : 0.064f);
+            float shelf = Mathf.Min(maxShelf, 0.05f + buttons.Length * perBtn);
             float split = splitImage != null ? 0.63f : 1f;
-            var bodyArea = Rect("Scrollable content", panel, new Vector2(0, shelf), new Vector2(split, 0.768f),
-                new Vector2(padX, 11), new Vector2(-padX + 4, -12));
+            var bodyArea = Rect("Scrollable content", panel, new Vector2(0, shelf), new Vector2(split, 0.784f),
+                new Vector2(padX, 10), new Vector2(-padX + 4, -10));
             var scroll = bodyArea.gameObject.AddComponent<ScrollRect>();
             readingScroll = scroll;
             Graphic(bodyArea, Color.clear, true);
@@ -270,12 +345,15 @@ namespace CTCC
             layout.childControlHeight = true;
             var fit = bodyRect.gameObject.AddComponent<ContentSizeFitter>();
             fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            var article = FillText("Readable copy", bodyRect, sideInspectMode ? 21 : 23, Ink, TextAnchor.UpperLeft);
-            article.text = sideInspectMode
-                ? body + "\n\n<color=#a6b6a8>Kéo chuột hoặc WASD để xoay vật · Lăn chuột / Q-Z để thu phóng</color>"
-                : body;
+            var article = FillText("Readable copy", bodyRect, sideInspectMode ? 20 : 22, Ink, TextAnchor.UpperLeft);
+            string footerHint = sideInspectMode
+                ? "\n\n<color=#a6b6a8>" + (string.IsNullOrEmpty(inspectHint)
+                    ? "Kéo chuột hoặc WASD để xoay vật · Lăn chuột / Q-Z để thu phóng"
+                    : inspectHint) + "</color>"
+                : "";
+            article.text = body + footerHint;
             article.supportRichText = true;
-            article.lineSpacing = 1.18f;
+            article.lineSpacing = 1.16f;
             scroll.viewport = bodyArea;
             scroll.content = bodyRect;
             scroll.horizontal = false;
@@ -284,8 +362,8 @@ namespace CTCC
 
             if (splitImage != null)
             {
-                var media = Rect("Evidence photograph", panel, new Vector2(0.64f, shelf + 0.018f), new Vector2(1, 0.765f),
-                    new Vector2(4, 0), new Vector2(-47, -10));
+                var media = Rect("Evidence photograph", panel, new Vector2(0.64f, shelf + 0.018f), new Vector2(1, 0.780f),
+                    new Vector2(4, 0), new Vector2(-42, -8));
                 var frame = Rect("Image within column", media, Vector2.zero, Vector2.one);
                 var image = frame.gameObject.AddComponent<RawImage>();
                 image.texture = splitImage;
@@ -295,12 +373,24 @@ namespace CTCC
                 keep.aspectRatio = (float)splitImage.width / splitImage.height;
             }
 
-            var footer = Rect("Actions", panel, new Vector2(0, 0), new Vector2(1, shelf), new Vector2(padX, 22), new Vector2(-padX, -6));
+            BuildActionShelf(buttons, padX, shelf, sideInspectMode);
+
+            modal.gameObject.SetActive(true);
+            modalOpenedFrame = Time.frameCount;
+            hud.gameObject.SetActive(false);
+            OpenChanged?.Invoke();
+            MoveFocus(1);
+        }
+
+        private void BuildActionShelf(ActionChoice[] buttons, int padX, float shelf, bool sideInspectMode)
+        {
+            var footer = Rect("Actions", panel, new Vector2(0, 0), new Vector2(1, shelf), new Vector2(padX, 18), new Vector2(-padX, -4));
+            int fontSz = buttons.Length > 8 ? 18 : (sideInspectMode ? 19 : 21);
             for (int i = 0; i < buttons.Length; i++)
             {
                 float h0 = 1f - (i + 1f) / buttons.Length;
                 float h1 = 1f - i / (float)buttons.Length;
-                var row = Rect("Action " + i, footer, new Vector2(0, h0), new Vector2(1, h1), new Vector2(0, 3), new Vector2(0, -3));
+                var row = Rect("Action " + i, footer, new Vector2(0, h0), new Vector2(1, h1), new Vector2(0, 2), new Vector2(0, -2));
                 var spec = buttons[i];
                 var btnBg = Graphic(row, new Color(0.145f, 0.205f, 0.175f), true);
                 var button = row.gameObject.AddComponent<Button>();
@@ -321,15 +411,9 @@ namespace CTCC
                     button.onClick.AddListener(() => { if (!ModalInputBlocked) spec.Press?.Invoke(); });
                     focus.Add(button);
                 }
-                var label = Rect("Inset", row, Vector2.zero, Vector2.one, new Vector2(18, 1), new Vector2(-14, -1));
-                FillText("Label", label, sideInspectMode ? 20 : 22, spec.Enabled ? Ink : Secondary, TextAnchor.MiddleLeft, true).text = spec.Label;
+                var label = Rect("Inset", row, Vector2.zero, Vector2.one, new Vector2(16, 1), new Vector2(-12, -1));
+                FillText("Label", label, fontSz, spec.Enabled ? Ink : Secondary, TextAnchor.MiddleLeft, true).text = spec.Label;
             }
-
-            modal.gameObject.SetActive(true);
-            modalOpenedFrame = Time.frameCount;
-            hud.gameObject.SetActive(false);
-            OpenChanged?.Invoke();
-            MoveFocus(1);
         }
 
         public void Close()

@@ -365,12 +365,17 @@ namespace CTCC.Editor
                 {
                     "Room101", "Welcome", "Emergency", "Station", "FileA", "FileB", "FileC",
                     "Demolition", "Staff", "Store", "Socket1", "Socket2", "Socket3", "Socket4",
-                    "F101", "ObsCard", "BedList", "Transfer", "Drawing", "WardRules", "ChartCard",
+                    "F101", "F101_Back", "F101_SignedA", "F101_SignedB", "F101_SignedC",
+                    "ObsCard", "ObsCard_Back", "Doc_Bed2Transfer", "Doc_Bed2Transfer_Back",
+                    "Doc_Bed3Meds", "Doc_Bed3Meds_Back", "Doc_ShiftGuide", "Doc_ShiftGuide_Back",
+                    "Doc_WardOverflow", "Doc_DutyRoster", "Doc_BayEnvelopeFront", "Doc_BayLetter", "Doc_BayLetter_Back",
+                    "Sign_NursingAlcove",
+                    "BedList", "Transfer", "Drawing", "WardRules", "ChartCard",
                     "Sign_EmergencyBox", "Sign_KhuBClosed", "Sign_ReceptionWindow", "Sign_HospitalGate",
                     "Calendar2005", "MonitorECG", "M31_KhuB", "M31_Kho", "M31_Service", "M31_Morgue"
                 })
                 {
-                    var m = Lit(name, 1f, 1f, 1f, smooth: name is "Room101" or "Welcome" or "Emergency" or "Sign_HospitalGate" or "Sign_ReceptionWindow" ? 0.42f : 0.16f, twoSided: true);
+                    var m = Lit(name, 1f, 1f, 1f, smooth: name is "Room101" or "Welcome" or "Emergency" or "Sign_HospitalGate" or "Sign_ReceptionWindow" or "Sign_NursingAlcove" ? 0.42f : 0.14f, twoSided: true);
                     m.SetTexture("_BaseMap", Tex(name));
                     m.SetColor("_BaseColor", Color.white);
                     if (name == "Sign_EmergencyBox")
@@ -382,7 +387,7 @@ namespace CTCC.Editor
                     EditorUtility.SetDirty(m);
                 }
 
-                foreach (string name in new[] { "DrawingPiece1", "DrawingPiece2", "DrawingPiece3", "ClockB", "ClockR" })
+                foreach (string name in new[] { "DrawingPiece1", "DrawingPiece2", "DrawingPiece3", "ClockB", "ClockR", "CH01_PR01_Corner" })
                 {
                     var m = Lit(name, 1f, 1f, 1f, smooth: 0.18f, twoSided: true);
                     m.SetTexture("_BaseMap", Tex(name));
@@ -1096,28 +1101,38 @@ namespace CTCC.Editor
                 staticArchitecture.Add(shelf);
             }
 
-            // F101 Branch B Modules: Denied Bay solid partition (A) & Pending Privacy Curtain (B)
+            // F101 Branch B Modules: Denied Bay solid partition (A), Pending Privacy Curtain (B), & Refuted Destabilized Alcove (C)
             var hidden = Group("A · vách áp hồ sơ", loc03Rep);
             var pendingObj = Group("B · rèm giường 4", loc03Rep).gameObject;
+            var refutedObj = Group("C · bất nhất giường 4", loc03Rep).gameObject;
             if (multiScene)
             {
                 zones["LOC03"].region.deniedBay = hidden.gameObject;
                 zones["LOC03"].region.pendingBay = pendingObj;
+                zones["LOC03"].region.refutedBay = refutedObj;
             }
             else
             {
                 world.deniedBay = hidden.gameObject;
                 world.pendingBay = pendingObj;
+                world.refutedBay = refutedObj;
             }
             Box("Denied bay front", new Vector3(12.14f, 1.8f, 4.32f), new Vector3(3.14f, 3.6f, 0.16f), Mat("Bay"), hidden, true, tile: 2.2f);
             Box("Denied bay return", new Vector3(10.65f, 1.80f, 3.15f), new Vector3(0.16f, 3.6f, 2.28f), Mat("Bay"), hidden, true, tile: 2.2f);
 
             if (art)
             {
-                // Interactive Blender Curtain Assembly for Bed 4 (both B pending curtain and R partial curtain!)
+                // Interactive Blender Curtain Assembly for Bed 4 (track-anchored bunching + R partial curtain!)
                 var bCurtain = PlaceBlenderModel("CTCC_ENV_CurtainAssembly", pendingObj.transform, new Vector3(10.68f, 2.74f, 4.27f), 0f, pairRB: false);
                 RegisterCurtainMotion(bCurtain, wireInteractive: true);
-                CapsuleTarget("CURTAIN-101", "Rèm che giường 4", new Vector3(11.85f, 1.55f, 4.27f), new Vector3(2.1f, 1.6f, 0.35f), pendingObj.transform);
+                CapsuleTarget("CURTAIN-101", "Rèm che giường 4", new Vector3(12.25f, 1.50f, 4.27f), new Vector3(0.95f, 1.50f, 0.22f), pendingObj.transform);
+
+                // Refuted (C) Layer B consequence: parted curtain + revealed damp wall patch + sharpened drag marks + non-exportable CH01-PR01 crayon corner!
+                var cCurtain = PlaceBlenderModel("CTCC_ENV_CurtainAssembly", refutedObj.transform, new Vector3(10.68f, 2.74f, 4.27f), 0f, pairRB: false, scale: new Vector3(0.30f, 1f, 1.24f));
+                RegisterCurtainMotion(cCurtain, wireInteractive: false);
+                Decal("RefutedBed4DampWall", "WaterRun", new Vector3(12.15f, 1.15f, 2.02f), Vector3.forward, 1.75f, 1.45f, 0.25f, refutedObj.transform, 0.88f);
+                Decal("RefutedBed4SharpWheels", "WheelMarks", new Vector3(11.40f, 0.014f, 3.35f), Vector3.up, 1.24f, 2.15f, 0.25f, refutedObj.transform, 0.94f);
+                Flat("CH01_PR01_CornerTrace", "CH01_PR01_Corner", new Vector3(12.82f, 0.015f, 3.18f), Vector3.up, new Vector2(0.24f, 0.24f), refutedObj.transform);
 
                 // Permanent curtain between Bed 1 & entrance sightline (width 1.25 m)
                 var midCurtain = PlaceBlenderModel("CTCC_ENV_CurtainAssembly", permanent, new Vector3(6.58f, 2.75f, 5.32f), 0f, pairRB: true, scale: new Vector3(0.54f, 1f, 1f));
@@ -1151,17 +1166,20 @@ namespace CTCC.Editor
             if (wireInteractive)
             {
                 var openScale = new Vector3(clothTf.localScale.x * 0.28f, clothTf.localScale.y, clothTf.localScale.z * 1.25f);
+                var closedPos = clothTf.localPosition;
+                var openPos = closedPos + new Vector3(-0.74f, 0f, 0f);
                 if (multiScene)
                 {
                     zones["LOC03"].region.curtainCloth = clothTf;
                     zones["LOC03"].region.curtainClosedScale = clothTf.localScale;
                     zones["LOC03"].region.curtainOpenScale = openScale;
+                    zones["LOC03"].region.curtainClosedPos = closedPos;
+                    zones["LOC03"].region.curtainOpenPos = openPos;
+                    zones["LOC03"].region.curtainHasPosTrack = true;
                 }
                 if (world.interactables != null)
                 {
-                    world.interactables.curtainCloth = clothTf;
-                    world.interactables.curtainClosedScale = clothTf.localScale;
-                    world.interactables.curtainOpenScale = openScale;
+                    world.interactables.ConfigureCurtain(clothTf, clothTf.localScale, openScale, closedPos, openPos, true);
                 }
             }
         }
@@ -1176,12 +1194,15 @@ namespace CTCC.Editor
                 staticArchitecture.Add(pil);
             }
 
-            // Corridor West-Wall Hardwood Handrail & Stretcher Crash Bumpers + East-Wall Galvanized Conduits & Junction Boxes!
+            // Corridor West-Wall Hardwood Handrail & Stretcher Crash Bumpers (clear of z=7.50 STAFF Cross-Door!) + East-Wall Conduits
+            foreach (float z in new[] { 2.60f, 11.65f })
+            {
+                var rail = PlaceBlenderModel("CTCC_ENV_HandrailBay", permanent, new Vector3(2.50f, 0f, z), 0f, pairRB: true, scale: new Vector3(1f, 1f, 0.85f), castShadows: false);
+                staticArchitecture.Add(rail);
+            }
             for (int i = 0; i < 3; i++)
             {
                 float z = i * 4.22f + 1.65f;
-                var rail = PlaceBlenderModel("CTCC_ENV_HandrailBay", permanent, new Vector3(2.50f, 0f, z), 0f, pairRB: true, castShadows: false);
-                staticArchitecture.Add(rail);
                 var cond = PlaceBlenderModel("CTCC_ENV_ConduitRun", permanent, new Vector3(5.50f, 2.86f, z), 180f, pairRB: true, castShadows: false);
                 staticArchitecture.Add(cond);
             }
@@ -1325,8 +1346,11 @@ namespace CTCC.Editor
                 Box("Wall board", Vector3.zero, new Vector3(0.065f, 0.42f, 0.315f), Mat("DoorWood"), file);
             }
             CapsuleTarget("F101", "Xử lý phiếu 101", new Vector3(5.811f, 1.37f, 5.50f), new Vector3(0.14f, 0.52f, 0.52f));
-            CapsuleTarget("OBS101A", "Vết bánh và ổ cắm thứ tư", new Vector3(10.92f, 0.096f, 4.48f), new Vector3(0.62f, 0.19f, 0.71f), report);
-            CapsuleTarget("OBS101B", "Thẻ bàn giao giường 4", new Vector3(11.35f, 1.41f, 4.453f), new Vector3(0.44f, 0.47f, 0.104f), report);
+            CapsuleTarget("OBS101A", "Dấu sử dụng tại vị trí giường 4", new Vector3(11.05f, 0.28f, 3.35f), new Vector3(0.86f, 0.44f, 0.90f), report);
+            CapsuleTarget("OBS101B", "Thẻ bàn giao giường 4 (AS-05B)", new Vector3(11.35f, 1.34f, 4.48f), new Vector3(0.42f, 0.48f, 0.22f), report);
+            CapsuleTarget("OBS101C", "Phiếu chuyển giường 02 (Đã hoàn tất)", new Vector3(10.25f, 0.94f, 5.88f), new Vector3(0.42f, 0.46f, 0.28f), report);
+            CapsuleTarget("LAN_TALK", "Trò chuyện với Lan", new Vector3(2.65f, 1.48f, -3.40f), new Vector3(0.42f, 0.80f, 0.42f), report);
+            CapsuleTarget("OBS_CLOCK_0317", "Đồng hồ treo tường (Dừng ở 03:17)", new Vector3(-0.92f, 2.42f, -3.26f), new Vector3(0.46f, 0.80f, 0.56f), permanent);
             CapsuleTarget("LIST", "Bản kê ba giường", new Vector3(6.65f, 1.34f, 2.127f), new Vector3(0.54f, 0.58f, 0.13f), real);
             CapsuleTarget("SOCKETS", "Bốn vị trí ổ cắm", new Vector3(11.54f, 1.31f, 2.115f), new Vector3(0.53f, 0.37f, 0.18f), real);
             CapsuleTarget("WHEELS", "Dấu bánh xe", new Vector3(11.66f, 0.10f, 3.57f), new Vector3(0.89f, 0.21f, 1.05f), real);
@@ -1365,7 +1389,14 @@ namespace CTCC.Editor
 
             world.inspectImages = Array.ConvertAll(new[]
             {
-                "F101", "ObsCard", "BedList", "Transfer", "Drawing",
+                "F101", "F101_Back", "F101_SignedA", "F101_SignedB", "F101_SignedC",
+                "ObsCard", "ObsCard_Back",
+                "Doc_Bed2Transfer", "Doc_Bed2Transfer_Back",
+                "Doc_Bed3Meds", "Doc_Bed3Meds_Back",
+                "Doc_ShiftGuide", "Doc_ShiftGuide_Back",
+                "Doc_WardOverflow", "Doc_DutyRoster",
+                "Doc_BayEnvelopeFront", "Doc_BayLetter", "Doc_BayLetter_Back",
+                "BedList", "Transfer", "Drawing",
                 "DrawingPiece1", "DrawingPiece2", "DrawingPiece3"
             }, id => new InspectImage { id = id, image = Tex(id) });
 
@@ -1390,10 +1421,87 @@ namespace CTCC.Editor
             Sign("Form B", "FileB", notice, Vector3.left, new Vector2(0.91f, 0.34f), statusBObj.transform);
             Sign("Form C", "FileC", notice, Vector3.left, new Vector2(0.91f, 0.34f), statusCObj.transform);
 
-            // Readable world-space document sheets atop physical props
-            Flat("F101", "F101", new Vector3(5.736f, 1.365f, 5.50f), Vector3.right, new Vector2(0.222f, 0.310f));
+            // Readable world-space document sheets atop physical props (F101 wall sheet dynamically swaps on A/B/C!)
+            var f101WallFlat = Flat("F101", "F101", new Vector3(5.736f, 1.365f, 5.50f), Vector3.right, new Vector2(0.222f, 0.310f));
+            var f101WallMr = f101WallFlat.GetComponent<Renderer>();
+            if (multiScene)
+            {
+                zones["LOC03"].region.f101WallRenderer = f101WallMr;
+                zones["LOC03"].region.f101MatPending = Mat("F101");
+                zones["LOC03"].region.f101MatA = Mat("F101_SignedA");
+                zones["LOC03"].region.f101MatB = Mat("F101_SignedB");
+                zones["LOC03"].region.f101MatC = Mat("F101_SignedC");
+            }
+            else
+            {
+                world.f101WallRenderer = f101WallMr;
+                world.f101MatPending = Mat("F101");
+                world.f101MatA = Mat("F101_SignedA");
+                world.f101MatB = Mat("F101_SignedB");
+                world.f101MatC = Mat("F101_SignedC");
+            }
             Flat("Spare signed board", "F101", new Vector3(2.12f, 1.133f, -2.90f), Vector3.up, new Vector2(0.25f, 0.349f));
-            Flat("OBS101B", "ObsCard", new Vector3(11.35f, 1.41f, 4.461f), Vector3.forward, new Vector2(0.162f, 0.22f), report);
+
+            // CH01-R Grounded Bed 4 Chart Holder (replaces floating quad!), Bed 4 Blanket/Slippers trace, & Bed 2 Transfer Comparison Chart!
+            var loc03RepRoot = ResolveParent(report, new Vector3(11.35f, 0f, 4.48f));
+            PlaceBlenderModel("CTCC_PROP_Bed4ChartHolder", loc03RepRoot, new Vector3(11.35f, 0f, 4.48f), 145f, pairRB: false);
+            PlaceBlenderModel("CTCC_PROP_Bed4BlanketTrace", loc03RepRoot, new Vector3(11.08f, 0f, 3.16f), -22f, pairRB: false, castShadows: false);
+            Flat("OBS101C_Bed2Chart", "Doc_Bed2Transfer", new Vector3(10.25f, 0.92f, 5.91f), Vector3.back, new Vector2(0.21f, 0.28f), loc03RepRoot);
+
+            // CH01-R Interactive Bed 3 Drawer (DRAWER-BED3 -> reveals OBS101D Bed-3 routine medication comparison record!)
+            var bed3DrawerRoot = Group("Drawer_Bed3_Root", loc03RepRoot, new Vector3(8.64f, 0.56f, 2.52f));
+            bed3DrawerRoot.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            PlaceBlenderModel("CTCC_PROP_InteractiveDrawer", bed3DrawerRoot, Vector3.zero, 180f, pairRB: false, scale: new Vector3(0.86f, 0.88f, 0.88f), castShadows: false);
+            Flat("Bed3MedsSheet", "Doc_Bed3Meds", new Vector3(0f, -0.025f, 0.01f), Vector3.up, new Vector2(0.21f, 0.27f), bed3DrawerRoot);
+            CapsuleTarget("DRAWER-BED3", "Ngăn tủ đầu giường 03", new Vector3(0f, -0.02f, -0.17f), new Vector3(0.42f, 0.14f, 0.08f), bed3DrawerRoot);
+            CapsuleTarget("OBS101D", "Phiếu phát thuốc giường 03", new Vector3(0f, 0.06f, 0.02f), new Vector3(0.32f, 0.14f, 0.24f), bed3DrawerRoot);
+            if (multiScene)
+            {
+                zones["LOC03"].region.drawerBed3 = bed3DrawerRoot;
+                zones["LOC03"].region.drawerBed3ClosedPos = bed3DrawerRoot.localPosition;
+                zones["LOC03"].region.drawerBed3OpenOffset = new Vector3(0f, 0f, 0.28f);
+            }
+            world.interactables?.ConfigureDrawer("DRAWER-BED3", bed3DrawerRoot, bed3DrawerRoot.localPosition, new Vector3(0f, 0f, 0.28f));
+
+            // CH01-R Interactive Reception Desk Drawer (DRAWER-DESK -> reveals OBS_RECEPTION_DRAWER Shift Roster!)
+            var loc02PermRoot = ResolveParent(permanent, new Vector3(1.96f, 0.66f, -5.06f));
+            var deskDrawerRoot = Group("Drawer_Reception_Root", loc02PermRoot, new Vector3(1.96f, 0.66f, -5.06f));
+            deskDrawerRoot.localRotation = Quaternion.Euler(0f, -90f, 0f);
+            PlaceBlenderModel("CTCC_PROP_InteractiveDrawer", deskDrawerRoot, Vector3.zero, 180f, pairRB: true, scale: new Vector3(0.92f, 0.92f, 0.92f), castShadows: false);
+            Flat("ReceptionRosterSheet", "Doc_DutyRoster", new Vector3(0f, -0.025f, 0.01f), Vector3.up, new Vector2(0.22f, 0.28f), deskDrawerRoot);
+            CapsuleTarget("DRAWER-DESK", "Ngăn kéo quầy tiếp nhận", new Vector3(0f, -0.02f, -0.17f), new Vector3(0.44f, 0.14f, 0.08f), deskDrawerRoot);
+            CapsuleTarget("OBS_RECEPTION_DRAWER", "Sổ phân ca trực 17–18/11/2005", new Vector3(0f, 0.06f, 0.02f), new Vector3(0.34f, 0.14f, 0.24f), deskDrawerRoot);
+            if (multiScene)
+            {
+                zones["LOC02"].region.drawerDesk = deskDrawerRoot;
+                zones["LOC02"].region.drawerDeskClosedPos = deskDrawerRoot.localPosition;
+                zones["LOC02"].region.drawerDeskOpenOffset = new Vector3(0.28f, 0f, 0f);
+            }
+            world.interactables?.ConfigureDrawer("DRAWER-DESK", deskDrawerRoot, deskDrawerRoot.localPosition, new Vector3(0.28f, 0f, 0f));
+
+            // CH01-R Compact STAFF Nursing / Admin Alcove (x=0.92 against east wall -> preserves 1.72m Door-B escape lane!)
+            var staffPermRoot = ResolveParent(permanent, new Vector3(0.92f, 0f, 3.65f));
+            var staffRepRoot = ResolveParent(report, new Vector3(0.92f, 0f, 3.65f));
+            var nursingDesk = PlaceBlenderModel("CTCC_PROP_NursingFilingDesk", staffPermRoot, new Vector3(0.92f, 0f, 3.65f), 90f, pairRB: true);
+            Box("Nursing desk col", new Vector3(0.92f, 0.46f, 3.65f), new Vector3(0.36f, 0.92f, 1.18f), Mat("CabinetPaint"), staffPermRoot, solid: true).GetComponent<Renderer>().enabled = false;
+            staticArchitecture.Add(nursingDesk);
+            Sign("Nursing alcove plaque", "Sign_NursingAlcove", new Vector3(1.09f, 2.50f, 3.65f), Vector3.left, new Vector2(0.84f, 0.28f), staffPermRoot, metalBacking: true);
+            CapsuleTarget("OBS_CORRIDOR_NOTICE", "Thông báo kê giường tạm phòng 101", new Vector3(0.92f, 1.88f, 3.65f), new Vector3(0.32f, 0.62f, 0.64f), staffRepRoot);
+
+            var nurseDrawerRoot = Group("Drawer_NurseDesk_Root", staffRepRoot, new Vector3(0.90f, 0.77f, 3.92f));
+            nurseDrawerRoot.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            PlaceBlenderModel("CTCC_PROP_InteractiveDrawer", nurseDrawerRoot, Vector3.zero, 180f, pairRB: false, scale: new Vector3(0.88f, 0.88f, 0.88f), castShadows: false);
+            Flat("ShiftGuideDrawerSheet", "Doc_ShiftGuide", new Vector3(0f, -0.025f, 0.01f), Vector3.up, new Vector2(0.21f, 0.27f), nurseDrawerRoot);
+            CapsuleTarget("DRAWER-NURSE", "Ngăn bàn điều dưỡng", new Vector3(0f, -0.02f, -0.17f), new Vector3(0.42f, 0.14f, 0.08f), nurseDrawerRoot);
+            CapsuleTarget("OBS_SHIFT_LOG", "Quy chế bàn giao ca đêm AS-05", new Vector3(0f, 0.06f, 0.02f), new Vector3(0.32f, 0.14f, 0.24f), nurseDrawerRoot);
+            if (multiScene)
+            {
+                zones["LOC03"].region.drawerNurse = nurseDrawerRoot;
+                zones["LOC03"].region.drawerNurseClosedPos = nurseDrawerRoot.localPosition;
+                zones["LOC03"].region.drawerNurseOpenOffset = new Vector3(-0.28f, 0f, 0f);
+            }
+            world.interactables?.ConfigureDrawer("DRAWER-NURSE", nurseDrawerRoot, nurseDrawerRoot.localPosition, new Vector3(-0.28f, 0f, 0f));
+
             Flat("Bản kê", "BedList", new Vector3(6.65f, 1.34f, 2.025f), Vector3.forward, new Vector2(0.31f, 0.41f), real);
             Flat("Transfer paper", "Transfer", new Vector3(16.13f, 0.868f, 2.75f), Vector3.up, new Vector2(0.224f, 0.30f), store);
 

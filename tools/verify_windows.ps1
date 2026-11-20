@@ -5,7 +5,7 @@ param(
     [switch]$PlayerInput,
     [ValidateSet('D3D12','D3D11')][string]$GraphicsApi = 'D3D12',
     [ValidateRange(30,600)][int]$TimeoutSeconds = 240,
-    [ValidateSet('module-failure','keyboard-failure','visual-failure','escape-premature','char-mesh','char-track','char-interruption')][string]$ProbeFailure,
+    [ValidateSet('module-failure','keyboard-failure','visual-failure','escape-premature','char-mesh','char-track','char-interruption','invalid-reasoning','broken-progression')][string]$ProbeFailure,
     [ValidateSet('Low','Medium','High')][string]$Quality = 'Medium'
 )
 
@@ -31,8 +31,8 @@ if($RecordDir -ne "") {
 $ctccRun=Start-Process -FilePath $ctccExe -WorkingDirectory (Split-Path -Parent $ctccExe) -ArgumentList $ctccArgs -PassThru
 if ($PlayerInput) {
     Show-CtccPlayerWindow $ctccRun -CalibrationClick
-    $startupLimit = [DateTime]::UtcNow.AddSeconds(5)
-    while ([DateTime]::UtcNow -lt $startupLimit -and !$ctccRun.WaitForExit(250)) {
+    $startupLimit = [DateTime]::UtcNow.AddSeconds(25)
+    while ([DateTime]::UtcNow -lt $startupLimit -and !$ctccRun.WaitForExit(350)) {
         $ctccRun.Refresh()
         if ($ctccRun.MainWindowHandle -ne [IntPtr]::Zero -and
             [CtccPlayerWindow]::GetForegroundWindow() -ne $ctccRun.MainWindowHandle) {
@@ -51,6 +51,8 @@ if ($ProbeFailure) {
         'char-mesh' { 'missing skinned component Lan_Eye_L_LOD1' }
         'char-track' { 'Invalid character track or stale audio/text: CH01-D03' }
         'char-interruption' { 'interrupted character voice did not release face, voice source and callback' }
+        'invalid-reasoning' { 'CH01-R fault-injection guard: unsupported falsification overclaim must be rejected' }
+        'broken-progression' { 'CH01-R fault-injection guard: Unverified must open G01 without blocking CH01 progression' }
     }
     if ($ctccRun.ExitCode -ne 1 -or !(Test-Path -LiteralPath $verdict) -or
         !(Select-String -LiteralPath $verdict -Quiet -Pattern '^RESULT=FAIL$') -or

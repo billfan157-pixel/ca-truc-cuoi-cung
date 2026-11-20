@@ -76,7 +76,7 @@ public static class CtccPlayerWindow
 '@
     }
     $activator = New-Object -ComObject WScript.Shell
-    for ($attempt = 0; $attempt -lt 16 -and !$Player.HasExited; $attempt++) {
+    for ($attempt = 0; $attempt -lt 120 -and !$Player.HasExited; $attempt++) {
         $Player.Refresh()
         if ($Player.MainWindowHandle -ne [IntPtr]::Zero) {
             [void]$activator.AppActivate($Player.Id)

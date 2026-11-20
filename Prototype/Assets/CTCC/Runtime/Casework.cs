@@ -147,57 +147,148 @@ namespace CTCC
         public bool CanRevise => State.Happened("CH01-T05") &&
             (State.chapter == "CH02" || State.layer == Reality.B && !State.Happened("CH01-T08"));
 
-        public CommitResult Observe(string id, Vector3 feet)
+        public CommitResult Observe(string id, Vector3 feet, string location = null, ObservationStage stage = ObservationStage.Examined)
         {
-            var result = PrepareObservation(id, out var next);
+            var result = PrepareObservation(id, location, stage, out var next);
             return next == null ? result : reality.Commit(next, feet);
         }
 
-        public Task<CommitResult> ObserveAsync(string id)
+        public Task<CommitResult> ObserveAsync(string id, string location = null, ObservationStage stage = ObservationStage.Examined)
         {
-            var result = PrepareObservation(id, out var next);
+            var result = PrepareObservation(id, location, stage, out var next);
             return next == null ? Task.FromResult(result) : reality.CommitEvidenceAsync(next);
         }
 
-        private CommitResult PrepareObservation(string id, out Investigation next)
+        public Task<CommitResult> MarkObservationDetailAsync(string id, string detailId, bool flippedBack = false)
+        {
+            if (string.IsNullOrEmpty(id) || !State.Observed(id))
+                return Task.FromResult(CommitResult.PadRequired);
+            var existing = State.FindObservation(id);
+            if (existing == null)
+                return Task.FromResult(CommitResult.Applied);
+            if ((!flippedBack || existing.flippedBack) && (string.IsNullOrEmpty(detailId) || existing.HasDetail(detailId)))
+                return Task.FromResult(CommitResult.Applied);
+            var next = State.Copy();
+            if (!next.MarkObservationDetail(id, detailId, flippedBack))
+                return Task.FromResult(CommitResult.Applied);
+            return reality.CommitEvidenceAsync(next);
+        }
+
+        private CommitResult PrepareObservation(string id, string location, ObservationStage stage, out Investigation next)
         {
             next = null;
-            if ((id == "OBS101A" || id == "OBS101B") && State.layer != Reality.B ||
-                (id == "LIST" || id == "SOCKETS" || id == "WHEELS") && (State.layer != Reality.R || State.chapter != "CH02"))
+            var spec = ObservationRegistry.Get(id);
+            if (spec == null) return CommitResult.PadRequired;
+            string loc = !string.IsNullOrEmpty(location)
+                ? location
+                : (spec.AllowedLocations != null && spec.AllowedLocations.Length > 0 ? spec.AllowedLocations[0] : "LOC03");
+            if (!ObservationRegistry.ValidProvenance(id, State.layer, loc, State.chapter))
                 return CommitResult.PadRequired;
-            if (State.Observed(id)) return CommitResult.Applied;
+            var existing = State.FindObservation(id);
+            if (State.Observed(id) && existing != null && existing.stage >= stage)
+                return CommitResult.Applied;
             next = State.Copy();
-            next.Observe(id);
+            next.RecordObservation(id, State.layer, loc, stage);
+            if (id == ObservationRegistry.StoppedClock0317)
+                next.Remember("FS01");
             return CommitResult.Applied;
         }
-        public CommitResult Submit(FormStatus form, bool pairedObservations, Vector3 feet)
+
+        public CommitResult SubmitF101(FormStatus decision, DeductionSubmission submission, Vector3 feet, out HypothesisEvaluation evaluation)
         {
-            var status = PrepareSubmit(form, pairedObservations, feet, out var next);
-            return next == null ? status : reality.Commit(next, feet, "AP04", false, true);
+            var status = PrepareSubmitF101(decision, submission, feet, out var next, out evaluation, out bool geometryChanged);
+            if (next == null) return status;
+            if (!evaluation.Accepted)
+            {
+                // Persist failed reasoning attempt for progressive hints, while still returning rejection status!
+                reality.Commit(next, feet);
+                return CommitResult.PadRequired;
+            }
+            return geometryChanged
+                ? reality.Commit(next, feet, "AP04", false, true)
+                : reality.Commit(next, feet);
         }
 
-        public Task<CommitResult> SubmitAsync(FormStatus form, bool pairedObservations, Vector3 feet)
+        public async Task<(CommitResult Result, HypothesisEvaluation Evaluation)> SubmitF101DetailedAsync(
+            FormStatus decision,
+            DeductionSubmission submission,
+            Vector3 feet)
         {
-            var status = PrepareSubmit(form, pairedObservations, feet, out var next);
-            return next == null ? Task.FromResult(status) : reality.CommitAsync(next, feet, "AP04", false, true);
+            var status = PrepareSubmitF101(decision, submission, feet, out var next, out var evaluation, out bool geometryChanged);
+            if (next == null) return (status, evaluation);
+            if (!evaluation.Accepted)
+            {
+                await reality.CommitEvidenceAsync(next);
+                return (CommitResult.PadRequired, evaluation);
+            }
+            var result = geometryChanged
+                ? await reality.CommitAsync(next, feet, "AP04", false, true)
+                : await reality.CommitEvidenceAsync(next);
+            return (result, evaluation);
         }
 
-        private CommitResult PrepareSubmit(FormStatus form, bool pairedObservations, Vector3 feet, out Investigation next)
+        public async Task<CommitResult> SubmitF101Async(FormStatus decision, DeductionSubmission submission, Vector3 feet)
+        {
+            var pair = await SubmitF101DetailedAsync(decision, submission, feet);
+            return pair.Result;
+        }
+
+        private CommitResult PrepareSubmitF101(
+            FormStatus decision,
+            DeductionSubmission submission,
+            Vector3 feet,
+            out Investigation next,
+            out HypothesisEvaluation evaluation,
+            out bool geometryChanged)
         {
             next = null;
-            if (!CanRevise || form == FormStatus.Refuted && !pairedObservations)
+            geometryChanged = false;
+            evaluation = HypothesisEvaluation.Reject(HypothesisOutcome.ContradictsDecision, "Chưa thể ký phiếu", "Cần đứng tại vị trí phiếu F101 ở phòng 101 để xác nhận.");
+            if (!CanRevise || !reality.OnPad(feet, "AP04"))
                 return CommitResult.PadRequired;
-            if (!reality.OnPad(feet, "AP04")) return CommitResult.PadRequired;
+
             var candidate = State.Copy();
-            if (!FormService.Apply(candidate, form))
+            if (!FormService.ApplyWithReasoning(candidate, decision, submission, out evaluation))
+            {
+                // Persist failed F101 refutation attempt cleanly so contextual hints escalate after 2 failed tries!
+                if (decision == FormStatus.Refuted)
+                {
+                    PuzzleService.RecordAttempt(candidate, HypothesisService.F101PuzzleId, false);
+                    next = candidate;
+                    geometryChanged = false;
+                }
                 return CommitResult.PadRequired;
+            }
+
             if (candidate.f101.revision == State.f101.revision)
                 return CommitResult.Applied;
+
             candidate.Remember("CH01-T07");
             if (candidate.chapter == "CH01")
                 candidate.checkpoint = "CH01-CP02";
             next = candidate;
+            geometryChanged = true;
             return CommitResult.Applied;
+        }
+
+        public Task<CommitResult> RecordDreadEventAsync(string dreadId)
+        {
+            if (string.IsNullOrEmpty(dreadId) || State.HasDreadEvent(dreadId))
+                return Task.FromResult(CommitResult.Applied);
+            var next = State.Copy();
+            if (!next.MarkDreadEvent(dreadId))
+                return Task.FromResult(CommitResult.Applied);
+            return reality.CommitEvidenceAsync(next);
+        }
+
+        public CommitResult RecordDreadEvent(string dreadId, Vector3 feet)
+        {
+            if (string.IsNullOrEmpty(dreadId) || State.HasDreadEvent(dreadId))
+                return CommitResult.Applied;
+            var next = State.Copy();
+            if (!next.MarkDreadEvent(dreadId))
+                return CommitResult.Applied;
+            return reality.Commit(next, feet);
         }
 
         public string MissingPhysicalObservations()

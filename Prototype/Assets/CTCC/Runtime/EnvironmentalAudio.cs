@@ -24,6 +24,7 @@ namespace CTCC
         public AudioClip paper, stamp, slippers, step, stepWet, stepCorridor, switchLayer;
         public AudioClip switchToB, switchToR, doorCreak, doorLatch, curtainSlide, cabinetRoll;
         public AudioClip keyJingle, trolleyRoll, phoneBuzz, paStatic, breakerCut, emergencyHum, distantThunder;
+        public AudioClip drawerSlide, paperFlip, clockTick, distantSteps;
         public VoiceClipEntry[] voiceClips = Array.Empty<VoiceClipEntry>();
         public AudioClip lanMotif;
 
@@ -252,10 +253,14 @@ namespace CTCC
                 "breakerCut" => breakerCut,
                 "emergencyHum" => emergencyHum,
                 "distantThunder" => distantThunder,
+                "drawerSlide" => drawerSlide != null ? drawerSlide : cabinetRoll,
+                "paperFlip" => paperFlip != null ? paperFlip : paper,
+                "clockTick" => clockTick != null ? clockTick : doorLatch,
+                "distantSteps" => distantSteps != null ? distantSteps : stepCorridor,
                 _ => null
             };
             if (sound == null || propCue == null) return;
-            bool directionCue = cue is "keyJingle" or "slippers" or "trolleyRoll";
+            bool directionCue = cue is "keyJingle" or "slippers" or "trolleyRoll" or "distantSteps";
             bool transition = cue is "switch" or "switchToB" or "switchToR";
             double now = AudioSettings.dspTime;
             var voice = AcquireCue(directionCue ? 2 : transition ? 1 : 0, now);
@@ -266,14 +271,14 @@ namespace CTCC
             voice.source.maxDistance = cue switch
             {
                 "distantThunder" => 36f,
-                "trolleyRoll" or "keyJingle" => 23f,
-                "slippers" => 10f,
+                "trolleyRoll" or "keyJingle" or "distantSteps" => 23f,
+                "slippers" or "clockTick" => 11f,
                 _ => propCue.maxDistance
             };
             voice.source.priority = directionCue ? 110 : 135;
-            voice.reverbSend = transition ? 0f : 0.62f;
+            voice.reverbSend = transition || cue == "paperFlip" ? 0f : 0.62f;
             voice.importance = directionCue ? 2 : transition ? 1 : 0;
-            voice.checkWalls = directionCue || cue is "distantThunder" or "paStatic";
+            voice.checkWalls = directionCue || cue is "distantThunder" or "paStatic" or "clockTick";
             voice.obstruction = voice.checkWalls && IsObstructed(at) ? 1f : 0f;
             voice.filter.cutoffFrequency = voice.obstruction > 0f ? 2300f : 22000f;
             float baseVol = cue switch
@@ -281,6 +286,10 @@ namespace CTCC
                 "switch" or "switchToB" or "switchToR" => 0.44f,
                 "cabinetRoll" => 0.66f,
                 "doorCreak" => 0.56f,
+                "drawerSlide" => 0.56f,
+                "paperFlip" => 0.48f,
+                "clockTick" => 0.60f,
+                "distantSteps" => 0.50f,
                 "curtainSlide" => 0.52f,
                 "keyJingle" => 0.72f,
                 "trolleyRoll" => 0.62f,

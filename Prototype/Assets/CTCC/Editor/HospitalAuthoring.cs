@@ -584,8 +584,18 @@ namespace CTCC.Editor
             Wall(true, 0, 1.1f, 2.5f);
             Wall(true, 0, 5.5f, 9);
             Wall(false, -1.1f, 0, 16);
-            Wall(false, 1.2f, 0, 16);
-            Wall(false, 2.4f, 0, 16);
+            // CH01-R compact nonlinear loop: Staff Cross-Passage at z = 7.50 connecting STAFF Nursing Alcove <-> HALL Corridor
+            WallOpening(false, 1.2f, 0, 16, 7.50f, 1.04f, 2.22f);
+            WallOpening(false, 2.4f, 0, 16, 7.50f, 1.04f, 2.22f);
+            Wall(true, 6.94f, 1.2f, 2.4f, 0f, 2.22f);
+            Wall(true, 8.06f, 1.2f, 2.4f, 0f, 2.22f);
+            Surface("Staff cross threshold", new Vector3(1.80f, -0.1f, 7.50f), new Vector3(1.42f, 0.20f, 1.04f),
+                "FloorR", "FloorB", true, 1.6f, isStatic: true);
+            Surface("Staff cross soffit", new Vector3(1.80f, 2.91f, 7.50f), new Vector3(1.22f, 1.38f, 1.04f),
+                "PlasterR", "PlasterB", false, 1.8f, isStatic: true);
+            var staffDoor = HingedStaffCrossDoor("DOOR-STAFF", new Vector3(2.36f, 0f, 7.03f), 0.94f, -96f);
+            if (multiScene) zones["LOC03"].region.staffCrossDoor = staffDoor;
+            else world.staffCrossDoor = staffDoor;
 
             WallOpening(false, 5.60f, 0, 16, 4.75f, 1.2f, art ? 2.84f : 2.22f);
             var room = Opening("GATE-101");
@@ -681,6 +691,23 @@ namespace CTCC.Editor
             return new DoorPose { pivot = pivot, openAngle = angle };
         }
 
+        private DoorPose HingedStaffCrossDoor(string name, Vector3 hingeWorldPos, float width, float openAngle)
+        {
+            var parent = ResolveParent(null, hingeWorldPos);
+            Transform pivot = Group(name + " · hinge", parent, hingeWorldPos);
+            Transform leaf = Group("Leaf", pivot);
+            // Runs along +Z (z=7.03 to 7.97) when closed; swings -96 deg into the x=1.2..2.4 service pocket!
+            leaf.localRotation = Quaternion.Euler(0, -90f, 0);
+            var proxy = Box("Staff cross door collider", new Vector3(width * 0.5f, 1.09f, 0f), new Vector3(width - 0.02f, 2.18f, 0.055f), Mat("WoodDoorR"), leaf, solid: true);
+            if (art)
+            {
+                proxy.GetComponent<Renderer>().enabled = false;
+                PlaceBlenderModel("CTCC_ENV_StaffCrossDoor", leaf, Vector3.zero, 0f, pairRB: true);
+            }
+            CapsuleTarget("DOOR-STAFF", "Cửa thông lối nhân viên", new Vector3(width - 0.14f, 1.04f, 0f), new Vector3(0.36f, 0.50f, 0.36f), leaf);
+            return new DoorPose { pivot = pivot, openAngle = openAngle, isOpen = false };
+        }
+
         private DoorPose HingedEmergencyDoor(string name, Aperture a, float angle)
         {
             if (!art) return Hinged(name, a, 2.18f, Mat("MetalPaint"), angle, true);
@@ -754,6 +781,16 @@ namespace CTCC.Editor
                 if (HospitalScene.Occupied(ap04.position))
                     throw new InvalidOperationException("AP04 collision after F101 branch " + route);
                 VerifyNav("F101 route " + route, new[] { "AP01", "AP02", "AP03", "AP04" });
+            }
+            // Verify CH01-R compact nonlinear exploration loop (STAFF <-> HALL cross-door open)
+            if (world.staffCrossDoor != null)
+            {
+                world.Present(true, 0, true, true, false, false);
+                world.staffCrossDoor.Set(true);
+                Physics.SyncTransforms();
+                VerifyNav("CH01-R staff loop open", new[] { "AP02", "AP04" });
+                world.staffCrossDoor.Set(false);
+                Physics.SyncTransforms();
             }
             world.Present(false, 0, true, true, false, false);
             Vector3 through = new Vector3(5.6f, 0.30f, 4.75f);

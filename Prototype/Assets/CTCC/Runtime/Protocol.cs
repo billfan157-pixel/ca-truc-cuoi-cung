@@ -79,7 +79,7 @@ namespace CTCC
     [Serializable]
     public sealed class Investigation
     {
-        public const int Schema = 3;
+        public const int Schema = 4;
         public const int MinSupportedSchema = 1;
         public int schemaVersion = Schema;
         public long sequence;
@@ -99,6 +99,11 @@ namespace CTCC
         public List<string> events = new();
         public List<string> evidence = new();
         public List<string> observed = new();
+        public List<ObservationRecord> observationRecords = new();
+        public List<FormRevisionEntry> f101History = new();
+        public DeductionSubmission f101Argument = new();
+        public List<string> dreadEventsSeen = new();
+        public int dreadSeed = 20051118;
         public List<TranscriptEntry> transcript = new();
 
         public Investigation Copy() => JsonUtility.FromJson<Investigation>(JsonUtility.ToJson(this));
@@ -112,6 +117,69 @@ namespace CTCC
             return true;
         }
         public bool Has(string id) => evidence.Contains(id);
+
+        public ObservationRecord FindObservation(string id)
+        {
+            if (observationRecords == null || string.IsNullOrEmpty(id)) return null;
+            for (int i = 0; i < observationRecords.Count; i++)
+                if (observationRecords[i] != null && string.Equals(observationRecords[i].id, id, StringComparison.Ordinal))
+                    return observationRecords[i];
+            return null;
+        }
+
+        public ObservationRecord RecordObservation(string id, Reality provenanceLayer, string location, ObservationStage stage)
+        {
+            observationRecords ??= new();
+            Observe(id);
+            var existing = FindObservation(id);
+            if (existing != null)
+            {
+                if (stage > existing.stage) existing.stage = stage;
+                return existing;
+            }
+            var rec = new ObservationRecord
+            {
+                id = id,
+                layer = provenanceLayer,
+                location = location ?? "",
+                chapter = chapter ?? "CH01",
+                stage = stage
+            };
+            observationRecords.Add(rec);
+            return rec;
+        }
+
+        public bool MarkObservationDetail(string id, string detailId, bool flippedBack = false)
+        {
+            var rec = FindObservation(id);
+            if (rec == null) return false;
+            bool changed = false;
+            if (flippedBack && !rec.flippedBack)
+            {
+                rec.flippedBack = true;
+                changed = true;
+            }
+            if (!string.IsNullOrEmpty(detailId) && rec.MarkDetail(detailId))
+                changed = true;
+            if ((rec.flippedBack || (rec.inspectedDetails != null && rec.inspectedDetails.Count > 0)) &&
+                rec.stage < ObservationStage.Interpreted)
+            {
+                rec.stage = ObservationStage.Interpreted;
+                changed = true;
+            }
+            return changed;
+        }
+
+        public bool HasDreadEvent(string id) =>
+            dreadEventsSeen != null && !string.IsNullOrEmpty(id) && dreadEventsSeen.Contains(id);
+
+        public bool MarkDreadEvent(string id)
+        {
+            dreadEventsSeen ??= new();
+            if (string.IsNullOrEmpty(id) || dreadEventsSeen.Contains(id)) return false;
+            dreadEventsSeen.Add(id);
+            return true;
+        }
 
         public PatientEntry FindOrCreatePatient(string code)
         {
@@ -201,7 +269,8 @@ namespace CTCC
             ["F101"] = new("LOC03", true, RefutationAvailable)
         };
 
-        public static bool RefutationAvailable(Investigation state) => state.Observed("OBS101A") && state.Observed("OBS101B");
+        public static bool RefutationAvailable(Investigation state) =>
+            HypothesisService.HasValidCoreObservations(state);
 
         public static bool RefutationAvailable(Investigation state, string formId) =>
             formId != null && Registry.TryGetValue(formId, out var spec) && spec.CanRefute(state);
@@ -226,19 +295,76 @@ namespace CTCC
             return Mathf.Min(4, count);
         }
 
-        public static bool Apply(Investigation candidate, FormStatus decision)
+        public static bool Apply(Investigation candidate, FormStatus decision) =>
+            ApplyWithReasoning(candidate, decision, null, out _);
+
+        public static bool ApplyWithReasoning(
+            Investigation candidate,
+            FormStatus decision,
+            DeductionSubmission submission,
+            out HypothesisEvaluation evaluation)
         {
-            if (!Enum.IsDefined(typeof(FormStatus), decision) || decision == FormStatus.Pending ||
-                decision == FormStatus.Refuted && !RefutationAvailable(candidate))
+            evaluation = HypothesisService.EvaluateF101(candidate, decision, submission);
+            if (!evaluation.Accepted)
                 return false;
+
             var record = candidate.f101;
+            candidate.f101History ??= new();
+
             if (record.current == decision)
+            {
+                // Duplicate identical submission is a safe no-op (never increments revision twice).
                 return true;
+            }
+
             if (record.revision == 0)
                 record.firstDecision = decision;
             record.current = decision;
             record.revision++;
             candidate.Remember("FS02");
+
+            var normalizedIds = new List<string>();
+            string claimId = "";
+            if (decision == FormStatus.Refuted && submission != null)
+            {
+                var seen = new HashSet<string>(StringComparer.Ordinal);
+                if (submission.selectedEvidenceIds != null)
+                {
+                    for (int i = 0; i < submission.selectedEvidenceIds.Count; i++)
+                    {
+                        string id = submission.selectedEvidenceIds[i];
+                        if (!string.IsNullOrEmpty(id) && seen.Add(id))
+                        {
+                            normalizedIds.Add(id);
+                            var obsRec = candidate.FindObservation(id);
+                            if (obsRec != null && obsRec.stage < ObservationStage.Corroborated)
+                                obsRec.stage = ObservationStage.Corroborated;
+                        }
+                    }
+                }
+                claimId = submission.claimId ?? "";
+                candidate.f101Argument = new DeductionSubmission
+                {
+                    formId = "F101",
+                    selectedEvidenceIds = new List<string>(normalizedIds),
+                    claimId = claimId
+                };
+                PuzzleService.RecordAttempt(candidate, HypothesisService.F101PuzzleId, true);
+            }
+            else
+            {
+                candidate.f101Argument = new DeductionSubmission { formId = "F101", claimId = "" };
+            }
+
+            candidate.f101History.Add(new FormRevisionEntry
+            {
+                revision = record.revision,
+                decision = decision,
+                claimId = claimId,
+                evidenceIds = normalizedIds,
+                chapter = candidate.chapter ?? "CH01",
+                layer = candidate.layer
+            });
             return true;
         }
 

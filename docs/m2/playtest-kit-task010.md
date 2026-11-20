@@ -3,11 +3,12 @@
 - **Milestone / Gate:** M2 Vertical Slice (`TASK010`)
 - **Status:** **OPEN — AWAITING HUMAN PARTICIPANTS (0/6 completed sessions)**
 - **Target Sample:** ≥ 6 new players unfamiliar with the codebase or Core Design System
-- **Pass Threshold (`Core 07 / Backlog TASK010`):**
-  1. ≥ **5/6 players** correctly understand the contradiction mechanic (**B is the 2005 report facade, not historical truth; R is the 2012 physical site; F101 can be left open or refuted using physical observations; E12 & E11 prove Bed 4 / Bé An C01**) without developer hints.
-  2. **0 critical softlocks** across all sessions.
-  3. **Average completion time** falls within **20–30 minutes** (condensed CH01 + early CH02 across LOC01–04).
-  4. Accessibility & comfort: zero unmitigated motion-sickness dropouts; directional captions and Reduced Motion / Story Mode verified when used.
+- **Pass Threshold (`Core 07 / Backlog TASK010` + CH01-R Investigative Reconstruction):**
+  1. ≥ **5/6 players** correctly understand the contradiction mechanic (**B is the 2005 report facade, not historical truth; R is the 2012 physical site; F101 can be Affirmed, left Unverified, or Refuted through evidence-based reasoning; E12 & E11 prove Bed 4 / Bé An C01**) without developer hints.
+  2. **Epistemic Fairness:** Leaving F101 **`Unverified` is NEVER scored as failure** — it is a canonical, responsible decision when a player withholds certification without sufficient grounds. For players who attempt `Refuted`, observe whether they distinguish Bed-4 relevant evidence (`OBS101A`, `OBS101B`) from the Bed-3 routine medication log (`OBS101D`) and avoid overclaiming patient presence or deliberate falsification.
+  3. **0 critical softlocks** across all sessions (including recovery after rejected F101 refutation arguments, optional `STAFF` exploration loop, and interactive drawers/doors).
+  4. **Average completion time** falls within **20–30 minutes** (targeting ~25 min for CH01 + early CH02 handoff across LOC01–04).
+  5. Accessibility & comfort: zero unmitigated motion-sickness dropouts; directional captions, Large-Print document view, single-press click/toggle alternatives (vs optional hold-and-drag), and Reduced Motion / Story Mode verified when used.
 
 > [!IMPORTANT]
 > Per project truthfulness rules, **no synthetic, AI-simulated, or fabricated playtest sessions are recorded here.** This kit is ready to run directly on the packaged M2 Windows build (`CaTrucCuoiCung.exe`).
@@ -32,8 +33,8 @@
 | Beat | Space | Key Signals to Observe | Pass / Friction Notes |
 | --- | --- | --- | --- |
 | **CH01-B01/B02** | `LOC01` Exterior | Does player read Bảy's letter (`E10a`), notice motorbike/gatehouse/rain mood, unlock gate, and spot Lan's silhouette through reception glass? | |
-| **CH01-B03** | `LOC02` Reception | Emotional reaction to meeting Lan in B (2005); readability of Vietnamese VO + subtitles; clarity of taking `BOARD` (`Phiếu bàn giao 101`). | |
-| **CH01-B04/B05** | `LOC03` Corridor & Room 101 (B) | Does player notice `HE01` trolley shadow? Do they inspect `OBS101A` (wheel marks/4th outlet) & `OBS101B` (Bed 4 card) before signing `F101`? Which route (A / B / C) did they pick first and **why**? | |
+| **CH01-B03** | `LOC02` Reception | Emotional reaction to meeting Lan live in-world (unblocked by modal); did player engage optional `LAN_TALK` dialogue or open Reception desk drawer (`DRAWER-DESK` / `OBS_RECEPTION_DRAWER`) or notice stopped `03:17` clock (`FS01`)? Clarity of taking `BOARD` (`F101`). | |
+| **CH01-B04/B05** | `STAFF` Alcove, `HALL` & `LOC03` Room 101 (B) | Did player discover the optional `STAFF` Nursing Alcove (`OBS_CORRIDOR_NOTICE`, `DRAWER-NURSE` / `OBS_SHIFT_LOG`) or open `DOOR-STAFF`? In Room 101, in what order did they examine `OBS101C` (Bed-2 transfer), `DRAWER-BED3`/`OBS101D` (Bed-3 meds), `CURTAIN-101`, `OBS101A` (Bed-4 traces), and `OBS101B` (Bed-4 card + back flip)? Did they use the Evidence Journal side-by-side comparison? Which F101 decision (`Affirmed` / `Unverified` / `Refuted`) did they choose first, how many reasoning attempts if `Refuted`, and **why**? Did they notice the immediate Layer-B visual/audio consequence (`deniedBay` / lingering curtain / `refutedBay` + wall clipboard stamp)? | |
 | **CH01-B06/B07/B08** | `LOC02` & `LOC01` | Reaction to `HE04` PA cut, `HE05` power drop & Lan's calm absence (no monster jumpscare), `HE06` gate seam loop once, and handoff to CH02. | |
 | **CH02-B01–B04** | `LOC03` Room 101 & Store (R) | Does player hear slipper cue + glimpse Bé An? Do they connect `LIST` (3 beds) vs `SOCKETS` (4 outlets) vs `WHEELS` → roll steel cabinet (`PZ01`/`E12`) → discover Dismantled Bed 4 & `E11`? | |
 | **CH02-B05** | `LOC03` Anchor `AP04` | Does player assemble the 3 drawing pieces, verify `C01` (`An · 101/4 → C01`), and notice the option to revise `F101`? | |
@@ -56,13 +57,13 @@ Ask these 5 open-ended questions immediately after the participant finishes (bef
 
 ## 4. Session Tally Sheet (Unfilled — Awaiting Human Runs)
 
-| Session ID | Date | Playtime (min) | First F101 Route | Revised F101? | Escape Door (A/B) | Understood Contradiction (Y/N) | Softlocks | Comfort / Accessibility Issues |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| PT-01 | *Pending* | — | — | — | — | — | — | — |
-| PT-02 | *Pending* | — | — | — | — | — | — | — |
-| PT-03 | *Pending* | — | — | — | — | — | — | — |
-| PT-04 | *Pending* | — | — | — | — | — | — | — |
-| PT-05 | *Pending* | — | — | — | — | — | — | — |
-| PT-06 | *Pending* | — | — | — | — | — | — | — |
+| Session ID | Date | Playtime (min) | Optional `STAFF` Loop? | First F101 Route (Note: `Unverified` = Valid) | Refutation Attempts / Reasoning Quality | Hints Triggered | Revised F101? | Escape Door (A/B) | Perceived Tension (1–5) | Understood Contradiction (Y/N) | Softlocks | Comfort / Accessibility Issues |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| PT-01 | *Pending* | — | — | — | — | — | — | — | — | — | — | — |
+| PT-02 | *Pending* | — | — | — | — | — | — | — | — | — | — | — |
+| PT-03 | *Pending* | — | — | — | — | — | — | — | — | — | — | — |
+| PT-04 | *Pending* | — | — | — | — | — | — | — | — | — | — | — |
+| PT-05 | *Pending* | — | — | — | — | — | — | — | — | — | — | — |
+| PT-06 | *Pending* | — | — | — | — | — | — | — | — | — | — | — |
 
 **Current Tally:** `0 / 6` human sessions completed. **Gate `TASK010` remains OPEN.**
