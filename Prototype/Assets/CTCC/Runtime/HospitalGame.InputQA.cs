@@ -183,10 +183,10 @@ namespace CTCC
 
         private IEnumerator InputHospitalExpansion()
         {
-            yield return UseFrom("CH03_DOOR", new Vector3(2.9f, .015f, 20.45f));
+            yield return UseFrom("EXIT", scene.Pad("AP05").position);
+            yield return Choose("Mở lối lên khu B");
             yield return Until(() => !busy && State.chapter == "CH03", "CH03 handoff");
             Require(player.Feet.y < .3f, "CH03 did not warp to the second floor");
-            yield return WalkWithInput(new Vector3(4, 0, 19.95f));
             yield return WalkWithInput(new Vector3(4, 4, 33.73f));
             yield return WalkWithInput(new Vector3(-2.7f, 4, 34.35f));
             yield return WalkWithInput(new Vector3(-14.7f, 8, 34.35f));

@@ -474,7 +474,8 @@ namespace CTCC
             "BATTERY" => !State.Happened("CH01-BATTERY") && State.Happened("CH01-T02"),
             "F101" or "AN02" => casework.CanRevise,
             "LIST" or "SOCKETS" or "WHEELS" or "PZ01" => State.chapter == "CH02" && State.layer == Reality.R,
-            "EXIT" or "CH03_DOOR" => State.chapter == "CH02" && GateService.G02(State),
+            "EXIT" => State.chapter == "CH02" && GateService.G02(State),
+            "CH03_DOOR" => false,
             "DOOR-101" => State.Happened("CH01-T05") || State.layer == Reality.R,
             "CURTAIN-101" => scene.interactables != null && scene.interactables.curtainCloth != null && scene.interactables.curtainCloth.gameObject.activeInHierarchy,
             "E03" or "C02_NOTE" or "AN03" or "C02_BAG" or "C02_LETTER" or "C12_BOX" or "FS10_LOCK" or "RADIO_LOC07" or "G03" => State.chapter is "CH03" or "CH04",
@@ -584,9 +585,6 @@ namespace CTCC
                     break;
                 case "EXIT":
                     StartCoroutine(SaveEmergency(true));
-                    break;
-                case "CH03_DOOR":
-                    StartCoroutine(EnterCh03ArchiveWingAsync());
                     break;
                 case "E03":
                     Ch03ReadRegister();
