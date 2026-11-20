@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import common as C
 
 PRESENTATION = C.ROOT / "output" / "m31" / "blender" / "interiors"
+STUDIES = C.BLEND_DIR / "Studies"
 
 
 def prop(source, place, heading=0):
@@ -96,7 +97,8 @@ def render(name, stage):
     scene.render.filepath = str(PRESENTATION / f"{name}.png")
     bpy.ops.render.render(write_still=True)
     # Keep the editable lighting study with portable project-relative texture paths.
-    bpy.ops.wm.save_as_mainfile(filepath=str(PRESENTATION / f"{name}.blend"), relative_remap=True, compress=True)
+    STUDIES.mkdir(parents=True, exist_ok=True)
+    bpy.ops.wm.save_as_mainfile(filepath=str(STUDIES / f"{name}.blend"), relative_remap=True, compress=True)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,115 @@
+{
+  "blender": "4.5.10 LTS",
+  "assets": [
+    {
+      "asset": "CTCC_ENV_TerrazzoTread",
+      "lod0_triangles": 812,
+      "blender_bounds_metres_xyz": [
+        1.01,
+        1.02,
+        0.25
+      ],
+      "source": {
+        "path": "ArtSource/Blender/CTCC_ENV_TerrazzoTread.blend",
+        "sha256": "5652c9f6c78718e7f74d8cabf66cc7eb9be91650c2864b4a8cc338a7049b96bd"
+      },
+      "export": {
+        "path": "Prototype/Assets/CTCC/Art/Meshes/CTCC_ENV_TerrazzoTread.fbx",
+        "sha256": "1099990b16d2d81b71dc9d4ff47b11affc5224f58c07bb56b39a2b02494b96a7"
+      },
+      "render": {
+        "path": "docs/m3/evidence/m31/blender/CTCC_ENV_TerrazzoTread.png",
+        "sha256": "85e0a96473309f15a6619c4ce6d53d0db5ab4c011543c221c45c27db3e4014d1"
+      },
+      "provenance": "Original An Sinh mesh, in-project PBR library and recorded CC0 layers"
+    },
+    {
+      "asset": "CTCC_PROP_MorgueDryCabinet",
+      "lod0_triangles": 2784,
+      "blender_bounds_metres_xyz": [
+        1.36,
+        0.65,
+        1.95
+      ],
+      "source": {
+        "path": "ArtSource/Blender/CTCC_PROP_MorgueDryCabinet.blend",
+        "sha256": "18caef39212fa0644840c889a7a8180964ffa4d8822cb7cabea5658a7f1c29b8"
+      },
+      "export": {
+        "path": "Prototype/Assets/CTCC/Art/Meshes/CTCC_PROP_MorgueDryCabinet.fbx",
+        "sha256": "6b44b0fc1c060a01bdb7dc819594b6305223acb230392b1bdd4aeab7644cb89e"
+      },
+      "render": {
+        "path": "docs/m3/evidence/m31/blender/CTCC_PROP_MorgueDryCabinet.png",
+        "sha256": "2a80b44f847c438d5834f19ca46998a1a7e3f2535c644e22bd5ccf10771ccc3f"
+      },
+      "provenance": "Original An Sinh mesh, in-project PBR library and recorded CC0 layers"
+    },
+    {
+      "asset": "CTCC_PROP_ServiceLoadPanel",
+      "lod0_triangles": 2248,
+      "blender_bounds_metres_xyz": [
+        1.1,
+        0.35,
+        0.84
+      ],
+      "source": {
+        "path": "ArtSource/Blender/CTCC_PROP_ServiceLoadPanel.blend",
+        "sha256": "41f2ce3cb93b409e2d475eea9579899527e70155a2a528c5cbfae5c393028a66"
+      },
+      "export": {
+        "path": "Prototype/Assets/CTCC/Art/Meshes/CTCC_PROP_ServiceLoadPanel.fbx",
+        "sha256": "556b3f3c7ff6f3e5aba564c1a29cc33d4e82f1501fccf18c76f967312d84e88d"
+      },
+      "render": {
+        "path": "docs/m3/evidence/m31/blender/CTCC_PROP_ServiceLoadPanel.png",
+        "sha256": "13bf00a6dbb057618f80ca3aaa46e96e0a1cb2539edc5878f0541185ad5920c5"
+      },
+      "provenance": "Original An Sinh mesh, in-project PBR library and recorded CC0 layers"
+    },
+    {
+      "asset": "CTCC_PROP_MedicineCart",
+      "lod0_triangles": 2336,
+      "blender_bounds_metres_xyz": [
+        0.78,
+        0.56,
+        0.97
+      ],
+      "source": {
+        "path": "ArtSource/Blender/CTCC_PROP_MedicineCart.blend",
+        "sha256": "ef02c8ee1b636f3d3613779350568bb7c917d2837003ddaa665b6666fe30cbaa"
+      },
+      "export": {
+        "path": "Prototype/Assets/CTCC/Art/Meshes/CTCC_PROP_MedicineCart.fbx",
+        "sha256": "7299dbf1b6ef8d9494d3e3887e1ad9840d6664328951d1cbbf7b6e369e5d2675"
+      },
+      "render": {
+        "path": "docs/m3/evidence/m31/blender/CTCC_PROP_MedicineCart.png",
+        "sha256": "93fbcdfbd82f65a754e5de3b0acd6bd1e7a4287f8b835b9f295cee42a309486c"
+      },
+      "provenance": "Original An Sinh mesh, in-project PBR library and recorded CC0 layers"
+    },
+    {
+      "asset": "CTCC_PROP_ArchiveChair",
+      "lod0_triangles": 1428,
+      "blender_bounds_metres_xyz": [
+        0.44,
+        0.41,
+        0.93
+      ],
+      "source": {
+        "path": "ArtSource/Blender/CTCC_PROP_ArchiveChair.blend",
+        "sha256": "137824b03f017cb06914c4b08feeae7e5e3d9bd02dfc7cb81fd51505ea6ed9d4"
+      },
+      "export": {
+        "path": "Prototype/Assets/CTCC/Art/Meshes/CTCC_PROP_ArchiveChair.fbx",
+        "sha256": "a9fc8f108479f7ba70c626ab638c27ef3432549acfd280060509f946df62f1c1"
+      },
+      "render": {
+        "path": "docs/m3/evidence/m31/blender/CTCC_PROP_ArchiveChair.png",
+        "sha256": "5102ec5f13a688a52888c70dd1372e3d43f5eb213ab306393b5d65b24a511e04"
+      },
+      "provenance": "Original An Sinh mesh, in-project PBR library and recorded CC0 layers"
+    }
+  ]
+}
