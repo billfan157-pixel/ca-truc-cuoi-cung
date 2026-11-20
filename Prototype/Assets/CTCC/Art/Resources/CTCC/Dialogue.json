@@ -211,6 +211,55 @@
       "copy": "Đã ghi nhận mã C02. Có thể tiếp tục hoặc kiểm tra danh tính sau."
     },
     {
+      "id": "CH04-D01",
+      "chapter": "CH04",
+      "speaker": "Lan",
+      "context": "Gặp lại",
+      "copy": "Anh vẫn nhớ đường đi giữa các buồng bệnh không?"
+    },
+    {
+      "id": "CH04-D02",
+      "chapter": "CH04",
+      "speaker": "Vĩnh",
+      "context": "Băng họp Lan lưu",
+      "copy": "Cô thay tên bằng mã. Tôi sẽ chịu trách nhiệm phần còn lại."
+    },
+    {
+      "id": "CH04-D03",
+      "chapter": "CH04",
+      "speaker": "Lan",
+      "context": "Băng họp Lan lưu",
+      "copy": "Nhưng nếu họ cần tìm người nhà thì sao?"
+    },
+    {
+      "id": "CH04-D04",
+      "chapter": "CH04",
+      "speaker": "Lan",
+      "context": "PT01",
+      "copy": "Em nghĩ còn được điều trị là đủ. Em đã chọn không hỏi phần còn lại."
+    },
+    {
+      "id": "CH04-D05",
+      "chapter": "CH04",
+      "speaker": "Minh",
+      "context": "PT02",
+      "copy": "Ông Vĩnh nói em đã được đưa ra. Nhưng hồ sơ tìm thấy em ngay trong khu C."
+    },
+    {
+      "id": "CH04-D06",
+      "chapter": "CH04",
+      "speaker": "Lan",
+      "context": "CH04 B06; H05 verified; PT02 presented",
+      "copy": "Em không ra được. Em ở lại với họ cho tới lúc không còn liên lạc được."
+    },
+    {
+      "id": "CH04-D07",
+      "chapter": "CH04",
+      "speaker": "Minh",
+      "context": "Sau khoảng lặng",
+      "copy": "Anh cần biết mình đã bỏ sót điều gì."
+    },
+    {
       "id": "CH01-D15",
       "chapter": "CH01",
       "speaker": "Bảy (SMS)",
@@ -223,6 +272,13 @@
       "speaker": "Lan",
       "context": "CH01 B03; optional hỏi ký ức chung, không có prompt hỏi trực tiếp kết cục tại C",
       "copy": "Anh nhớ phần anh đã chứng kiến mà. Còn chuyện sau đó, anh đã nghe ai kể?"
+    },
+    {
+      "id": "CH01-D16b",
+      "chapter": "CH04",
+      "speaker": "Lan",
+      "context": "CH04 B06; H05 verified AND PT02 presented; optional, never CH01; before CH07",
+      "copy": "Em ở lại với họ. Em chỉ biết đến lúc không còn nghe thấy ai ngoài cửa nữa."
     }
   ],
   "conditions": [

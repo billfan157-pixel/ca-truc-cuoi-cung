@@ -67,7 +67,7 @@ sys.exit(p.returncode)
 
 if (!$SkipGenerate) {
     $genLog = Join-Path $outAbs 'generate-scenes.log'
-    Write-Host "[M2] Generating 5 additive scenes, dual GI LightProbes & multi-scene Occlusion..."
+    Write-Host "[CTCC] Generating hospital regions, dual GI LightProbes & multi-scene occlusion..."
     $rc = Invoke-CleanUnity -WorkDir $project -ArgsList @(
         '-batchmode', '-quit', '-job-worker-count', '4',
         '-projectPath', $project,
@@ -112,11 +112,9 @@ if (!$SkipBuild) {
         "prototype_diff=$protoDiff",
         "assembly_sha256=$((Get-FileHash -LiteralPath $managed).Hash.ToLowerInvariant())"
     )
-    foreach ($sc in 'AnSinh_Bootstrap','LOC01_Exterior','LOC02_Reception','LOC03_Ward101','LOC04_Emergency','LOC05_ArchiveWing') {
-        $p = Join-Path $project "Assets\CTCC\Scenes\$sc.unity"
-        if (Test-Path -LiteralPath $p) {
-            $lines += "scene_${sc}_sha256=$((Get-FileHash -LiteralPath $p).Hash.ToLowerInvariant())"
-        }
+    $sceneRoot = Join-Path $project 'Assets\CTCC\Scenes'
+    foreach ($scene in (Get-ChildItem -LiteralPath $sceneRoot -Filter '*.unity' | Where-Object Name -ne 'AnSinh.unity' | Sort-Object Name)) {
+        $lines += "scene_$($scene.BaseName)_sha256=$((Get-FileHash -LiteralPath $scene.FullName).Hash.ToLowerInvariant())"
     }
     $lines | Set-Content -LiteralPath (Join-Path $outAbs 'build-identity.txt')
     Get-Content -LiteralPath (Join-Path $outAbs 'build-identity.txt')

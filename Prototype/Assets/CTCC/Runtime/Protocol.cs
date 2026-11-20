@@ -79,7 +79,7 @@ namespace CTCC
     [Serializable]
     public sealed class Investigation
     {
-        public const int Schema = 2;
+        public const int Schema = 3;
         public const int MinSupportedSchema = 1;
         public int schemaVersion = Schema;
         public long sequence;
@@ -90,6 +90,7 @@ namespace CTCC
         public List<FormEntry> forms = new();
         public List<PatientEntry> patients = new();
         public List<PuzzleAttempt> puzzles = new();
+        public int servicePower;
         public VisitSettings settings = new();
         public bool publicFireKnown = true;
         public bool publicLanDeathKnown = true;
@@ -182,28 +183,43 @@ namespace CTCC
 
     public static class FormService
     {
-        public static bool RefutationAvailable(Investigation state) => state.Observed("OBS101A") && state.Observed("OBS101B");
-
-        public static bool RefutationAvailable(Investigation state, string formId) => formId switch
+        internal readonly struct Definition
         {
-            "F101" => RefutationAvailable(state),
-            "F303" => state.Has("E03") && state.PatientConfirmed("C02"),
-            _ => false
+            public readonly string Zone;
+            public readonly bool FalseClaim;
+            public readonly Func<Investigation, bool> CanRefute;
+            public Definition(string zone, bool falseClaim, Func<Investigation, bool> canRefute)
+            {
+                Zone = zone;
+                FalseClaim = falseClaim;
+                CanRefute = canRefute;
+            }
+        }
+
+        private static readonly Dictionary<string, Definition> Registry = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["F101"] = new("LOC03", true, RefutationAvailable)
         };
 
-        /// <summary>
-        /// Generalized M3 reality distortion index: D_zone = min(4, unique false affirmed forms).
-        /// </summary>
-        public static int Distortion(Investigation state)
+        public static bool RefutationAvailable(Investigation state) => state.Observed("OBS101A") && state.Observed("OBS101B");
+
+        public static bool RefutationAvailable(Investigation state, string formId) =>
+            formId != null && Registry.TryGetValue(formId, out var spec) && spec.CanRefute(state);
+
+        public static int Distortion(Investigation state, string zone = "LOC03") => Distortion(state, zone, Registry);
+
+        internal static int Distortion(Investigation state, string zone, IReadOnlyDictionary<string, Definition> definitions)
         {
-            int count = state.f101.current == FormStatus.Affirmed ? 1 : 0;
+            bool Counted(string id, FormStatus status) => status == FormStatus.Affirmed &&
+                definitions.TryGetValue(id, out var spec) && spec.Zone == zone && spec.FalseClaim;
+            int count = Counted("F101", state.f101.current) ? 1 : 0;
             if (state.forms != null)
             {
                 var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "F101" };
                 for (int i = 0; i < state.forms.Count; i++)
                 {
                     var f = state.forms[i];
-                    if (f != null && !string.IsNullOrEmpty(f.formId) && seen.Add(f.formId) && f.current == FormStatus.Affirmed)
+                    if (f != null && !string.IsNullOrEmpty(f.formId) && Counted(f.formId, f.current) && seen.Add(f.formId))
                         count++;
                 }
             }
@@ -228,7 +244,8 @@ namespace CTCC
 
         public static bool ApplyForm(Investigation candidate, string formId, FormStatus decision)
         {
-            if (string.IsNullOrEmpty(formId) || string.Equals(formId, "F101", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(formId) || !Registry.ContainsKey(formId)) return false;
+            if (string.Equals(formId, "F101", StringComparison.OrdinalIgnoreCase))
                 return Apply(candidate, decision);
             if (!Enum.IsDefined(typeof(FormStatus), decision) || decision == FormStatus.Pending ||
                 decision == FormStatus.Refuted && !RefutationAvailable(candidate, formId))
@@ -252,6 +269,17 @@ namespace CTCC
             record.revision++;
             return true;
         }
+
+        internal static bool ValidExtras(Investigation state)
+        {
+            if (state.forms == null) return true;
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "F101" };
+            return state.forms.TrueForAll(record => record != null && !string.IsNullOrEmpty(record.formId) &&
+                Registry.ContainsKey(record.formId) && seen.Add(record.formId) && record.revision > 0 &&
+                Enum.IsDefined(typeof(FormStatus), record.current) && record.current != FormStatus.Pending &&
+                Enum.IsDefined(typeof(FormStatus), record.firstDecision) && record.firstDecision != FormStatus.Pending &&
+                (record.current != FormStatus.Refuted || RefutationAvailable(state, record.formId)));
+        }
     }
 
     public static class EvidenceRegistry
@@ -268,6 +296,11 @@ namespace CTCC
         public const string C02DaughterLetter = "E03.C02Letter";
         public const string C12UnnamedBox = "E03.C12KeyBox";
         public const string BayLockReceipt = "FS10.LockReceipt";
+        public const string DutyOrders = "E02";
+        public const string DutyLog = "E09";
+        public const string MeetingTape = "E06a";
+        public const string MorgueRegister = "E04";
+        public const string LanRecovery = "E07";
         public const string NonExportableTraceE08 = "E08";
 
         private sealed class Spec
@@ -300,7 +333,11 @@ namespace CTCC
             [C02YarnBag] = new(Reality.R, "CH03", "LOC07", true),
             [C02DaughterLetter] = new(Reality.R, "CH03", "LOC07", true),
             [C12UnnamedBox] = new(Reality.R, "CH03", "LOC07", true),
-            [BayLockReceipt] = new(Reality.R, "CH03", "LOC05", true),
+            [DutyOrders] = new(Reality.R, "CH04", "LOC06"),
+            [DutyLog] = new(Reality.R, "CH04", "LOC06"),
+            [MeetingTape] = new(Reality.R, "CH04", "LOC06"),
+            [MorgueRegister] = new(Reality.R, "CH04", "LOC10"),
+            [LanRecovery] = new(Reality.R, "CH04", "LOC10"),
             [NonExportableTraceE08] = new(Reality.B, "CH04", "LOC08", false),
         };
 
@@ -310,7 +347,8 @@ namespace CTCC
                 return false;
             // Non-exportable B/M traces (such as E08) cannot be granted into durable physical R evidence inventory!
             if (!spec.PhysicalExportable || state.layer != spec.Layer || provenanceLayer != spec.Layer ||
-                state.chapter != spec.Chapter || provenanceLocation != spec.Location)
+                (state.chapter != spec.Chapter && !(state.chapter == "CH04" && spec.Chapter == "CH03")) ||
+                provenanceLocation != spec.Location)
                 return false;
             if (id == Drawing && !HaveFragments(state))
                 return false;
@@ -375,10 +413,15 @@ namespace CTCC
         public static bool H01Tutorial(Investigation state) =>
             state.Has("E12") && EvidenceRegistry.BundleComplete(state) && state.PatientIdentityVerified("C01");
         public static bool H02(Investigation state) => state.Has("E01") && state.Has("E04");
-        public static bool G02(Investigation state) => (state.chapter == "CH02" || state.chapter == "CH03") && H01Tutorial(state);
+        public static bool G02(Investigation state) => state.chapter is ("CH02" or "CH03" or "CH04") && H01Tutorial(state);
         // Core 07 Chapter gates: G03 opens when E03 is collected and C02 existence is confirmed (name is optional per CH03-Q02!)
         public static bool G03(Investigation state) =>
-            state.chapter == "CH03" && state.Has(EvidenceRegistry.PatientRegister) && state.PatientConfirmed("C02");
+            state.chapter is ("CH03" or "CH04") && state.Has(EvidenceRegistry.PatientRegister) && state.PatientConfirmed("C02");
+
+        public static bool H05(Investigation state) => state.Has(EvidenceRegistry.MorgueRegister) &&
+            state.Has(EvidenceRegistry.LanRecovery) && state.Happened("H05.verified");
+        public static bool G04(Investigation state) => state.chapter == "CH04" && H05(state) &&
+            state.Happened("PT01.presented") && state.Happened("PT02.presented");
     }
 
     public static class SafeCheckpoints
@@ -401,6 +444,9 @@ namespace CTCC
                 "CH03-CP02" => "AN03",
                 "CH03-CP03" => "AN03",
                 "CH03-CP04" => "AP07",
+                "CH04-CP01" or "CH04-CP02" => "AP07",
+                "CH04-CP03" => "AP08",
+                "CH04-CP04" => "AP09",
                 _ => null
             };
         }

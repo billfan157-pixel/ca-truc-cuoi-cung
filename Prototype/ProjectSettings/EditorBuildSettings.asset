@@ -23,6 +23,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/CTCC/Scenes/LOC05_ArchiveWing.unity
     guid: 4b8e3da5c45dc064fbe7bf9924b044e9
+  - enabled: 1
+    path: Assets/CTCC/Scenes/LOC09_ServiceWing.unity
+    guid: 813273fb10d03674e9358f35a190d906
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

@@ -295,19 +295,18 @@ namespace CTCC
         public Task<CommitResult> BeginCh03Async(Vector3 feet)
         {
             if (!PrepareBeginCh03(out var next)) return Task.FromResult(CommitResult.PadRequired);
-            return reality.CommitAsync(next, feet, warp: true, geometryChanges: true);
+            return reality.CommitAsync(next, feet, geometryChanges: true);
         }
 
         private bool PrepareBeginCh03(out Investigation next)
         {
             next = null;
             if (!GateService.G02(State)) return false;
-            if (State.chapter == "CH03") return false;
+            if (State.chapter != "CH02") return false;
             next = State.Copy();
             next.chapter = "CH03";
             next.layer = Reality.R;
             next.checkpoint = "CH03-CP01";
-            next.Remember("CH03-T01");
             return true;
         }
 
@@ -326,7 +325,7 @@ namespace CTCC
         private CommitResult PrepareCh03Evidence(string id, string location, out Investigation next)
         {
             next = null;
-            if (State.chapter != "CH03" || State.layer != Reality.R) return CommitResult.PadRequired;
+            if (State.chapter is not ("CH03" or "CH04") || State.layer != Reality.R) return CommitResult.PadRequired;
             if (State.Has(id)) return CommitResult.Applied;
             var proposal = State.Copy();
             if (!EvidenceRegistry.Grant(proposal, id, Reality.R, location))
@@ -337,7 +336,8 @@ namespace CTCC
             {
                 // Canon CH03-Q03: Confirm C12 existence without ever fabricating a name.
                 proposal.ConfirmPatientExistence("C12");
-                proposal.Remember("CH03-T04");
+                proposal.Remember("CH03-T05");
+                proposal.Remember("FS19");
             }
             next = proposal;
             return CommitResult.Applied;
@@ -351,6 +351,7 @@ namespace CTCC
 
         public Task<CommitResult> AttemptCh03Pu01Async(string selectedCode, bool pairedNoteAndBag, Vector3 feet)
         {
+            if (!reality.OnPad(feet, "AN03")) return Task.FromResult(CommitResult.PadRequired);
             var result = PrepareCh03Pu01(selectedCode, pairedNoteAndBag, out var next, out bool solved);
             if (next == null) return Task.FromResult(result);
             return solved
@@ -398,7 +399,9 @@ namespace CTCC
         private CommitResult PrepareCh03Pu02(out Investigation next)
         {
             next = null;
-            if (State.chapter != "CH03" || !State.Has(EvidenceRegistry.C02DaughterLetter) || !State.Has(EvidenceRegistry.C02YarnBag))
+            if (State.chapter is not ("CH03" or "CH04") || State.layer != Reality.R || !State.PatientConfirmed("C02") ||
+                !State.Has(EvidenceRegistry.C02DaughterLetter) || !State.Has(EvidenceRegistry.C02YarnBag) ||
+                !State.Has(EvidenceRegistry.C02CareNote))
                 return CommitResult.PadRequired;
             if (State.PatientIdentityVerified("C02")) return CommitResult.Applied;
             next = State.Copy();
@@ -422,19 +425,18 @@ namespace CTCC
         private bool PrepareMemoryVignetteAn03(out Investigation next)
         {
             next = null;
-            if (State.chapter != "CH03" || !State.Has(EvidenceRegistry.C02YarnBag)) return false;
+            if (State.chapter != "CH03" || !GateService.G03(State)) return false;
             next = State.Copy();
             if (State.layer == Reality.R)
             {
                 next.layer = Reality.M;
                 next.checkpoint = GateService.G03(State) ? "CH03-CP03" : "CH03-CP02";
-                next.Remember("CH03-M01");
+                next.Remember("CH03-T04");
             }
             else if (State.layer == Reality.M)
             {
                 next.layer = Reality.R;
                 next.checkpoint = GateService.G03(State) ? "CH03-CP03" : "CH03-CP02";
-                next.Remember("CH03-M02");
             }
             else return false;
             return true;
@@ -444,14 +446,26 @@ namespace CTCC
         {
             if (!GateService.G03(State) || State.layer != Reality.R || !reality.OnPad(feet, "AP07"))
                 return CommitResult.PadRequired;
-            return Record("M3-CH03-complete", feet, "CH03-CP04");
+            return Record("CH03-T07", feet, "CH03-CP04");
         }
 
         public Task<CommitResult> CompleteCh03Async(Vector3 feet)
         {
             if (!GateService.G03(State) || State.layer != Reality.R || !reality.OnPad(feet, "AP07"))
                 return Task.FromResult(CommitResult.PadRequired);
-            return RecordAsync("M3-CH03-complete", feet, "CH03-CP04");
+            return RecordAsync("CH03-T07", feet, "CH03-CP04");
+        }
+
+        public Task<CommitResult> BeginCh04Async()
+        {
+            if (State.chapter != "CH03" || !GateService.G03(State) || !State.Happened("CH03-T07") ||
+                !State.Happened("FS19"))
+                return Task.FromResult(CommitResult.PadRequired);
+            var next = State.Copy();
+            next.chapter = "CH04";
+            next.checkpoint = "CH04-CP01";
+            next.Remember("CH04-T01");
+            return reality.CommitEvidenceAsync(next);
         }
 
         public Task<CommitResult> SaveEmergencyAsync(Vector3 feet, bool finish, bool encounterActive,

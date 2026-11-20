@@ -155,6 +155,7 @@ namespace CTCC
             yield return Choose("Lưu tay");
             yield return Tap(Key.Escape);
             yield return Choose("Mở bản lưu tay");
+            yield return Until(() => !ui.IsModal && !busy, "manual reload finished");
             Require(!ui.IsModal && State.chapter == "CH02" && State.f101.firstDecision == branch &&
                 transaction.OnPad(player.Feet, SafeCheckpoints.Pad(State.checkpoint)), "manual load restores state and checkpoint");
             Require(voice.Transcript.Any(entry => entry.LineId == "CH01-D07"), "Skipped Lan transcript survives actual manual load");
@@ -167,8 +168,105 @@ namespace CTCC
                 yield return Tap(Key.Escape);
             }
             verification.Add($"INPUT PASS {branch}: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.");
+            if (branch == FormStatus.Unverified)
+                yield return InputHospitalExpansion();
             yield return Tap(Key.Escape);
             yield return Choose("Về màn hình đầu");
+        }
+
+        private IEnumerator InputHospitalExpansion()
+        {
+            yield return UseFrom("CH03_DOOR", new Vector3(2.9f, .015f, 20.45f));
+            yield return Until(() => !busy && State.chapter == "CH03", "CH03 handoff");
+            Require(player.Feet.y < .3f, "CH03 did not warp to the second floor");
+            yield return WalkWithInput(new Vector3(4, 0, 21.35f));
+            yield return WalkWithInput(new Vector3(4, 4, 33.73f));
+            yield return WalkWithInput(new Vector3(-2.7f, 4, 34.35f));
+            yield return WalkWithInput(new Vector3(-14.7f, 8, 34.35f));
+            yield return WalkWithInput(new Vector3(-14.7f, 8, 36.8f));
+            yield return WalkWithInput(new Vector3(-2.4f, 8, 36.8f));
+            var an03 = scene.Pad("AN03");
+            yield return UseFrom("E03", new Vector3(-.68f, 8.015f, 31.9f));
+            yield return Choose("Chép sổ");
+            yield return UseFrom("C02_NOTE", an03.position);
+            yield return Until(() => !busy && State.Has(EvidenceRegistry.C02CareNote), "care note");
+            yield return UseFrom("C02_BAG", new Vector3(-1.55f, 8.015f, 31.12f));
+            yield return Choose("Ghi lại thẻ");
+            yield return UseFrom("AN03", an03.position);
+            yield return Choose("Ghi nhận C12");
+            yield return Until(() => !busy && !GateService.G03(State), "wrong PZ03 input rejected");
+            yield return Choose("Ghi nhận C02");
+            yield return Choose("Xem ký ức");
+            yield return Until(() => State.layer == Reality.M, "M via AN03");
+            yield return Choose("Trở về kho");
+            yield return Until(() => !busy && State.layer == Reality.R && !ui.IsModal, "Back to R");
+            yield return UseFrom("C12_BOX", new Vector3(-1.55f, 8.015f, 33.45f));
+            yield return Choose("Ghi nhận sự tồn tại C12");
+            yield return Until(() => !busy && State.Happened("FS19"), "C12 row saved");
+            Require(!State.PatientIdentityVerified("C02") && !State.PatientIdentityVerified("C12"), "No name required");
+            yield return WalkWithInput(new Vector3(-.8f, 8, 36.8f));
+            yield return WalkWithInput(new Vector3(-14.7f, 8, 36.8f));
+            yield return WalkWithInput(new Vector3(-14.7f, 8, 34.35f));
+            yield return WalkWithInput(new Vector3(-2.65f, 4, 34.35f));
+            yield return WalkWithInput(new Vector3(4, 4, 35.0f));
+            yield return WalkWithInput(new Vector3(4, 4, 45.7f));
+            yield return UseFrom("CH03_EXIT", scene.Pad("AP07").position);
+            yield return Choose("Vào phòng trực");
+            yield return Until(() => !busy && State.chapter == "CH04", "CH04 handoff");
+            yield return UseFrom("AN04", scene.Pad("AP07").position);
+            yield return Choose("Lấy bản lệnh giao ca");
+            yield return Choose("Lưu vào sổ trực");
+            yield return Choose("Chép sổ ca đêm");
+            yield return Choose("Lưu vào sổ trực");
+            yield return Choose("Đọc bản chép băng");
+            yield return Choose("Ghi nhận lời Lan");
+            yield return Choose("Rời phòng trực");
+            yield return WalkWithInput(new Vector3(4, 4, 33.6f));
+            yield return WalkWithInput(new Vector3(4, 0, 20.97f));
+            yield return WalkWithInput(new Vector3(7, 0, 21.17f));
+            yield return WalkWithInput(new Vector3(7, -3.4f, 32.4f));
+            yield return UseFrom("CH04_POWER", new Vector3(8.67f, -3.385f, 34.5f));
+            yield return Choose("Kho · 2");
+            yield return Choose("Kỹ thuật · 1");
+            yield return Choose("Rời bảng điện");
+            yield return WalkWithInput(new Vector3(7, -3.4f, 38.98f));
+            yield return WalkWithInput(new Vector3(1.5f, -3.4f, 39f));
+            yield return UseFrom("E04_E07", scene.Pad("AP09").position);
+            yield return Choose("Đọc hồ sơ tiếp nhận");
+            yield return Choose("Chép tài liệu");
+            yield return Choose("Đọc thẻ và phiếu");
+            yield return Choose("Chép tài liệu");
+            yield return Choose("Đối chiếu phiếu L-13");
+            yield return Choose("Ghi nhận đối chiếu");
+            yield return Choose("Nghe Lan");
+            yield return Choose("Hỏi Lan");
+            yield return Choose("Quay về cầu thang");
+            yield return Tap(Key.Escape);
+            yield return Choose("Tải điểm lưu tự động");
+            yield return Until(() => !busy && !ui.IsModal && transaction.OnPad(player.Feet, "AP09"), "B1 reload with actual menu");
+            Require(GateService.G04(State) && State.Happened("CH04-T06") && !State.Has("E08"), "B1 autosave state");
+            verification.Add("INPUT CH03–04 PASS: W capsule on three flights, PZ03, C12, R/M, duty papers, overload controls, H05, dialogue guard and B1 autosave menu.");
+        }
+
+        private IEnumerator WalkWithInput(Vector3 destination)
+        {
+            float deadline = Time.unscaledTime + 16f;
+            Key forward = State.settings.alternateBindings ? Key.UpArrow : Key.W;
+            InputSystem.QueueStateEvent(qaKeys, new KeyboardState(forward));
+            Vector3 offset;
+            do
+            {
+                offset = destination - player.Feet;
+                offset.y = 0;
+                if (offset.sqrMagnitude < .20f * .20f) break;
+                player.transform.rotation = Quaternion.LookRotation(offset);
+                qaKeys.MakeCurrent();
+                yield return null;
+            } while (Time.unscaledTime < deadline);
+            InputSystem.QueueStateEvent(qaKeys, new KeyboardState());
+            yield return Until(() => !qaKeys[forward].isPressed, "walk release");
+            Require(offset.sqrMagnitude < .20f * .20f && Mathf.Abs(player.Feet.y - destination.y) < .32f,
+                $"Input route from controller reached {destination}, ended at {player.Feet}");
         }
 
         private IEnumerator InputPhysicalCase(bool sideDoor)

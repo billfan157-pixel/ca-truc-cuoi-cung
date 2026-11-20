@@ -117,6 +117,8 @@ namespace CTCC
                 if (decoded == null) return SaveRead.Damaged;
                 if (data.schemaVersion == 1 || decoded.schemaVersion == 1)
                     MigrateV1ToV2(decoded);
+                else if (data.schemaVersion == 2 && decoded.schemaVersion == 2)
+                    UpgradeLegacy(decoded);
                 if (!Valid(decoded)) return SaveRead.Damaged;
                 decoded.transcript ??= new();
                 decoded.forms ??= new();
@@ -136,19 +138,32 @@ namespace CTCC
         public static void MigrateV1ToV2(Investigation s)
         {
             if (s == null) return;
-            s.schemaVersion = Investigation.Schema;
             s.forms ??= new();
             s.patients ??= new();
             s.puzzles ??= new();
             if (s.Happened("C01.verified"))
                 s.VerifyPatientIdentity("C01", "Bé An");
+            UpgradeLegacy(s);
+        }
+
+        private static void UpgradeLegacy(Investigation s)
+        {
+            s.schemaVersion = Investigation.Schema;
+            s.forms?.Clear(); // Earlier releases only expose F101, stored separately.
+            if (s.evidence?.Remove(EvidenceRegistry.BayLockReceipt) == true)
+                s.Remember("FS10");
+            if (s.evidence?.Contains(EvidenceRegistry.C12UnnamedBox) == true)
+            {
+                s.Remember("FS19");
+                s.Remember("CH03-T05");
+            }
         }
 
         private static bool Valid(Investigation s)
         {
             if (s == null || s.schemaVersion != Investigation.Schema || s.sequence < 0 || s.settings == null || s.f101 == null ||
                 s.events == null || s.evidence == null || s.observed == null ||
-                (s.chapter != "CH01" && s.chapter != "CH02" && s.chapter != "CH03") ||
+                s.chapter is not ("CH01" or "CH02" or "CH03" or "CH04") ||
                 SafeCheckpoints.Pad(s.checkpoint) == null || !Enum.IsDefined(typeof(Reality), s.layer) ||
                 !Enum.IsDefined(typeof(FormStatus), s.f101.current) || !Enum.IsDefined(typeof(FormStatus), s.f101.firstDecision))
                 return false;
@@ -163,9 +178,23 @@ namespace CTCC
                 return false;
             if (s.Has(EvidenceRegistry.Drawing) && !EvidenceRegistry.HaveFragments(s) ||
                 s.Happened("C01.verified") && (!EvidenceRegistry.BundleComplete(s) || !s.Has("E12")) ||
-                (s.chapter == "CH02" || s.chapter == "CH03") && (!GateService.G01(s) || !s.Happened("CH01-T10")) ||
-                s.chapter == "CH03" && !GateService.G02(s) ||
+                s.chapter != "CH01" && (!GateService.G01(s) || !s.Happened("CH01-T10")) ||
+                s.chapter is ("CH03" or "CH04") && !GateService.G02(s) ||
+                s.chapter == "CH04" && (!GateService.G03(s) ||
+                    !s.checkpoint.StartsWith("CH04-", StringComparison.Ordinal) || s.layer != Reality.R) ||
                 s.chapter == "CH01" && s.evidence.Count != 1)
+                return false;
+            if (s.Happened("C12.verified") || !FormService.ValidExtras(s) ||
+                !ChapterFour.ValidPower(s.servicePower) ||
+                s.chapter != "CH04" && s.servicePower != 0 ||
+                s.Happened("H05.verified") && !GateService.H05(s) ||
+                s.Happened("PT02.presented") && !GateService.H05(s) ||
+                s.Happened("CH04-T06") && !GateService.G04(s))
+                return false;
+            var puzzles = new HashSet<string>(StringComparer.Ordinal);
+            if (s.puzzles != null && s.puzzles.Exists(p => p == null ||
+                p.puzzleId is not ("CH03-PU01" or "CH03-PU02") || !puzzles.Add(p.puzzleId) ||
+                p.failedAttempts < 0 || p.solved != s.Happened(p.puzzleId + ".solved")))
                 return false;
             // Canon CH03-Q03 invariant: C12 can never have a verified identity or fabricated name.
             if (s.patients != null)

@@ -28,8 +28,8 @@ namespace CTCC
                     WalkCase(form,settings);
                 ExerciseTransitions();
                 ExerciseRecovery();
-                Require(!dialogue.ContainsKey("CH01-D16b") && !dialogue.ContainsKey("CH04-D06"),"CH01 dialogue guard");
-                verification.Add("V22-Q03 [CH01/02 subset] PASS: CH04 copy absent from M1 data export.");
+                Require(!MayDeliver("CH01-D16b", "B06") && !MayDeliver("CH04-D06", "B06"), "Earlier chapter dialogue guard");
+                verification.Add("V22-Q03 partial PASS: CH04 lines blocked before CH04.");
                 passed=true;
             }
             catch(Exception e)
@@ -932,178 +932,156 @@ namespace CTCC
 
         private IEnumerator VerifyScalableM3AndCh03()
         {
-            // 1) Regional Streaming of CH03 Archive Wing (LOC05_ArchiveWing)
             if (scene.IsAdditiveMode)
             {
                 yield return scene.EnsureRegionalZonesStreamedAsync();
-                Require(scene.LoadedZoneCount == 5 && scene.HasZone("LOC05"),
-                    $"Regional CH03 archive zone streamed cleanly (loaded={scene.LoadedZoneCount})");
+                Require(scene.LoadedZoneCount == 6 && scene.HasZone("LOC05") && scene.HasZone("LOC09"),
+                    "Upper and service regions registered");
             }
-            bool hasAp06 = scene.TryPad("AP06", out var ap06);
-            bool hasAn03 = scene.TryPad("AN03", out var an03);
-            bool hasAp07 = scene.TryPad("AP07", out var ap07);
-            Require(hasAp06 && hasAn03 && hasAp07,
-                "CH03 safe pads AP06/AN03/AP07 registered");
+            var ap06 = scene.Pad("AP06");
+            var an03 = scene.Pad("AN03");
+            var ap07 = scene.Pad("AP07");
+            Require(Mathf.Abs(ap06.position.y - 4f) < .04f && Mathf.Abs(an03.position.y - 8f) < .04f &&
+                Mathf.Abs(scene.Pad("AP08").position.y + 3.4f) < .04f, "Canonical floor elevations");
             Require(scene.archiveExitDoor != null && scene.Ch03PatrolWaypoints.Length >= 3 && scene.Ch03RadioPoint != null,
-                "CH03 G03 door, patrol waypoints and LOC07 distraction anchor registered");
-            Require(voice != null && voice.HasClip("CH03-D01") && voice.HasClip("CH03-D03") && voice.HasClip("CH03-D05"),
-                "CH03 VieNeu VO clips wired");
+                "Archive gate, patrol and radio are present");
+            Require(voice.HasClip("CH03-D01") && voice.HasClip("CH03-D03") && voice.HasClip("CH03-D05"), "Archive voice clips");
+            VerifyLegacySave(1);
+            VerifyLegacySave(2);
 
-            // 2) Versioned Save Schema v1 -> v2 Migration
+            var multi = State.Copy();
+            multi.f101.current = FormStatus.Affirmed;
+            Require(!FormService.ApplyForm(multi, "F303", FormStatus.Affirmed) &&
+                FormService.Distortion(multi, "LOC03") == 1 && FormService.Distortion(multi, "LOC07") == 0,
+                "Unknown forms rejected and F101 stays local");
+            var extraIds = new[] { "QA1", "QA2", "QA3", "QA4", "QA5", "QA6" };
+            var definitions = new Dictionary<string, FormService.Definition>(StringComparer.OrdinalIgnoreCase);
+            foreach (var id in extraIds)
             {
-                var isoDir = Path.Combine(qaFolder, "schema-v1-migration");
-                Directory.CreateDirectory(isoDir);
-                var isoSaves = new AtomicSaves(isoDir);
-                var v1Seed = State.Copy();
-                v1Seed.schemaVersion = 1;
-                v1Seed.forms.Clear();
-                v1Seed.patients.Clear();
-                v1Seed.puzzles.Clear();
-                string payload = JsonUtility.ToJson(v1Seed);
-                string checksum;
-                using (var sha = System.Security.Cryptography.SHA256.Create())
-                    checksum = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(payload)));
-                string envJson = $"{{\"schemaVersion\":1,\"payload\":{JsonEscape(payload)},\"checksum\":\"{checksum}\"}}";
-                File.WriteAllText(isoSaves.SlotPath(SaveSlot.Auto), envJson, new System.Text.UTF8Encoding(false));
-                Require(isoSaves.Read(SaveSlot.Auto, out var migrated) == SaveRead.Valid && migrated != null &&
-                    migrated.schemaVersion == Investigation.Schema && migrated.PatientIdentityVerified("C01"),
-                    "Schema v1 save migrated cleanly to Schema v2 with C01 identity preserved");
+                definitions[id] = new(id == "QA6" ? "LOC09" : "LOC07", id != "QA5", _ => true);
+                multi.forms.Add(new FormEntry { formId = id, current = FormStatus.Affirmed });
             }
+            multi.forms.Add(multi.forms[0]);
+            Require(FormService.Distortion(multi, "LOC07", definitions) == 4 &&
+                FormService.Distortion(multi, "LOC09", definitions) == 1, "Multiple-form scope, uniqueness, truth and cap");
+            Require(!EvidenceRegistry.IsPhysicalExportable(EvidenceRegistry.BayLockReceipt) &&
+                !EvidenceRegistry.IsPhysicalExportable(EvidenceRegistry.NonExportableTraceE08), "FS10 and E08 excluded from physical evidence");
 
-            // 3) Generalized Multi-Form Distortion D_zone = min(4, unique false affirmed) & E08 Non-Exportable Rule
-            {
-                var multi = State.Copy();
-                multi.f101.current = FormStatus.Affirmed;
-                FormService.ApplyForm(multi, "F102", FormStatus.Affirmed);
-                FormService.ApplyForm(multi, "F103", FormStatus.Affirmed);
-                FormService.ApplyForm(multi, "F104", FormStatus.Affirmed);
-                FormService.ApplyForm(multi, "F105", FormStatus.Affirmed);
-                Require(FormService.Distortion(multi) == 4, "D_zone capped at 4 across 5 affirmed false forms");
-                Require(!EvidenceRegistry.IsPhysicalExportable(EvidenceRegistry.NonExportableTraceE08) &&
-                    !EvidenceRegistry.Grant(multi, EvidenceRegistry.NonExportableTraceE08, Reality.B, "LOC08"),
-                    "E08 non-exportable trace blocked from durable physical inventory");
-            }
+            if (State.layer != Reality.R) Apply(casework.SwitchIn101(scene.Pad("AP04").position), "Return R before CH03");
+            var er = scene.Pad("AP05");
+            player.Teleport(er);
+            yield return WaitForApplied(casework.BeginCh03Async(player.Feet), "CH03 begins at ER");
+            Require(Vector3.Distance(er.position, player.Feet) < .01f && State.chapter == "CH03", "Chapter handoff stays on grade");
+            Apply(casework.TakeCh03Evidence(EvidenceRegistry.PatientRegister, "LOC07", an03.position), "Take E03");
+            Apply(casework.TakeCh03Evidence(EvidenceRegistry.C02CareNote, "LOC07", an03.position), "Take care note");
+            Apply(casework.TakeCh03Evidence(EvidenceRegistry.C02YarnBag, "LOC07", an03.position), "Take yarn bag");
+            Apply(casework.AttemptCh03Pu01("C03", true, an03.position), "PZ03 wrong code");
+            Apply(casework.AttemptCh03Pu01("C12", true, an03.position), "PZ03 second wrong code");
+            Require(PuzzleService.ShouldShowFieldHint(State, "CH03-PU01") && !GateService.G03(State),
+                "CH03-Q02 incorrect matching keeps G03 closed");
+            Apply(casework.AttemptCh03Pu01("C02", true, an03.position), "PZ03 correct code");
+            Require(GateService.G03(State) && !State.PatientIdentityVerified("C02"), "CH03-Q01 gate opens on existence");
+            Apply(casework.TakeCh03Evidence(EvidenceRegistry.C12UnnamedBox, "LOC07", an03.position), "Read C12 row and box");
+            Require(State.Happened("FS19") && State.PatientConfirmed("C12") &&
+                !State.Copy().VerifyPatientIdentity("C12", "Invalid sample"), "CH03-Q02 C12 stays anonymous");
+            Apply(casework.TakeCh03Evidence(EvidenceRegistry.C02DaughterLetter, "LOC07", an03.position), "Read optional letter");
+            Apply(casework.SolveCh03Pu02OptionalIdentity(an03.position), "Verify optional C02 identity");
 
-            // 4) Representative CH03 Progression: LOC05 -> LOC07 -> AN03 (R/M) -> PZ03 -> C02/C12 -> G03 -> AP07
-            if (State.layer != Reality.R) Apply(casework.SwitchIn101(scene.Pad("AP04").position), "return R before CH03");
-            Apply(casework.BeginCh03(ap06.position), "CH03 start at AP06");
-            player.Teleport(ap06);
-            Require(State.chapter == "CH03" && State.checkpoint == "CH03-CP01", "CH03 entry state committed");
-
-            Apply(casework.TakeCh03Evidence(EvidenceRegistry.PatientRegister, "LOC07", ap06.position), "take E03");
-            Apply(casework.TakeCh03Evidence(EvidenceRegistry.C02CareNote, "LOC07", ap06.position), "take C02 care note");
-            Apply(casework.TakeCh03Evidence(EvidenceRegistry.C02YarnBag, "LOC07", an03.position), "take C02 yarn bag");
-            Apply(casework.TakeCh03Evidence(EvidenceRegistry.BayLockReceipt, "LOC05", ap06.position), "take FS10 lock trace");
-
-            // CH03-Q05: 2-strike hint on CH03-PU01 (PZ03) before correct solve
             player.Teleport(an03);
-            Apply(casework.AttemptCh03Pu01("C03", false, an03.position), "PZ03 strike 1");
-            Apply(casework.AttemptCh03Pu01("C09", false, an03.position), "PZ03 strike 2");
-            Require(PuzzleService.FailedAttempts(State, "CH03-PU01") == 2 &&
-                PuzzleService.ShouldShowFieldHint(State, "CH03-PU01") && !GateService.G03(State),
-                "CH03-PU01 2-strike field hint triggered before solve");
+            Apply(casework.SwitchMemoryVignetteAn03(an03.position), "Enter M");
+            Require(State.layer == Reality.M && !orderlyAi.IsActive, "CH03-Q04 safe memory");
+            yield return CaptureHospitalFrame("ch03-memory", an03, 0f);
+            Require(transaction.Restore(SaveSlot.Auto, out var restoredFromM) == SaveRead.Valid &&
+                State.layer == Reality.R && restoredFromM == an03 && State.Has(EvidenceRegistry.PatientRegister),
+                "CH03-Q04 restores at AN03 in R with E03");
+            Require(!HunterOrderlyAI.IsInSafeZone(an03.position + Vector3.up * 4f, scene), "Safe zone is floor-aware");
+            yield return CaptureHospitalFrame("ch03-archive", an03, 18f);
+            yield return CaptureHospitalFrame("ch03-ward", ap06, 35f);
 
-            // CH03-Q01: Reality.M Memory Vignette transition & safe reload restoring R at AN03
-            Apply(casework.SwitchMemoryVignetteAn03(an03.position), "enter Reality.M vignette");
-            Require(State.layer == Reality.M, "Entered Reality.M memory vignette");
-            var mMemZone = scene.memoryProps;
+            Apply(casework.Record("FS10", ap07.position), "Inspect FS10 in the duty corridor");
+            Require(!State.Has(EvidenceRegistry.DutyOrders) && !State.Has(EvidenceRegistry.LanRecovery) &&
+                !MayDeliver("CH01-D16b", "B06"), "CH03-Q05 evidence and reveal boundary");
+            player.Teleport(ap07);
+            Apply(casework.CompleteCh03(player.Feet), "Finish CH03 at AP07");
+            yield return WaitForApplied(casework.BeginCh04Async(), "Enter CH04 at AP07");
+            Require(!MayDeliver("CH04-D06", "B06"), "CH04 Lan closed at entry");
+            yield return WaitForApplied(ChapterFour.Take(transaction, EvidenceRegistry.DutyOrders, "LOC06"), "Take E02");
+            yield return WaitForApplied(ChapterFour.Take(transaction, EvidenceRegistry.DutyLog, "LOC06"), "Take E09");
+            yield return WaitForApplied(ChapterFour.Take(transaction, EvidenceRegistry.MeetingTape, "LOC06"), "Take E06a");
+            yield return WaitForApplied(ChapterFour.PresentMeeting(transaction), "CH04-Q04 read transcript");
+            Require(State.Happened("PT01.presented") && !State.Has("E06"), "Tape remains distinct from written order");
 
-            // Optional CH03 visual verification renders (LOC05 Nurse Station R, LOC07 Archive R, LOC07 Memory M)
-            if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
+            bool[] expectedFits = { true, true, true, true, true, true, false, false, true, true, true, true, true, false, false, false };
+            for (int mask = 0; mask < 16; mask++)
             {
-                var camera = player.Eye;
-                var rt = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
-                rt.Create();
-                camera.enabled = false;
-                player.Teleport(new Vector3(-0.35f, 0.02f, 32.15f), Quaternion.Euler(0f, -108f, 0f));
-                camera.transform.localRotation = Quaternion.Euler(8f, 0f, 0f);
-                for (int i = 0; i < 4; i++) yield return null;
-                SaveFrame(camera, rt, "ch03-loc07-memory-M");
+                Require(ChapterFour.ValidPower(mask) == expectedFits[mask], "CH04-Q02 circuit combination " + mask);
+                yield return WaitForApplied(ChapterFour.SetPower(transaction, mask), "Write circuit state");
+                Require(State.servicePower == (expectedFits[mask] ? mask : 0), "Save overload trip");
+            }
+            yield return WaitForApplied(ChapterFour.SetPower(transaction, 10), "Energize archive + service");
+            yield return WaitForApplied(ChapterFour.Take(transaction, EvidenceRegistry.MorgueRegister, "LOC10"), "Take E04");
+            Require(ChapterFour.MatchRecovery(transaction).GetAwaiter().GetResult() == CommitResult.PadRequired &&
+                !GateService.H05(State), "CH04-Q03 E04 alone excludes H05");
+            yield return WaitForApplied(ChapterFour.Take(transaction, EvidenceRegistry.LanRecovery, "LOC10"), "Take E07");
+            yield return WaitForApplied(ChapterFour.MatchRecovery(transaction), "Verify H05 and present PT02");
+            Require(GateService.G04(State) && MayDeliver("CH04-D06", "B06") && MayDeliver("CH01-D16b", "B06") &&
+                !MayDeliver("CH01-D16b", "B05") && !State.Has("E08"), "CH04-Q03/Q06 exact beat, evidence and guard");
+            yield return scene.UnloadZoneAsync(RegionStreamer.Service);
+            Require(!scene.HasZone("LOC09") && !scene.TryPad("AP09", out _), "Service unload removes local pads");
+            yield return scene.LoadZoneAsync(RegionStreamer.Service);
+            Require(transaction.Restore(SaveSlot.Auto, out var restored) == SaveRead.Valid &&
+                restored == scene.Pad("AP09") && State.servicePower == 10 && GateService.G04(State),
+                "CH04-Q05 saved circuit and clues restored in reloaded B1");
+            yield return CaptureHospitalFrame("ch04-morgue", restored, 0f);
+            verification.Add("CH03-Q01/Q02/Q04/Q05 and CH04-Q02–Q06 module PASS. C02/C12, M restore, two legacy schemas, local forms, power and H05/guard, reloaded region save.");
+        }
 
-                // Reloading save taken in M restores safely to Reality.R at AN03 (CH03-Q01)
-                Require(transaction.Restore(SaveSlot.Auto, out var restoredFromM) == SaveRead.Valid &&
-                    State.layer == Reality.R && restoredFromM == an03,
-                    "Reload during Reality.M vignette restores safely to Reality.R at AN03");
-                player.SetTorchEnabled(true);
-                player.Teleport(new Vector3(-0.35f, 0.02f, 32.15f), Quaternion.Euler(0f, -108f, 0f));
-                camera.transform.localRotation = Quaternion.Euler(8f, 0f, 0f);
-                for (int i = 0; i < 4; i++) yield return null;
-                SaveFrame(camera, rt, "ch03-loc07-archive-R");
+        private void VerifyLegacySave(int schema)
+        {
+            var isolated = new AtomicSaves(Path.Combine(qaFolder, "legacy-schema-" + schema));
+            var seed = State.Copy();
+            seed.schemaVersion = schema;
+            if (schema == 1) seed.patients.Clear();
+            string payload = JsonUtility.ToJson(seed);
+            string checksum;
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+                checksum = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(payload)));
+            Directory.CreateDirectory(Path.GetDirectoryName(isolated.SlotPath(SaveSlot.Auto)));
+            File.WriteAllText(isolated.SlotPath(SaveSlot.Auto),
+                $"{{\"schemaVersion\":{schema},\"payload\":{JsonEscape(payload)},\"checksum\":\"{checksum}\"}}");
+            Require(isolated.Read(SaveSlot.Auto, out var upgraded) == SaveRead.Valid &&
+                upgraded.schemaVersion == Investigation.Schema && upgraded.PatientIdentityVerified("C01"),
+                "Upgrade legacy schema " + schema);
+        }
 
-                player.Teleport(new Vector3(3.65f, 0.02f, 26.25f), Quaternion.Euler(0f, 58f, 0f));
-                camera.transform.localRotation = Quaternion.Euler(10f, 0f, 0f);
-                for (int i = 0; i < 4; i++) yield return null;
-                SaveFrame(camera, rt, "ch03-loc05-nurse-R");
-                player.SetTorchEnabled(false);
+        private IEnumerator WaitForApplied(Task<CommitResult> pending, string label)
+        {
+            while (!pending.IsCompleted) yield return null;
+            Apply(pending.GetAwaiter().GetResult(), label);
+        }
 
+        private IEnumerator CaptureHospitalFrame(string name, Transform pose, float yaw)
+        {
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) yield break;
+            var camera = player.Eye;
+            var rt = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            rt.Create();
+            bool previous = camera.enabled;
+            camera.enabled = false;
+            try
+            {
+                player.Teleport(pose.position, pose.rotation * Quaternion.Euler(0, yaw, 0));
+                camera.transform.localRotation = Quaternion.Euler(6f, 0, 0);
+                for (int i = 0; i < 4; i++) yield return null;
+                SaveFrame(camera, rt, name);
+            }
+            finally
+            {
+                camera.enabled = previous;
                 rt.Release();
                 Destroy(rt);
             }
-            else
-            {
-                Require(transaction.Restore(SaveSlot.Auto, out var restoredFromM) == SaveRead.Valid &&
-                    State.layer == Reality.R && restoredFromM == an03,
-                    "Reload during Reality.M vignette restores safely to Reality.R at AN03");
-            }
-
-            // CH03-Q04 & TASK011-A..E: HunterOrderlyAI patrol, radio distraction, sight->warning->chase, safe-zone breakoff
-            if (orderlyAi != null && scene.GatekeeperActor != null)
-            {
-                orderlyAi.SyncState(State);
-                Require(orderlyAi.IsActive && orderlyAi.CurrentState == OrderlyState.Patrol,
-                    "HunterOrderlyAI active in Patrol during CH03");
-
-                // Place Orderly in LOC06 and trigger LOC07 Meeting Room radio distraction (14m radius)
-                scene.GatekeeperActor.transform.SetPositionAndRotation(new Vector3(4.0f, 0f, 35.6f), Quaternion.Euler(0f, 180f, 0f));
-                orderlyAi.TriggerDistraction(scene.Ch03RadioPoint.position, HunterOrderlyAI.NoiseDistractionRadius);
-                Require(orderlyAi.CurrentState == OrderlyState.Investigate,
-                    "LOC07 vintage radio distraction lures Orderly into Investigate");
-
-                // Sight accumulation (0.70s) -> 2.0s Suspicious pre-chase warning -> Chase -> Safe-Zone Return
-                orderlyAi.TransitionTo(OrderlyState.Patrol, 0f);
-                scene.GatekeeperActor.transform.SetPositionAndRotation(new Vector3(4.0f, 0f, 35.8f), Quaternion.Euler(0f, 180f, 0f));
-                player.Teleport(new Vector3(4.0f, 0.02f, 30.8f), Quaternion.identity);
-                for (int step = 0; step < 12 && orderlyAi.CurrentState != OrderlyState.Suspicious; step++)
-                    orderlyAi.Tick(State, 0.10f, false, false, false, Line);
-                Require(orderlyAi.CurrentState == OrderlyState.Suspicious,
-                    "0.70s line-of-sight enters Suspicious pre-chase warning window");
-                for (int step = 0; step < 25 && orderlyAi.CurrentState == OrderlyState.Suspicious; step++)
-                    orderlyAi.Tick(State, 0.10f, false, false, false, Line);
-                Require(orderlyAi.CurrentState == OrderlyState.Chase,
-                    "2.0s pre-chase warning transitions into Chase");
-                // Reach safe pad AP06 -> immediate safe-zone non-intrusion breakoff to Return
-                player.Teleport(ap06);
-                orderlyAi.Tick(State, 0.05f, false, false, false, Line);
-                Require(orderlyAi.CurrentState == OrderlyState.Return,
-                    "Safe pad AP06 breaks off Chase into Return (non-intrusion)");
-            }
-
-            // CH03-Q02 & CH03-Q03: Solve PZ03 -> C02 existence confirmed (identity still optional!), C12 permanently anonymous -> G03 opens!
-            player.Teleport(an03);
-            Apply(casework.AttemptCh03Pu01("C02", true, an03.position), "PZ03 solved");
-            Require(State.PatientConfirmed("C02") && !State.PatientIdentityVerified("C02") && GateService.G03(State),
-                "CH03-Q02: G03 opens with C02 existence confirmed while optional identity remains unverified");
-
-            Apply(casework.TakeCh03Evidence(EvidenceRegistry.C12UnnamedBox, "LOC07", an03.position), "confirm C12 anonymous box");
-            var fakeTest = State.Copy();
-            Require(State.PatientConfirmed("C12") && !State.PatientIdentityVerified("C12") &&
-                !fakeTest.VerifyPatientIdentity("C12", "Fake Name") && !fakeTest.PatientIdentityVerified("C12"),
-                "CH03-Q03: C12 confirms existence while permanently rejecting fabricated names");
-
-            // Optional CH03-PU02 identity verification for Bà Lành
-            Apply(casework.TakeCh03Evidence(EvidenceRegistry.C02DaughterLetter, "LOC07", an03.position), "take C02 letter");
-            Apply(casework.SolveCh03Pu02OptionalIdentity(an03.position), "solve optional CH03-PU02");
-            Require(State.PatientIdentityVerified("C02"), "CH03-PU02 optional identity verified cleanly");
-
-            // Reach AP07 through G03
-            player.Teleport(ap07);
-            Apply(casework.CompleteCh03(ap07.position), "complete CH03 at AP07");
-            Require(State.Happened("M3-CH03-complete") && State.checkpoint == "CH03-CP04",
-                "CH03 representative chapter completed and persisted at AP07");
-
-            verification.Add("M3-ARCH & CH03-Q01..Q05 PASS: LOC05 streamed (5 zones), v1->v2 save migrated, D_zone capped at 4, E08 blocked, R/M reload safe at AN03, PZ03 2-strike hint, C02 existence/identity split, C12 permanently anonymous, HunterOrderlyAI 6-state patrol/radio/warning/chase/safe-zone verified, G03 & AP07 persisted.");
         }
-
         private static string JsonEscape(string s) =>
             "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n") + "\"";
 

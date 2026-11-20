@@ -53,8 +53,27 @@ namespace CTCC
         private Vector3 stimulusPosition;
         private bool activeInChapter;
         private bool spokeCh03Warning;
-        private NavMeshPath navPath;
+        private readonly NavMeshPath navPath = new();
+        private Vector3[] corners = Array.Empty<Vector3>();
+        private Vector3 pathDestination;
+        private float repathAt;
+        private float movementBlockedFor;
         private int cornerIndex;
+        private enum Role { None, Hunter, Orderly, Unrecorded }
+        private Role role;
+        private float graceUntil;
+        private bool waitingAtStop;
+        private static readonly Vector3[] WardRound = { new(0, 4, 36.9f), new(2.3f, 4, 34.8f), new(4f, 4, 41.3f) };
+        private static readonly Vector3[] ServiceRound = { new(7.3f, -3.4f, 37f), new(8.9f, -3.4f, 41.7f), new(6.6f, -3.4f, 43.8f) };
+        private static readonly Vector3[] MorgueTrace = { new(2.7f, -3.4f, 38f), new(2.7f, -3.4f, 40.6f) };
+        private float Pace => role == Role.Orderly ? 1.21f : role == Role.Unrecorded ? .78f : PatrolSpeed;
+        private bool CanChase => role == Role.Hunter;
+        private string SafeRecovery => role == Role.Orderly ? "AP07" : player.Feet.y < 0 ? "AP08" : "AN03";
+        public int PathQueries { get; private set; }
+        public int InvalidPaths { get; private set; }
+        public int BlockedSteps { get; private set; }
+
+        private static readonly string[] SafePads = { "AP02", "AP04", "AP05", "AP06", "AN03", "AP07", "AP08", "AP09" };
 
         public OrderlyState CurrentState => currentState;
         public bool IsActive => activeInChapter;
@@ -69,21 +88,35 @@ namespace CTCC
             player = fps;
             ui = hospitalUi;
             inspector = physicalInspector;
-            navPath = new NavMeshPath();
         }
 
         public void SyncState(Investigation state)
         {
             if (scene == null) return;
             var actor = scene.GatekeeperActor;
-            if (actor == null) return;
+            if (actor == null)
+            {
+                activeInChapter = false;
+                InvalidatePath();
+                return;
+            }
 
-            bool shouldPatrolCh03 = state.chapter == "CH03" && state.layer == Reality.R && !GateService.G03(state);
-            if (!shouldPatrolCh03)
+            Role next = Role.None;
+            if (state.layer == Reality.R && state.chapter == "CH03" && state.Has(EvidenceRegistry.PatientRegister) &&
+                !state.Happened("CH03-T07") && scene.HasZone("LOC05"))
+                next = Role.Hunter;
+            else if (state.layer == Reality.R && state.chapter == "CH04" && !GateService.H05(state) && player != null)
+            {
+                if (player.Feet.y > 3.4f && scene.HasZone("LOC05")) next = Role.Orderly;
+                else if (player.Feet.y < -2.5f && scene.HasZone("LOC09"))
+                    next = player.Feet.x < 4.45f ? Role.Unrecorded : Role.Hunter;
+            }
+            if (next == Role.None)
             {
                 if (activeInChapter)
                 {
                     activeInChapter = false;
+                    role = Role.None;
                     currentState = OrderlyState.Patrol;
                     sightTimer = 0f;
                     actor.gameObject.SetActive(false);
@@ -91,17 +124,31 @@ namespace CTCC
                 return;
             }
 
-            if (!activeInChapter)
+            if (!activeInChapter || role != next)
             {
+                role = next;
                 activeInChapter = true;
                 currentState = OrderlyState.Patrol;
                 patrolIndex = 0;
                 sightTimer = 0f;
                 stateTimer = 0f;
+                InvalidatePath();
                 actor.gameObject.SetActive(true);
                 actor.ReducedMotion = state.settings.reduceMotion;
                 actor.LookTarget = player != null && player.Eye != null ? player.Eye.transform : null;
-                Vector3 startPt = GetPatrolPoint(0);
+                for (int index = 0; index < GetPatrolPointCount(); index++)
+                {
+                    if (Vector3.Distance(player.Feet, GetPatrolPoint(index)) < 3.0f) continue;
+                    patrolIndex = index;
+                    break;
+                }
+                Vector3 startPt = GetPatrolPoint(patrolIndex);
+                if (Vector3.Distance(startPt, player.Feet) < 3.0f)
+                {
+                    activeInChapter = false;
+                    actor.gameObject.SetActive(false);
+                    return;
+                }
                 actor.transform.SetPositionAndRotation(startPt, Quaternion.Euler(0f, 180f, 0f));
                 actor.PlayAction("GK_StalkWalk", 0.15f, restart: true);
             }
@@ -110,13 +157,12 @@ namespace CTCC
         public static bool IsInSafeZone(Vector3 feet, HospitalScene world)
         {
             if (world == null) return false;
-            foreach (string padId in new[] { "AP02", "AP04", "AP05", "AP06", "AN03", "AP07" })
+            foreach (string padId in SafePads)
             {
                 if (world.TryPad(padId, out var pad) && pad != null)
                 {
                     Vector3 d = feet - pad.position;
-                    d.y = 0f;
-                    if (d.sqrMagnitude <= 1.65f * 1.65f)
+                    if (Mathf.Abs(d.y) < 0.8f && d.x * d.x + d.z * d.z <= 1.65f * 1.65f)
                         return true;
                 }
             }
@@ -125,7 +171,7 @@ namespace CTCC
 
         public void TriggerDistraction(Vector3 worldPos, float radius = NoiseDistractionRadius)
         {
-            if (!activeInChapter || scene?.GatekeeperActor == null) return;
+            if (!activeInChapter || scene?.GatekeeperActor == null || role == Role.Unrecorded) return;
             Vector3 agentPos = scene.GatekeeperActor.transform.position;
             float dist = Vector3.Distance(agentPos, worldPos);
             bool occluded = Physics.Linecast(agentPos + Vector3.up * 1.5f, worldPos + Vector3.up * 0.8f, HospitalScene.SolidMask);
@@ -142,7 +188,7 @@ namespace CTCC
             Vector3 toTarget = targetPos - agentPos;
             toTarget.y = 0f;
             float dist = toTarget.magnitude;
-            if (dist > SightRange || dist < 0.05f) return false;
+            if (Vector3.Distance(agentPos, targetPos) > SightRange || dist < 0.05f) return false;
             float angle = Vector3.Angle(agentForward, toTarget / dist);
             if (angle > SightFovDegrees * 0.5f) return false;
             Vector3 eyeA = agentPos + Vector3.up * 1.62f;
@@ -168,7 +214,7 @@ namespace CTCC
             Vector3 agentPos = actor.transform.position;
             Vector3 agentFwd = actor.transform.forward;
             Vector3 playerFeet = player.Feet;
-            bool playerSafe = IsInSafeZone(playerFeet, scene);
+            bool playerSafe = IsInSafeZone(playerFeet, scene) || Time.unscaledTime < graceUntil;
 
             // Safe-zone non-intrusion rule (TASK011-D / CH03-Q04): break off immediately if player reaches safe pad!
             if (playerSafe && (currentState == OrderlyState.Suspicious || currentState == OrderlyState.Chase))
@@ -178,7 +224,7 @@ namespace CTCC
             }
 
             // 1. Vision perception
-            bool seesPlayer = !playerSafe && CheckLineOfSight(agentPos, agentFwd, playerFeet);
+            bool seesPlayer = role != Role.Unrecorded && !playerSafe && CheckLineOfSight(agentPos, agentFwd, playerFeet);
             if (seesPlayer)
             {
                 sightTimer += dt;
@@ -189,8 +235,9 @@ namespace CTCC
                     if (sightTimer >= SightAccumulationSeconds)
                     {
                         TransitionTo(OrderlyState.Suspicious, PreChaseWarningSeconds);
-                        scene.atmosphere?.From("keyJingle", agentPos + Vector3.up * 1.0f);
-                        if (!spokeCh03Warning && lineLookup != null)
+                        scene.atmosphere?.From(role == Role.Orderly ? "trolleyRoll" : "keyJingle", agentPos + Vector3.up * 1.0f);
+                        if (role == Role.Orderly) ui?.Caption("[Xe thuốc dừng lại. Lùi về phía phòng trực.]", 3f, false);
+                        if (state.chapter == "CH03" && !spokeCh03Warning && lineLookup != null)
                         {
                             spokeCh03Warning = true;
                             voice?.Speak("CH03-D05", "Kẻ Giữ Cửa", lineLookup("CH03-D05", 1),
@@ -206,7 +253,7 @@ namespace CTCC
             }
 
             // 2. Hearing perception (when not already chasing or suspicious)
-            if (!playerSafe && playerMoving && currentState != OrderlyState.Chase && currentState != OrderlyState.Suspicious)
+            if (CanChase && !playerSafe && playerMoving && currentState != OrderlyState.Chase && currentState != OrderlyState.Suspicious)
             {
                 float radius = playerRunning ? NoiseRunRadius : playerCrouching ? NoiseCrouchRadius : NoiseWalkRadius;
                 bool occluded = Physics.Linecast(agentPos + Vector3.up * 1.4f, playerFeet + Vector3.up * 1.0f, HospitalScene.SolidMask);
@@ -224,8 +271,20 @@ namespace CTCC
             {
                 case OrderlyState.Patrol:
                     Vector3 wp = GetPatrolPoint(patrolIndex);
-                    if (MoveAlongNavMesh(actor, wp, PatrolSpeed, dt))
-                        patrolIndex = (patrolIndex + 1) % GetPatrolPointCount();
+                    if (MoveAlongNavMesh(actor, wp, Pace, dt))
+                    {
+                        if (role == Role.Orderly && !waitingAtStop)
+                        {
+                            waitingAtStop = true;
+                            stateTimer = 4f + patrolIndex;
+                        }
+                        else if (role != Role.Orderly || stateTimer <= 0f)
+                        {
+                            waitingAtStop = false;
+                            patrolIndex = (patrolIndex + 1) % GetPatrolPointCount();
+                        }
+                        else StandStill(actor);
+                    }
                     break;
 
                 case OrderlyState.Suspicious:
@@ -235,7 +294,12 @@ namespace CTCC
                         actor.PlayAction("GK_InspectReach", 0.20f);
                     if (stateTimer <= 0f)
                     {
-                        if (seesPlayer && !state.settings.storyMode)
+                        if (role == Role.Orderly && seesPlayer && Vector3.Distance(agentPos, playerFeet) < 3.4f && !state.settings.storyMode)
+                        {
+                            ResetEncounter();
+                            TransitionTo(OrderlyState.Return, 5f);
+                        }
+                        else if (CanChase && seesPlayer && !state.settings.storyMode)
                             TransitionTo(OrderlyState.Chase, 7.0f);
                         else
                             TransitionTo(OrderlyState.Investigate, 4.5f);
@@ -255,13 +319,11 @@ namespace CTCC
                     }
                     if (seesPlayer) stateTimer = 3.0f;
                     MoveAlongNavMesh(actor, stimulusPosition, state.settings.storyMode ? InvestigateSpeed : ChaseSpeed, dt);
-                    if (!playerSafe && Vector3.Distance(actor.transform.position, playerFeet) <= 1.35f)
+                    if (seesPlayer && Vector3.Distance(actor.transform.position, playerFeet) <= 1.35f)
                     {
                         // Non-lethal interception: reset player cleanly to CH03 Nurse Station safe pad (AP06) without data loss!
                         scene.atmosphere?.From("keyJingle", actor.transform.position + Vector3.up);
-                        if (scene.TryPad("AP06", out var safePad) && safePad != null)
-                            player.Teleport(safePad);
-                        ui?.Caption("[Kẻ Giữ Cửa chặn lối hành lang. Minh lùi về Trạm điều dưỡng AP06]", 4.2f, true);
+                        ResetEncounter();
                         TransitionTo(OrderlyState.Return, 4.0f);
                     }
                     break;
@@ -282,11 +344,20 @@ namespace CTCC
             }
         }
 
+        private void ResetEncounter()
+        {
+            if (scene.TryPad(SafeRecovery, out var safePad) && safePad != null)
+                player.Teleport(safePad);
+            graceUntil = Time.unscaledTime + 60f;
+            ui?.Caption("[Lối đi bị chặn. Minh lùi về điểm an toàn.]", 4.2f, true);
+        }
+
         public void TransitionTo(OrderlyState next, float duration)
         {
             currentState = next;
             stateTimer = duration;
-            cornerIndex = 0;
+            waitingAtStop = false;
+            InvalidatePath();
             var actor = scene?.GatekeeperActor;
             if (actor == null || !actor.gameObject.activeInHierarchy) return;
             if (next == OrderlyState.Patrol || next == OrderlyState.Investigate ||
@@ -300,35 +371,80 @@ namespace CTCC
 
         private bool MoveAlongNavMesh(CharacterActor actor, Vector3 destination, float speed, float dt)
         {
-            if (actor.ActiveActionName != "GK_StalkWalk")
-                actor.PlayAction("GK_StalkWalk", 0.18f);
-
             Vector3 pos = actor.transform.position;
-            Vector3 flatDest = new(destination.x, pos.y, destination.z);
-            if ((flatDest - pos).sqrMagnitude <= 0.08f * 0.08f)
+            if ((destination - pos).sqrMagnitude <= 0.13f * 0.13f)
                 return true;
 
-            Vector3 stepTarget = flatDest;
-            if (navPath != null &&
-                NavMesh.SamplePosition(pos, out var navStart, 1.2f, NavMesh.AllAreas) &&
-                NavMesh.SamplePosition(flatDest, out var navEnd, 1.2f, NavMesh.AllAreas) &&
-                NavMesh.CalculatePath(navStart.position, navEnd.position, NavMesh.AllAreas, navPath) &&
-                navPath.corners != null && navPath.corners.Length > 1)
+            if (Time.unscaledTime >= repathAt &&
+                (cornerIndex >= corners.Length || (destination - pathDestination).sqrMagnitude >= 0.6f * 0.6f))
             {
-                cornerIndex = Mathf.Clamp(1, 1, navPath.corners.Length - 1);
-                stepTarget = new Vector3(navPath.corners[cornerIndex].x, pos.y, navPath.corners[cornerIndex].z);
+                repathAt = Time.unscaledTime + 0.35f;
+                pathDestination = destination;
+                PathQueries++;
+                if (!NavMesh.SamplePosition(pos, out var start, 0.45f, NavMesh.AllAreas) ||
+                    !NavMesh.SamplePosition(destination, out var end, 0.45f, NavMesh.AllAreas) ||
+                    !NavMesh.CalculatePath(start.position, end.position, NavMesh.AllAreas, navPath) ||
+                    navPath.status != NavMeshPathStatus.PathComplete)
+                {
+                    InvalidPaths++;
+                    InvalidatePath();
+                    return StandStill(actor);
+                }
+                corners = navPath.corners;
+                cornerIndex = 1;
             }
+            while (cornerIndex < corners.Length && (corners[cornerIndex] - pos).sqrMagnitude <= 0.12f * 0.12f)
+                cornerIndex++;
+            if (cornerIndex >= corners.Length) return StandStill(actor);
 
-            FaceTarget(actor, stepTarget, dt * 260f);
-            actor.transform.position = Vector3.MoveTowards(pos, stepTarget, speed * dt);
+            Vector3 target = corners[cornerIndex];
+            Vector3 step = Vector3.MoveTowards(pos, target, speed * dt);
+            // Respect moved doors and safe volumes even while the baked path is cached.
+            Vector3 delta = step - pos;
+            const float radius = 0.30f;
+            if (IsInSafeZone(step, scene) ||
+                NavMesh.Raycast(pos, step, out _, NavMesh.AllAreas) ||
+                Physics.CapsuleCast(pos + Vector3.up * 0.48f, pos + Vector3.up * 1.39f,
+                    radius, delta.normalized, delta.magnitude, HospitalScene.SolidMask, QueryTriggerInteraction.Ignore))
+            {
+                BlockedSteps++;
+                movementBlockedFor += dt;
+                InvalidatePath();
+                if (movementBlockedFor >= 0.75f && currentState == OrderlyState.Patrol)
+                {
+                    patrolIndex = (patrolIndex + 1) % GetPatrolPointCount();
+                    movementBlockedFor = 0f;
+                }
+                return StandStill(actor);
+            }
+            movementBlockedFor = 0f;
+            if (actor.ActiveActionName != "GK_StalkWalk")
+                actor.PlayAction("GK_StalkWalk", 0.18f);
+            FaceTarget(actor, target, dt * 260f);
+            actor.transform.position = step;
 
             keyJingleTimer += dt * (speed / PatrolSpeed);
             if (keyJingleTimer >= 1.45f)
             {
                 keyJingleTimer = 0f;
-                scene?.atmosphere?.From("keyJingle", actor.transform.position + Vector3.up * 0.95f, 0.55f);
+                if (role != Role.Unrecorded)
+                    scene?.atmosphere?.From(role == Role.Orderly ? "trolleyRoll" : "keyJingle",
+                        actor.transform.position + Vector3.up * .95f, .55f);
             }
-            return (flatDest - actor.transform.position).sqrMagnitude <= 0.10f * 0.10f;
+            return (destination - step).sqrMagnitude <= 0.13f * 0.13f;
+        }
+
+        private void InvalidatePath()
+        {
+            corners = Array.Empty<Vector3>();
+            cornerIndex = 0;
+        }
+
+        private static bool StandStill(CharacterActor actor)
+        {
+            if (actor.ActiveActionName != "GK_IdleStill")
+                actor.PlayAction("GK_IdleStill", 0.2f);
+            return false;
         }
 
         private static void FaceTarget(CharacterActor actor, Vector3 target, float maxDegDelta)
@@ -340,10 +456,15 @@ namespace CTCC
         }
 
         private int GetPatrolPointCount() =>
-            scene?.Ch03PatrolWaypoints != null && scene.Ch03PatrolWaypoints.Length > 0 ? scene.Ch03PatrolWaypoints.Length : 2;
+            CustomRound?.Length ?? Mathf.Max(1, scene.Ch03PatrolWaypoints.Length);
+
+        private Vector3[] CustomRound => role == Role.Orderly ? WardRound :
+            role == Role.Unrecorded ? MorgueTrace : player != null && player.Feet.y < -2.5f ? ServiceRound : null;
 
         private Vector3 GetPatrolPoint(int idx)
         {
+            var round = CustomRound;
+            if (round != null) return round[idx % round.Length];
             if (scene?.Ch03PatrolWaypoints != null && scene.Ch03PatrolWaypoints.Length > 0)
             {
                 var t = scene.Ch03PatrolWaypoints[Mathf.Abs(idx) % scene.Ch03PatrolWaypoints.Length];

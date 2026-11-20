@@ -26,7 +26,8 @@ namespace CTCC.Editor
             ("LOC02", "LOC02_Reception", new Bounds(new Vector3(4f, 1f, -4f), new Vector3(14f, 8f, 12f))),
             ("LOC03", "LOC03_Ward101", new Bounds(new Vector3(8.5f, 1f, 8f), new Vector3(22f, 8f, 20f))),
             ("LOC04", "LOC04_Emergency", new Bounds(new Vector3(4f, 1f, 19f), new Vector3(14f, 8f, 10f))),
-            ("LOC05", "LOC05_ArchiveWing", new Bounds(new Vector3(2.0f, 1f, 32.5f), new Vector3(16f, 8f, 18f))),
+            ("LOC05", "LOC05_ArchiveWing", new Bounds(new Vector3(-4f, 5f, 20f), new Vector3(28f, 16f, 60f))),
+            ("LOC09", "LOC09_ServiceWing", new Bounds(new Vector3(16f, -2f, 37f), new Vector3(40f, 11f, 33f))),
         };
 
         private sealed class ZoneSlot
@@ -67,7 +68,7 @@ namespace CTCC.Editor
         [Serializable] private sealed class Pose
         {
             public string id;
-            public float x, z, yaw;
+            public float x, y, z, yaw;
         }
 
         private readonly Layout layout;
@@ -154,18 +155,21 @@ namespace CTCC.Editor
             var bootstrapPads = new List<MarkerPose>();
             var allPads = new List<Pose>(layout.pads)
             {
-                new Pose { id = "AP06", x = 4.0f, z = 26.4f, yaw = 0f },
-                new Pose { id = "AN03", x = -0.6f, z = 32.2f, yaw = -90f },
-                new Pose { id = "AP07", x = 4.0f, z = 38.6f, yaw = 0f },
+                new Pose { id = "AP06", x = 4.0f, y = 4f, z = 33.5f, yaw = 0f },
+                new Pose { id = "AN03", x = -0.6f, y = 8f, z = 32.2f, yaw = -90f },
+                new Pose { id = "AP07", x = 4.0f, y = 4f, z = 45.7f, yaw = 0f },
+                new Pose { id = "AP08", x = 7f, y = -3.4f, z = 32.2f, yaw = 0f },
+                new Pose { id = "AP09", x = 1.5f, y = -3.4f, z = 39f, yaw = -90f },
             };
             foreach (var p in allPads)
             {
-                var pos = new Vector3(p.x, 0.015f, p.z);
-                Transform parent = this.multiScene ? ZoneAt(p.z).permanent : permanent;
+                var pos = new Vector3(p.x, p.y + 0.015f, p.z);
+                var slot = this.multiScene ? (p.y < 0f ? zones["LOC09"] : p.y > 0f ? zones["LOC05"] : ZoneAt(p.z)) : null;
+                Transform parent = slot?.permanent ?? permanent;
                 var point = Group(p.id, parent, pos);
                 point.rotation = Quaternion.Euler(0, p.yaw, 0);
                 var mp = new MarkerPose { id = p.id, point = point };
-                if (this.multiScene) ZoneAt(p.z).pads.Add(mp);
+                if (slot != null) slot.pads.Add(mp);
                 else bootstrapPads.Add(mp);
             }
             world.pads = bootstrapPads.ToArray();
@@ -344,7 +348,7 @@ namespace CTCC.Editor
 
             ConfigureEnvironment(multiScene);
             int finishCount = multiScene ? zones.Values.Sum(z => z.region.finishes.Count) : world.finishes.Count;
-            Debug.Log($"CTCC_SCENE {(multiScene ? "m2-additive-5scenes" : "greybox")} {finishCount} paired finishes, {staticArchitecture.Count} static objects");
+            Debug.Log($"CTCC_SCENE {(multiScene ? $"additive-{zones.Count}regions" : "greybox")} {finishCount} paired finishes, {staticArchitecture.Count} static objects");
         }
 
         private void FinalizeZoneRegions()
@@ -574,7 +578,7 @@ namespace CTCC.Editor
                 world.seamBlocker = seam;
             }
 
-            Wall(false, -1.1f, -8, 0);
+            WallOpening(false, -1.1f, -8, 0, -4f, 2.7f, 2.42f);
             Wall(false, 9.1f, -8, 0);
             WallOpening(true, -8, -1, 9, 4, 1.8f, 2.42f);
             Wall(true, 0, 1.1f, 2.5f);
@@ -620,7 +624,8 @@ namespace CTCC.Editor
 
             Wall(false, -1.1f, 16, 22);
             Wall(false, 9.1f, 16, 22);
-            Wall(true, 22.1f, -1, 9);
+            WallOpening(true, 22.1f, -1, 5.45f, 4f, 2.7f, 2.42f);
+            WallOpening(true, 22.1f, 5.45f, 9, 7f, 2.7f, 2.42f);
             Wall(true, 16, -1, -0.65f);
             Wall(true, 16, 0.75f, 3.3f);
             Wall(true, 16, 4.7f, 9);
@@ -639,40 +644,7 @@ namespace CTCC.Editor
                 world.emergencyDoorB = erB;
             }
 
-            BuildCh03ArchiveShell();
-        }
-
-        private void BuildCh03ArchiveShell()
-        {
-            // CH03 Representative Wing (LOC05 Nurse Station + LOC07 Archive & Meeting Loop + LOC06 Duty Corridor, z in [25..40])
-            Surface("LOC05–07 · floor", new Vector3(2.0f, -0.10f, 32.5f),
-                new Vector3(11.0f, 0.20f, 15.0f), "FloorR", "FloorB", true, 1.6f, isStatic: true);
-            Surface("LOC05–07 · ceiling", new Vector3(2.0f, 3.71f, 32.5f),
-                new Vector3(11.0f, 0.22f, 15.0f), "PlasterR", "PlasterB", true, 2.2f, isStatic: true);
-
-            // Outer boundary walls of CH03 Archive Wing
-            Wall(true, 25.0f, -3.5f, 7.5f);
-            Wall(true, 40.0f, -3.5f, 7.5f);
-            Wall(false, -3.5f, 25.0f, 40.0f);
-            Wall(false, 7.5f, 25.0f, 40.0f);
-
-            // LOC05 Nurse Station north partition (z = 29.5f): West doorway into LOC07 Archive (-0.5f) & Main doorway into LOC06 Corridor (4.0f)
-            WallOpening(true, 29.5f, -3.5f, 2.5f, -0.5f, 1.6f, 2.42f);
-            WallOpening(true, 29.5f, 2.5f, 7.5f, 4.0f, 1.8f, 2.42f);
-
-            // Longitudinal spine between LOC07 Archive/Meeting Loop (west) and LOC06 Duty Corridor (east) with north bypass doorway at z = 35.6f
-            WallOpening(false, 2.5f, 29.5f, 37.2f, 35.6f, 1.6f, 2.42f);
-            Wall(false, 5.8f, 29.5f, 40.0f);
-
-            // G03 Archive Exit threshold at z = 37.2f
-            Wall(true, 37.2f, -3.5f, 2.5f);
-            WallOpening(true, 37.2f, 2.5f, 5.8f, 4.0f, 1.4f, 2.20f);
-            var g03Ap = new Aperture { id = "GATE-G03", x = 4.0f, z = 37.2f, width = 1.4f, alongX = true };
-            var g03Door = HingedEmergencyDoor("GATE-G03", g03Ap, -94f);
-            if (multiScene)
-                zones["LOC05"].region.archiveExitDoor = g03Door;
-            else
-                world.archiveExitDoor = g03Door;
+            BuildHospitalExpansion();
         }
 
         private DoorPose HingedExteriorGate(string name, Aperture a, float angle)
@@ -789,10 +761,10 @@ namespace CTCC.Editor
                 HospitalScene.SolidMask, QueryTriggerInteraction.Ignore);
             if (!stretcherClear)
                 throw new InvalidOperationException("0.72 m stretcher proxy collided at the 101 doorway.");
-            world.Present(false, 4, true, true, true, true, false, true);
-            VerifyNav("CH03 / LOC05–07 archive loop", new[] { "AP06", "AN03", "AP07" });
+            world.Present(false, 4, true, true, true, true, false, true, true);
+            VerifyNav("CH03–04 / connected hospital", new[] { "AP02", "AP05", "AP06", "AN03", "AP07", "AP08", "AP09" });
             world.Present(false, 0, false, false, false, false);
-            Debug.Log("CTCC_GREYBOX_PASS AP00–07, R & 3 B branches, LOC04 via either door, CH03 loop, 0.72 m stretcher at 1.2 m doorway");
+            Debug.Log("CTCC_GREYBOX_PASS R, three B branches, LOC04 routes, upper and basement safe pads, 0.72 m stretcher");
         }
 
         private void VerifyNav(string label, string[] pads)
@@ -802,6 +774,21 @@ namespace CTCC.Editor
             var handle = NavMesh.AddNavMeshData(nav);
             try
             {
+                if (label.StartsWith("CH03"))
+                {
+                    Vector3 previous = world.Pad("AP05").position;
+                    for (int step = -1; step <= 11; step++)
+                    {
+                        float z = 22.1f + step * .93f;
+                        float y = -3.4f * Mathf.InverseLerp(22.7f, 30.89f, z);
+                        Vector3 point = new(7f, y + .04f, z);
+                        var stairPath = new NavMeshPath();
+                        bool found = NavMesh.SamplePosition(point, out var stairPoint, .38f, NavMesh.AllAreas);
+                        if (found) NavMesh.CalculatePath(previous, stairPoint.position, NavMesh.AllAreas, stairPath);
+                        Debug.Log($"CTCC_STAIR_S2 point={point} collider={HospitalScene.Occupied(point)} found={found} nav={stairPoint.position} fromPrevious={stairPath.status}");
+                        if (found) previous = stairPoint.position;
+                    }
+                }
                 var spots = new Vector3[pads.Length];
                 for (int i = 0; i < pads.Length; i++)
                 {
@@ -815,7 +802,8 @@ namespace CTCC.Editor
                     {
                         var path = new NavMeshPath();
                         if (!NavMesh.CalculatePath(from, to, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete)
-                            throw new InvalidOperationException("Disconnected pads " + from + " → " + to + " / " + label);
+                            throw new InvalidOperationException("Disconnected pads " + from + " → " + to + " / " + label +
+                                " / path ends at " + (path.corners.Length > 0 ? path.corners[path.corners.Length - 1].ToString() : "no corner"));
                     }
                 Debug.Log("CTCC_ROUTE_PASS " + label + " / " + string.Join(", ", pads));
             }

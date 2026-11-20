@@ -42,6 +42,8 @@ namespace CTCC
         public DoorPose emergencyDoorA;
         public DoorPose emergencyDoorB;
         public DoorPose archiveExitDoor;
+        public GameObject[] upperConnectors = Array.Empty<GameObject>();
+        public GameObject serviceConnector;
 
         public Transform[] ch03PatrolWaypoints = Array.Empty<Transform>();
         public Transform ch03RadioPoint;

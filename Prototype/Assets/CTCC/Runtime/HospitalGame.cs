@@ -28,6 +28,9 @@ namespace CTCC
         private LanDirector lanDirector;
         private GatekeeperCameo gatekeeperCameo;
         private HunterOrderlyAI orderlyAi;
+        private RegionStreamer streamer;
+        private bool streaming;
+        private float reconcileRegionsAt;
         private float retryEmergencySaveAt;
         private float retryAutomaticCheckpointAt;
         private float dialogueSaveAt;
@@ -73,6 +76,7 @@ namespace CTCC
             }
 
             scene = GetComponent<HospitalScene>();
+            streamer = new RegionStreamer(scene);
             string requestedGi = Argument("-ctcc-gi");
             if (!string.IsNullOrEmpty(requestedGi))
                 scene.giMode = requestedGi.ToLowerInvariant();
@@ -240,6 +244,13 @@ namespace CTCC
             }
 
             Vector3 feet = player.Feet;
+            if (!streaming && Time.unscaledTime >= reconcileRegionsAt)
+                StartCoroutine(UpdateRegions());
+            if (State.chapter == "CH03" && !State.Happened("CH03-T01") && transaction.OnPad(feet, "AP06"))
+            {
+                SaveCheckpoint(() => casework.RecordAsync("CH03-T01", feet));
+                return;
+            }
             bool use = keys[Options.alternateBindings ? Key.K : Key.E].wasPressedThisFrame;
             bool anchorPressed = keys.qKey.wasPressedThisFrame;
 
@@ -335,7 +346,8 @@ namespace CTCC
             UpdateProgressiveHints();
 
             // CH03 Regional Patrol/Investigate/Chase/Search/Return AI (TASK011-A..E)
-            if (State.chapter == "CH03" && orderlyAi != null && orderlyAi.IsActive)
+            if (State.chapter == "CH04") orderlyAi?.SyncState(State);
+            if (State.chapter is ("CH03" or "CH04") && orderlyAi != null && orderlyAi.IsActive)
             {
                 orderlyAi.Tick(State, Time.deltaTime, player.IsRunning, player.IsCrouching, player.IsMoving, Line);
             }
@@ -443,11 +455,12 @@ namespace CTCC
             "BATTERY" => !State.Happened("CH01-BATTERY") && State.Happened("CH01-T02"),
             "F101" or "AN02" => casework.CanRevise,
             "LIST" or "SOCKETS" or "WHEELS" or "PZ01" => State.chapter == "CH02" && State.layer == Reality.R,
-            "EXIT" or "CH03_DOOR" => GateService.G02(State),
+            "EXIT" or "CH03_DOOR" => State.chapter == "CH02" && GateService.G02(State),
             "DOOR-101" => State.Happened("CH01-T05") || State.layer == Reality.R,
             "CURTAIN-101" => scene.interactables != null && scene.interactables.curtainCloth != null && scene.interactables.curtainCloth.gameObject.activeInHierarchy,
-            "E03" or "C02_NOTE" or "AN03" or "C02_BAG" or "C02_LETTER" or "C12_BOX" or "FS10_LOCK" or "RADIO_LOC07" or "G03" => State.chapter == "CH03",
+            "E03" or "C02_NOTE" or "AN03" or "C02_BAG" or "C02_LETTER" or "C12_BOX" or "FS10_LOCK" or "RADIO_LOC07" or "G03" => State.chapter is "CH03" or "CH04",
             "CH03_EXIT" => State.chapter == "CH03" && GateService.G03(State),
+            "AN04" or "CH04_POWER" or "E04_E07" => State.chapter == "CH04",
             _ => true
         };
 
@@ -557,16 +570,12 @@ namespace CTCC
                     StartCoroutine(EnterCh03ArchiveWingAsync());
                     break;
                 case "E03":
-                    SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.PatientRegister, "LOC07"), () =>
-                    {
-                        voice?.Speak("CH03-D01", "Minh", Line("CH03-D01"));
-                        ui.Toast("ĐÃ THU THẬP · SỔ ĐĂNG KÝ E03", "Sổ đăng ký bệnh nhân ghi 12 mã C01–C12, nhưng hai vị trí C02 và C12 đã bị cạo xóa.", 5.5f);
-                    });
+                    Ch03ReadRegister();
                     break;
                 case "C02_NOTE":
                     SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.C02CareNote, "LOC07"), () =>
                     {
-                        ui.Toast("MẪU LEN ĐỎ · TRẠM ĐIỀU DƯỠNG", "Mảnh giấy kẹp sợi len đỏ ghi: 'Giữ túi len ở kệ số 2 cho cụ bà phòng trong — đan nốt khăn trước khi xuất viện.'", 5.5f);
+                        ui.Toast("GHI CHÚ KẸP SỢI LEN", "B/2. Giữ khăn đan dở trong túi có thẻ K-02.", 5.5f);
                     });
                     break;
                 case "AN03":
@@ -582,7 +591,7 @@ namespace CTCC
                     Ch03InspectAnonymousBoxC12();
                     break;
                 case "FS10_LOCK":
-                    SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.BayLockReceipt, "LOC05"), () =>
+                    SaveCheckpoint(() => casework.RecordAsync("FS10", player.Feet), () =>
                     {
                         ui.Toast("DẤU NIÊM PHONG · FS10", "Ổ khóa tủ lưu trữ mang vết kìm cắt cũ và nhãn niêm phong nội bộ đêm 18/11/2005.", 5.0f);
                     });
@@ -593,13 +602,28 @@ namespace CTCC
                 case "G03":
                     ui.Caption(GateService.G03(State)
                         ? "Cửa khu lưu trữ (G03) đã mở."
-                        : "Cửa khu lưu trữ đang khóa. Hãy khôi phục hai vị trí bị xóa (C02, C12) trong sổ tên tại AN03.", 5f, true);
+                        : "Cửa phòng trực đang khóa. Đối chiếu sổ tên và túi len tại bàn đọc tầng 3.", 5f, true);
                     break;
                 case "CH03_EXIT":
-                    if (Report(casework.CompleteCh03(scene.Pad("AP07").position)))
-                        Ch03EndOfChapter();
+                    SaveCheckpoint(() => casework.CompleteCh03Async(player.Feet), Ch03EndOfChapter);
+                    break;
+                case "AN04":
+                    Ch04DutyRoom();
+                    break;
+                case "CH04_POWER":
+                    Ch04PowerBoard();
+                    break;
+                case "E04_E07":
+                    Ch04Morgue();
                     break;
             }
+        }
+
+        private IEnumerator UpdateRegions()
+        {
+            streaming = true;
+            try { yield return streamer.Reconcile(State, player.Feet); }
+            finally { streaming = false; reconcileRegionsAt = Time.unscaledTime + 0.4f; }
         }
 
         private IEnumerator SaveEmergency(bool finish)
@@ -837,10 +861,16 @@ namespace CTCC
                 : !State.Happened("CH01-T09") ? "Thử ra cổng phụ."
                 : "Trở lại sổ trực."
                 : State.chapter == "CH03"
-                ? State.Happened("CH03-T06") ? "Đã hoàn tất điều tra Khu lưu trữ CH03."
-                : GateService.G03(State) ? "Qua cửa thoát khu lưu trữ G03 tới hành lang chuyển tiếp AP07."
-                : !State.Has("E03") ? "Kiểm tra sổ đăng ký bệnh nhân 12 mã (E03) tại trạm điều dưỡng LOC05."
-                : "Đối chiếu kệ hồ sơ LOC07, khôi phục vị trí C02 & C12 tại điểm neo AN03."
+                ? !State.Has("E03") ? "Đi qua trạm khu B lên kho hồ sơ tầng 3. Tìm sổ trên bàn đọc."
+                : !GateService.G03(State) ? "Đối chiếu sổ bàn giao, ghi chú và túi len tại bàn đọc."
+                : !State.Happened("FS19") ? "Đọc dòng C/12 và kiểm tra hộp giữ đồ."
+                : "Trở xuống tầng 2, theo hành lang đến phòng trực."
+                : State.chapter == "CH04"
+                ? !State.Happened("PT01.presented") ? "Đọc sổ trực, bản nhận và bản chép băng họp."
+                : !ChapterFour.MorguePower(State.servicePower) && !GateService.H05(State) ? "Qua Cấp cứu xuống B1. Tìm bảng tải ở khu kỹ thuật."
+                : !GateService.H05(State) ? "Đối chiếu hồ sơ tiếp nhận và phiếu thu hồi ở nhà xác."
+                : !State.Happened("CH04-T06") ? "Nói chuyện với Lan ở cạnh tủ hồ sơ."
+                : "Quay lại tầng 2 theo cầu thang Cấp cứu."
                 : State.Happened("M1-complete") ? "Hồ sơ 101 đã lưu."
                 : GateService.G02(State) ? "Đến sổ giao ca ở cấp cứu."
                 : State.layer == Reality.B ? "Trở về hiện trường R tại điểm neo 101."

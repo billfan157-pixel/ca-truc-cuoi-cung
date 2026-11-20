@@ -213,7 +213,7 @@ namespace CTCC
             scene.Present(snapshot.layer == Reality.B, (int)snapshot.f101.current,
                 snapshot.Happened("CH01-T02"), snapshot.Happened("CH01-T05"),
                 snapshot.Has("E12"), GateService.G02(snapshot),
-                snapshot.layer == Reality.M, GateService.G03(snapshot));
+                snapshot.layer == Reality.M, GateService.G03(snapshot), snapshot.chapter == "CH04");
             scene.PresentCheckpointProps(snapshot.Happened("CH01-T09"), snapshot.Happened("CH01-BATTERY"));
         }
 

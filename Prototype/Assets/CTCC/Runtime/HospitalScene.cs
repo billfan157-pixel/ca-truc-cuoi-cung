@@ -119,10 +119,11 @@ namespace CTCC
         public AudioSource GatekeeperVoiceAnchor { get; private set; }
         public AudioSource AnVoiceAnchor { get; private set; }
 
-        [SerializeField] private Bounds navigationBounds = new(new Vector3(5, 1, 10), new Vector3(42, 8, 72));
+        [SerializeField] private Bounds navigationBounds = new(new Vector3(9, 3.6f, 13), new Vector3(56, 19, 78));
         [NonSerialized] public bool smoothPresentation;
 
         private readonly List<ZoneRegion> registeredZones = new();
+        private readonly HashSet<string> loading = new(StringComparer.Ordinal);
         private readonly Dictionary<string, ZoneRegion> zonesById = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, Transform> padsById = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<ReflectionProbe> allProbes = new();
@@ -134,6 +135,7 @@ namespace CTCC
         private bool lastLayerB, lastLayerM;
         private int lastForm;
         private bool lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate, lastThirdGate;
+        private bool lastServiceGate;
         private bool seamClosed, spareTaken;
         public event Action<ZoneRegion> ZoneUnregistering;
         public event Action ZoneReloaded;
@@ -218,11 +220,24 @@ namespace CTCC
 
         public IEnumerator LoadZoneAsync(string sceneName)
         {
+            while (loading.Contains(sceneName)) yield return null;
             var sc = SceneManager.GetSceneByName(sceneName);
             if (sc.IsValid() && sc.isLoaded) yield break;
+            loading.Add(sceneName);
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                yield return LoadAndRegister(sceneName);
+                Debug.Log($"CTCC_REGION_LOAD scene={sceneName} loaded={LoadedZoneCount} ms={timer.Elapsed.TotalMilliseconds:F2}");
+            }
+            finally { loading.Remove(sceneName); }
+        }
+
+        private IEnumerator LoadAndRegister(string sceneName)
+        {
             var op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
             while (op != null && !op.isDone) yield return null;
-            sc = SceneManager.GetSceneByName(sceneName);
+            var sc = SceneManager.GetSceneByName(sceneName);
             if (!sc.isLoaded) yield break;
             foreach (var root in sc.GetRootGameObjects())
                 foreach (var region in root.GetComponentsInChildren<ZoneRegion>())
@@ -232,7 +247,8 @@ namespace CTCC
             smoothPresentation = false;
             try
             {
-                Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate, lastLayerM, lastThirdGate);
+                Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate,
+                    lastLayerM, lastThirdGate, lastServiceGate);
                 PresentCheckpointProps(seamClosed, spareTaken);
             }
             finally { smoothPresentation = restoreSmooth; }
@@ -243,10 +259,15 @@ namespace CTCC
 
         public IEnumerator UnloadZoneAsync(string sceneName)
         {
+            while (loading.Contains(sceneName)) yield return null;
             var sc = SceneManager.GetSceneByName(sceneName);
             if (!sc.IsValid() || !sc.isLoaded) yield break;
+            var timer = System.Diagnostics.Stopwatch.StartNew();
             var op = SceneManager.UnloadSceneAsync(sc);
             while (op != null && !op.isDone) yield return null;
+            Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate,
+                lastLayerM, lastThirdGate, lastServiceGate);
+            Debug.Log($"CTCC_REGION_UNLOAD scene={sceneName} loaded={LoadedZoneCount} ms={timer.Elapsed.TotalMilliseconds:F2}");
         }
 
         public bool HasZone(string zoneId) => !string.IsNullOrEmpty(zoneId) && zonesById.ContainsKey(zoneId);
@@ -498,7 +519,7 @@ namespace CTCC
         }
 
         public void Present(bool layerB, int form, bool entered, bool acceptedBoard, bool closetOpen, bool secondGate,
-            bool layerM = false, bool thirdGate = false)
+            bool layerM = false, bool thirdGate = false, bool serviceGate = false)
         {
             lastLayerB = layerB;
             lastLayerM = layerM;
@@ -508,6 +529,13 @@ namespace CTCC
             lastClosetOpen = closetOpen;
             lastSecondGate = secondGate;
             lastThirdGate = thirdGate;
+            lastServiceGate = serviceGate;
+            foreach (var zone in registeredZones)
+            {
+                foreach (var connector in zone.upperConnectors)
+                    Toggle(connector, !secondGate || !HasZone("LOC05"));
+                Toggle(zone.serviceConnector, !serviceGate || !HasZone("LOC09"));
+            }
 
             if (!themeReady || showedReport != layerB || showedMemory != layerM)
             {
