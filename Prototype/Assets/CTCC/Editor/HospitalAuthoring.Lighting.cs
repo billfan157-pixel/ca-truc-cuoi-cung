@@ -203,6 +203,8 @@ namespace CTCC.Editor
             AddGrid(14.3f, 16.6f, 2, 2.5f, 5.0f, 2, new[] { 0.75f, 1.85f });
             // LOC04 Emergency Bay
             AddGrid(0.2f, 8.2f, 4, 16.8f, 21.4f, 3, interiorHeights);
+            // LOC05–07 Archive Wing (Nurse Station, Archive Loop & Duty Corridor)
+            AddGrid(-2.6f, 6.4f, 4, 25.8f, 38.8f, 4, interiorHeights);
 
             group.probePositions = pts.ToArray();
 

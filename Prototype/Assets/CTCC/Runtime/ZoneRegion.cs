@@ -21,6 +21,7 @@ namespace CTCC
 
         public GameObject realProps;
         public GameObject reportProps;
+        public GameObject memoryProps;
         public GameObject pendingBay;
         public GameObject deniedBay;
         public GameObject statusA;
@@ -40,6 +41,10 @@ namespace CTCC
         public DoorPose roomDoor;
         public DoorPose emergencyDoorA;
         public DoorPose emergencyDoorB;
+        public DoorPose archiveExitDoor;
+
+        public Transform[] ch03PatrolWaypoints = Array.Empty<Transform>();
+        public Transform ch03RadioPoint;
 
         public Transform cabinet;
         public Vector3 cabinetClosed;
@@ -99,7 +104,7 @@ namespace CTCC
             ReleaseNavigation();
         }
 
-        public void ApplyLayerVisuals(bool layerB)
+        public void ApplyLayerVisuals(bool layerB, bool layerM = false)
         {
             foreach (var part in finishes)
             {
@@ -111,6 +116,7 @@ namespace CTCC
             }
             Toggle(realProps, !layerB);
             Toggle(reportProps, layerB);
+            Toggle(memoryProps, layerM);
             Toggle(clockHandsR, !layerB);
             Toggle(clockHandsB, layerB);
         }

@@ -74,12 +74,13 @@ namespace CTCC
         public static HospitalScene Instance { get; private set; }
 
         public string[] additiveZoneScenes = Array.Empty<string>();
+        public string[] regionalStreamZoneScenes = Array.Empty<string>();
         public MarkerPose[] pads = Array.Empty<MarkerPose>();
         public InspectImage[] inspectImages = Array.Empty<InspectImage>();
         public InspectModel[] inspectModels = Array.Empty<InspectModel>();
-        public DoorPose outerGate, roomDoor, emergencyDoorA, emergencyDoorB;
+        public DoorPose outerGate, roomDoor, emergencyDoorA, emergencyDoorB, archiveExitDoor;
         public GameObject seamBlocker;
-        public GameObject realProps, reportProps, pendingBay, deniedBay;
+        public GameObject realProps, reportProps, memoryProps, pendingBay, deniedBay;
         public GameObject statusA, statusB, statusC, paperAfter, storeClues;
         public GameObject clockHandsR, clockHandsB;
         public Transform cabinet;
@@ -98,11 +99,13 @@ namespace CTCC
         public LightProbes reportLightProbes;
         [NonSerialized] public string giMode = "dual-probes";
 
-        // M2 Zone-Bound Characters, Anchors & Horror Props
+        // M2/M3 Zone-Bound Characters, Anchors & Horror Props
         public CharacterActor LanActor { get; private set; }
         public CharacterActor GatekeeperActor { get; private set; }
         public CharacterActor AnActor { get; private set; }
         public Transform[] GatekeeperWaypoints { get; private set; } = Array.Empty<Transform>();
+        public Transform[] Ch03PatrolWaypoints { get; private set; } = Array.Empty<Transform>();
+        public Transform Ch03RadioPoint { get; private set; }
         public Transform LanSilhouettePoint { get; private set; }
         public Transform LanDeskPoint { get; private set; }
         public Transform LanStepOutPoint { get; private set; }
@@ -116,7 +119,7 @@ namespace CTCC
         public AudioSource GatekeeperVoiceAnchor { get; private set; }
         public AudioSource AnVoiceAnchor { get; private set; }
 
-        [SerializeField] private Bounds navigationBounds = new(new Vector3(5, 1, 0), new Vector3(42, 8, 59));
+        [SerializeField] private Bounds navigationBounds = new(new Vector3(5, 1, 10), new Vector3(42, 8, 72));
         [NonSerialized] public bool smoothPresentation;
 
         private readonly List<ZoneRegion> registeredZones = new();
@@ -127,9 +130,10 @@ namespace CTCC
 
         private bool themeReady;
         private bool showedReport;
-        private bool lastLayerB;
+        private bool showedMemory;
+        private bool lastLayerB, lastLayerM;
         private int lastForm;
-        private bool lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate;
+        private bool lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate, lastThirdGate;
         private bool seamClosed, spareTaken;
         public event Action<ZoneRegion> ZoneUnregistering;
         public event Action ZoneReloaded;
@@ -202,6 +206,16 @@ namespace CTCC
             RebuildProbeLookup();
         }
 
+        public IEnumerator EnsureRegionalZonesStreamedAsync()
+        {
+            if (!IsAdditiveMode || regionalStreamZoneScenes == null) yield break;
+            foreach (string sceneName in regionalStreamZoneScenes)
+            {
+                if (string.IsNullOrEmpty(sceneName)) continue;
+                yield return LoadZoneAsync(sceneName);
+            }
+        }
+
         public IEnumerator LoadZoneAsync(string sceneName)
         {
             var sc = SceneManager.GetSceneByName(sceneName);
@@ -218,7 +232,7 @@ namespace CTCC
             smoothPresentation = false;
             try
             {
-                Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate);
+                Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate, lastLayerM, lastThirdGate);
                 PresentCheckpointProps(seamClosed, spareTaken);
             }
             finally { smoothPresentation = restoreSmooth; }
@@ -274,6 +288,7 @@ namespace CTCC
             if (region.roomDoor != null && region.roomDoor.pivot != null) roomDoor = region.roomDoor;
             if (region.emergencyDoorA != null && region.emergencyDoorA.pivot != null) emergencyDoorA = region.emergencyDoorA;
             if (region.emergencyDoorB != null && region.emergencyDoorB.pivot != null) emergencyDoorB = region.emergencyDoorB;
+            if (region.archiveExitDoor != null && region.archiveExitDoor.pivot != null) archiveExitDoor = region.archiveExitDoor;
             if (region.seamBlocker != null) seamBlocker = region.seamBlocker;
             if (region.pendingBay != null) pendingBay = region.pendingBay;
             if (region.deniedBay != null) deniedBay = region.deniedBay;
@@ -305,6 +320,10 @@ namespace CTCC
             if (region.anActor != null) AnActor = region.anActor;
             if (region.gatekeeperWaypoints != null && region.gatekeeperWaypoints.Length > 0)
                 GatekeeperWaypoints = region.gatekeeperWaypoints;
+            if (region.ch03PatrolWaypoints != null && region.ch03PatrolWaypoints.Length > 0)
+                Ch03PatrolWaypoints = region.ch03PatrolWaypoints;
+            if (region.ch03RadioPoint != null)
+                Ch03RadioPoint = region.ch03RadioPoint;
             if (region.lanSilhouettePoint != null) LanSilhouettePoint = region.lanSilhouettePoint;
             if (region.lanDeskPoint != null) LanDeskPoint = region.lanDeskPoint;
             if (region.lanStepOutPoint != null) LanStepOutPoint = region.lanStepOutPoint;
@@ -316,6 +335,7 @@ namespace CTCC
 
             if (region.realProps != null && realProps == null) realProps = region.realProps;
             if (region.reportProps != null && reportProps == null) reportProps = region.reportProps;
+            if (region.memoryProps != null && memoryProps == null) memoryProps = region.memoryProps;
 
             motion?.Register(region.movingFans, region.livingTubes, region.movingCloth);
             atmosphere?.RegisterZoneLoops(region.roomLoops);
@@ -324,7 +344,7 @@ namespace CTCC
 
             // Sync visuals immediately to the current committed reality layer
             if (themeReady)
-                region.ApplyLayerVisuals(showedReport);
+                region.ApplyLayerVisuals(showedReport, showedMemory);
             return true;
         }
 
@@ -340,6 +360,7 @@ namespace CTCC
             ClearOwned(ref roomDoor, region.roomDoor);
             ClearOwned(ref emergencyDoorA, region.emergencyDoorA);
             ClearOwned(ref emergencyDoorB, region.emergencyDoorB);
+            ClearOwned(ref archiveExitDoor, region.archiveExitDoor);
             ClearOwned(ref seamBlocker, region.seamBlocker);
             ClearOwned(ref pendingBay, region.pendingBay);
             ClearOwned(ref deniedBay, region.deniedBay);
@@ -352,6 +373,7 @@ namespace CTCC
             ClearOwned(ref clockHandsB, region.clockHandsB);
             ClearOwned(ref realProps, region.realProps);
             ClearOwned(ref reportProps, region.reportProps);
+            ClearOwned(ref memoryProps, region.memoryProps);
             if (region.cabinet != null && cabinet == region.cabinet)
             {
                 cabinet = null;
@@ -368,6 +390,8 @@ namespace CTCC
             if (GatekeeperActor == region.gatekeeperActor) GatekeeperActor = null;
             if (AnActor == region.anActor) AnActor = null;
             if (GatekeeperWaypoints == region.gatekeeperWaypoints) GatekeeperWaypoints = Array.Empty<Transform>();
+            if (Ch03PatrolWaypoints == region.ch03PatrolWaypoints) Ch03PatrolWaypoints = Array.Empty<Transform>();
+            if (Ch03RadioPoint == region.ch03RadioPoint) Ch03RadioPoint = null;
             if (LanSilhouettePoint == region.lanSilhouettePoint) LanSilhouettePoint = null;
             if (LanDeskPoint == region.lanDeskPoint) LanDeskPoint = null;
             if (LanStepOutPoint == region.lanStepOutPoint) LanStepOutPoint = null;
@@ -473,16 +497,19 @@ namespace CTCC
             }
         }
 
-        public void Present(bool layerB, int form, bool entered, bool acceptedBoard, bool closetOpen, bool secondGate)
+        public void Present(bool layerB, int form, bool entered, bool acceptedBoard, bool closetOpen, bool secondGate,
+            bool layerM = false, bool thirdGate = false)
         {
             lastLayerB = layerB;
+            lastLayerM = layerM;
             lastForm = form;
             lastEntered = entered;
             lastAcceptedBoard = acceptedBoard;
             lastClosetOpen = closetOpen;
             lastSecondGate = secondGate;
+            lastThirdGate = thirdGate;
 
-            if (!themeReady || showedReport != layerB)
+            if (!themeReady || showedReport != layerB || showedMemory != layerM)
             {
                 foreach (var part in finishes)
                 {
@@ -494,21 +521,23 @@ namespace CTCC
                 }
                 Toggle(realProps, !layerB);
                 Toggle(reportProps, layerB);
+                Toggle(memoryProps, layerM);
                 Toggle(clockHandsR, !layerB);
                 Toggle(clockHandsB, layerB);
 
                 foreach (var zone in registeredZones)
-                    zone?.ApplyLayerVisuals(layerB);
+                    zone?.ApplyLayerVisuals(layerB, layerM);
 
                 if (realGrade != null) realGrade.weight = layerB ? 0f : 1f;
                 if (reportGrade != null) reportGrade.weight = layerB ? 1f : 0f;
 
-                ApplyIndirectLighting(layerB);
+                ApplyIndirectLighting(layerB, layerM);
 
                 if (Application.isPlaying) reflectionVersion++;
                 if (motion != null) motion.reportLayer = layerB;
                 if (atmosphere != null) atmosphere.ReportLayer = layerB;
                 showedReport = layerB;
+                showedMemory = layerM;
                 themeReady = true;
             }
 
@@ -550,14 +579,24 @@ namespace CTCC
             }
             emergencyDoorA?.Set(secondGate);
             emergencyDoorB?.Set(secondGate);
+            archiveExitDoor?.Set(thirdGate);
             Physics.SyncTransforms();
         }
 
-        private void ApplyIndirectLighting(bool layerB)
+        private void ApplyIndirectLighting(bool layerB, bool layerM = false)
         {
             // Mode 1: Calibrated Trilight Gradient Ambient (always set as smooth base floor)
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            if (layerB)
+            if (layerM)
+            {
+                // Warm golden-amber Memory (M) vignette ambient
+                RenderSettings.ambientSkyColor = new Color(0.44f, 0.35f, 0.23f);
+                RenderSettings.ambientEquatorColor = new Color(0.32f, 0.25f, 0.16f);
+                RenderSettings.ambientGroundColor = new Color(0.16f, 0.12f, 0.08f);
+                RenderSettings.fogColor = new Color(0.28f, 0.21f, 0.14f);
+                RenderSettings.fogDensity = 0.0115f;
+            }
+            else if (layerB)
             {
                 RenderSettings.ambientSkyColor = new Color(0.36f, 0.42f, 0.37f);
                 RenderSettings.ambientEquatorColor = new Color(0.25f, 0.30f, 0.26f);

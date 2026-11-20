@@ -26,6 +26,7 @@ namespace CTCC.Editor
             ("LOC02", "LOC02_Reception", new Bounds(new Vector3(4f, 1f, -4f), new Vector3(14f, 8f, 12f))),
             ("LOC03", "LOC03_Ward101", new Bounds(new Vector3(8.5f, 1f, 8f), new Vector3(22f, 8f, 20f))),
             ("LOC04", "LOC04_Emergency", new Bounds(new Vector3(4f, 1f, 19f), new Vector3(14f, 8f, 10f))),
+            ("LOC05", "LOC05_ArchiveWing", new Bounds(new Vector3(2.0f, 1f, 32.5f), new Vector3(16f, 8f, 18f))),
         };
 
         private sealed class ZoneSlot
@@ -35,7 +36,7 @@ namespace CTCC.Editor
             public string scenePath;
             public Scene scene;
             public ZoneRegion region;
-            public Transform permanent, real, report;
+            public Transform permanent, real, report, memory;
             public readonly List<MarkerPose> pads = new();
             public readonly List<ReflectionProbe> probes = new();
             public readonly List<Transform> fans = new();
@@ -80,7 +81,7 @@ namespace CTCC.Editor
         private readonly List<GameObject> staticArchitecture = new();
         private readonly Scene bootstrapScene;
         private readonly HospitalScene world;
-        private readonly Transform permanent, real, report;
+        private readonly Transform permanent, real, report, memory;
         private Mesh geometry;
 
         private HospitalAuthoring(bool art, bool multiScene = true)
@@ -105,12 +106,16 @@ namespace CTCC.Editor
             permanent = Group("Physical continuity", world.transform);
             real = Group("R · 2012", world.transform);
             report = Group("B · Report in 2005 dress", world.transform);
+            memory = Group("M · Memory Vignette", world.transform);
+            memory.gameObject.SetActive(false);
             world.realProps = real.gameObject;
             world.reportProps = report.gameObject;
+            world.memoryProps = memory.gameObject;
 
             if (this.multiScene)
             {
-                world.additiveZoneScenes = ZoneSpecs.Select(z => z.name).ToArray();
+                world.additiveZoneScenes = ZoneSpecs.Take(4).Select(z => z.name).ToArray();
+                world.regionalStreamZoneScenes = ZoneSpecs.Skip(4).Select(z => z.name).ToArray();
                 foreach (var spec in ZoneSpecs)
                 {
                     var zScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
@@ -124,8 +129,11 @@ namespace CTCC.Editor
                     var zPerm = Group("Physical continuity", zRoot.transform);
                     var zReal = Group("R · 2012", zRoot.transform);
                     var zRep = Group("B · Report in 2005 dress", zRoot.transform);
+                    var zMem = Group("M · Memory Vignette", zRoot.transform);
+                    zMem.gameObject.SetActive(false);
                     region.realProps = zReal.gameObject;
                     region.reportProps = zRep.gameObject;
+                    region.memoryProps = zMem.gameObject;
                     zones[spec.id] = new ZoneSlot
                     {
                         id = spec.id,
@@ -135,18 +143,25 @@ namespace CTCC.Editor
                         region = region,
                         permanent = zPerm,
                         real = zReal,
-                        report = zRep
+                        report = zRep,
+                        memory = zMem
                     };
                 }
                 SceneManager.SetActiveScene(bootstrapScene);
             }
 
-            // Route safe checkpoint pads AP00–AP05 to their owning ZoneRegions (or Bootstrap if greybox)
+            // Route safe checkpoint pads AP00–AP05 + CH03 AP06/AN03/AP07 to their owning ZoneRegions (or Bootstrap if greybox)
             var bootstrapPads = new List<MarkerPose>();
-            foreach (var p in layout.pads)
+            var allPads = new List<Pose>(layout.pads)
+            {
+                new Pose { id = "AP06", x = 4.0f, z = 26.4f, yaw = 0f },
+                new Pose { id = "AN03", x = -0.6f, z = 32.2f, yaw = -90f },
+                new Pose { id = "AP07", x = 4.0f, z = 38.6f, yaw = 0f },
+            };
+            foreach (var p in allPads)
             {
                 var pos = new Vector3(p.x, 0.015f, p.z);
-                Transform parent = multiScene ? ZoneAt(p.z).permanent : permanent;
+                Transform parent = this.multiScene ? ZoneAt(p.z).permanent : permanent;
                 var point = Group(p.id, parent, pos);
                 point.rotation = Quaternion.Euler(0, p.yaw, 0);
                 var mp = new MarkerPose { id = p.id, point = point };
@@ -245,7 +260,8 @@ namespace CTCC.Editor
             if (z < -8.01f) return zones["LOC01"];
             if (z < -0.01f) return zones["LOC02"];
             if (z < 15.99f) return zones["LOC03"];
-            return zones["LOC04"];
+            if (z < 23.50f) return zones["LOC04"];
+            return zones["LOC05"];
         }
 
         private ZoneSlot ZoneForTransform(Transform t)
@@ -268,6 +284,7 @@ namespace CTCC.Editor
             if (parent == null || parent == permanent) return ZoneAt(worldPos.z).permanent;
             if (parent == real) return ZoneAt(worldPos.z).real;
             if (parent == report) return ZoneAt(worldPos.z).report;
+            if (parent == memory) return ZoneAt(worldPos.z).memory;
             return parent;
         }
 
@@ -621,6 +638,41 @@ namespace CTCC.Editor
                 world.emergencyDoorA = erA;
                 world.emergencyDoorB = erB;
             }
+
+            BuildCh03ArchiveShell();
+        }
+
+        private void BuildCh03ArchiveShell()
+        {
+            // CH03 Representative Wing (LOC05 Nurse Station + LOC07 Archive & Meeting Loop + LOC06 Duty Corridor, z in [25..40])
+            Surface("LOC05–07 · floor", new Vector3(2.0f, -0.10f, 32.5f),
+                new Vector3(11.0f, 0.20f, 15.0f), "FloorR", "FloorB", true, 1.6f, isStatic: true);
+            Surface("LOC05–07 · ceiling", new Vector3(2.0f, 3.71f, 32.5f),
+                new Vector3(11.0f, 0.22f, 15.0f), "PlasterR", "PlasterB", true, 2.2f, isStatic: true);
+
+            // Outer boundary walls of CH03 Archive Wing
+            Wall(true, 25.0f, -3.5f, 7.5f);
+            Wall(true, 40.0f, -3.5f, 7.5f);
+            Wall(false, -3.5f, 25.0f, 40.0f);
+            Wall(false, 7.5f, 25.0f, 40.0f);
+
+            // LOC05 Nurse Station north partition (z = 29.5f): West doorway into LOC07 Archive (-0.5f) & Main doorway into LOC06 Corridor (4.0f)
+            WallOpening(true, 29.5f, -3.5f, 2.5f, -0.5f, 1.6f, 2.42f);
+            WallOpening(true, 29.5f, 2.5f, 7.5f, 4.0f, 1.8f, 2.42f);
+
+            // Longitudinal spine between LOC07 Archive/Meeting Loop (west) and LOC06 Duty Corridor (east) with north bypass doorway at z = 35.6f
+            WallOpening(false, 2.5f, 29.5f, 37.2f, 35.6f, 1.6f, 2.42f);
+            Wall(false, 5.8f, 29.5f, 40.0f);
+
+            // G03 Archive Exit threshold at z = 37.2f
+            Wall(true, 37.2f, -3.5f, 2.5f);
+            WallOpening(true, 37.2f, 2.5f, 5.8f, 4.0f, 1.4f, 2.20f);
+            var g03Ap = new Aperture { id = "GATE-G03", x = 4.0f, z = 37.2f, width = 1.4f, alongX = true };
+            var g03Door = HingedEmergencyDoor("GATE-G03", g03Ap, -94f);
+            if (multiScene)
+                zones["LOC05"].region.archiveExitDoor = g03Door;
+            else
+                world.archiveExitDoor = g03Door;
         }
 
         private DoorPose HingedExteriorGate(string name, Aperture a, float angle)
@@ -737,8 +789,10 @@ namespace CTCC.Editor
                 HospitalScene.SolidMask, QueryTriggerInteraction.Ignore);
             if (!stretcherClear)
                 throw new InvalidOperationException("0.72 m stretcher proxy collided at the 101 doorway.");
+            world.Present(false, 4, true, true, true, true, false, true);
+            VerifyNav("CH03 / LOC05–07 archive loop", new[] { "AP06", "AN03", "AP07" });
             world.Present(false, 0, false, false, false, false);
-            Debug.Log("CTCC_GREYBOX_PASS AP00–05, R & 3 B branches, LOC04 via either door, 0.72 m stretcher at 1.2 m doorway");
+            Debug.Log("CTCC_GREYBOX_PASS AP00–07, R & 3 B branches, LOC04 via either door, CH03 loop, 0.72 m stretcher at 1.2 m doorway");
         }
 
         private void VerifyNav(string label, string[] pads)

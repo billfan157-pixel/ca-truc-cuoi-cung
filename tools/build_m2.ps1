@@ -112,7 +112,7 @@ if (!$SkipBuild) {
         "prototype_diff=$protoDiff",
         "assembly_sha256=$((Get-FileHash -LiteralPath $managed).Hash.ToLowerInvariant())"
     )
-    foreach ($sc in 'AnSinh_Bootstrap','LOC01_Exterior','LOC02_Reception','LOC03_Ward101','LOC04_Emergency') {
+    foreach ($sc in 'AnSinh_Bootstrap','LOC01_Exterior','LOC02_Reception','LOC03_Ward101','LOC04_Emergency','LOC05_ArchiveWing') {
         $p = Join-Path $project "Assets\CTCC\Scenes\$sc.unity"
         if (Test-Path -LiteralPath $p) {
             $lines += "scene_${sc}_sha256=$((Get-FileHash -LiteralPath $p).Hash.ToLowerInvariant())"

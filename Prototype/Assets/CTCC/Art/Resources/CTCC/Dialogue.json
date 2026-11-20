@@ -169,6 +169,48 @@
       "copy": "Đối chiếu hoàn tất. Hồ sơ bệnh nhân C01 được ghi nhận."
     },
     {
+      "id": "CH03-D01",
+      "chapter": "CH03",
+      "speaker": "Minh",
+      "context": "E03",
+      "copy": "Mười hai mã... Hồi đó mình chưa từng được xem danh sách này."
+    },
+    {
+      "id": "CH03-D02",
+      "chapter": "CH03",
+      "speaker": "Minh",
+      "context": "C02 tồn tại",
+      "copy": "Chưa biết tên, nhưng rõ ràng có người đã nằm đây."
+    },
+    {
+      "id": "CH03-D03",
+      "chapter": "CH03",
+      "speaker": "Bà Lành",
+      "context": "M tùy chọn",
+      "copy": "Chắc mùa này cháu tôi đã lớn thêm rồi."
+    },
+    {
+      "id": "CH03-D04",
+      "chapter": "CH03",
+      "speaker": "Minh",
+      "context": "C12",
+      "copy": "Không có tên. Không có nghĩa là không có người."
+    },
+    {
+      "id": "CH03-D05",
+      "chapter": "CH03",
+      "speaker": "Gatekeeper",
+      "context": "Patrol",
+      "copy": "Hồ sơ không thuộc danh mục. Không được sao chép."
+    },
+    {
+      "id": "CH03-D06",
+      "chapter": "CH03",
+      "speaker": "UI",
+      "context": "G03",
+      "copy": "Đã ghi nhận mã C02. Có thể tiếp tục hoặc kiểm tra danh tính sau."
+    },
+    {
       "id": "CH01-D15",
       "chapter": "CH01",
       "speaker": "Bảy (SMS)",

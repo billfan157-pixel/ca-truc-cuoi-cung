@@ -80,7 +80,10 @@ def strip_tone(word: str):
 def expand_numbers(text: str) -> str:
     """Expand canonical numbers spoken in Vietnamese VO (e.g., 101 -> một linh một, C01 -> xê không một)."""
     text = re.sub(r"\b101\b", "một linh một", text)
+    text = re.sub(r"\b12\b", "mười hai", text)
     text = re.sub(r"\bC01\b", "xê không một", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bC02\b", "xê không hai", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bC12\b", "xê mười hai", text, flags=re.IGNORECASE)
     text = re.sub(r"\b2005\b", "hai nghìn không trăm linh năm", text)
     return text
 
@@ -540,7 +543,7 @@ def main(evidence_dir=EVIDENCE_DIR):
         m = re.findall(r"“([^”]+)”", txt)
         return m[n - 1].strip() if (m and n <= len(m)) else txt.strip()
 
-    # All character-spoken lines in M2 slice (Lan, Bé An, Gatekeeper)
+    # All character-spoken lines in M2–M3 slice (Lan, Bé An, Gatekeeper, Bà Lành)
     character_lines = [
         ("CH01-D03", "Lan", clean_quote("CH01-D03")),
         ("CH01-D05", "Lan", clean_quote("CH01-D05")),
@@ -551,6 +554,8 @@ def main(evidence_dir=EVIDENCE_DIR):
         ("CH01-D16", "Lan", clean_quote("CH01-D16")),
         ("CH02-D03", "An", clean_quote("CH02-D03")),
         ("CH02-D05", "Gatekeeper", clean_quote("CH02-D05")),
+        ("CH03-D03", "BaLanh", clean_quote("CH03-D03")),
+        ("CH03-D05", "Gatekeeper", clean_quote("CH03-D05")),
     ]
 
     OUT_RES_DIR.mkdir(parents=True, exist_ok=True)

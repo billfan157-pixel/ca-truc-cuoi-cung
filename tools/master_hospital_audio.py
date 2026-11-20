@@ -175,16 +175,20 @@ def write_master(path, samples, rms, loop=False):
 
 def render_pack(staging, args):
     assets = {}
-    for name, samples in weather_and_rooms().items():
-        target = -29 if name in ("Rain", "Roof") else -33
-        assets[name] = write_master(staging / f"{name}.wav", samples, target, loop=True)
-    for name, samples in foley().items():
-        assets[name] = write_master(staging / f"{name}.wav", samples, -24)
-    assets["MUS_LanMotif"] = write_master(staging / "MUS_LanMotif.wav", lan_motif(), -25)
+    selected_lines = set(args.lines) if getattr(args, "lines", None) else None
+    if not selected_lines:
+        for name, samples in weather_and_rooms().items():
+            target = -29 if name in ("Rain", "Roof") else -33
+            assets[name] = write_master(staging / f"{name}.wav", samples, target, loop=True)
+        for name, samples in foley().items():
+            assets[name] = write_master(staging / f"{name}.wav", samples, -24)
+        assets["MUS_LanMotif"] = write_master(staging / "MUS_LanMotif.wav", lan_motif(), -25)
     cast_record = None
     if args.raw_voice:
         cast_record = json.loads((args.raw_voice / "takes.json").read_text(encoding="utf-8"))
         for line_id, role, _ in extract_clean_lines():
+            if selected_lines and line_id not in selected_lines:
+                continue
             is_pa = role in ("pa", "pa_cut")
             if cast_record["takes"][line_id]["role"] != role:
                 raise ValueError(f"Voice take has the wrong role: {line_id}")
@@ -202,6 +206,7 @@ def main():
     parser.add_argument("--output", type=Path, default=AUDIO_DIR)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--raw-voice", type=Path, help="All dialogue WAVs and takes.json from bake_character_takes.py")
+    parser.add_argument("--lines", nargs="+", help="Master only the specified dialogue IDs")
     args = parser.parse_args()
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

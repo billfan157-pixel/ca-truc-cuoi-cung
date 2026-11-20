@@ -165,6 +165,9 @@ namespace CTCC
             SaveRead result = saves.Read(slot, out var proposed);
             if (proposed == null)
                 return result;
+            // Core 04 / CH03-Q01: Reloading a save taken during a memory vignette (M) restores safely at the anchor pad in R.
+            if (proposed.layer == Reality.M)
+                proposed.layer = Reality.R;
             if (!scene.TryPad(SafeCheckpoints.Pad(proposed.checkpoint), out var checkpoint))
                 return SaveRead.Damaged;
             Present(proposed);
@@ -209,7 +212,8 @@ namespace CTCC
         {
             scene.Present(snapshot.layer == Reality.B, (int)snapshot.f101.current,
                 snapshot.Happened("CH01-T02"), snapshot.Happened("CH01-T05"),
-                snapshot.Has("E12"), GateService.G02(snapshot));
+                snapshot.Has("E12"), GateService.G02(snapshot),
+                snapshot.layer == Reality.M, GateService.G03(snapshot));
             scene.PresentCheckpointProps(snapshot.Happened("CH01-T09"), snapshot.Happened("CH01-BATTERY"));
         }
 

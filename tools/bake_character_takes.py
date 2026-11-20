@@ -16,6 +16,7 @@ from bake_m2_audio import extract_clean_lines
 CAST = {
     "minh": "Thái Sơn",
     "lan": "Thục Đoan",
+    "ba_lanh": "Thục Đoan",
     "an": "Ngọc Trân",
     "gatekeeper": "Đức Trí",
     "pa": "Minh Đức",

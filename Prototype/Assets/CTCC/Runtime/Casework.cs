@@ -275,11 +275,183 @@ namespace CTCC
                 return CommitResult.PadRequired;
             if (GateService.G02(State)) return CommitResult.Applied;
             next = State.Copy();
-            next.Remember("C01.verified");
+            next.VerifyPatientIdentity("C01", "Bé An");
             next.Remember("CH02-T05");
             next.Remember("G02.opened");
             next.checkpoint = "CH02-CP03";
             return CommitResult.Applied;
+        }
+
+        // ------------------------------------------------------------------
+        // M3.0 REPRESENTATIVE CH03 ('NHỮNG CÁI TÊN BỊ XÓA') CASEWORK
+        // ------------------------------------------------------------------
+
+        public CommitResult BeginCh03(Vector3 feet)
+        {
+            if (!PrepareBeginCh03(out var next)) return CommitResult.PadRequired;
+            return reality.Commit(next, feet, warp: true, geometryChanges: true);
+        }
+
+        public Task<CommitResult> BeginCh03Async(Vector3 feet)
+        {
+            if (!PrepareBeginCh03(out var next)) return Task.FromResult(CommitResult.PadRequired);
+            return reality.CommitAsync(next, feet, warp: true, geometryChanges: true);
+        }
+
+        private bool PrepareBeginCh03(out Investigation next)
+        {
+            next = null;
+            if (!GateService.G02(State)) return false;
+            if (State.chapter == "CH03") return false;
+            next = State.Copy();
+            next.chapter = "CH03";
+            next.layer = Reality.R;
+            next.checkpoint = "CH03-CP01";
+            next.Remember("CH03-T01");
+            return true;
+        }
+
+        public CommitResult TakeCh03Evidence(string id, string location, Vector3 feet)
+        {
+            var result = PrepareCh03Evidence(id, location, out var next);
+            return next == null ? result : reality.Commit(next, feet);
+        }
+
+        public Task<CommitResult> TakeCh03EvidenceAsync(string id, string location)
+        {
+            var result = PrepareCh03Evidence(id, location, out var next);
+            return next == null ? Task.FromResult(result) : reality.CommitEvidenceAsync(next);
+        }
+
+        private CommitResult PrepareCh03Evidence(string id, string location, out Investigation next)
+        {
+            next = null;
+            if (State.chapter != "CH03" || State.layer != Reality.R) return CommitResult.PadRequired;
+            if (State.Has(id)) return CommitResult.Applied;
+            var proposal = State.Copy();
+            if (!EvidenceRegistry.Grant(proposal, id, Reality.R, location))
+                return CommitResult.PadRequired;
+            if (id == EvidenceRegistry.PatientRegister)
+                proposal.Remember("CH03-T02");
+            else if (id == EvidenceRegistry.C12UnnamedBox)
+            {
+                // Canon CH03-Q03: Confirm C12 existence without ever fabricating a name.
+                proposal.ConfirmPatientExistence("C12");
+                proposal.Remember("CH03-T04");
+            }
+            next = proposal;
+            return CommitResult.Applied;
+        }
+
+        public CommitResult AttemptCh03Pu01(string selectedCode, bool pairedNoteAndBag, Vector3 feet)
+        {
+            var result = PrepareCh03Pu01(selectedCode, pairedNoteAndBag, out var next, out bool solved);
+            return next == null ? result : reality.Commit(next, feet, "AN03", false, solved);
+        }
+
+        public Task<CommitResult> AttemptCh03Pu01Async(string selectedCode, bool pairedNoteAndBag, Vector3 feet)
+        {
+            var result = PrepareCh03Pu01(selectedCode, pairedNoteAndBag, out var next, out bool solved);
+            if (next == null) return Task.FromResult(result);
+            return solved
+                ? reality.CommitAsync(next, feet, "AN03", false, true)
+                : reality.CommitEvidenceAsync(next);
+        }
+
+        private CommitResult PrepareCh03Pu01(string selectedCode, bool pairedNoteAndBag, out Investigation next, out bool solved)
+        {
+            next = null;
+            solved = false;
+            if (State.chapter != "CH03" || State.layer != Reality.R ||
+                !State.Has(EvidenceRegistry.PatientRegister) ||
+                !State.Has(EvidenceRegistry.C02CareNote) ||
+                !State.Has(EvidenceRegistry.C02YarnBag))
+                return CommitResult.PadRequired;
+            if (GateService.G03(State)) return CommitResult.Applied;
+
+            next = State.Copy();
+            bool correct = string.Equals(selectedCode, "C02", StringComparison.OrdinalIgnoreCase) && pairedNoteAndBag;
+            PuzzleService.RecordAttempt(next, "CH03-PU01", correct);
+            if (correct)
+            {
+                solved = true;
+                next.ConfirmPatientExistence("C02");
+                next.Remember("CH03-T03");
+                next.Remember("G03.opened");
+                next.checkpoint = "CH03-CP03";
+            }
+            return CommitResult.Applied;
+        }
+
+        public CommitResult SolveCh03Pu02OptionalIdentity(Vector3 feet)
+        {
+            var result = PrepareCh03Pu02(out var next);
+            return next == null ? result : reality.Commit(next, feet);
+        }
+
+        public Task<CommitResult> SolveCh03Pu02OptionalIdentityAsync()
+        {
+            var result = PrepareCh03Pu02(out var next);
+            return next == null ? Task.FromResult(result) : reality.CommitEvidenceAsync(next);
+        }
+
+        private CommitResult PrepareCh03Pu02(out Investigation next)
+        {
+            next = null;
+            if (State.chapter != "CH03" || !State.Has(EvidenceRegistry.C02DaughterLetter) || !State.Has(EvidenceRegistry.C02YarnBag))
+                return CommitResult.PadRequired;
+            if (State.PatientIdentityVerified("C02")) return CommitResult.Applied;
+            next = State.Copy();
+            PuzzleService.RecordAttempt(next, "CH03-PU02", true);
+            next.VerifyPatientIdentity("C02", "Bà Lành");
+            return CommitResult.Applied;
+        }
+
+        public CommitResult SwitchMemoryVignetteAn03(Vector3 feet)
+        {
+            if (!PrepareMemoryVignetteAn03(out var next)) return CommitResult.PadRequired;
+            return reality.Commit(next, feet, "AN03", true, true);
+        }
+
+        public Task<CommitResult> SwitchMemoryVignetteAn03Async(Vector3 feet)
+        {
+            if (!PrepareMemoryVignetteAn03(out var next)) return Task.FromResult(CommitResult.PadRequired);
+            return reality.CommitAsync(next, feet, "AN03", true, true);
+        }
+
+        private bool PrepareMemoryVignetteAn03(out Investigation next)
+        {
+            next = null;
+            if (State.chapter != "CH03" || !State.Has(EvidenceRegistry.C02YarnBag)) return false;
+            next = State.Copy();
+            if (State.layer == Reality.R)
+            {
+                next.layer = Reality.M;
+                next.checkpoint = GateService.G03(State) ? "CH03-CP03" : "CH03-CP02";
+                next.Remember("CH03-M01");
+            }
+            else if (State.layer == Reality.M)
+            {
+                next.layer = Reality.R;
+                next.checkpoint = GateService.G03(State) ? "CH03-CP03" : "CH03-CP02";
+                next.Remember("CH03-M02");
+            }
+            else return false;
+            return true;
+        }
+
+        public CommitResult CompleteCh03(Vector3 feet)
+        {
+            if (!GateService.G03(State) || State.layer != Reality.R || !reality.OnPad(feet, "AP07"))
+                return CommitResult.PadRequired;
+            return Record("M3-CH03-complete", feet, "CH03-CP04");
+        }
+
+        public Task<CommitResult> CompleteCh03Async(Vector3 feet)
+        {
+            if (!GateService.G03(State) || State.layer != Reality.R || !reality.OnPad(feet, "AP07"))
+                return Task.FromResult(CommitResult.PadRequired);
+            return RecordAsync("M3-CH03-complete", feet, "CH03-CP04");
         }
 
         public Task<CommitResult> SaveEmergencyAsync(Vector3 feet, bool finish, bool encounterActive,

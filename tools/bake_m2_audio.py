@@ -205,6 +205,11 @@ def extract_clean_lines():
         ("CH02-D03", "an", quote_n("CH02-D03")),
         ("CH02-D04", "minh", quote_n("CH02-D04")),
         ("CH02-D05", "gatekeeper", quote_n("CH02-D05")),
+        ("CH03-D01", "minh", quote_n("CH03-D01")),
+        ("CH03-D02", "minh", quote_n("CH03-D02")),
+        ("CH03-D03", "ba_lanh", quote_n("CH03-D03")),
+        ("CH03-D04", "minh", quote_n("CH03-D04")),
+        ("CH03-D05", "gatekeeper", quote_n("CH03-D05")),
     ]
 
 

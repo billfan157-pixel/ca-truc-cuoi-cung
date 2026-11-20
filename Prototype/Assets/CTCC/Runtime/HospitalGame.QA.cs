@@ -38,7 +38,11 @@ namespace CTCC
                 Debug.LogException(e);
             }
             if (passed) yield return FinishVerification(VerifyModuleStages(), qaFolder);
-            else CompleteVerification(qaFolder, false);
+            else
+            {
+                yield return PrepareForQuit();
+                CompleteVerification(qaFolder, false);
+            }
         }
 
         private IEnumerator VerifyModuleStages()
@@ -48,6 +52,7 @@ namespace CTCC
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifySpatialAudio();
             yield return VerifyKeyboard();
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
+            yield return VerifyScalableM3AndCh03();
         }
 
         private IEnumerator VerifySpatialAudio()
@@ -292,7 +297,37 @@ namespace CTCC
                 else yield return yielded;
             }
             while (stack.Count > 0) (stack.Pop() as IDisposable)?.Dispose();
+            yield return PrepareForQuit();
             CompleteVerification(directory, passed);
+        }
+
+        private IEnumerator PrepareForQuit()
+        {
+            float deadline = Time.realtimeSinceStartup + 4f;
+            while ((busy || savingDialogue) && Time.realtimeSinceStartup < deadline) yield return null;
+            inspector?.Close();
+            ui?.Close();
+            voice?.StopCurrent();
+            lanDirector?.StopEncounter(false);
+            gatekeeperCameo?.StopAndHide();
+            anDirector?.HideImmediately();
+            AudioListener.pause = true;
+            // Wait for Unity 6000.3 D3D12 split-job initial texture streaming & PSO upload queues to settle
+            // before draining the 3-frame ring buffer, preventing D3D12Core.dll 1.618.1.0 +0xa1f5 crash on early quit!
+            if (player?.Eye != null) player.Eye.enabled = true;
+            float streamDeadline = Time.realtimeSinceStartup + 5.5f;
+            while ((Time.realtimeSinceStartup < 4.5f || Texture.streamingTextureLoadingCount > 0 ||
+                    Texture.streamingTexturePendingLoadCount > 0) && Time.realtimeSinceStartup < streamDeadline)
+                yield return null;
+            AsyncGPUReadback.WaitAllRequests();
+            GL.Flush();
+            for (int i = 0; i < 8; i++)
+                yield return new WaitForEndOfFrame();
+            AsyncGPUReadback.WaitAllRequests();
+            GL.Flush();
+            if (player?.Eye != null) player.Eye.enabled = false;
+            if (Camera.main != null) Camera.main.enabled = false;
+            yield return null;
         }
 
         private void CompleteVerification(string directory, bool passed)
@@ -548,6 +583,7 @@ namespace CTCC
                 scene.GatekeeperActor.gameObject.SetActive(true);
                 scene.GatekeeperActor.transform.SetPositionAndRotation(new Vector3(4.0f, 0f, 11.4f), Quaternion.Euler(0, 180, 0));
                 scene.GatekeeperActor.PlayAction("GK_StalkWalk", 0.01f, restart: true);
+                player.SetTorchEnabled(true);
                 for (int i = 0; i < 6; i++) yield return null;
                 player.Teleport(new Vector3(3.85f, 0.02f, 8.25f), Quaternion.Euler(0, 4, 0));
                 camera.transform.localRotation = Quaternion.Euler(-2, 0, 0);
@@ -557,6 +593,7 @@ namespace CTCC
                 camera.transform.localRotation = Quaternion.Euler(-4, 0, 0);
                 for (int i = 0; i < 6; i++) yield return null;
                 SaveFrame(camera, target, "m2c-gatekeeper-closeup-R");
+                player.SetTorchEnabled(false);
                 scene.GatekeeperActor.gameObject.SetActive(false);
             }
 
@@ -630,12 +667,17 @@ namespace CTCC
                 // 3) Handover with physical 3D F101 clipboard held on ClipboardSocket_R!
                 lan.EndSpeech();
                 lan.SetHeldClipboardVisible(true);
-                lan.SetExpression(0.45f, 0.24f, 0.08f);
+                lan.SetExpression(0.52f, 0.22f, 0.05f);
                 lan.PlayAction("Lan_Handover", 0.01f, restart: true);
                 Vector3 handFeet = lanPos + lanFwd * 1.48f - lanRight * 0.36f;
                 player.Teleport(new Vector3(handFeet.x, 0.02f, handFeet.z), Quaternion.LookRotation(new Vector3(lanPos.x - handFeet.x, 0f, lanPos.z - handFeet.z)));
                 camera.transform.localRotation = Quaternion.Euler(10f, 0f, 0f);
-                for (int i = 0; i < 36; i++) yield return null;
+                for (int i = 0; i < 12; i++) yield return null;
+                lan.SetActionTime(1.15f);
+                lan.ForceOpenEyes();
+                yield return null;
+                Require(lan.heldClipboard != null && lan.heldClipboard.transform.position.y >= 1.00f,
+                    $"Lan handover clipboard height too low: y={lan.heldClipboard?.transform.position.y:F3}");
                 SaveFrame(camera, target, "m2c-lan-handover-B");
                 lan.SetHeldClipboardVisible(false);
 
@@ -663,9 +705,9 @@ namespace CTCC
                     l.shadows = LightShadows.None;
                     return l;
                 }
-                AddStudioLight("Key5500K", lanFwd * 1.45f + lanRight * 0.90f + Vector3.up * 2.05f, new Color(1.0f, 0.98f, 0.96f), 1.65f, 6.0f);
-                AddStudioLight("FillCool", lanFwd * 1.25f - lanRight * 1.15f + Vector3.up * 1.55f, new Color(0.90f, 0.95f, 1.0f), 0.78f, 6.0f);
-                AddStudioLight("RimBack", -lanFwd * 0.95f - lanRight * 0.55f + Vector3.up * 2.00f, new Color(0.95f, 0.97f, 1.0f), 1.05f, 5.0f);
+                AddStudioLight("Key5500K", lanFwd * 1.45f + lanRight * 0.90f + Vector3.up * 2.05f, new Color(1.0f, 0.98f, 0.96f), 1.08f, 6.0f);
+                AddStudioLight("FillCool", lanFwd * 1.25f - lanRight * 1.15f + Vector3.up * 1.55f, new Color(0.90f, 0.95f, 1.0f), 0.56f, 6.0f);
+                AddStudioLight("RimBack", -lanFwd * 0.95f - lanRight * 0.55f + Vector3.up * 2.00f, new Color(0.95f, 0.97f, 1.0f), 0.78f, 5.0f);
                 player.Teleport(new Vector3(closeFeet.x, 0.02f, closeFeet.z), Quaternion.LookRotation(new Vector3(lanPos.x - closeFeet.x, 0f, lanPos.z - closeFeet.z)));
                 camera.transform.localRotation = Quaternion.Euler(9.5f, 0f, 0f);
                 for (int i = 0; i < 8; i++) yield return null;
@@ -716,8 +758,13 @@ namespace CTCC
 
             // M2-C 30fps Character Performance & Gameplay Showcase (570 frames = 19s @ 30fps + audio_cues.json!)
             var cues = new List<string>();
-            void LogCue(string assetRel, int startFrame, float gain = 1.0f) =>
-                cues.Add($"{{\"asset\":\"{assetRel}\",\"frame\":{startFrame},\"time\":{(startFrame / 30.0f):F3},\"gain\":{gain:F2}}}");
+            void LogCue(string assetRel, int startFrame, float gain = 1.0f)
+            {
+                var inv = System.Globalization.CultureInfo.InvariantCulture;
+                cues.Add("{\"asset\":\"" + assetRel + "\",\"frame\":" + startFrame +
+                    ",\"time\":" + (startFrame / 30.0f).ToString("F3", inv) +
+                    ",\"gain\":" + gain.ToString("F2", inv) + "}");
+            }
 
             // Segment 1 (Frames 0..330 = 11.0 s): LOC02 Hero Reception Encounter with CHAR002 Trần Ngọc Lan (B 2005)
             player.Teleport(scene.Pad("AP04"));
@@ -734,13 +781,19 @@ namespace CTCC
                 Vector3 stepPos = scene.LanStepOutPoint != null ? scene.LanStepOutPoint.position : new Vector3(2.85f, 0f, -3.3f);
                 Quaternion stepRot = scene.LanStepOutPoint != null ? scene.LanStepOutPoint.rotation : Quaternion.Euler(0, 90, 0);
 
-                // 1A: Stepping out from behind reception desk (Frames 0..55, 1.83s)
-                lan.PlayAction("Lan_StepOut", 0.05f, restart: true);
+                // 1A: Stepping out from behind reception desk (Frames 0..42, 1.40s @ exact 1.70 m/s stride sync!)
+                Vector3 stepDir = (stepPos - deskPos).normalized;
+                float stepDist = Vector3.Distance(deskPos, stepPos);
+                int stepFrames = Mathf.Clamp(Mathf.RoundToInt((stepDist / 1.70f) * 30f), 30, 55);
+                lan.PlayAction("Lan_StepOut", 0.01f, restart: true);
                 lan.SetExpression(0.65f, 0.12f, 0f);
-                for (int f = 0; f < 55; f++)
+                for (int f = 0; f < stepFrames; f++)
                 {
-                    float s = Smooth(f / 54f);
-                    lan.transform.SetPositionAndRotation(Vector3.Lerp(deskPos, stepPos, s), stepRot);
+                    float t = f / 30f;
+                    float s = Smooth(f / (float)(stepFrames - 1));
+                    Vector3 curPos = deskPos + stepDir * Mathf.Min(stepDist, 1.70f * t);
+                    lan.transform.SetPositionAndRotation(curPos, stepRot);
+                    lan.SetActionTime(t);
                     Vector3 camPos = Vector3.Lerp(new Vector3(4.55f, 0.02f, -4.40f), new Vector3(4.12f, 0.02f, -3.48f), s);
                     CapturePose(camPos, Vector3.Lerp(deskPos + Vector3.up * 1.44f, stepPos + Vector3.up * 1.46f, s));
                     yield return null;
@@ -843,6 +896,7 @@ namespace CTCC
             {
                 var gk = scene.GatekeeperActor;
                 gk.gameObject.SetActive(true);
+                player.SetTorchEnabled(true);
                 gk.transform.SetPositionAndRotation(new Vector3(4.0f, 0f, 12.6f), Quaternion.Euler(0, 180, 0));
                 gk.LookTarget = camera.transform;
                 gk.PlayAction("GK_StalkWalk", 0.05f, restart: true);
@@ -851,14 +905,18 @@ namespace CTCC
                 LogCue("Prototype/Assets/CTCC/Art/Audio/KeyJingle.wav", frameIdx + 62, 0.90f);
                 for (int f = 0; f < 120; f++)
                 {
+                    float t = f / 30f;
                     float s = Smooth(f / 119f);
-                    Vector3 gkPos = Vector3.Lerp(new Vector3(4.0f, 0f, 12.6f), new Vector3(4.0f, 0f, 9.8f), s);
+                    // Exact 1.78 m/s world translation matched to GK_StalkWalk analytical leg IK!
+                    Vector3 gkPos = new(4.0f, 0f, 13.6f - 1.78f * t);
                     gk.transform.position = gkPos;
+                    gk.SetActionTime(t);
                     if (f >= 12 && f < 112) gk.ForceSpeechTime("CH02-D05", (f - 12) / 30f);
-                    Vector3 camPos = Vector3.Lerp(new Vector3(3.88f, 0.02f, 7.65f), new Vector3(3.92f, 0.02f, 8.15f), s);
+                    Vector3 camPos = Vector3.Lerp(new Vector3(3.88f, 0.02f, 6.85f), new Vector3(3.92f, 0.02f, 5.45f), s);
                     CapturePose(camPos, gkPos + Vector3.up * 1.56f);
                     yield return null;
                 }
+                player.SetTorchEnabled(false);
                 gk.EndSpeech();
                 gk.gameObject.SetActive(false);
             }
@@ -871,6 +929,183 @@ namespace CTCC
             rt.Release();
             Destroy(rt);
         }
+
+        private IEnumerator VerifyScalableM3AndCh03()
+        {
+            // 1) Regional Streaming of CH03 Archive Wing (LOC05_ArchiveWing)
+            if (scene.IsAdditiveMode)
+            {
+                yield return scene.EnsureRegionalZonesStreamedAsync();
+                Require(scene.LoadedZoneCount == 5 && scene.HasZone("LOC05"),
+                    $"Regional CH03 archive zone streamed cleanly (loaded={scene.LoadedZoneCount})");
+            }
+            bool hasAp06 = scene.TryPad("AP06", out var ap06);
+            bool hasAn03 = scene.TryPad("AN03", out var an03);
+            bool hasAp07 = scene.TryPad("AP07", out var ap07);
+            Require(hasAp06 && hasAn03 && hasAp07,
+                "CH03 safe pads AP06/AN03/AP07 registered");
+            Require(scene.archiveExitDoor != null && scene.Ch03PatrolWaypoints.Length >= 3 && scene.Ch03RadioPoint != null,
+                "CH03 G03 door, patrol waypoints and LOC07 distraction anchor registered");
+            Require(voice != null && voice.HasClip("CH03-D01") && voice.HasClip("CH03-D03") && voice.HasClip("CH03-D05"),
+                "CH03 VieNeu VO clips wired");
+
+            // 2) Versioned Save Schema v1 -> v2 Migration
+            {
+                var isoDir = Path.Combine(qaFolder, "schema-v1-migration");
+                Directory.CreateDirectory(isoDir);
+                var isoSaves = new AtomicSaves(isoDir);
+                var v1Seed = State.Copy();
+                v1Seed.schemaVersion = 1;
+                v1Seed.forms.Clear();
+                v1Seed.patients.Clear();
+                v1Seed.puzzles.Clear();
+                string payload = JsonUtility.ToJson(v1Seed);
+                string checksum;
+                using (var sha = System.Security.Cryptography.SHA256.Create())
+                    checksum = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(payload)));
+                string envJson = $"{{\"schemaVersion\":1,\"payload\":{JsonEscape(payload)},\"checksum\":\"{checksum}\"}}";
+                File.WriteAllText(isoSaves.SlotPath(SaveSlot.Auto), envJson, new System.Text.UTF8Encoding(false));
+                Require(isoSaves.Read(SaveSlot.Auto, out var migrated) == SaveRead.Valid && migrated != null &&
+                    migrated.schemaVersion == Investigation.Schema && migrated.PatientIdentityVerified("C01"),
+                    "Schema v1 save migrated cleanly to Schema v2 with C01 identity preserved");
+            }
+
+            // 3) Generalized Multi-Form Distortion D_zone = min(4, unique false affirmed) & E08 Non-Exportable Rule
+            {
+                var multi = State.Copy();
+                multi.f101.current = FormStatus.Affirmed;
+                FormService.ApplyForm(multi, "F102", FormStatus.Affirmed);
+                FormService.ApplyForm(multi, "F103", FormStatus.Affirmed);
+                FormService.ApplyForm(multi, "F104", FormStatus.Affirmed);
+                FormService.ApplyForm(multi, "F105", FormStatus.Affirmed);
+                Require(FormService.Distortion(multi) == 4, "D_zone capped at 4 across 5 affirmed false forms");
+                Require(!EvidenceRegistry.IsPhysicalExportable(EvidenceRegistry.NonExportableTraceE08) &&
+                    !EvidenceRegistry.Grant(multi, EvidenceRegistry.NonExportableTraceE08, Reality.B, "LOC08"),
+                    "E08 non-exportable trace blocked from durable physical inventory");
+            }
+
+            // 4) Representative CH03 Progression: LOC05 -> LOC07 -> AN03 (R/M) -> PZ03 -> C02/C12 -> G03 -> AP07
+            if (State.layer != Reality.R) Apply(casework.SwitchIn101(scene.Pad("AP04").position), "return R before CH03");
+            Apply(casework.BeginCh03(ap06.position), "CH03 start at AP06");
+            player.Teleport(ap06);
+            Require(State.chapter == "CH03" && State.checkpoint == "CH03-CP01", "CH03 entry state committed");
+
+            Apply(casework.TakeCh03Evidence(EvidenceRegistry.PatientRegister, "LOC07", ap06.position), "take E03");
+            Apply(casework.TakeCh03Evidence(EvidenceRegistry.C02CareNote, "LOC07", ap06.position), "take C02 care note");
+            Apply(casework.TakeCh03Evidence(EvidenceRegistry.C02YarnBag, "LOC07", an03.position), "take C02 yarn bag");
+            Apply(casework.TakeCh03Evidence(EvidenceRegistry.BayLockReceipt, "LOC05", ap06.position), "take FS10 lock trace");
+
+            // CH03-Q05: 2-strike hint on CH03-PU01 (PZ03) before correct solve
+            player.Teleport(an03);
+            Apply(casework.AttemptCh03Pu01("C03", false, an03.position), "PZ03 strike 1");
+            Apply(casework.AttemptCh03Pu01("C09", false, an03.position), "PZ03 strike 2");
+            Require(PuzzleService.FailedAttempts(State, "CH03-PU01") == 2 &&
+                PuzzleService.ShouldShowFieldHint(State, "CH03-PU01") && !GateService.G03(State),
+                "CH03-PU01 2-strike field hint triggered before solve");
+
+            // CH03-Q01: Reality.M Memory Vignette transition & safe reload restoring R at AN03
+            Apply(casework.SwitchMemoryVignetteAn03(an03.position), "enter Reality.M vignette");
+            Require(State.layer == Reality.M, "Entered Reality.M memory vignette");
+            var mMemZone = scene.memoryProps;
+
+            // Optional CH03 visual verification renders (LOC05 Nurse Station R, LOC07 Archive R, LOC07 Memory M)
+            if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
+            {
+                var camera = player.Eye;
+                var rt = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+                rt.Create();
+                camera.enabled = false;
+                player.Teleport(new Vector3(-0.35f, 0.02f, 32.15f), Quaternion.Euler(0f, -108f, 0f));
+                camera.transform.localRotation = Quaternion.Euler(8f, 0f, 0f);
+                for (int i = 0; i < 4; i++) yield return null;
+                SaveFrame(camera, rt, "ch03-loc07-memory-M");
+
+                // Reloading save taken in M restores safely to Reality.R at AN03 (CH03-Q01)
+                Require(transaction.Restore(SaveSlot.Auto, out var restoredFromM) == SaveRead.Valid &&
+                    State.layer == Reality.R && restoredFromM == an03,
+                    "Reload during Reality.M vignette restores safely to Reality.R at AN03");
+                player.SetTorchEnabled(true);
+                player.Teleport(new Vector3(-0.35f, 0.02f, 32.15f), Quaternion.Euler(0f, -108f, 0f));
+                camera.transform.localRotation = Quaternion.Euler(8f, 0f, 0f);
+                for (int i = 0; i < 4; i++) yield return null;
+                SaveFrame(camera, rt, "ch03-loc07-archive-R");
+
+                player.Teleport(new Vector3(3.65f, 0.02f, 26.25f), Quaternion.Euler(0f, 58f, 0f));
+                camera.transform.localRotation = Quaternion.Euler(10f, 0f, 0f);
+                for (int i = 0; i < 4; i++) yield return null;
+                SaveFrame(camera, rt, "ch03-loc05-nurse-R");
+                player.SetTorchEnabled(false);
+
+                rt.Release();
+                Destroy(rt);
+            }
+            else
+            {
+                Require(transaction.Restore(SaveSlot.Auto, out var restoredFromM) == SaveRead.Valid &&
+                    State.layer == Reality.R && restoredFromM == an03,
+                    "Reload during Reality.M vignette restores safely to Reality.R at AN03");
+            }
+
+            // CH03-Q04 & TASK011-A..E: HunterOrderlyAI patrol, radio distraction, sight->warning->chase, safe-zone breakoff
+            if (orderlyAi != null && scene.GatekeeperActor != null)
+            {
+                orderlyAi.SyncState(State);
+                Require(orderlyAi.IsActive && orderlyAi.CurrentState == OrderlyState.Patrol,
+                    "HunterOrderlyAI active in Patrol during CH03");
+
+                // Place Orderly in LOC06 and trigger LOC07 Meeting Room radio distraction (14m radius)
+                scene.GatekeeperActor.transform.SetPositionAndRotation(new Vector3(4.0f, 0f, 35.6f), Quaternion.Euler(0f, 180f, 0f));
+                orderlyAi.TriggerDistraction(scene.Ch03RadioPoint.position, HunterOrderlyAI.NoiseDistractionRadius);
+                Require(orderlyAi.CurrentState == OrderlyState.Investigate,
+                    "LOC07 vintage radio distraction lures Orderly into Investigate");
+
+                // Sight accumulation (0.70s) -> 2.0s Suspicious pre-chase warning -> Chase -> Safe-Zone Return
+                orderlyAi.TransitionTo(OrderlyState.Patrol, 0f);
+                scene.GatekeeperActor.transform.SetPositionAndRotation(new Vector3(4.0f, 0f, 35.8f), Quaternion.Euler(0f, 180f, 0f));
+                player.Teleport(new Vector3(4.0f, 0.02f, 30.8f), Quaternion.identity);
+                for (int step = 0; step < 12 && orderlyAi.CurrentState != OrderlyState.Suspicious; step++)
+                    orderlyAi.Tick(State, 0.10f, false, false, false, Line);
+                Require(orderlyAi.CurrentState == OrderlyState.Suspicious,
+                    "0.70s line-of-sight enters Suspicious pre-chase warning window");
+                for (int step = 0; step < 25 && orderlyAi.CurrentState == OrderlyState.Suspicious; step++)
+                    orderlyAi.Tick(State, 0.10f, false, false, false, Line);
+                Require(orderlyAi.CurrentState == OrderlyState.Chase,
+                    "2.0s pre-chase warning transitions into Chase");
+                // Reach safe pad AP06 -> immediate safe-zone non-intrusion breakoff to Return
+                player.Teleport(ap06);
+                orderlyAi.Tick(State, 0.05f, false, false, false, Line);
+                Require(orderlyAi.CurrentState == OrderlyState.Return,
+                    "Safe pad AP06 breaks off Chase into Return (non-intrusion)");
+            }
+
+            // CH03-Q02 & CH03-Q03: Solve PZ03 -> C02 existence confirmed (identity still optional!), C12 permanently anonymous -> G03 opens!
+            player.Teleport(an03);
+            Apply(casework.AttemptCh03Pu01("C02", true, an03.position), "PZ03 solved");
+            Require(State.PatientConfirmed("C02") && !State.PatientIdentityVerified("C02") && GateService.G03(State),
+                "CH03-Q02: G03 opens with C02 existence confirmed while optional identity remains unverified");
+
+            Apply(casework.TakeCh03Evidence(EvidenceRegistry.C12UnnamedBox, "LOC07", an03.position), "confirm C12 anonymous box");
+            var fakeTest = State.Copy();
+            Require(State.PatientConfirmed("C12") && !State.PatientIdentityVerified("C12") &&
+                !fakeTest.VerifyPatientIdentity("C12", "Fake Name") && !fakeTest.PatientIdentityVerified("C12"),
+                "CH03-Q03: C12 confirms existence while permanently rejecting fabricated names");
+
+            // Optional CH03-PU02 identity verification for Bà Lành
+            Apply(casework.TakeCh03Evidence(EvidenceRegistry.C02DaughterLetter, "LOC07", an03.position), "take C02 letter");
+            Apply(casework.SolveCh03Pu02OptionalIdentity(an03.position), "solve optional CH03-PU02");
+            Require(State.PatientIdentityVerified("C02"), "CH03-PU02 optional identity verified cleanly");
+
+            // Reach AP07 through G03
+            player.Teleport(ap07);
+            Apply(casework.CompleteCh03(ap07.position), "complete CH03 at AP07");
+            Require(State.Happened("M3-CH03-complete") && State.checkpoint == "CH03-CP04",
+                "CH03 representative chapter completed and persisted at AP07");
+
+            verification.Add("M3-ARCH & CH03-Q01..Q05 PASS: LOC05 streamed (5 zones), v1->v2 save migrated, D_zone capped at 4, E08 blocked, R/M reload safe at AN03, PZ03 2-strike hint, C02 existence/identity split, C12 permanently anonymous, HunterOrderlyAI 6-state patrol/radio/warning/chase/safe-zone verified, G03 & AP07 persisted.");
+        }
+
+        private static string JsonEscape(string s) =>
+            "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n") + "\"";
 
         private void SaveFrame(Camera camera,RenderTexture target,string name)
         {
