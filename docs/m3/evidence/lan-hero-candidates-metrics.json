@@ -1,0 +1,40 @@
+{
+  "heroCharacter": "CHAR002 Trần Ngọc Lan",
+  "selectedCandidate": "Candidate B (M3.0 Sculpted + Multi-Layer Groomed + Folded Collar Production Human)",
+  "candidates": {
+    "candidateA_M2C1_Baseline": {
+      "commit": "c0531dcc8a3ed607e4a4b8cc692ce5dce44e282b",
+      "lod0Triangles": 16528,
+      "lod1Triangles": 13526,
+      "lod2Triangles": 6356,
+      "blendShapes": 29,
+      "hairWorkflow": "Single CC0 ponytail01 block mesh",
+      "collarAndBlouse": "Body-extracted blouse with cleavage vacuum-cling + vertical extruded neck cylinder",
+      "badge": "BVH-projected curved patch over left breast",
+      "stanceSlipMedianMps": 1.0,
+      "decision": "Rejected — baseline reference"
+    },
+    "candidateB_M30_SelectedProduction": {
+      "lod0Vertices": 26882,
+      "lod0Triangles": 49812,
+      "lod1Triangles": 34055,
+      "lod2Triangles": 17444,
+      "blendShapes": 29,
+      "faceWorkflow": "Balanced 23yo Vietnamese targets (epicanthus=0.16) + BMesh craniofacial sculpt (inter-canthal release, supratarsal crease, malar fullness, philtrum columns, lip tubercle, V-taper jaw)",
+      "hairWorkflow": "Multi-layer 26-strip 3D hair cards (forehead/temple framing locks, crown breakup, baby-hair wisps) + reshaped compact low nurse bun & enamel barrette",
+      "collarAndBlouse": "Pre-sim bust-bridged collider + post-sim sternum tension bridge + 28-segment parametric folded notched MoH 1895/1997 collar with 4.5mm pale-blue piping (vertex-protected across LOD0..2)",
+      "badge": "Flat rigid laminated PVC ID card with metal alligator clip (vertex-protected across LOD0..2)",
+      "stanceSlipMedianMps": 0.0,
+      "license": "CC0-1.0 + 100% original project authoring",
+      "decision": "SELECTED — optimal visual realism, anatomical identity, 60 Hz iGPU performance, and CC0 commercial provenance"
+    },
+    "candidateC_HighDensitySubdivDisplacement": {
+      "lod0Vertices": 80506,
+      "lod0Triangles": 156404,
+      "blendShapes": 29,
+      "workflow": "Catmull-Clark Subdiv-1 + 3D dermal displacement modifier on base mesh & uniform",
+      "skinningCostMultiplier": 2.99,
+      "decision": "High-poly normal & cavity detail baked into Candidate B textures; raw high-density runtime skinning rejected for multi-character 60 Hz iGPU budget"
+    }
+  }
+}

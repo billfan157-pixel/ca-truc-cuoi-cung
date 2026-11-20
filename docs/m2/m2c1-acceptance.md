@@ -54,3 +54,13 @@ Clone vào thư mục đường dẫn ASCII cho Unity Bee. Unity và gói URP l�
 ```
 
 Lặp xuất cho `CTCC_CHR_AnApparition` và `CTCC_CHR_Gatekeeper`. Duyệt bản staging trước khi chép FBX vào Unity. Khi chép FBX đã duyệt, chạy entry point Editor `CTCC.Editor.HospitalAuthoring.RefreshCharacterModels` để cập nhật material và LODGroup ở các zone. Lệnh dựng lại rig MPFB trong `build_lan.py`, `build_an.py` và `build_gatekeeper.py` xuất vào thư mục staging trống với `CTCC_CHARACTER_STAGE`. [Khóa nguồn](../../tools/character_pipeline/source-lock.json) · [Giấy phép](../../Prototype/ThirdPartyNotices.md)
+
+## Cập nhật đóng kỹ thuật từ M3.0
+
+Bản dựng kế tiếp M3.0 (`assembly_sha256=f4c6bc91cc13d77d89960f1bc742cc68204eee52dd19cf470732fa04c642ab7f`) đã đóng các hạng mục kỹ thuật còn mở của bảng `CHAR-Q01–09` ở trên (chi tiết và bằng chứng đầy đủ tại [Hồ sơ M3.0](../m3/m30-foundation-and-art-lock.md)):
+
+- **CHAR-Q01 / Q02 / Q05:** Chọn ứng viên B (sculpt sọ mặt 23 tuổi, 26 lớp hair cards, cổ áo gấp theo `1895/1997/QĐ-BYT` và thẻ tên PVC phẳng được bảo vệ qua `LOD0–2`), bổ sung `GK_Teeth/Tongue_LOD0..2`, và xác minh chuyển bậc tự động `LOD0→1→2` trong chuyển động trên cả ba nhân vật.
+- **CHAR-Q03 / Q06:** Chuyển toàn bộ thoại slice và CH03 (`CH03-D01..05`) sang **VieNeu v3 Turbo** (`Apache-2.0`) kèm track khẩu hình 30 Hz, xuất video diễn xuất liên tục đồng bộ âm thanh ([m30-character-performance.mp4](../m3/evidence/m30-character-performance.mp4)), và xác minh `0 B` managed allocation qua 150 khung (120 ổn định + 30 khung phát thoại thực theo `AudioSource.timeSamples`).
+- **CHAR-Q04:** Sửa lỗi gắn `Animator` lệch cấp gốc FBX (`avatarSetup=0`), áp dụng 2-bone analytical leg IK + độ nén curve `0,05°` đưa sai lệch bước/đế giày thực tế trong Unity `PlayableGraph` xuống **`0,008 / 0,008 m/s`** (Lan) và **`0,009 / 0,009 m/s`** (Kẻ Giữ Cửa), đồng thời bổ sung 2-bone arm IK cho handover F101.
+- **CHAR-Q07:** Xác minh cả 5 shader nhân vật đạt `import errors=0 | SRP compatibility code=0` ([shader-audit.txt](../m3/evidence/shader-audit.txt)) và sửa thứ tự pass `ApparitionDepthPrepass` (`SRPDefaultUnlit` → `UniversalForward`) kèm renderQueue `3001..3005` cho Bé An.
+- **Cổng còn mở:** `TASK010` (playtest 6 người), duyệt Art Direction Lock, `TASK026–028` (review chuyên gia), và lượt đo lại PresentMon 1080p/60 Hz trên `f4c6bc9` (cần phiên desktop mở khóa, `GetForegroundWindow() != 0`).

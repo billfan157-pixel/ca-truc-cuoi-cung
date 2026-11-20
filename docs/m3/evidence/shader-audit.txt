@@ -1,0 +1,25 @@
+Unity 6000.3.28f1 imported shader and SRP Batcher audit
+CTCC/DigitalHumanSkin | import errors=0 | SRP compatibility code=0
+  0: ForwardLit
+  1: ShadowCaster
+  2: DepthOnly
+  3: DepthNormals
+CTCC/DigitalHumanEye | import errors=0 | SRP compatibility code=0
+  0: ForwardLit
+  1: ShadowCaster
+  2: DepthOnly
+  3: DepthNormals
+CTCC/DigitalHumanHair | import errors=0 | SRP compatibility code=0
+  0: HairCoreOpaque
+  1: HairWispsBlend
+  2: ShadowCaster
+  3: DepthOnly
+  4: DepthNormals
+CTCC/DigitalHumanFabric | import errors=0 | SRP compatibility code=0
+  0: ForwardLit
+  1: ShadowCaster
+  2: DepthOnly
+  3: DepthNormals
+CTCC/ApparitionHuman | import errors=0 | SRP compatibility code=0
+  0: ApparitionDepthPrepass
+  1: ApparitionHumanForward

@@ -1,0 +1,88 @@
+{
+  "sampleRateHz": 48000,
+  "numpy": "2.4.6",
+  "scipy": "1.16.3",
+  "voiceTakes": {
+    "sdk": "3.8.5",
+    "modelRevision": "61b85e3d937fbbacb387714180e8182823512523",
+    "takes": {
+      "CH03-D01": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Mười hai mã... Hồi đó mình chưa từng được xem danh sách này.",
+        "precision": "fp32"
+      },
+      "CH03-D02": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Chưa biết tên, nhưng rõ ràng có người đã nằm đây.",
+        "precision": "fp32"
+      },
+      "CH03-D03": {
+        "role": "ba_lanh",
+        "preset": "Thục Đoan",
+        "spoken": "Chắc mùa này cháu tôi đã lớn thêm rồi.",
+        "precision": "fp32"
+      },
+      "CH03-D04": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Không có tên. Không có nghĩa là không có người.",
+        "precision": "fp32"
+      },
+      "CH03-D05": {
+        "role": "gatekeeper",
+        "preset": "Đức Trí",
+        "spoken": "Hồ sơ không thuộc danh mục. Không được sao chép.",
+        "precision": "fp32"
+      }
+    }
+  },
+  "assets": {
+    "CH03-D01": {
+      "seconds": 3.2,
+      "rmsDbfs": -21.24,
+      "peakDbfs": -9.18,
+      "truePeakDbtpApprox": -9.17,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "1fdbaa441a6baedb4601a48108be69fe5781659785953b8fd57cf2f4850fa20a",
+      "rawSha256": "01f6c62629064da742c5c12f55a0caffd0fb5b9f219cc22c78c56dbc0b385bf7"
+    },
+    "CH03-D02": {
+      "seconds": 2.784,
+      "rmsDbfs": -21.22,
+      "peakDbfs": -10.16,
+      "truePeakDbtpApprox": -10.15,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "32ca61e7c3c75b936f1d776bdceea41048b60175f348621fc3beca09a5724bd0",
+      "rawSha256": "34bef1796b19f568f6534bc6b19b4d84647168af3144929e7fea3e28b2ca8724"
+    },
+    "CH03-D03": {
+      "seconds": 2.169,
+      "rmsDbfs": -21.25,
+      "peakDbfs": -9.71,
+      "truePeakDbtpApprox": -9.71,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "1013a77da82f0d38b3968c5b15985234d38f5319addbfd39dd0d247a080110cb",
+      "rawSha256": "ab24147461dee2b8bd88939a2ffece87df9abe31f7ebb7450b75e53e575891ea"
+    },
+    "CH03-D04": {
+      "seconds": 2.69,
+      "rmsDbfs": -21.25,
+      "peakDbfs": -9.25,
+      "truePeakDbtpApprox": -9.24,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "0715430c87325763b1e2fd39698e7a956aa917039980059f2beb7c2829e2f733",
+      "rawSha256": "64d02ff2d93fa6d0b5fbbf6d4906ce7a8b45c63d552aa74826233b00fa5240d0"
+    },
+    "CH03-D05": {
+      "seconds": 3.171,
+      "rmsDbfs": -21.33,
+      "peakDbfs": -8.62,
+      "truePeakDbtpApprox": -8.61,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "488a1e767fc9e34b9ffa2a4ac36e886d81f138c90042a79ace257e9ae162660d",
+      "rawSha256": "526acc3cf0dd4f64f8d994faf03f2a0185769ffaa56135a4061538a7f4fa951d"
+    }
+  }
+}
