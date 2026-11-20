@@ -13,6 +13,8 @@ namespace CTCC
         public bool exteriorOccluded;
         [NonSerialized] public AudioLowPassFilter filter;
         [NonSerialized] public float currentCutoff;
+        [NonSerialized] public float mixLevel;
+        [NonSerialized] public float obstruction;
     }
 
     public sealed class EnvironmentalAudio : MonoBehaviour
@@ -26,7 +28,23 @@ namespace CTCC
         public AudioClip lanMotif;
 
         public bool ReportLayer { get; set; }
+
+        private sealed class CueVoice
+        {
+            public AudioSource source;
+            public AudioLowPassFilter filter;
+            public float level;
+            public float obstruction;
+            public bool checkWalls;
+            public float reverbSend;
+            public int importance;
+            public double startedAt;
+            public double endsAt;
+        }
+
+        private const int CueVoiceCount = 8;
         private readonly List<RoomLoop> activeLoops = new();
+        private readonly List<CueVoice> cueVoices = new(CueVoiceCount);
         private bool mono;
         private float footstepPitch;
         private float ambienceScale = 0.85f;
@@ -34,11 +52,24 @@ namespace CTCC
         private float duckGain = 1.0f;
         private float duckTarget = 1.0f;
         private Transform listener;
-        private bool started;
+        private float nextWallCheck;
+        internal Transform Listener => listener;
+
+        public string DirectionTo(Vector3 position)
+        {
+            if (listener == null) return "gần đây";
+            Vector3 offset = position - listener.position;
+            offset.y = 0f;
+            if (offset.sqrMagnitude < 0.25f) return "gần đây";
+            Vector3 forward = Vector3.Cross(listener.right, Vector3.up);
+            float front = Vector3.Dot(forward, offset);
+            float side = Vector3.Dot(listener.right, offset);
+            if (Mathf.Abs(side) > Mathf.Abs(front)) return side > 0f ? "bên phải" : "bên trái";
+            return front >= 0f ? "phía trước" : "phía sau";
+        }
 
         private void Start()
         {
-            started = true;
             var cam = Camera.main;
             if (cam != null) listener = cam.transform;
             if (loops != null)
@@ -59,15 +90,19 @@ namespace CTCC
         {
             if (extra == null) return;
             foreach (var loop in extra)
-                activeLoops.Remove(loop);
+                if (loop != null && activeLoops.Remove(loop) && loop.source != null)
+                    loop.source.Stop();
         }
 
         private void AttachLoop(RoomLoop loop)
         {
             if (loop == null || loop.source == null || activeLoops.Contains(loop)) return;
             activeLoops.Add(loop);
+            loop.mixLevel = 0f;
+            loop.obstruction = 0f;
             loop.source.volume = 0f;
-            loop.source.spatialBlend = mono ? 0f : 0.96f;
+            loop.source.spatialBlend = mono ? 0f : 1f;
+            loop.source.reverbZoneMix = mono ? 0f : 0.40f;
             if (loop.exteriorOccluded)
             {
                 loop.filter = loop.source.gameObject.GetComponent<AudioLowPassFilter>();
@@ -76,23 +111,38 @@ namespace CTCC
                 loop.currentCutoff = 3200f;
                 loop.filter.cutoffFrequency = 3200f;
             }
-            if (started || Application.isPlaying)
+            if (Application.isPlaying && loop.source.clip != null)
                 loop.source.Play();
         }
 
         public void SetVoiceDucking(bool ducking)
         {
-            // -5 dB smooth ambience ducking during spoken Vietnamese VO so every word stays crisp!
             duckTarget = ducking ? 0.56f : 1.0f;
+        }
+
+        internal static float DistanceGain(AudioSource source, Transform ear)
+        {
+            if (ear == null) return 1f;
+            float distance = Vector3.Distance(ear.position, source.transform.position);
+            return 1f - Mathf.InverseLerp(source.minDistance, source.maxDistance, distance);
+        }
+
+        private bool IsObstructed(Vector3 target)
+        {
+            if (listener == null) return false;
+            Vector3 offset = target - listener.position;
+            float distance = offset.magnitude;
+            return distance > 0.6f && Physics.Raycast(listener.position, offset / distance, distance - 0.35f,
+                HospitalScene.SolidMask, QueryTriggerInteraction.Ignore);
         }
 
         private void Update()
         {
             if (listener == null && Camera.main != null) listener = Camera.main.transform;
             float dt = Time.unscaledDeltaTime;
-            float amount = dt * 1.65f;
-            duckGain = Mathf.MoveTowards(duckGain, duckTarget, dt * 2.2f);
-            bool checkOcclusion = Time.frameCount % 6 == 0 && listener != null;
+            duckGain = Mathf.MoveTowards(duckGain, duckTarget, dt * (duckTarget < duckGain ? 4f : 0.95f));
+            bool checkOcclusion = Time.unscaledTime >= nextWallCheck;
+            if (checkOcclusion) nextWallCheck = Time.unscaledTime + 0.1f;
 
             for (int i = activeLoops.Count - 1; i >= 0; i--)
             {
@@ -103,24 +153,30 @@ namespace CTCC
                     activeLoops.RemoveAt(i);
                     continue;
                 }
-                float target = (ReportLayer == loop.report ? loop.level : 0f) * ambienceScale * duckGain;
+                loop.mixLevel = Mathf.MoveTowards(loop.mixLevel, ReportLayer == loop.report ? 1f : 0f, dt / 0.75f);
 
                 if (loop.exteriorOccluded && loop.filter != null && listener != null)
                 {
-                    if (checkOcclusion)
-                    {
-                        Vector3 from = listener.position;
-                        Vector3 to = source.transform.position;
-                        Vector3 dir = to - from;
-                        float dist = dir.magnitude;
-                        bool blocked = dist > 0.6f && Physics.Raycast(from, dir / dist, Mathf.Min(dist - 0.35f, 18f),
-                            HospitalScene.SolidMask, QueryTriggerInteraction.Ignore);
-                        loop.currentCutoff = blocked ? 1350f : 6200f;
-                    }
+                    if (checkOcclusion && loop.mixLevel > 0f && DistanceGain(source, listener) > 0f)
+                        loop.currentCutoff = IsObstructed(source.transform.position) ? 1350f : 8500f;
                     loop.filter.cutoffFrequency = Mathf.MoveTowards(loop.filter.cutoffFrequency, loop.currentCutoff, dt * 3600f);
+                    loop.obstruction = Mathf.MoveTowards(loop.obstruction, loop.currentCutoff < 2000f ? 1f : 0f, dt * 4f);
                 }
 
-                source.volume = Mathf.MoveTowards(source.volume, target, amount);
+                float distance = mono ? DistanceGain(source, listener) : 1f;
+                float envelope = Mathf.Sin(loop.mixLevel * Mathf.PI * 0.5f);
+                source.volume = loop.level * envelope * ambienceScale * duckGain * distance * (1f - 0.36f * loop.obstruction);
+            }
+
+            double now = AudioSettings.dspTime;
+            foreach (var cue in cueVoices)
+            {
+                if (cue.endsAt <= now) continue;
+                if (checkOcclusion && cue.checkWalls)
+                    cue.obstruction = IsObstructed(cue.source.transform.position) ? 1f : 0f;
+                float cutoff = cue.obstruction > 0f ? 2300f : 22000f;
+                cue.filter.cutoffFrequency = Mathf.Lerp(cue.filter.cutoffFrequency, cutoff, 1f - Mathf.Exp(-dt * 16f));
+                UpdateCueMix(cue);
             }
         }
 
@@ -132,7 +188,47 @@ namespace CTCC
             mono = options.monoAudio;
             foreach (var loop in activeLoops)
                 if (loop?.source != null)
-                    loop.source.spatialBlend = mono ? 0f : 0.96f;
+                {
+                    loop.source.spatialBlend = mono ? 0f : 1f;
+                    loop.source.reverbZoneMix = mono ? 0f : 0.40f;
+                }
+            foreach (var cue in cueVoices)
+                if (cue.endsAt > AudioSettings.dspTime)
+                    UpdateCueMix(cue);
+        }
+
+        private void UpdateCueMix(CueVoice cue)
+        {
+            float distance = mono ? DistanceGain(cue.source, listener) : 1f;
+            cue.source.spatialBlend = mono ? 0f : 1f;
+            cue.source.reverbZoneMix = mono ? 0f : cue.reverbSend;
+            float wallGain = Mathf.Lerp(0.64f, 1f, Mathf.InverseLerp(2300f, 22000f, cue.filter.cutoffFrequency));
+            cue.source.volume = Mathf.Clamp01(cue.level * sfxScale * distance * wallGain);
+        }
+
+        private CueVoice AcquireCue(int importance, double now)
+        {
+            CueVoice replace = null;
+            foreach (var voice in cueVoices)
+            {
+                if (voice.endsAt <= now) return voice;
+                if (voice.importance <= importance && (replace == null || voice.importance < replace.importance ||
+                    (voice.importance == replace.importance && voice.startedAt < replace.startedAt)))
+                    replace = voice;
+            }
+
+            if (cueVoices.Count == CueVoiceCount) return replace;
+            var emitter = new GameObject("World cue voice");
+            emitter.transform.SetParent(propCue.transform.parent, false);
+            var source = emitter.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            source.dopplerLevel = 0f;
+            source.rolloffMode = AudioRolloffMode.Linear;
+            source.outputAudioMixerGroup = propCue.outputAudioMixerGroup;
+            var filter = emitter.AddComponent<AudioLowPassFilter>();
+            var created = new CueVoice { source = source, filter = filter };
+            cueVoices.Add(created);
+            return created;
         }
 
         public void From(string cue, Vector3 at, float gainScale = 1f)
@@ -159,8 +255,27 @@ namespace CTCC
                 _ => null
             };
             if (sound == null || propCue == null) return;
-            propCue.transform.position = at;
-            propCue.spatialBlend = mono ? 0f : 0.92f;
+            bool directionCue = cue is "keyJingle" or "slippers" or "trolleyRoll";
+            bool transition = cue is "switch" or "switchToB" or "switchToR";
+            double now = AudioSettings.dspTime;
+            var voice = AcquireCue(directionCue ? 2 : transition ? 1 : 0, now);
+            if (voice == null) return;
+            voice.source.Stop();
+            voice.source.transform.position = at;
+            voice.source.minDistance = propCue.minDistance;
+            voice.source.maxDistance = cue switch
+            {
+                "distantThunder" => 36f,
+                "trolleyRoll" or "keyJingle" => 23f,
+                "slippers" => 10f,
+                _ => propCue.maxDistance
+            };
+            voice.source.priority = directionCue ? 110 : 135;
+            voice.reverbSend = transition ? 0f : 0.62f;
+            voice.importance = directionCue ? 2 : transition ? 1 : 0;
+            voice.checkWalls = directionCue || cue is "distantThunder" or "paStatic";
+            voice.obstruction = voice.checkWalls && IsObstructed(at) ? 1f : 0f;
+            voice.filter.cutoffFrequency = voice.obstruction > 0f ? 2300f : 22000f;
             float baseVol = cue switch
             {
                 "switch" or "switchToB" or "switchToR" => 0.44f,
@@ -174,7 +289,12 @@ namespace CTCC
                 "phoneBuzz" => 0.55f,
                 _ => 0.58f
             };
-            propCue.PlayOneShot(sound, baseVol * sfxScale * gainScale);
+            voice.level = baseVol * gainScale;
+            voice.startedAt = now;
+            voice.endsAt = now + sound.length + 0.05;
+            voice.source.clip = sound;
+            UpdateCueMix(voice);
+            voice.source.Play();
         }
 
         public void Step(AudioSource source, bool running, bool crouched, Vector3 worldPos, bool reportLayer)
@@ -193,6 +313,7 @@ namespace CTCC
 
             footstepPitch = Mathf.Repeat(footstepPitch + 0.618f, 1f);
             source.pitch = 0.90f + footstepPitch * 0.20f;
+            source.reverbZoneMix = mono ? 0f : 0.35f;
             source.PlayOneShot(clip, (crouched ? 0.16f : running ? 0.50f : 0.32f) * sfxScale);
         }
     }

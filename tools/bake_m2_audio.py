@@ -1,20 +1,12 @@
-"""M2 Original Music Motif, Canonical Horror SFX & Vietnamese Temp VO Production Pipeline.
+"""Legacy procedural M2 sound sources and canonical slice dialogue lookup.
 
-Generates 100% original / clean-licensed audio for M2 Vertical Slice (TASK009-B):
-- MUS_LanMotif.wav: Original 5-note felt-piano/celesta motif for Lan (Core 05 MUS-LAN, full 5 notes in CH01 B03)
-- Canonical M2 SFX: KeyJingle (SFX-KEY, CH02+ Gatekeeper only), TrolleyRoll (HE01), PhoneBuzz (CH01 B01 SMS),
-  PAStatic, BreakerCut (HE05), EmergencyHum (LOC04 loop), DistantThunder (LOC01 monsoon)
-- Vietnamese Temp VO (Prototype/Assets/CTCC/Art/Audio/VO/*.wav) synthesized via Windows OneCore
-  'Microsoft An - Vietnamese (Vietnam)' with character-specific DSP (Lan, Minh, PA, Bé An, Gatekeeper).
-  Enforces LOCK-V22-02 / V22-Q03 canon guard: CH01-D16b & CH04-D06 are NEVER synthesized or included.
+Render the current pack with master_hospital_audio.py. This entry point can
+regenerate the legacy SFX and motif into an explicitly chosen staging folder.
 """
 
+import argparse
 import json
-import math
 import re
-import subprocess
-import sys
-import tempfile
 import wave
 from pathlib import Path
 
@@ -24,7 +16,6 @@ RATE = 32000
 RNG = np.random.default_rng(2026)
 ROOT = Path(__file__).resolve().parents[1]
 AUDIO_DIR = ROOT / "Prototype" / "Assets" / "CTCC" / "Art" / "Audio"
-VO_DIR = AUDIO_DIR / "VO"
 DIALOGUE_JSON = ROOT / "Prototype" / "Assets" / "CTCC" / "Art" / "Resources" / "CTCC" / "Dialogue.json"
 
 
@@ -57,27 +48,6 @@ def save_wav(path, signal, rate=RATE):
         w.writeframes(np.asarray(np.clip(s, -0.94, 0.94) * 32767, dtype="<i2").tobytes())
 
 
-def read_wav_mono(path):
-    with wave.open(str(path), "rb") as w:
-        ch = w.getnchannels()
-        sr = w.getframerate()
-        sw = w.getsampwidth()
-        raw = w.readframes(w.getnframes())
-    if sw == 2:
-        data = np.frombuffer(raw, dtype="<i2").astype(np.float64) / 32768.0
-    else:
-        data = np.frombuffer(raw, dtype=np.uint8).astype(np.float64) / 128.0 - 1.0
-    if ch > 1:
-        data = data.reshape(-1, ch).mean(axis=1)
-    # Resample cleanly to RATE
-    if sr != RATE and len(data) > 4:
-        new_len = int(round(len(data) * RATE / float(sr)))
-        x_old = np.linspace(0.0, 1.0, len(data))
-        x_new = np.linspace(0.0, 1.0, new_len)
-        data = np.interp(x_new, x_old, data)
-    return data
-
-
 def bandpass_fft(sig, low_hz, high_hz, sr=RATE):
     spec = np.fft.rfft(sig)
     freqs = np.fft.rfftfreq(len(sig), 1.0 / sr)
@@ -97,36 +67,6 @@ def simple_reverb(sig, delays_ms=(38, 67, 113, 179), decays=(0.24, 0.18, 0.12, 0
             rev[d:d + len(sig)] += sig * dec
     rev = bandpass_fft(rev, 180, 4200)
     return out * (1.0 - wet * 0.4) + rev * wet
-
-
-def pitch_shift_psola_like(sig, ratio):
-    """Simple clean overlap-add pitch shift preserving speaking duration reasonably."""
-    if abs(ratio - 1.0) < 0.02 or len(sig) < 512:
-        return sig
-    # Resample to shift pitch/formants, then time-stretch gently back via Hann OLA frames
-    resampled_len = max(16, int(round(len(sig) / ratio)))
-    x_old = np.linspace(0.0, 1.0, len(sig))
-    x_new = np.linspace(0.0, 1.0, resampled_len)
-    shifted = np.interp(x_new, x_old, sig)
-
-    win_len = 1024
-    hop_out = win_len // 4
-    stretch = len(sig) / float(len(shifted))
-    hop_in = max(16, int(round(hop_out / stretch)))
-    win = np.hanning(win_len)
-    n_frames = max(1, (len(shifted) - win_len) // hop_in)
-    out = np.zeros(n_frames * hop_out + win_len, dtype=np.float64)
-    norm = np.zeros_like(out)
-    for i in range(n_frames):
-        src = i * hop_in
-        dst = i * hop_out
-        frame = shifted[src:src + win_len]
-        if len(frame) < win_len:
-            break
-        out[dst:dst + win_len] += frame * win
-        norm[dst:dst + win_len] += win * win
-    out /= np.maximum(norm, 1e-4)
-    return out
 
 
 def build_lan_motif():
@@ -268,99 +208,13 @@ def extract_clean_lines():
     ]
 
 
-def build_temp_vo():
-    """Synthesize clean Vietnamese Temp VO via Windows OneCore 'Microsoft An' + character-tuned studio DSP."""
-    lines = extract_clean_lines()
-    VO_DIR.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp_dir = Path(tmp)
-        manifest = []
-        for clip_id, role, text in lines:
-            rate = -2 if role in ("pa", "pa_cut", "gatekeeper") else (-1 if role in ("minh", "lan") else 0)
-            raw_path = tmp_dir / f"{clip_id}.wav"
-            manifest.append({"id": clip_id, "text": text, "rate": rate, "path": str(raw_path)})
-        man_path = tmp_dir / "manifest.json"
-        man_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
-
-        ps_script = tmp_dir / "synth_vi.ps1"
-        ps_script.write_text(f"""
-$ErrorActionPreference = 'Stop'
-$items = Get-Content -LiteralPath '{man_path}' -Raw -Encoding UTF8 | ConvertFrom-Json
-$v = New-Object -ComObject SAPI.SpVoice
-$cat = New-Object -ComObject SAPI.SpObjectTokenCategory
-$cat.SetId('HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech_OneCore\\Voices', $false)
-$tok = $cat.EnumerateTokens() | Where-Object {{ $_.GetDescription() -like '*Vietnamese*' }} | Select-Object -First 1
-if ($null -eq $tok) {{ throw 'Windows OneCore Vietnamese voice not installed.' }}
-$v.Voice = $tok
-foreach ($item in $items) {{
-    $v.Rate = [int]$item.rate
-    $st = New-Object -ComObject SAPI.SpFileStream
-    $st.Open($item.path, 3, $false)
-    $v.AudioOutputStream = $st
-    $v.Speak($item.text) | Out-Null
-    $st.Close()
-}}
-Write-Host "SYNTH_OK=$($items.Count)"
-""", encoding="utf-8-sig")
-
-        res = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(ps_script)],
-                             capture_output=True, text=True, check=True)
-        print(res.stdout.strip())
-
-        for clip_id, role, _text in lines:
-            sig = read_wav_mono(tmp_dir / f"{clip_id}.wav")
-            # Trim excess leading/trailing silence cleanly
-            nz = np.where(np.abs(sig) > 0.008)[0]
-            if len(nz) > 10:
-                s0 = max(0, nz[0] - int(0.05 * RATE))
-                s1 = min(len(sig), nz[-1] + int(0.12 * RATE))
-                sig = sig[s0:s1]
-
-            if role == "lan":
-                # Gentle warm female voice shift + natural soft reception hall presence
-                sig = pitch_shift_psola_like(sig, 1.24)
-                sig = bandpass_fft(sig, 150, 7200)
-                sig = simple_reverb(sig, delays_ms=(26, 48, 86), decays=(0.14, 0.09, 0.05), wet=0.18)
-            elif role == "minh":
-                # Restrained intimate Southern-Vietnamese male register
-                sig = pitch_shift_psola_like(sig, 0.92)
-                sig = bandpass_fft(sig, 95, 6200)
-                sig = simple_reverb(sig, delays_ms=(22, 42), decays=(0.10, 0.06), wet=0.12)
-            elif role in ("pa", "pa_cut"):
-                # Tinny institutional corridor PA horn speaker + hallway slap echo + relay static!
-                sig = bandpass_fft(sig, 440, 2950)
-                sig = np.tanh(sig * 2.1) * 0.65
-                sig += noise(len(sig) / float(RATE), 600, 3400) * 0.018
-                sig = simple_reverb(sig, delays_ms=(52, 118, 210), decays=(0.32, 0.22, 0.14), wet=0.45)
-                if role == "pa_cut":
-                    # Abrupt electrical cut-off at 76% + static snap for CH01-PA04!
-                    cut = int(len(sig) * 0.76)
-                    snap = noise(0.14, 800, 5600) * 0.22 * np.exp(-time_arr(0.14) * 32)
-                    sig = np.concatenate([sig[:cut], snap])
-            elif role == "an":
-                # Soft, gentle quiet childlike voice — warm and tender, never scary
-                sig = pitch_shift_psola_like(sig, 1.44)
-                sig = bandpass_fft(sig, 220, 5600)
-                sig = simple_reverb(sig, delays_ms=(44, 96, 175), decays=(0.24, 0.16, 0.10), wet=0.34) * 0.85
-            elif role == "gatekeeper":
-                # Tall hollow clinical resonance — calm, impersonal, unsettling
-                sig = pitch_shift_psola_like(sig, 0.78)
-                sig = bandpass_fft(sig, 85, 3600)
-                sig = simple_reverb(sig, delays_ms=(58, 128, 235), decays=(0.30, 0.22, 0.15), wet=0.42)
-
-            # RMS loudness normalize safely to ~-16 dBFS with soft ceiling
-            rms = math.sqrt(float(np.mean(sig * sig)) + 1e-12)
-            if rms > 1e-5:
-                sig = sig * (0.16 / rms)
-            sig = np.tanh(sig * 1.15) * 0.78
-            save_wav(VO_DIR / f"{clip_id}.wav", sig)
-
-    print(f"Wrote {len(lines)} canonical Vietnamese Temp VO clips to {VO_DIR}")
-
-
 if __name__ == "__main__":
-    AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path, required=True)
+    destination = parser.parse_args().output.resolve()
+    if destination == AUDIO_DIR.resolve():
+        parser.error("Use a staging folder for legacy SFX. The game uses master_hospital_audio.py.")
+    AUDIO_DIR = destination
     build_lan_motif()
     build_m2_sfx()
-    build_temp_vo()
-    print(f"M2 Audio complete: {len(list(AUDIO_DIR.glob('*.wav')))} SFX/Music + {len(list(VO_DIR.glob('*.wav')))} VO clips")
+    print(f"Wrote legacy procedural SFX and motif to {AUDIO_DIR}")

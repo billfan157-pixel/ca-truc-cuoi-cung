@@ -1,0 +1,167 @@
+{
+  "engine": "whisper.cpp v1.9.2 CPU",
+  "checkpoint": "ggml-base-q5_1.bin SHA-256 422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898",
+  "input": "mastered WAV, resampled at 16 kHz, no prompt",
+  "lines": [
+    {
+      "id": "CH01-D01",
+      "spoken": "Chú Bảy bảo hoãn. Sao trong kia lại có đèn?",
+      "asrVi": "Từ 7 bảo hoạn, sao trong kia lại có đềng?"
+    },
+    {
+      "id": "CH01-D02",
+      "spoken": "Chỗ này đã đóng cửa từ lâu. Sao lại sáng đèn?",
+      "asrVi": "Tổn này, cái đóng cửa từ lâu, sau lại sáng đềng."
+    },
+    {
+      "id": "CH01-D03",
+      "spoken": "Anh đến trễ rồi.",
+      "asrVi": "và đến tên choi."
+    },
+    {
+      "id": "CH01-D04",
+      "spoken": "Lan…? Không thể nào. Anh đã đến đám tang em.",
+      "asrVi": "Lạng, không thể nào. Anh đã đến đấm ta nghe."
+    },
+    {
+      "id": "CH01-D05",
+      "spoken": "Anh xem giúp em phòng một linh một nhé. Mình nói chuyện sau.",
+      "asrVi": "Anh xem giúp em phòng 1 linh 1 nhé! Mình nói chuyện sau."
+    },
+    {
+      "id": "CH01-D06",
+      "spoken": "Anh đang nhìn nhầm thôi. Chỗ này đã đóng cửa lâu rồi.",
+      "asrVi": "Anh đang nhìn nhầm thôi, chỗ này đã đóng cửa lâu rồi."
+    },
+    {
+      "id": "CH01-D07",
+      "spoken": "Kiểm tra trước khi ký, như hồi đó thôi.",
+      "asrVi": "Tìm tra trước khi ký, nhiều hồi đó côi."
+    },
+    {
+      "id": "CH01-D08",
+      "spoken": "Có người gọi xê không một… À, anh cứ xem phòng một linh một trước.",
+      "asrVi": "Có người gọi xe không một. Ah, anh cứ xem phòng một linh mục trước."
+    },
+    {
+      "id": "CH01-D09",
+      "spoken": "Em còn ca trực. Anh cứ kiểm tra phòng giúp em.",
+      "asrVi": "Em còn cá trực. Anh cứ kiểm tra phòng giúp em."
+    },
+    {
+      "id": "CH01-D10",
+      "spoken": "Vậy là xong…?",
+      "asrVi": "Bởi là xăm."
+    },
+    {
+      "id": "CH01-D11",
+      "spoken": "Chưa đủ căn cứ.",
+      "asrVi": "Chưa bố canh cứ."
+    },
+    {
+      "id": "CH01-D12",
+      "spoken": "Phiếu này không khớp.",
+      "asrVi": "Hữu này không khớp."
+    },
+    {
+      "id": "CH01-D13",
+      "spoken": "Lan? …Lan!",
+      "asrVi": "Lần. Lần."
+    },
+    {
+      "id": "CH01-D14",
+      "spoken": "Không thể nào. Mình vừa đi ra mà…",
+      "asrVi": "Ông thể nào, mình vừa đi ra mà."
+    },
+    {
+      "id": "CH01-D16",
+      "spoken": "Anh nhớ phần anh đã chứng kiến mà. Còn chuyện sau đó, anh đã nghe ai kể?",
+      "asrVi": "Anh nhớ phần anh đã chứng kiến mà. Còn chuyện sau đó, anh đã nghe ai kể."
+    },
+    {
+      "id": "CH01-PA01",
+      "spoken": "Phòng một linh một. Đã xác nhận không còn bệnh nhân chưa bàn giao.",
+      "asrVi": "Phần một lý mụt. Ta sẽ nhận hôm tốn bên nhận chứo bán rau."
+    },
+    {
+      "id": "CH01-PA02",
+      "spoken": "Phòng một linh một. Chờ… xác nhận.",
+      "asrVi": "phần mất đi mất chờ... sạp đi"
+    },
+    {
+      "id": "CH01-PA03",
+      "spoken": "Phòng một linh một. Yêu cầu kiểm tra lại.",
+      "asrVi": "Phần mỗi lý mù, yên tào kiểm tra lại."
+    },
+    {
+      "id": "CH01-PA04",
+      "spoken": "Đề nghị nhân viên hoàn tất ca…",
+      "asrVi": "Để nhận viên quan tất."
+    },
+    {
+      "id": "CH02-D01",
+      "spoken": "Lan? Em nghe thấy anh không?",
+      "asrVi": "Ráng, em nhẹ thấy anh không."
+    },
+    {
+      "id": "CH02-D02",
+      "spoken": "Ba giường... nhưng có bốn chỗ cắm.",
+      "asrVi": "vài dường nhưng có 4 trò cắm."
+    },
+    {
+      "id": "CH02-D03",
+      "spoken": "Chú có thấy cửa nhà con không?",
+      "asrVi": "Rủ có thể cựa nhá con không?"
+    },
+    {
+      "id": "CH02-D04",
+      "spoken": "An. Chú sẽ giữ lại cái tên này.",
+      "asrVi": "Ăn, chú sẽ dữ lại cái tên này."
+    },
+    {
+      "id": "CH02-D05",
+      "spoken": "Phòng này không có bệnh nhân. Yêu cầu rời khỏi khu vực.",
+      "asrVi": "Phong này không có bệnh nhân, yêu cầu dời khói khu vực."
+    }
+  ],
+  "focusedComparison": {
+    "checkpoint": "ggml-small-q5_1 SHA-256 ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb",
+    "lines": [
+      {
+        "id": "CH01-D03",
+        "thisBuild": "Anh đến trễ rồi.",
+        "previousBuild": "Anh đến chơi rồi."
+      },
+      {
+        "id": "CH01-D10",
+        "thisBuild": "Bởi là xâm.",
+        "previousBuild": "Vậy là xong"
+      },
+      {
+        "id": "CH01-PA01",
+        "thisBuild": "Pham mục linh mục, ta sạch niên không đồn bình yên cho bàn lau.",
+        "previousBuild": "Thoan 100 linh 1 đã xác nhận không còn bệnh nhân chưa bản rào."
+      },
+      {
+        "id": "CH01-PA02",
+        "thisBuild": "Pham mục lý mục, chờ, sạch yên.",
+        "previousBuild": "Hôm 1.1. chờ 3 năm"
+      },
+      {
+        "id": "CH01-PA03",
+        "thisBuild": "Pham mô lím mô, lê tao kiến chá lái.",
+        "previousBuild": "Hôm 1-1-1 yêu cầu kiểm tra lại"
+      },
+      {
+        "id": "CH01-PA04",
+        "thisBuild": "Để nhận bien quan tâm ta",
+        "previousBuild": "Để nghĩ nhanh viên hoàn tất cả."
+      },
+      {
+        "id": "CH02-D03",
+        "thisBuild": "Chủ có thể cửa nhà con không?",
+        "previousBuild": "Chủ có thể cửa nhà con thùng."
+      }
+    ]
+  }
+}

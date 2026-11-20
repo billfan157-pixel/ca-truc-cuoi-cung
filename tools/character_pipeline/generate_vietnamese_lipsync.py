@@ -6,9 +6,10 @@ facial performance tracks synchronized to each VO WAV clip's real acoustic timel
 Outputs:
 - Prototype/Assets/CTCC/Art/Resources/CTCC/LipSync/<LineId>.json  (30 Hz co-articulated viseme + brow + jaw + nod curves)
 - ArtSource/Animation/LipSync/<LineId>.json                       (editable archive copy)
-- output/m2c/lipsync-verification.png                             (spectrogram/waveform + aligned Vietnamese syllable verification)
+- output/m2c/lipsync-verification.png                             (overridable with --evidence-dir)
 """
 
+import argparse
 import json
 import hashlib
 import math
@@ -459,7 +460,7 @@ def align_line(line_id: str, speaker: str, text: str, wav_path: Path):
     return track, sig, sr, aligned_debug
 
 
-def render_verification_plot(samples_debug):
+def render_verification_plot(samples_debug, evidence_dir=EVIDENCE_DIR):
     """Render visual waveform + aligned Vietnamese syllables + viseme curves for QA evidence."""
     w, row_h = 1500, 215
     h = 74 + len(samples_debug) * row_h
@@ -520,13 +521,13 @@ def render_verification_plot(samples_debug):
             if len(pts) >= 2:
                 draw.line(pts, fill=col, width=2)
 
-    EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
-    out = EVIDENCE_DIR / "lipsync-verification.png"
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    out = evidence_dir / "lipsync-verification.png"
     im.save(out, optimize=True)
     print(f"[LIPSYNC] Saved visual verification plot -> {out}")
 
 
-def main():
+def main(evidence_dir=EVIDENCE_DIR):
     raw = json.loads(DIALOGUE_JSON.read_text(encoding="utf-8"))
     entries = {e["id"]: e for e in raw["entries"]}
     # Hard LOCK-V22-02 guard
@@ -543,7 +544,7 @@ def main():
     character_lines = [
         ("CH01-D03", "Lan", clean_quote("CH01-D03")),
         ("CH01-D05", "Lan", clean_quote("CH01-D05")),
-        ("CH01-D06", "Lan", clean_quote("CH01-D06")),
+        ("CH01-D06", "Minh", clean_quote("CH01-D06")),
         ("CH01-D07", "Lan", clean_quote("CH01-D07")),
         ("CH01-D08", "Lan", clean_quote("CH01-D08")),
         ("CH01-D09", "Lan", clean_quote("CH01-D09")),
@@ -570,8 +571,10 @@ def main():
             debug_plot_items.append((track, sig, sr, dbg))
 
     if debug_plot_items:
-        render_verification_plot(debug_plot_items)
+        render_verification_plot(debug_plot_items, evidence_dir)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--evidence-dir", type=Path, default=EVIDENCE_DIR)
+    main(parser.parse_args().evidence_dir)

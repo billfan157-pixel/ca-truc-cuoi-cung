@@ -1,0 +1,5 @@
+FAIL: System.InvalidOperationException: W moves the real capsule
+  at CTCC.HospitalGame+<InputVisit>d__22.MoveNext () [0x00feb] in <eb88bae9d0454510b5139bb1e52770b9>:0
+  at CTCC.HospitalGame+<FinishVerification>d__63.MoveNext () [0x00058] in <eb88bae9d0454510b5139bb1e52770b9>:0
+RESULT=FAIL
+windows_process_exit=-1073741819 (0xC0000005)

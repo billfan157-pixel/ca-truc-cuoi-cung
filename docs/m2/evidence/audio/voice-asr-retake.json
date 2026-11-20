@@ -1,0 +1,37 @@
+{
+  "engine": "whisper.cpp v1.9.2 CPU",
+  "checkpoint": "ggml-base-q5_1.bin SHA-256 422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898",
+  "input": "mastered WAV, resampled at 16 kHz, no prompt",
+  "lines": [
+    {
+      "id": "CH01-D10",
+      "spoken": "Vậy là xong?",
+      "asrFirstMix": "Bởi là xăm.",
+      "asrFinalMix": "Bây là sống."
+    },
+    {
+      "id": "CH01-PA01",
+      "spoken": "Phòng một linh một. Đã xác nhận không còn bệnh nhân chưa bàn giao.",
+      "asrFirstMix": "Phần một lý mụt. Ta sẽ nhận hôm tốn bên nhận chứo bán rau.",
+      "asrFinalMix": "phòng một linh một đã sắc nhận không còn bệnh nhân chưa bản rau."
+    },
+    {
+      "id": "CH01-PA02",
+      "spoken": "Phòng một linh một. Chờ… xác nhận.",
+      "asrFirstMix": "phần mất đi mất chờ... sạp đi",
+      "asrFinalMix": "phòng 1 linh một chờ sát nhận."
+    },
+    {
+      "id": "CH01-PA03",
+      "spoken": "Phòng một linh một. Yêu cầu kiểm tra lại.",
+      "asrFirstMix": "Phần mỗi lý mù, yên tào kiểm tra lại.",
+      "asrFinalMix": "phòng 1 líng 1, yêu cầu kiểm tra lại."
+    },
+    {
+      "id": "CH01-PA04",
+      "spoken": "Đề nghị nhân viên hoàn tất ca…",
+      "asrFirstMix": "Để nhận viên quan tất.",
+      "asrFinalMix": "Để nhìn viên khoảng tất cả."
+    }
+  ]
+}

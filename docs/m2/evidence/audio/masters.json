@@ -1,0 +1,461 @@
+{
+  "sampleRateHz": 48000,
+  "numpy": "2.5.5",
+  "scipy": "1.16.3",
+  "voiceTakes": {
+    "sdk": "3.8.5",
+    "modelRevision": "61b85e3d937fbbacb387714180e8182823512523",
+    "takes": {
+      "CH01-D01": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Chú Bảy bảo hoãn. Sao trong kia lại có đèn?",
+        "precision": "fp32"
+      },
+      "CH01-D02": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Chỗ này đã đóng cửa từ lâu. Sao lại sáng đèn?",
+        "precision": "fp32"
+      },
+      "CH01-D03": {
+        "role": "lan",
+        "preset": "Thục Đoan",
+        "spoken": "Anh đến trễ rồi.",
+        "precision": "fp32"
+      },
+      "CH01-D04": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Lan…? Không thể nào. Anh đã đến đám tang em.",
+        "precision": "fp32"
+      },
+      "CH01-D05": {
+        "role": "lan",
+        "preset": "Thục Đoan",
+        "spoken": "Anh xem giúp em phòng một linh một nhé. Mình nói chuyện sau.",
+        "precision": "fp32"
+      },
+      "CH01-D06": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Anh đang nhìn nhầm thôi. Chỗ này đã đóng cửa lâu rồi.",
+        "precision": "fp32"
+      },
+      "CH01-D07": {
+        "role": "lan",
+        "preset": "Thục Đoan",
+        "spoken": "Kiểm tra trước khi ký, như hồi đó thôi.",
+        "precision": "fp32"
+      },
+      "CH01-D08": {
+        "role": "lan",
+        "preset": "Thục Đoan",
+        "spoken": "Có người gọi xê không một… À, anh cứ xem phòng một linh một trước.",
+        "precision": "fp32"
+      },
+      "CH01-D09": {
+        "role": "lan",
+        "preset": "Thục Đoan",
+        "spoken": "Em còn ca trực. Anh cứ kiểm tra phòng giúp em.",
+        "precision": "fp32"
+      },
+      "CH01-D10": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Vậy là xong?",
+        "precision": "int8"
+      },
+      "CH01-D11": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Chưa đủ căn cứ.",
+        "precision": "fp32"
+      },
+      "CH01-D12": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Phiếu này không khớp.",
+        "precision": "fp32"
+      },
+      "CH01-D13": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Lan? …Lan!",
+        "precision": "fp32"
+      },
+      "CH01-D14": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Không thể nào. Mình vừa đi ra mà…",
+        "precision": "fp32"
+      },
+      "CH01-D16": {
+        "role": "lan",
+        "preset": "Thục Đoan",
+        "spoken": "Anh nhớ phần anh đã chứng kiến mà. Còn chuyện sau đó, anh đã nghe ai kể?",
+        "precision": "fp32"
+      },
+      "CH02-D01": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Lan? Em nghe thấy anh không?",
+        "precision": "fp32"
+      },
+      "CH02-D02": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "Ba giường... nhưng có bốn chỗ cắm.",
+        "precision": "fp32"
+      },
+      "CH02-D03": {
+        "role": "an",
+        "preset": "Ngọc Trân",
+        "spoken": "Chú có thấy cửa nhà con không?",
+        "precision": "fp32"
+      },
+      "CH02-D04": {
+        "role": "minh",
+        "preset": "Thái Sơn",
+        "spoken": "An. Chú sẽ giữ lại cái tên này.",
+        "precision": "fp32"
+      },
+      "CH02-D05": {
+        "role": "gatekeeper",
+        "preset": "Đức Trí",
+        "spoken": "Phòng này không có bệnh nhân. Yêu cầu rời khỏi khu vực.",
+        "precision": "fp32"
+      },
+      "CH01-PA01": {
+        "role": "pa",
+        "preset": "Minh Đức",
+        "spoken": "Phòng một linh một. Đã xác nhận không còn bệnh nhân chưa bàn giao.",
+        "precision": "int8"
+      },
+      "CH01-PA02": {
+        "role": "pa",
+        "preset": "Minh Đức",
+        "spoken": "Phòng một linh một. Chờ… xác nhận.",
+        "precision": "int8"
+      },
+      "CH01-PA03": {
+        "role": "pa",
+        "preset": "Minh Đức",
+        "spoken": "Phòng một linh một. Yêu cầu kiểm tra lại.",
+        "precision": "int8"
+      },
+      "CH01-PA04": {
+        "role": "pa_cut",
+        "preset": "Minh Đức",
+        "spoken": "Đề nghị nhân viên hoàn tất ca…",
+        "precision": "int8"
+      }
+    }
+  },
+  "assets": {
+    "Rain": {
+      "seconds": 30.0,
+      "rmsDbfs": -29.03,
+      "peakDbfs": -13.24,
+      "truePeakDbtpApprox": -13.13,
+      "loopSeamDeltaDbfs": -36.74,
+      "sha256": "d6de6965e7edff384dc0900e2432de93bba27f323d3b1123a1611ae1c9877795"
+    },
+    "Roof": {
+      "seconds": 30.0,
+      "rmsDbfs": -29.03,
+      "peakDbfs": -14.25,
+      "truePeakDbtpApprox": -14.24,
+      "loopSeamDeltaDbfs": -41.39,
+      "sha256": "34cd44eb077568d91c1b42b194641e8058f18881b0a61a67cc346f159f80dc03"
+    },
+    "Rumble": {
+      "seconds": 30.0,
+      "rmsDbfs": -33.01,
+      "peakDbfs": -17.57,
+      "truePeakDbtpApprox": -17.57,
+      "loopSeamDeltaDbfs": -61.31,
+      "sha256": "a3cdc457793477ed68abb2fe66db000e3a046255a75d410f2036493e72b1f1b4"
+    },
+    "Drips": {
+      "seconds": 30.0,
+      "rmsDbfs": -33.34,
+      "peakDbfs": -7.65,
+      "truePeakDbtpApprox": -7.65,
+      "loopSeamDeltaDbfs": -75.83,
+      "sha256": "33a59f56a0c7e91ca3b2d9f489623bac345f19a7d8b21ce0de5420823c41625a"
+    },
+    "Fan": {
+      "seconds": 30.0,
+      "rmsDbfs": -33.01,
+      "peakDbfs": -17.92,
+      "truePeakDbtpApprox": -17.92,
+      "loopSeamDeltaDbfs": -54.99,
+      "sha256": "af23df1ba58bedf49f6f39961c81b7533ecff6d14be9b5b91b620560b474cd61"
+    },
+    "Tube": {
+      "seconds": 30.0,
+      "rmsDbfs": -33.01,
+      "peakDbfs": -19.96,
+      "truePeakDbtpApprox": -19.96,
+      "loopSeamDeltaDbfs": -55.75,
+      "sha256": "888c93836a2884a8a9aabb96d566298e1a607ad45b66701153b482b8278df7eb"
+    },
+    "EmergencyHum": {
+      "seconds": 30.0,
+      "rmsDbfs": -33.01,
+      "peakDbfs": -18.86,
+      "truePeakDbtpApprox": -18.85,
+      "loopSeamDeltaDbfs": -62.25,
+      "sha256": "3b91ed22e1b8278fc6c8d1d03fa86e1fd0e74bbab0a92ed7334022a8e31a0bd0"
+    },
+    "KeyJingle": {
+      "seconds": 1.1,
+      "rmsDbfs": -24.35,
+      "peakDbfs": -6.48,
+      "truePeakDbtpApprox": -6.47,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "6a4f5df45ef9a06002eb48aa9072686fa2c56222abcfe07b5b4103f1d553bd3b"
+    },
+    "TrolleyRoll": {
+      "seconds": 2.7,
+      "rmsDbfs": -24.17,
+      "peakDbfs": -8.66,
+      "truePeakDbtpApprox": -8.65,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "fc94e2fbd2f037f58e9a9f11d928d905deb9f67d52851c8947ff415e46a1b10d"
+    },
+    "Slipper": {
+      "seconds": 0.49,
+      "rmsDbfs": -24.28,
+      "peakDbfs": -8.54,
+      "truePeakDbtpApprox": -8.54,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "404d73443f24d890ec9e3c2a57bb8b5ca00dda78cff7bb3912b76120ddcfe872"
+    },
+    "MUS_LanMotif": {
+      "seconds": 10.5,
+      "rmsDbfs": -25.15,
+      "peakDbfs": -11.2,
+      "truePeakDbtpApprox": -11.19,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "3214c43a667a805d48e9407521668daa7334186c5d87f2735bf19a69fd464209"
+    },
+    "CH01-D01": {
+      "seconds": 2.766,
+      "rmsDbfs": -21.25,
+      "peakDbfs": -8.95,
+      "truePeakDbtpApprox": -8.94,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "e4a857d309fd4780f4c9c57a3fb4154103cb243b9821e1007ce3491384234ed2",
+      "rawSha256": "34a75bbf7e43f4a0e090a3c339039950550f5a9639aac0a0f23f0582293ccb9a"
+    },
+    "CH01-D02": {
+      "seconds": 2.967,
+      "rmsDbfs": -21.27,
+      "peakDbfs": -9.17,
+      "truePeakDbtpApprox": -9.17,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "f2a18c3c620e579a58589da9903557f00b4c847c5a820a742a112bb1f4b6b4f4",
+      "rawSha256": "5617de9ff4e1a2f50c9a5fa3c52d7156cbc010c297dc6fcd5588310691cebc54"
+    },
+    "CH01-D03": {
+      "seconds": 1.07,
+      "rmsDbfs": -21.24,
+      "peakDbfs": -8.9,
+      "truePeakDbtpApprox": -8.89,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "ec645b2ffa3c0f84fc705f7ccaac4a8efbf74e57b434a8b8bb8022105a4b6cdd",
+      "rawSha256": "9b26414690d6d75350b1e780ba6f797f323fc2de807fe9963e63763b35a27db8"
+    },
+    "CH01-D04": {
+      "seconds": 3.185,
+      "rmsDbfs": -21.22,
+      "peakDbfs": -9.02,
+      "truePeakDbtpApprox": -9.01,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "a5a068e15f9757c25bad1e9f67e126f245916c77642066190ab456cda5d81ab7",
+      "rawSha256": "d8f6bb2c4e38a5345d374845c5456beb2dfb513147d7092d12da135ad3f44fd0"
+    },
+    "CH01-D05": {
+      "seconds": 3.548,
+      "rmsDbfs": -21.28,
+      "peakDbfs": -9.33,
+      "truePeakDbtpApprox": -9.32,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "aad8169c8a94574b1fd4db61b81e6f3e3af2ef054aa5f11970507e270f89628d",
+      "rawSha256": "bb662624ba62d551fc43fc1d23f48a2d5fbf9f4f012247c6c7a123f1e278a3cb"
+    },
+    "CH01-D06": {
+      "seconds": 3.123,
+      "rmsDbfs": -21.24,
+      "peakDbfs": -9.16,
+      "truePeakDbtpApprox": -9.15,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "ae6e738a1c3c593f91a86334f117401df3ac44dd0e28ec2cc10733a77a013a8f",
+      "rawSha256": "01df6a1c791fe9661607e247309a9d5a4623a15570d70b44e6211a1d31be70be"
+    },
+    "CH01-D07": {
+      "seconds": 2.546,
+      "rmsDbfs": -21.3,
+      "peakDbfs": -9.43,
+      "truePeakDbtpApprox": -9.41,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "3ab9e17cf7f2608ad103cfc14a7f3f4bb8c32530de4e91096a6ab7b33c72b028",
+      "rawSha256": "f717b91be9b14fabbb390c8e75f88ccce92264d58bb8e235e9b77dbf4b99df74"
+    },
+    "CH01-D08": {
+      "seconds": 4.134,
+      "rmsDbfs": -21.26,
+      "peakDbfs": -9.53,
+      "truePeakDbtpApprox": -9.52,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "cde165a3ce93dbedf58bba5b0c92cf70be74c43bf0ca73128cec731c1d7cbd2e",
+      "rawSha256": "7ca011a723867ef0f3428386a309ba5c59f0ce326465c347d753854e195bc8e2"
+    },
+    "CH01-D09": {
+      "seconds": 3.14,
+      "rmsDbfs": -21.33,
+      "peakDbfs": -8.57,
+      "truePeakDbtpApprox": -8.55,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "54e39ccde31747dce6b1e7e6c92ecec2a3c519e940375f298e9dd902907a48d6",
+      "rawSha256": "eef2b7328f49c61b12e8ea69f0deec034e80de610e06795f6ee3b737b210a21b"
+    },
+    "CH01-D10": {
+      "seconds": 0.822,
+      "rmsDbfs": -21.26,
+      "peakDbfs": -9.34,
+      "truePeakDbtpApprox": -9.33,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "4bea91a5928e221364477e826ccbe1e2d3c214b48a2f2a7b4382a2607f26f523",
+      "rawSha256": "095de7e8b2d44d0a4b8b43c33aee4b8c71ffe50a8ff2771963e29204213759d4"
+    },
+    "CH01-D11": {
+      "seconds": 0.898,
+      "rmsDbfs": -21.22,
+      "peakDbfs": -10.65,
+      "truePeakDbtpApprox": -10.65,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "2ea506fadb9d3247a7319d156bbbaf6b65806ff6c7123aa1f9c39322d378aa80",
+      "rawSha256": "e2cf47822ae9f8e30a93342adac6afbcfd796e0a5c7d254d18479e587a24d573"
+    },
+    "CH01-D12": {
+      "seconds": 1.064,
+      "rmsDbfs": -21.21,
+      "peakDbfs": -10.98,
+      "truePeakDbtpApprox": -10.97,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "96178619f59998f9896a3f823bfa2ff04ca858a951a9109f540299c14ec2bc6b",
+      "rawSha256": "d64f410d8d6dfc9ffe30f8e7a65f17817a0b124dfbd0eb625dd77deb4a15f311"
+    },
+    "CH01-D13": {
+      "seconds": 1.188,
+      "rmsDbfs": -21.39,
+      "peakDbfs": -8.65,
+      "truePeakDbtpApprox": -8.64,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "6925541a8a16ce9670ddbc9b0f48da52bce8407460bb1b7c82d9143f4f43097a",
+      "rawSha256": "7526555127706395daf90b8aae5706a6683e007b6045f097158fa777cbaef38f"
+    },
+    "CH01-D14": {
+      "seconds": 2.043,
+      "rmsDbfs": -21.3,
+      "peakDbfs": -8.98,
+      "truePeakDbtpApprox": -8.98,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "142a0872a671bd3561c540c6452a331efcff75126c590cc4cab2dbec61d3c328",
+      "rawSha256": "9b6df67208142e07a68da26c5af8d44c8ea55f12e7d5cc002c215f7056370b2a"
+    },
+    "CH01-D16": {
+      "seconds": 4.169,
+      "rmsDbfs": -21.27,
+      "peakDbfs": -8.71,
+      "truePeakDbtpApprox": -8.7,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "157c2b7170faf6bf2917c1ce23b9ff089a4e7acb44d2f23dd3de87f5c21a0912",
+      "rawSha256": "44b75b80b37fa06e638376b9c492674a79424a899495d2b0b14aa70b6849171d"
+    },
+    "CH01-PA01": {
+      "seconds": 3.93,
+      "rmsDbfs": -19.51,
+      "peakDbfs": -7.97,
+      "truePeakDbtpApprox": -7.96,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "bc9e58f05371ce04f483a23313769d205af90b6a259b196b3429c6db43ec3d3d",
+      "rawSha256": "382eb6f432cf7ecf526b8cbb301ec01ef0d5069de1b2064c2ae3d03d96dc4d01"
+    },
+    "CH01-PA02": {
+      "seconds": 2.202,
+      "rmsDbfs": -19.46,
+      "peakDbfs": -8.45,
+      "truePeakDbtpApprox": -8.45,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "d898670a4bf936f998a7e32f78afc00444d2cc7629530d2843bb5bd2f4699ac6",
+      "rawSha256": "0f7ea7eebc73acdb7ef79b3a7f28f66f6eb643dba4378c3df3b85e4c24126460"
+    },
+    "CH01-PA03": {
+      "seconds": 2.429,
+      "rmsDbfs": -19.44,
+      "peakDbfs": -8.32,
+      "truePeakDbtpApprox": -8.32,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "3bd6f918259bd0fe98abf1a17e6f0437689fda4979e03031fcbe397106f4a4eb",
+      "rawSha256": "85ab46a7233949ff4c6461d8a7d23d26bc194fbc68cc5d113f9f498a9f3c6894"
+    },
+    "CH01-PA04": {
+      "seconds": 1.829,
+      "rmsDbfs": -19.45,
+      "peakDbfs": -8.4,
+      "truePeakDbtpApprox": -8.4,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "d9b6791e6855f55ade883fd77dd09bddff48a09c8147990a3cb77f8baae778da",
+      "rawSha256": "32aeb4070f8fc720a77e0b457dd3b9ebc4adc02e075b1fa25203be9572cb71ac"
+    },
+    "CH02-D01": {
+      "seconds": 1.897,
+      "rmsDbfs": -21.24,
+      "peakDbfs": -9.51,
+      "truePeakDbtpApprox": -9.51,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "a5efd736ac59707620e8386f0c5565e6d27eec0279c84fc5adc120f8bd63cd1b",
+      "rawSha256": "bb5115d862ec4b626e00eabc8cc98836377ff4e879c60877558a90f2df03cae3"
+    },
+    "CH02-D02": {
+      "seconds": 1.928,
+      "rmsDbfs": -21.28,
+      "peakDbfs": -9.57,
+      "truePeakDbtpApprox": -9.56,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "19d373f94e35abf9a33750434d954fc40f76a9265c550dff419230ae1fb5050d",
+      "rawSha256": "6008ed4b56b7bd1e8ae9cb681c9721d9c50c34ae480aa465e35e457fb070b32e"
+    },
+    "CH02-D03": {
+      "seconds": 1.752,
+      "rmsDbfs": -21.25,
+      "peakDbfs": -9.62,
+      "truePeakDbtpApprox": -9.61,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "4c8cfcfe2b7519f19cea2c957681f3c2e76bf8c29863dd335bd3e776a465e15c",
+      "rawSha256": "8c690df9be630bc4687cdbf88d118f7d8fc5ad795e0f0babf8c4ddf7e6f607e1"
+    },
+    "CH02-D04": {
+      "seconds": 2.217,
+      "rmsDbfs": -21.24,
+      "peakDbfs": -9.6,
+      "truePeakDbtpApprox": -9.59,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "8c97cd7997228a36393cb593d6a842e02b05b832f00fea0314df5c610fe4fe2a",
+      "rawSha256": "de51a0b1f404ecdc6735e09331395040e5a9f98c849401cafa861f76ee82488d"
+    },
+    "CH02-D05": {
+      "seconds": 3.738,
+      "rmsDbfs": -21.44,
+      "peakDbfs": -8.27,
+      "truePeakDbtpApprox": -8.26,
+      "loopSeamDeltaDbfs": null,
+      "sha256": "d05891bc0a37e1697bb1f10818f5f7c2d8a655e9b7c772add6e601f9c45364bc",
+      "rawSha256": "5997b505d9b86998d71b069b47c45b1e478abb962de114e9fd30fefd0aeed379"
+    }
+  }
+}

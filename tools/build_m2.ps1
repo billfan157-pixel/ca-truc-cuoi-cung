@@ -100,6 +100,7 @@ if (!$SkipBuild) {
         throw "M2 Windows build failed (exit $rc). See $buildLog."
     }
     Select-String -LiteralPath $buildLog -Pattern '^CTCC_BUILD ' | ForEach-Object { $_.Line }
+    Copy-Item -LiteralPath (Join-Path $project 'ThirdPartyNotices.md') -Destination $outAbs
 
     $revision = & git -C $repo rev-parse HEAD
     $protoDiff = (& git -C $repo status --porcelain -- Prototype) -join ';'

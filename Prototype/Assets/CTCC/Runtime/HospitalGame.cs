@@ -80,6 +80,9 @@ namespace CTCC
             var sheet = JsonUtility.FromJson<DialogueSheet>(lineSheet.text);
             foreach (var entry in sheet.entries)
                 dialogue.Add(entry.id, entry);
+            AddDialogueAlias("CH01-D11", "CH01-D10", 2);
+            AddDialogueAlias("CH01-D12", "CH01-D10", 3);
+            AddDialogueAlias("CH01-D14", "CH01-D13", 2);
             foreach (var condition in sheet.conditions)
                 revealConditions.Add(condition.id, condition);
 
@@ -269,10 +272,7 @@ namespace CTCC
                 TransitionAsync(() => casework.OutsideAttemptAsync(player.Feet), true, () =>
                 {
                     scene.atmosphere?.From("distantThunder", new Vector3(4f, 4f, -18f));
-                    voice?.Speak("CH01-D13", "Minh", Line("CH01-D13", 2), onComplete: heard =>
-                    {
-                        if (heard) voice.Speak("CH01-D14", "Minh", Line("CH01-D14"));
-                    });
+                    voice?.Speak("CH01-D14", "Minh", Line("CH01-D14"));
                 });
                 return;
             }
@@ -302,10 +302,12 @@ namespace CTCC
                 retryAutomaticCheckpointAt = Time.unscaledTime + 2f;
                 SaveCheckpoint(() => casework.RecordAsync("CH02-T02", feet), () =>
                 {
-                    scene.atmosphere?.From("slippers", new Vector3(10.3f, 0.1f, 4.74f));
+                    var slipperPosition = new Vector3(10.3f, 0.1f, 4.74f);
+                    scene.atmosphere?.From("slippers", slipperPosition);
+                    string direction = scene.atmosphere?.DirectionTo(slipperPosition) ?? "phía phòng 101";
                     anDirector?.PlaySlipperGlimpse(Options.reduceMotion);
                     voice?.Speak("CH02-D02", "Minh", Line("CH02-D02"),
-                        directionalPrefix: "[Tiếng dép tổ ong · bên phải — phía phòng 101]");
+                        directionalPrefix: $"[Tiếng dép tổ ong · {direction} · phòng 101]");
                 });
                 return;
             }
@@ -356,8 +358,10 @@ namespace CTCC
         private IEnumerator PlayHe01TrolleyShadow()
         {
             var prop = scene.TrolleyShadowProp;
-            scene.atmosphere?.From("trolleyRoll", new Vector3(4.0f, 0.9f, 16.4f));
-            ui.Caption("[Tiếng xe đẩy cáng lăn chậm sau cửa kính mờ Cấp cứu · phía trước]", 4.5f);
+            var trolleyPosition = new Vector3(4.0f, 0.9f, 16.4f);
+            scene.atmosphere?.From("trolleyRoll", trolleyPosition);
+            string direction = scene.atmosphere?.DirectionTo(trolleyPosition) ?? "khu Cấp cứu";
+            ui.Caption($"[Tiếng xe đẩy cáng lăn sau cửa kính mờ Cấp cứu · {direction}]", 4.5f);
             if (prop == null) yield break;
 
             prop.SetActive(true);
@@ -468,7 +472,7 @@ namespace CTCC
                 case "SEAM":
                     if (!State.Happened("CH01-T09"))
                         TransitionAsync(() => casework.OutsideAttemptAsync(player.Feet), true, () =>
-                            voice?.Speak("CH01-D13", "Minh", Line("CH01-D13", 2)));
+                            voice?.Speak("CH01-D14", "Minh", Line("CH01-D14")));
                     else ui.Caption("Không tìm được đường ra. Trở lại sổ trực.", 5, true);
                     break;
                 case "E10a": Letter(); break;
@@ -477,7 +481,7 @@ namespace CTCC
                     {
                         scene.atmosphere?.From("paper", player.Feet + Vector3.up);
                         lanDirector?.PlayHandoverGesture();
-                        voice?.Speak("CH01-D06", "Lan", Line("CH01-D06"), scene.LanVoiceAnchor, scene.LanActor);
+                        voice?.Speak("CH01-D06", "Minh", Line("CH01-D06"));
                         ui.Toast("PHIẾU BÀN GIAO 101", "Đã nhận bảng kẹp từ Lan. Cửa phòng 101 cuối hành lang bên phải đã mở.", 5f);
                     });
                     break;
@@ -492,7 +496,6 @@ namespace CTCC
                         "Có vết bánh cao su cạnh rèm và dấu đồ dùng đã bị dời đi. Ổ cắm số 4 vẫn gắn trên tường.", () =>
                         {
                             scene.atmosphere?.From("curtainSlide", new Vector3(11.4f, 1.8f, 4.3f), 0.55f);
-                            voice?.Speak("CH01-D10", "Minh", Line("CH01-D10"), essential: false);
                         });
                     break;
                 case "OBS101B":
@@ -576,10 +579,7 @@ namespace CTCC
                 else if (collapsingR)
                 {
                     lanDirector?.StopEncounter(false);
-                    voice?.Speak("CH01-D11", "Minh", Line("CH01-D11"), onComplete: heard =>
-                    {
-                        if (heard) voice.Speak("CH01-D12", "Minh", Line("CH01-D12"));
-                    });
+                    voice?.Speak("CH01-D13", "Minh", Line("CH01-D13"));
                 }
                 else if (startingCh02)
                 {
@@ -729,6 +729,14 @@ namespace CTCC
                 (!revealConditions.TryGetValue(id, out var condition) || condition.HasPrerequisites(state)));
 
         private string Line(string id, int ordinal = 1) => LineAtBeat(id, ordinal, null);
+
+        private void AddDialogueAlias(string id, string groupId, int ordinal)
+        {
+            if (dialogue.ContainsKey(id) || !dialogue.TryGetValue(groupId, out var group) || string.IsNullOrEmpty(group.copy)) return;
+            var quotes = System.Text.RegularExpressions.Regex.Matches(group.copy, "“([^”]+)”");
+            if (ordinal <= quotes.Count)
+                dialogue.Add(id, new DialogueEntry { id = id, chapter = group.chapter, speaker = "Minh", copy = quotes[ordinal - 1].Groups[1].Value });
+        }
 
         private string LineAtBeat(string id, int ordinal, string beat)
         {

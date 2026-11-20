@@ -45,8 +45,61 @@ namespace CTCC
         {
             yield return VerifyDeferredSaveFailure();
             yield return VerifyM2AdditiveAndCharacters();
+            if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifySpatialAudio();
             yield return VerifyKeyboard();
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
+        }
+
+        private IEnumerator VerifySpatialAudio()
+        {
+            var audio = scene.atmosphere;
+            Require(audio != null && audio.slippers != null && audio.trolleyRoll != null, "Directional audio assets wired");
+            yield return Until(() => audio.Listener != null, "audio listener ready");
+
+            Vector3 origin = audio.Listener.position;
+            Vector3 side = audio.Listener.right;
+            Vector3 near = origin + side;
+            Vector3 far = origin - 7f * side;
+            Require(audio.DirectionTo(near) == "bên phải" && audio.DirectionTo(far) == "bên trái", "Relative captions use the camera's facing");
+            var wall = new GameObject("QA audio wall", typeof(BoxCollider));
+            wall.layer = HospitalScene.SolidLayer;
+            wall.transform.position = Vector3.Lerp(origin, near, 0.5f);
+            wall.GetComponent<BoxCollider>().size = Vector3.one * 0.16f;
+            Physics.SyncTransforms();
+
+            try
+            {
+                audio.Apply(new VisitSettings { volume = 0f, sfxVolume = 1f, monoAudio = true });
+                audio.From("slippers", near);
+                audio.From("trolleyRoll", far);
+                AudioSource slipper = null;
+                AudioSource trolley = null;
+                foreach (var source in audio.GetComponentsInChildren<AudioSource>())
+                {
+                    if (source.clip == audio.slippers && source.transform.position == near) slipper = source;
+                    if (source.clip == audio.trolleyRoll && source.transform.position == far) trolley = source;
+                }
+                Require(slipper != null && trolley != null && slipper != trolley &&
+                    slipper.transform.position == near && trolley.transform.position == far,
+                    "Overlapping cue voices keep independent world positions");
+                Require(slipper.GetComponent<AudioLowPassFilter>().cutoffFrequency < 3000f,
+                    "A solid collider between the listener and the cue muffles the cue");
+                Require(slipper.spatialBlend == 0f && trolley.spatialBlend == 0f &&
+                    EnvironmentalAudio.DistanceGain(slipper, audio.Listener) > EnvironmentalAudio.DistanceGain(trolley, audio.Listener),
+                    "Mono centers both cues and keeps near/far falloff");
+                audio.Apply(new VisitSettings { volume = 0f, sfxVolume = 1f, monoAudio = false });
+                Require(slipper.spatialBlend == 1f && trolley.spatialBlend == 1f && AudioListener.volume == 0f,
+                    "Active world cues switch to 3D while master mute is in effect");
+                slipper.Stop();
+                trolley.Stop();
+                verification.Add("AU01 spatial PASS: relative captions, overlapping anchors, collider low-pass, mono falloff, hot stereo switch and master mute.");
+            }
+            finally
+            {
+                wall.SetActive(false);
+                Destroy(wall);
+                audio.Apply(Options);
+            }
         }
 
         private IEnumerator VerifyM2AdditiveAndCharacters()
@@ -89,6 +142,13 @@ namespace CTCC
 
             // 2) LOCK-V22-02 / V22-Q03 runtime VO & transcript guard
             Require(voice != null && !voice.HasClip("CH01-D16b") && !voice.HasClip("CH04-D06"), "Forbidden CH04 VO absent");
+            var expectedReactions = new[] { "Vậy là xong…?", "Chưa đủ căn cứ.", "Phiếu này không khớp." };
+            for (int i = 0; i < expectedReactions.Length; i++)
+            {
+                string id = $"CH01-D{10 + i}";
+                Require(voice.HasClip(id) && Line(id) == expectedReactions[i], "F101 voiced reaction and text match: " + id);
+            }
+            Require(voice.HasClip("CH01-D14") && Line("CH01-D14") == Line("CH01-D13", 2), "Outer gate D14 uses its own matching clip and transcript ID");
             int beforeT = voice.Transcript.Count;
             int blocked = 0;
             foreach (string id in new[] { "CH01-D16b", "CH04-D06" })

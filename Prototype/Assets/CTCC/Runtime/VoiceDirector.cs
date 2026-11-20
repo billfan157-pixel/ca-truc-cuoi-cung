@@ -44,6 +44,7 @@ namespace CTCC
         private AudioSource fallbackVoice;
         private AudioSource musicSource;
         private AudioSource activeVoice;
+        private bool voiceInWorld;
         private CharacterActor activeSpeaker;
         private EnvironmentalAudio ambience;
         private HospitalUI ui;
@@ -85,6 +86,7 @@ namespace CTCC
             musicSource.playOnAwake = false;
             musicSource.loop = true;
             musicSource.spatialBlend = 0f;
+            musicSource.reverbZoneMix = 0f;
             musicSource.clip = lanMotif;
             musicSource.volume = 0f;
         }
@@ -94,8 +96,7 @@ namespace CTCC
             voiceVolume = Mathf.Clamp01(settings.voiceVolume);
             musicVolume = Mathf.Clamp01(settings.musicVolume >= 0f ? settings.musicVolume : 0.65f);
             monoAudio = settings.monoAudio;
-            if (activeVoice != null)
-                activeVoice.volume = voiceVolume;
+            ApplyVoiceMix();
         }
 
         public bool HasClip(string lineId, string beat = null) => mayDeliver(lineId, beat) && clipMap.ContainsKey(lineId);
@@ -166,6 +167,7 @@ namespace CTCC
                 activeSpeaker = null;
             }
             activeVoice = null;
+            voiceInWorld = false;
             ambience?.SetVoiceDucking(false);
             activeRoutine = null;
             var callback = speechEnded;
@@ -198,9 +200,9 @@ namespace CTCC
             if (clip != null)
             {
                 activeVoice = spatialAnchor != null ? spatialAnchor : fallbackVoice;
+                voiceInWorld = spatialAnchor != null;
                 activeVoice.clip = clip;
-                activeVoice.spatialBlend = (spatialAnchor != null && !monoAudio) ? 0.78f : 0f;
-                activeVoice.volume = voiceVolume;
+                ApplyVoiceMix();
                 activeVoice.Play();
                 if (speakerActor != null)
                 {
@@ -208,7 +210,6 @@ namespace CTCC
                     speakerActor.SetSpeechPaused(paused);
                 }
                 if (paused) activeVoice.Pause();
-                ambience?.SetVoiceDucking(true);
             }
 
             speechEnded = onComplete;
@@ -229,10 +230,23 @@ namespace CTCC
             FinishSpeech(true);
         }
 
+        private bool ApplyVoiceMix()
+        {
+            if (activeVoice == null) return false;
+            activeVoice.spatialBlend = voiceInWorld && !monoAudio ? 1f : 0f;
+            activeVoice.reverbZoneMix = voiceInWorld && !monoAudio ? 0.32f : 0f;
+            float distance = voiceInWorld ? EnvironmentalAudio.DistanceGain(activeVoice, ambience != null ? ambience.Listener : null) : 1f;
+            activeVoice.volume = voiceVolume * (monoAudio ? distance : 1f);
+            bool audible = !paused && activeVoice.isPlaying && voiceVolume * distance > 0.025f;
+            ambience?.SetVoiceDucking(audible);
+            return audible;
+        }
+
         private void Update()
         {
+            bool audible = ApplyVoiceMix();
             if (musicSource == null) return;
-            float goal = musicTarget * musicVolume;
+            float goal = musicTarget * musicVolume * (audible ? 0.71f : 1f);
             musicSource.volume = Mathf.MoveTowards(musicSource.volume, goal, Time.unscaledDeltaTime * 0.25f);
             if (goal <= 0.001f && musicSource.volume <= 0.001f && musicSource.isPlaying)
                 musicSource.Stop();

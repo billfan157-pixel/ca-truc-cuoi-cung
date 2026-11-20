@@ -98,8 +98,10 @@ namespace CTCC
 
             // Phase 1: 2.0 s spatial audio & crimson corridor telegraph (ZERO abrupt jumpscare!)
             Vector3 spawnPos = waypoints != null && waypoints.Length > 0 ? waypoints[0].position : new Vector3(4.0f, 0f, -1.4f);
-            scene.atmosphere?.From("keyJingle", spawnPos + Vector3.up * 1.1f);
-            ui?.Caption("[Tiếng chùm chìa khóa kim loại lạch cạch · phía sau hành lang]", 4.0f, true);
+            var keysPosition = spawnPos + Vector3.up * 1.1f;
+            scene.atmosphere?.From("keyJingle", keysPosition);
+            string direction = scene.atmosphere?.DirectionTo(keysPosition) ?? "hành lang";
+            ui?.Caption($"[Tiếng chùm chìa khóa kim loại lạch cạch · {direction}]", 4.0f, true);
 
             for (float t = 0f; t < 2.0f; t += Time.unscaledDeltaTime)
             {
@@ -118,8 +120,13 @@ namespace CTCC
             string lineText = lineLookup("CH02-D05", 1);
             if (string.IsNullOrWhiteSpace(lineText))
                 lineText = "Phòng này không có bệnh nhân. Yêu cầu rời khỏi khu vực.";
-            voice?.Speak("CH02-D05", "Người giữ cửa", lineText, scene.GatekeeperVoiceAnchor, gk,
-                "[Giọng khàn trầm · phía sau hành lang]");
+            void Warn()
+            {
+                string voiceDirection = scene.atmosphere?.DirectionTo(gk.transform.position) ?? "hành lang";
+                voice?.Speak("CH02-D05", "Người giữ cửa", lineText, scene.GatekeeperVoiceAnchor, gk,
+                    $"[Giọng trầm · {voiceDirection}]");
+            }
+            Warn();
 
             if (story)
             {
@@ -157,8 +164,7 @@ namespace CTCC
                     if (repeatCooldown <= 0f)
                     {
                         repeatCooldown = 7.5f;
-                        voice?.Speak("CH02-D05", "Người giữ cửa", lineText, scene.GatekeeperVoiceAnchor, gk,
-                            "[Gần phía sau · Tiếng chìa khóa]");
+                        Warn();
                     }
                 }
                 else if (toWp.sqrMagnitude > 0.06f)

@@ -407,9 +407,16 @@ namespace CTCC
                             if (State.layer == Reality.B)
                             {
                                 string paId = choice == FormStatus.Affirmed ? "CH01-PA01" : choice == FormStatus.Unverified ? "CH01-PA02" : "CH01-PA03";
-                                scene.atmosphere?.From("paStatic", scene.PaSpeakerAnchor != null ? scene.PaSpeakerAnchor.transform.position : new Vector3(5.5f, 2.6f, 3.35f), 0.6f);
+                                string reaction = choice == FormStatus.Affirmed ? "CH01-D10" : choice == FormStatus.Unverified ? "CH01-D11" : "CH01-D12";
+                                Vector3 paPosition = scene.PaSpeakerAnchor != null ? scene.PaSpeakerAnchor.transform.position : new Vector3(5.5f, 2.6f, 3.35f);
+                                scene.atmosphere?.From("paStatic", paPosition, 0.6f);
+                                string direction = scene.atmosphere?.DirectionTo(paPosition) ?? "ngoài cửa phòng 101";
                                 voice?.Speak(paId, "Loa hành lang", Line(paId), scene.PaSpeakerAnchor,
-                                    directionalPrefix: "[Loa hành lang · phía ngoài cửa phòng 101]");
+                                    directionalPrefix: $"[Loa hành lang · {direction}]", onComplete: heard =>
+                                    {
+                                        if (heard && State.chapter == "CH01" && State.layer == Reality.B && State.f101.current == choice)
+                                            voice.Speak(reaction, "Minh", Line(reaction), essential: false);
+                                    });
                             }
                             else
                             {

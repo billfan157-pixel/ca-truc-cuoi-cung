@@ -1,6 +1,7 @@
 """M0-R Rich Spatial Ambience & Physical Interaction Foley Synthesizer.
 
 All audio clips are 100% original procedural synthesis (clean project ownership, zero external copyrighted audio).
+Legacy renders go to a staging directory. Use master_hospital_audio.py for the current mix.
 Generates:
 - Layered environmental loops: Rain, Roof (corrugated awning), Rumble (distant monsoon thunder/wind),
   Drips (water dripping into basin/wet terrazzo), Fan (ceiling fan blade throb + motor hum),
@@ -20,7 +21,7 @@ import numpy as np
 RATE = 32000
 RNG = np.random.default_rng(704)
 ROOT = Path(__file__).resolve().parents[1]
-DEST = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "Prototype" / "Assets" / "CTCC" / "Art" / "Audio"
+DEST = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "output" / "audio-tools" / "legacy-ambience"
 
 
 def noise(seconds, low, high):
