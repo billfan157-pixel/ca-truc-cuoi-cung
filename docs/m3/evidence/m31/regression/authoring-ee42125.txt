@@ -1,0 +1,22 @@
+CTCC_ROUTE_PASS R / all relevant doors / AP00, AP01, AP02, AP03, AP04, AP05
+CTCC_ROUTE_PASS LOC04 / staff route / AP02, AP05
+CTCC_ROUTE_PASS LOC04 / main route / AP02, AP05
+CTCC_ROUTE_PASS F101 route 2 / AP01, AP02, AP03, AP04
+CTCC_ROUTE_PASS F101 route 3 / AP01, AP02, AP03, AP04
+CTCC_ROUTE_PASS F101 route 4 / AP01, AP02, AP03, AP04
+CTCC_STAIR_S2 point=(7.00, 0.04, 21.17) collider=False found=True nav=(7.00, 0.04, 21.17) fromPrevious=PathComplete
+CTCC_STAIR_S2 point=(7.00, 0.04, 22.10) collider=False found=True nav=(7.00, 0.06, 22.10) fromPrevious=PathComplete
+CTCC_STAIR_S2 point=(7.00, -0.10, 23.03) collider=False found=True nav=(7.00, -0.03, 23.03) fromPrevious=PathComplete
+CTCC_STAIR_S2 point=(7.00, -0.48, 23.96) collider=False found=True nav=(7.00, -0.36, 23.96) fromPrevious=PathComplete
+CTCC_STAIR_S2 point=(7.00, -0.87, 24.89) collider=False found=True nav=(7.00, -0.75, 24.89) fromPrevious=PathComplete
+CTCC_STAIR_S2 point=(7.00, -1.26, 25.82) collider=False found=True nav=(7.00, -1.15, 25.82) fromPrevious=PathComplete
+CTCC_STAIR_S2 point=(7.00, -1.64, 26.75) collider=False found=True nav=(7.00, -1.55, 26.75) fromPrevious=PathComplete
+CTCC_STAIR_S2 point=(7.00, -2.03, 27.68) collider=False found=True nav=(7.00, -1.94, 27.68) fromPrevious=PathComplete
+CTCC_STAIR_S2 point=(7.00, -2.41, 28.61) collider=False found=True nav=(7.00, -2.32, 28.61) fromPrevious=PathComplete
+CTCC_STAIR_S2 point=(7.00, -2.80, 29.54) collider=False found=True nav=(7.00, -2.71, 29.54) fromPrevious=PathComplete
+CTCC_STAIR_S2 point=(7.00, -3.19, 30.47) collider=False found=True nav=(7.00, -3.11, 30.47) fromPrevious=PathComplete
+CTCC_STAIR_S2 point=(7.00, -3.36, 31.40) collider=False found=True nav=(7.00, -3.39, 31.40) fromPrevious=PathComplete
+CTCC_STAIR_S2 point=(7.00, -3.36, 32.33) collider=False found=True nav=(7.00, -3.39, 32.33) fromPrevious=PathComplete
+CTCC_ROUTE_PASS CH03–04 / connected hospital / AP02, AP05, AP06, AN03, AP07, AP08, AP09
+CTCC_GREYBOX_PASS R, three B branches, LOC04 routes, upper and basement safe pads, 0.72 m stretcher
+CTCC_SCENE additive-6regions 385 paired finishes, 469 static objects

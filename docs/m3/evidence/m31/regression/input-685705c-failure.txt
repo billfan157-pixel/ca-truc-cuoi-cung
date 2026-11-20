@@ -1,0 +1,8 @@
+INPUT PASS E11/E12/G02 & CH02-Q05 Door A: physical clues, cabinet, assembly, identification, walking escape and ER ledger.
+INPUT PASS Affirmed: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.
+INPUT PASS E11/E12/G02 & CH02-Q05 Door B: physical clues, cabinet, assembly, identification, walking escape and ER ledger.
+INPUT PASS Unverified: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.
+FAIL: System.InvalidOperationException: Input route from controller reached (4.00, 0.00, 21.35), ended at (3.03, 0.04, 21.35)
+  at CTCC.HospitalGame+<WalkWithInput>d__32.MoveNext () [0x001e7] in <e8d26b76aaaf483da5943cbc2ff9f6ec>:0 
+  at CTCC.HospitalGame+<FinishVerification>d__86.MoveNext () [0x00060] in <e8d26b76aaaf483da5943cbc2ff9f6ec>:0 
+RESULT=FAIL
