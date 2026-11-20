@@ -145,35 +145,216 @@ def rig_oral_cavity(teeth_obj, tongue_obj, rig_obj, teeth_mat, tongue_mat):
     DH.weight_rigid(tongue_obj, rig_obj, "mixamorig:Jaw")
 
 
-def finish_lan_hair(hair_obj, rig_obj, hair_mat, clip_mat):
-    """Configure verified CC0 MakeHuman `ponytail01` tied-back Vietnamese nurse hair + dark-blue enamel barrette."""
+def sculpt_lan_craniofacial_features(human_obj):
+    """Sculpt authentic 23-year-old Vietnamese female craniofacial anatomy on human_obj before shape-key creation.
+
+    Refines:
+    - Palpebral fissure & inter-canthal balance (prevents pinched inner eye corners, opens expressive warm almond eyes)
+    - Supratarsal double-eyelid crease & soft night-shift lower-lid tear-trough cushion
+    - Anterior malar cheek fullness & softened lateral zygomatic arch + smooth oval V-taper jawline
+    - Subtle nasal dorsum, rounded nasal tip/alar crease, defined philtrum columns (`nhân trung`) & natural lip vermilion roll
+    """
+    me = human_obj.data
+    head_verts = [v for v in me.vertices if v.co.z > 1.35]
+    if not head_verts:
+        return
+
+    # Locate exact eye center height & depth from existing orbital vertices
+    eye_region = [v.co for v in head_verts if 0.015 < abs(v.co.x) < 0.048 and v.co.y < -0.065 and 1.45 < v.co.z < 1.53]
+    eye_z = sum(p.z for p in eye_region) / len(eye_region) if eye_region else 1.488
+    eye_y = min(p.y for p in eye_region) if eye_region else -0.088
+    mouth_region = [v.co for v in head_verts if abs(v.co.x) < 0.025 and v.co.y < -0.080 and 1.39 < v.co.z < 1.445]
+    mouth_z = sum(p.z for p in mouth_region) / len(mouth_region) if mouth_region else 1.418
+
+    for v in head_verts:
+        co = v.co
+        x, y, z = co.x, co.y, co.z
+        ax = abs(x)
+        sgn = 1.0 if x >= 0.0 else -1.0
+
+        # 1. Inter-canthal release & almond palpebral aperture balance
+        dz_eye = z - eye_z
+        if y < eye_y + 0.028 and abs(dz_eye) < 0.026 and 0.006 < ax < 0.055:
+            # Gently release inner canthus outward (+1.35 mm) so eyes never look cross-eyed or pinched
+            w_inner = math.exp(-(((ax - 0.016) / 0.008) ** 2) - ((dz_eye / 0.010) ** 2))
+            co.x += sgn * 0.00135 * w_inner
+            # Crisp upper tarsal arch (+0.85 mm lift at mid-pupil, subtle supratarsal crease recession)
+            if dz_eye > 0.0:
+                w_ulid = math.exp(-(((ax - 0.031) / 0.013) ** 2) - (((dz_eye - 0.007) / 0.0055) ** 2))
+                co.z += 0.00085 * w_ulid
+                w_crease = math.exp(-(((ax - 0.031) / 0.014) ** 2) - (((dz_eye - 0.011) / 0.0032) ** 2))
+                co.y += 0.00075 * w_crease
+            else:
+                # Subtle lower-lid aegyo-sal / night-shift tear-trough cushion
+                w_llid = math.exp(-(((ax - 0.030) / 0.013) ** 2) - (((dz_eye + 0.008) / 0.0045) ** 2))
+                co.y -= 0.00045 * w_llid
+
+        # 2. Anterior malar apple fullness & softened lateral zygomatic width
+        if y < -0.025 and 1.415 < z < 1.482:
+            w_malar = math.exp(-(((ax - 0.036) / 0.016) ** 2) - (((z - (eye_z - 0.026)) / 0.020) ** 2))
+            co.y -= 0.0012 * w_malar
+            w_lat_cheek = math.exp(-(((ax - 0.062) / 0.014) ** 2) - (((z - (eye_z - 0.018)) / 0.024) ** 2))
+            co.x -= sgn * 0.0015 * w_lat_cheek
+
+        # 3. Smooth oval Vietnamese V-taper jawline & balanced feminine chin
+        if 1.365 < z < 1.435 and y < -0.010:
+            w_jaw = math.exp(-(((z - 1.398) / 0.026) ** 2)) * max(0.0, min(1.0, (ax - 0.028) / 0.035))
+            co.x -= sgn * 0.0018 * w_jaw
+            w_chin = math.exp(-((ax / 0.018) ** 2) - (((z - (mouth_z - 0.034)) / 0.014) ** 2))
+            if y < -0.070:
+                co.y -= 0.0008 * w_chin
+
+        # 4. Defined philtrum columns (`nhân trung`) & fuller natural lip vermilion tubercle
+        dz_mouth = z - mouth_z
+        if y < -0.078 and abs(dz_mouth) < 0.024 and ax < 0.030:
+            if 0.006 < dz_mouth < 0.020 and ax < 0.012:
+                # Central philtrum dimple groove + twin ridges
+                groove = math.exp(-((ax / 0.0032) ** 2)) - 0.65 * math.exp(-(((ax - 0.0055) / 0.0025) ** 2))
+                w_ph = math.sin(((dz_mouth - 0.006) / 0.014) * math.pi)
+                co.y += 0.00055 * groove * w_ph
+            # Central upper & lower lip vermilion fullness
+            w_lip = math.exp(-((ax / 0.015) ** 2) - ((dz_mouth / 0.0085) ** 2))
+            co.y -= 0.00085 * w_lip
+
+    me.update()
+    print("[SCULPT] Applied 23yo Vietnamese craniofacial anatomical sculpt pass to Lan_Body_Raw")
+
+
+def finish_lan_hair(hair_obj, human_head_obj, rig_obj, hair_mat, clip_mat):
+    """Groom Lan's hair by reshaping CC0 `ponytail01` into a compact low nurse bun + layering 26 arched 3D hair-card ribbons."""
     hair_obj.name = "Lan_Hair_LOD0"
     DH.set_smooth(hair_obj)
     DH.assign_material(hair_obj, hair_mat)
 
-    # Weight crown & hairline rigidly to Head, softly blending lower ponytail tips into Neck so head tilt looks fluid
+    neck_z = rig_obj.data.bones["mixamorig:Neck"].head_local.z
+    head_z = rig_obj.data.bones["mixamorig:Head"].head_local.z
+
+    # 1. Reshape stiff protruding rear ponytail into a neat, compact low occipital nurse bun (`tóc búi thấp gọn gàng`)
+    # and gently soften the front hairline step so layered hair cards blend seamlessly!
+    bun_center = Vector((0.0, 0.096, neck_z + 0.056))
+    for v in hair_obj.data.vertices:
+        co = v.co
+        # Rear ponytail tail behind occiput -> curl & gather into a rounded low nurse chignon/bun
+        if co.y > 0.072 and co.z < head_z + 0.038:
+            t_tail = max(0.0, min(1.0, (co.y - 0.072) / 0.075))
+            rel = co - bun_center
+            # Compress long dangling tail into a neat 6.4cm x 4.6cm x 5.0cm woven bun sphere
+            target_pt = bun_center + Vector((
+                rel.x * (0.78 - 0.22 * t_tail),
+                max(-0.012, min(0.036, rel.y * 0.42)),
+                max(-0.026, min(0.026, (rel.z + 0.022 * t_tail) * 0.48)),
+            ))
+            v.co = co.lerp(target_pt, 0.82 * t_tail)
+        # Front forehead hairline margin -> seat closer to scalp so layered framing cards lead the silhouette
+        elif co.y < -0.055 and co.z > head_z + 0.010:
+            v.co.y += 0.0014
+    hair_obj.data.update()
+
+    # 2. Layer 22 multi-segment arched 3D hair-card ribbons (`build_hair_card_strip`) hugged tightly to the hair cap & hairline BVH
+    cap_bm = bmesh.new()
+    cap_bm.from_mesh(hair_obj.data)
+    bmesh.ops.triangulate(cap_bm, faces=cap_bm.faces)
+    cap_bvh = BVHTree.FromBMesh(cap_bm)
+    cap_bm.free()
+
+    head_bm = bmesh.new()
+    head_bm.from_mesh(human_head_obj.data)
+    bmesh.ops.triangulate(head_bm, faces=head_bm.faces)
+    head_bvh = BVHTree.FromBMesh(head_bm)
+    head_bm.free()
+
+    bm_h = bmesh.new()
+    bm_h.from_mesh(hair_obj.data)
+    uv_h = bm_h.loops.layers.uv.active or bm_h.loops.layers.uv.new("UVMap")
+
+    h_zs = [v.co.z for v in bm_h.verts]
+    crown_z = max(h_zs) - 0.010
+    part_x = -0.012  # natural subtle left-of-center part
+
+    # Layer A: 12 Front Hairline & Temple Framing Locks (tightly hugging the cap & forehead skin with 0.8mm offset!)
+    front_specs = [
+        (-1.0, -0.004, -0.060, -0.048, -0.072, 0.042, -0.068, 0.010, 0.015, 0.008, 0.28, 0.54),
+        (-1.0, -0.012, -0.066, -0.056, -0.066, 0.032, -0.070, -0.002, 0.016, 0.009, 0.30, 0.56),
+        (-1.0, -0.022, -0.070, -0.063, -0.056, 0.022, -0.070, -0.012, 0.015, 0.008, 0.56, 0.78),
+        (-1.0, -0.034, -0.066, -0.067, -0.044, 0.012, -0.066, -0.020, 0.014, 0.007, 0.28, 0.52),
+        (-1.0, -0.044, -0.056, -0.069, -0.030, 0.002, -0.058, -0.026, 0.013, 0.007, 0.56, 0.78),
+        (-1.0, -0.008, -0.072, -0.042, -0.076, 0.046, -0.062, 0.018, 0.012, 0.006, 0.80, 0.98),
+        (1.0, 0.004, -0.060, 0.046, -0.073, 0.042, 0.066, 0.010, 0.015, 0.008, 0.28, 0.54),
+        (1.0, 0.012, -0.067, 0.055, -0.067, 0.032, 0.069, -0.002, 0.016, 0.009, 0.30, 0.56),
+        (1.0, 0.022, -0.070, 0.062, -0.056, 0.022, 0.069, -0.012, 0.015, 0.008, 0.56, 0.78),
+        (1.0, 0.034, -0.066, 0.067, -0.044, 0.012, 0.066, -0.020, 0.014, 0.007, 0.28, 0.52),
+        (1.0, 0.044, -0.056, 0.069, -0.030, 0.002, 0.058, -0.026, 0.013, 0.007, 0.56, 0.78),
+        (1.0, 0.008, -0.072, 0.040, -0.076, 0.046, 0.060, 0.018, 0.012, 0.006, 0.80, 0.98),
+    ]
+    for _sgn, sx, sy, tx, ty, tz_off, ex, ez_off, wr, wt, u0, u1 in front_specs:
+        p0_raw = Vector((part_x + sx, sy, crown_z - 0.008))
+        p1_raw = Vector((tx * 0.75, ty - 0.004, head_z + tz_off + 0.010))
+        p2_raw = Vector((tx, ty, head_z + tz_off))
+        p3_raw = Vector((ex, ty + 0.022, head_z + ez_off))
+        anchors = [p0_raw, p1_raw, p2_raw, p3_raw]
+        pts, nrms = [], []
+        n_seg = 6
+        for k in range(n_seg):
+            u = k / float(n_seg - 1)
+            iu = 1.0 - u
+            raw_p = (anchors[0] * (iu ** 3) + anchors[1] * (3 * u * (iu ** 2)) +
+                     anchors[2] * (3 * (u ** 2) * iu) + anchors[3] * (u ** 3))
+            proj_p, proj_n = DH.project_to_surface(cap_bvh, raw_p, offset_m=0.0008)
+            pts.append(proj_p)
+            nrms.append(proj_n)
+        DH.build_hair_card_strip(bm_h, uv_h, pts, nrms, wr, wt, u0, u1, arch=0.0006)
+
+    # Layer B: 6 Woven Low-Bun Wrap Cards + 4 Delicate Sideburn/Nape Baby-Hair Wisps
+    for bi in range(6):
+        ang0 = (bi / 6.0) * math.tau
+        r_bun = 0.025
+        pts, nrms = [], []
+        for k in range(5):
+            ang = ang0 + (k / 4.0) * 1.35
+            offset = Vector((math.cos(ang) * r_bun, 0.016 + 0.008 * math.sin(k * 0.8), math.sin(ang) * r_bun * 0.85))
+            p = bun_center + offset
+            n = offset.normalized()
+            pts.append(p)
+            nrms.append(n)
+        DH.build_hair_card_strip(bm_h, uv_h, pts, nrms, 0.014, 0.009, 0.04, 0.28, arch=0.0012)
+
+    for sgn in (-1.0, 1.0):
+        for wisp_pts in (
+            [Vector((0.066 * sgn, -0.022, head_z + 0.002)),
+             Vector((0.067 * sgn, -0.024, head_z - 0.015)),
+             Vector((0.064 * sgn, -0.020, head_z - 0.030))],
+            [Vector((0.040 * sgn, 0.056, neck_z + 0.040)),
+             Vector((0.034 * sgn, 0.052, neck_z + 0.020)),
+             Vector((0.028 * sgn, 0.046, neck_z + 0.002))],
+        ):
+            pts, nrms = [], []
+            for rp in wisp_pts:
+                pp, pn = DH.project_to_surface(head_bvh, rp, offset_m=0.0014)
+                pts.append(pp)
+                nrms.append(pn)
+            DH.build_hair_card_strip(bm_h, uv_h, pts, nrms, 0.010, 0.005, 0.80, 0.98, arch=0.0005)
+
+    bmesh.ops.recalc_face_normals(bm_h, faces=list(bm_h.faces))
+    bm_h.to_mesh(hair_obj.data)
+    bm_h.free()
+    hair_obj.data.update()
+    DH.set_smooth(hair_obj)
+
+    # Weight crown & hairline rigidly to Head, softly blending lower bun/nape tips into Neck
     hair_obj.vertex_groups.clear()
     vg_head = hair_obj.vertex_groups.new(name="mixamorig:Head")
     vg_neck = hair_obj.vertex_groups.new(name="mixamorig:Neck")
-    neck_z = rig_obj.data.bones["mixamorig:Neck"].head_local.z
     for v in hair_obj.data.vertices:
-        if v.co.y > 0.04 and v.co.z < neck_z + 0.055:
-            t = max(0.0, min(0.42, (neck_z + 0.055 - v.co.z) / 0.14))
+        if v.co.y > 0.035 and v.co.z < neck_z + 0.048:
+            t = max(0.0, min(0.35, (neck_z + 0.048 - v.co.z) / 0.12))
             vg_head.add([v.index], 1.0 - t, "REPLACE")
             vg_neck.add([v.index], t, "REPLACE")
         else:
             vg_head.add([v.index], 1.0, "REPLACE")
     DH.bind_rig(hair_obj, rig_obj)
 
-    # Measure exact ponytail gather point behind occiput to seat Lan's curved dark-blue enamel nurse barrette cleanly!
-    back_verts = [v.co for v in hair_obj.data.vertices if v.co.y > 0.065 and v.co.z > neck_z + 0.01]
-    if back_verts:
-        tie_y = sorted(p.y for p in back_verts)[int(len(back_verts) * 0.45)]
-        tie_z = sorted(p.z for p in back_verts)[int(len(back_verts) * 0.62)]
-    else:
-        tie_y = 0.095
-        tie_z = neck_z + 0.065
-    clip_center = Vector((0.0, tie_y + 0.008, tie_z))
+    # Seat Lan's curved dark-blue enamel nurse barrette (`Lan_HairClip_LOD0`) clasping the top of the low bun
+    clip_center = bun_center + Vector((0.0, 0.016, 0.012))
 
     bm_c = bmesh.new()
     uv_c = bm_c.loops.layers.uv.new("UVMap")
@@ -390,6 +571,23 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
     bpy.context.view_layer.objects.active = comb_col
     bpy.ops.object.join()
 
+    # Smooth & bridge the raw naked breast cones on `comb_col` into a dignified inner-garment bust bridge
+    # so the woven cotton nurse coat NEVER vacuum-clings into cleavage or under-bust during cloth simulation!
+    for v in comb_col.data.vertices:
+        co = v.co
+        if 0.88 <= co.z <= 1.28 and co.y < -0.01 and abs(co.x) < 0.175:
+            wz = math.sin(max(0.0, min(1.0, (co.z - 0.88) / 0.40)) * math.pi)
+            wx = max(0.0, 1.0 - (abs(co.x) / 0.175) ** 2)
+            # Smooth convex inner-garment support envelope across sternum, bust & under-bust
+            bridge_y = -0.130 + 0.024 * ((abs(co.x) / 0.165) ** 2) + 0.012 * abs(co.z - 1.12) / 0.20
+            if co.y < bridge_y:
+                # Compress sharp naked nipple cones back into smooth inner support
+                co.y = co.y * (1.0 - 0.85 * wz) + bridge_y * (0.85 * wz)
+            else:
+                # Bridge the recessed sternum valley & under-bust hollow smoothly forward
+                co.y = co.y + (bridge_y - co.y) * (0.90 * wz * wx)
+    comb_col.data.update()
+
     # ------------------------------------------------------------------
     # STAGE 3: CONTINUOUS-SHOULDER 2005 VIETNAMESE NURSE BLOUSE (`ÁO BLOUSE`)
     # ------------------------------------------------------------------
@@ -399,7 +597,10 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
     neck_base_z = rig_obj.data.bones["mixamorig:Neck"].head_local.z
 
     def blouse_pred(c, f):
-        if c.z < 0.675 or c.z > neck_base_z + 0.028:
+        if c.z < 0.675 or c.z > neck_base_z + 0.014:
+            return False
+        # Carve a natural V-neck throat notch in the front center so no horizontal bar crosses the throat!
+        if c.y < -0.035 and abs(c.x) < 0.044 and c.z > neck_base_z - 0.028 * (1.0 - abs(c.x) / 0.044):
             return False
         # Exclude forearms/hands past 3/4 nurse sleeve cutoff
         if abs(c.x) > sleeve_cutoff_x:
@@ -411,11 +612,9 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
 
     def blouse_flare(co, nrm):
         extra = Vector((0.0, 0.0, 0.0))
-        # Tailored ease over chest/waist -> clean open A-line coat skirt over hips (zero crotch pinch!)
         if abs(co.x) < 0.215:
             if co.z < 1.02:
                 t_hip = max(0.0, min(1.0, (1.02 - co.z) / 0.34))
-                # Push lower skirt outward onto a clean open elliptical perimeter around (0, -0.02)!
                 rad = Vector((co.x, co.y + 0.02, 0.0))
                 if rad.length > 0.01:
                     rad_n = rad.normalized()
@@ -430,22 +629,19 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
                     extra += nrm * (0.018 + 0.024 * t_hip)
             else:
                 extra += nrm * 0.010
-            # Dignified loose-draping Vietnamese medical coat front (bridges cleanly across sternum & under-bust,
-            # never vacuum-clinging like spandex!)
-            if 0.96 <= co.z <= 1.24 and co.y < -0.02 and abs(co.x) < 0.155:
-                # Smoothly push recessed sternum & under-bust plane forward to match tailored cotton coat drape
-                target_y = -0.145 + 0.018 * abs(co.x / 0.155) ** 2 + 0.012 * max(0.0, (1.05 - co.z) / 0.09)
-                if co.y > target_y:
-                    w_z = math.sin(max(0.0, min(1.0, (co.z - 0.96) / 0.28)) * math.pi)
-                    w_x = max(0.0, 1.0 - (abs(co.x) / 0.155) ** 2)
-                    extra.y += (target_y - co.y) * 0.78 * w_z * w_x
+            # Dignified loose-draping Vietnamese medical coat front (bridges cleanly across sternum & under-bust)
+            if 0.88 <= co.z <= 1.26 and co.y < -0.02 and abs(co.x) < 0.165:
+                target_y = -0.142 + 0.024 * (abs(co.x) / 0.160) ** 2 + 0.010 * max(0.0, (1.06 - co.z) / 0.12)
+                w_z = math.sin(max(0.0, min(1.0, (co.z - 0.88) / 0.38)) * math.pi)
+                w_x = max(0.0, 1.0 - (abs(co.x) / 0.165) ** 2)
+                extra.y += (target_y - co.y) * 0.88 * w_z * w_x
         else:
             extra += nrm * 0.012
         return extra
 
     blouse = DH.extract_garment_shell_from_body(
         body_clean_copy, "Lan_Blouse", blouse_pred,
-        offset_m=0.008, smooth_iters=10, subdiv_levels=0, flare_fn=blouse_flare, uv_scale=2.4,
+        offset_m=0.008, smooth_iters=14, subdiv_levels=0, flare_fn=blouse_flare, uv_scale=2.4,
     )
 
     # Assign material slots: 0 = NurseBlouse, 1 = NurseTrim (pale-blue MoH 1895/1997 trim!)
@@ -453,51 +649,22 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
     blouse.data.materials.append(mats["NurseBlouse"])
     blouse.data.materials.append(mats["NurseTrim"])
 
-    # Extrude seamless standing Mandarin collar (`cổ tàu`) directly from neckline boundary loop
-    # AND mark sleeve cuff trim rings with NurseTrim!
     bm_b = bmesh.new()
     bm_b.from_mesh(blouse.data)
     uv_b = bm_b.loops.layers.uv.active or bm_b.loops.layers.uv.new("UVMap")
     bm_b.edges.ensure_lookup_table()
     bm_b.faces.ensure_lookup_table()
 
-    # Smooth the neckline boundary ring vertically so collar sits evenly around Lan's neck!
+    # Smooth the open V-neckline boundary ring before cloth simulation (folded collar is attached post-sim in Stage 4!)
     neck_edges = [
         e for e in bm_b.edges
         if e.is_boundary
-        and all(v.co.z > neck_base_z - 0.045 and abs(v.co.x) < 0.12 for v in e.verts)
+        and all(v.co.z > neck_base_z - 0.055 and abs(v.co.x) < 0.125 for v in e.verts)
     ]
     if neck_edges:
         neck_verts = list({v for e in neck_edges for v in e.verts})
-        mean_nz = sum(v.co.z for v in neck_verts) / len(neck_verts)
-        for v in neck_verts:
-            # Slightly lower in front (-Y) for comfortable open throat notch, slightly higher at back nape
-            dip = -0.012 * max(0.0, -v.co.y / 0.07)
-            v.co.z = v.co.z * 0.35 + (mean_nz + dip) * 0.65
-
-        # Extrude collar upward in 2 clean quad rings (base white + top pale-blue piping trim!)
-        cur_edges = neck_edges
-        for ring_i, (dz, dr, mat_idx) in enumerate(((0.019, 0.003, 0), (0.012, 0.002, 1))):
-            ret = bmesh.ops.extrude_edge_only(bm_b, edges=cur_edges)
-            new_verts = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMVert)]
-            new_edges = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMEdge) and all(v in new_verts for v in g.verts)]
-            new_faces = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMFace)]
-            for v in new_verts:
-                rad = Vector((v.co.x, v.co.y + 0.015, 0.0))
-                if rad.length > 1e-4:
-                    rad.normalize()
-                v.co += Vector((rad.x * dr, rad.y * dr, dz))
-            for f in new_faces:
-                f.smooth = True
-                f.material_index = mat_idx
-                for l in f.loops:
-                    l[uv_b].uv = (0.5 + l.vert.co.x * 4.0, l.vert.co.z * 3.0)
-            cur_edges = new_edges
-
-        # Smooth collar ring cleanly around neck so standing collar (`cổ tàu`) stays crisp & tailored with zero pinch!
-        collar_all = [v for v in bm_b.verts if v.co.z >= mean_nz - 0.018 and abs(v.co.x) < 0.11]
         for _ in range(4):
-            bmesh.ops.smooth_vert(bm_b, verts=collar_all, factor=0.40, use_axis_x=True, use_axis_y=True, use_axis_z=False)
+            bmesh.ops.smooth_vert(bm_b, verts=neck_verts, factor=0.45, use_axis_x=True, use_axis_y=True, use_axis_z=True)
 
     # Extrude crisp pale-blue cuff trim band on both 3/4 sleeve boundary loops!
     for sgn in (-1.0, 1.0):
@@ -511,7 +678,6 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
             new_verts = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMVert)]
             new_faces = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMFace)]
             for v in new_verts:
-                # Extend ~1.6cm cleanly along the A-pose forearm axis!
                 v.co += Vector((sgn * 0.012, -0.002, -0.011))
             for f in new_faces:
                 f.smooth = True
@@ -527,18 +693,26 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
     # Run real Blender Cloth Simulation on the continuous-shoulder blouse over `_LanCombinedCollider`!
     vg_bpin = blouse.vertex_groups.new(name="Pin")
     for v in blouse.data.vertices:
-        # Pin upper yoke, collar & shoulder cap smoothly; let bust/waist/skirt hem & sleeves drape naturally!
-        if v.co.z >= neck_base_z - 0.085 and abs(v.co.x) < 0.24:
+        if v.co.z >= neck_base_z - 0.090 and abs(v.co.x) < 0.24:
             vg_bpin.add([v.index], 1.0, "REPLACE")
-        elif abs(v.co.x) >= 0.22:
-            # Gently stabilize upper arm sleeve while letting lower sleeve fabric settle softly
-            w_s = max(0.0, min(0.85, (1.28 - abs(v.co.z - 1.24)) * 0.35))
-            if v.co.z > 1.18:
-                vg_bpin.add([v.index], 0.85, "REPLACE")
-    DH.run_cloth_simulation(blouse, comb_col, "Pin", frames=24, mass=0.25, tension=20.0, bending=1.5)
+        elif 0.90 <= v.co.z <= neck_base_z - 0.090 and v.co.y < -0.03 and abs(v.co.x) < 0.155:
+            vg_bpin.add([v.index], 0.80, "REPLACE")
+        elif abs(v.co.x) >= 0.22 and v.co.z > 1.18:
+            vg_bpin.add([v.index], 0.85, "REPLACE")
+    DH.run_cloth_simulation(blouse, comb_col, "Pin", frames=24, mass=0.25, tension=24.0, bending=2.4)
     blouse.vertex_groups.clear()
 
-    # Apply subtle clean cloth thickness (2.2 mm) so collar, hem & cuffs have solid tailored edges!
+    # Post-sim Sternum & Bust Tension Bridge Pass: guarantees woven cotton poplin bridges smoothly across the front chest
+    for v in blouse.data.vertices:
+        co = v.co
+        if 0.88 <= co.z <= 1.25 and co.y < -0.03 and abs(co.x) < 0.160:
+            wz = math.sin(max(0.0, min(1.0, (co.z - 0.88) / 0.37)) * math.pi)
+            wx = max(0.0, 1.0 - (abs(co.x) / 0.160) ** 2)
+            coat_front_y = -0.143 + 0.024 * ((abs(co.x) / 0.155) ** 2) + 0.012 * ((co.z - 1.12) / 0.18) ** 2
+            co.y = co.y * (1.0 - 0.88 * wz * wx) + coat_front_y * (0.88 * wz * wx)
+    blouse.data.update()
+
+    # Apply subtle clean cloth thickness (2.2 mm) so hem & cuffs have solid tailored edges!
     bpy.ops.object.select_all(action="DESELECT")
     blouse.select_set(True)
     bpy.context.view_layer.objects.active = blouse
@@ -551,15 +725,85 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
     bpy.data.objects.remove(comb_col, do_unlink=True)
 
     # ------------------------------------------------------------------
-    # STAGE 4: POST-SIM SURFACE-CONFORMED PLACKET, BUTTONS, POCKETS & ID BADGE
+    # STAGE 4: POST-SIM FOLDED NURSE COLLAR, PLACKET, BUTTONS, POCKETS & FLAT RIGID ID BADGE
     # ------------------------------------------------------------------
     blouse_bvh = BVHTree.FromObject(blouse, bpy.context.evaluated_depsgraph_get())
     detail_objs = []
 
+    # Post-Sim Parametric 28-Segment Folded Vietnamese Nurse Collar (`cổ bẻ áo blouse điều dưỡng viền xanh`
+    # per MoH 1895/1997/QĐ-BYT): built post-sim so cloth physics never crumples the crisp folded collar leaf!
+    bm_col = bmesh.new()
+    uv_col = bm_col.loops.layers.uv.new("UVMap")
+    n_col = 28
+    col_rings = []
+    # Angles from left front lapel (-54 deg from +X, i.e. x>0, y<0) around back (+pi/2, y>0) to right front lapel (+234 deg, x<0, y<0)
+    ang_start = -math.radians(52.0)
+    ang_end = math.pi + math.radians(52.0)
+    neck_cy = -0.012
+    for ri in range(5):
+        ring_vs = []
+        for ci in range(n_col + 1):
+            uf = ci / float(n_col)
+            theta = ang_start + (ang_end - ang_start) * uf
+            back_w = math.sin(uf * math.pi)
+            front_w = 1.0 - back_w
+            rx0, ry0 = 0.056, 0.054
+            dx = math.cos(theta)
+            dy = math.sin(theta)
+            base_z = neck_base_z + 0.002 - 0.018 * front_w
+            if ri == 0:
+                r_scale, dz = 1.00, -0.006
+            elif ri == 1:
+                r_scale, dz = 0.98, 0.012 + 0.005 * back_w
+            elif ri == 2:
+                r_scale, dz = 1.05, 0.022 + 0.006 * back_w
+            elif ri == 3:
+                # Folded outer collar leaf flaring cleanly onto shoulders & pointing toward front V-lapels
+                r_scale = 1.30 + 0.14 * front_w
+                dz = 0.002 - 0.010 * front_w
+            else:
+                # 4.5 mm pale-blue piping border (`NurseTrim`, material index 1)
+                r_scale = 1.38 + 0.17 * front_w
+                dz = -0.003 - 0.013 * front_w
+            px = dx * rx0 * r_scale
+            py = neck_cy + dy * ry0 * r_scale
+            pz = base_z + dz
+            ring_vs.append(bm_col.verts.new(Vector((px, py, pz))))
+        col_rings.append(ring_vs)
+
+    for ri in range(4):
+        mat_idx = 1 if ri == 3 else 0
+        for ci in range(n_col):
+            v00, v01 = col_rings[ri][ci], col_rings[ri][ci + 1]
+            v11, v10 = col_rings[ri + 1][ci + 1], col_rings[ri + 1][ci]
+            f = bm_col.faces.new((v00, v01, v11, v10))
+            f.smooth = True
+            f.material_index = mat_idx
+            u0, u1 = ci / float(n_col), (ci + 1) / float(n_col)
+            v0, v1 = ri / 4.0, (ri + 1) / 4.0
+            for l, uv in zip(f.loops, ((u0, v0), (u1, v0), (u1, v1), (u0, v1))):
+                l[uv_col].uv = uv
+    bmesh.ops.recalc_face_normals(bm_col, faces=list(bm_col.faces))
+    me_col = bpy.data.meshes.new("Lan_Collar_mesh")
+    bm_col.to_mesh(me_col)
+    bm_col.free()
+    collar_obj = bpy.data.objects.new("Lan_Collar", me_col)
+    bpy.context.collection.objects.link(collar_obj)
+    collar_obj.data.materials.append(mats["NurseBlouse"])
+    collar_obj.data.materials.append(mats["NurseTrim"])
+    bpy.ops.object.select_all(action="DESELECT")
+    collar_obj.select_set(True)
+    bpy.context.view_layer.objects.active = collar_obj
+    sol_col = collar_obj.modifiers.new("CollarSolid", "SOLIDIFY")
+    sol_col.thickness = 0.0020
+    sol_col.offset = 0.0
+    bpy.ops.object.modifier_apply(modifier=sol_col.name)
+    detail_objs.append(collar_obj)
+
     # Center front button placket conformed smoothly to draped chest/waist/skirt
     placket = _project_patch_onto_bvh(
-        blouse_bvh, "Lan_Placket", center_x=0.0, z_bot=0.695, z_top=neck_base_z - 0.005,
-        width=0.032, thickness=0.0028, offset_m=0.0012, mat=mats["NurseBlouse"], nx=3, nz=16,
+        blouse_bvh, "Lan_Placket", center_x=0.0, z_bot=0.695, z_top=neck_base_z - 0.026,
+        width=0.030, thickness=0.0026, offset_m=0.0012, mat=mats["NurseBlouse"], nx=3, nz=16,
     )
     detail_objs.append(placket)
 
@@ -567,15 +811,15 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
     bm_btn = bmesh.new()
     uv_btn = bm_btn.loops.layers.uv.new("UVMap")
     for k in range(5):
-        bz = neck_base_z - 0.055 - k * 0.105
+        bz = neck_base_z - 0.058 - k * 0.104
         hit, nrm, _, _ = blouse_bvh.ray_cast(Vector((0.0, -0.45, bz)), Vector((0.0, 1.0, 0.0)), 0.70)
         if hit is not None:
             nrm = (-nrm if nrm.y > 0 else nrm).normalized()
-            pos = hit + nrm * 0.0052
+            pos = hit + nrm * 0.0050
             rot = nrm.to_track_quat("Z", "Y").to_matrix().to_4x4()
             bmesh.ops.create_icosphere(
                 bm_btn, subdivisions=2, radius=1.0,
-                matrix=Matrix.Translation(pos) @ rot @ Matrix.Diagonal((0.0058, 0.0058, 0.0020, 1.0)),
+                matrix=Matrix.Translation(pos) @ rot @ Matrix.Diagonal((0.0056, 0.0056, 0.0020, 1.0)),
             )
     for f in bm_btn.faces:
         f.smooth = True
@@ -591,8 +835,8 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
 
     # Left chest pocket (on Lan's left chest = +X) + 2 lower hip patch pockets with pale-blue top trim!
     p_chest = _project_patch_onto_bvh(
-        blouse_bvh, "Lan_Pocket_Chest", center_x=0.088, z_bot=1.105, z_top=1.205,
-        width=0.082, thickness=0.0030, offset_m=0.0015, mat=mats["NurseBlouse"],
+        blouse_bvh, "Lan_Pocket_Chest", center_x=0.082, z_bot=1.065, z_top=1.158,
+        width=0.076, thickness=0.0028, offset_m=0.0014, mat=mats["NurseBlouse"],
         nx=4, nz=6, trim_top_rows=1, trim_mat=mats["NurseTrim"],
     )
     p_hip_l = _project_patch_onto_bvh(
@@ -607,33 +851,67 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
     )
     detail_objs.extend([p_chest, p_hip_l, p_hip_r])
 
-    # Laminated An Sinh Hospital ID Badge (`TRẦN NGỌC LAN`) clipped neatly right above left chest pocket!
-    badge = _project_patch_onto_bvh(
-        blouse_bvh, "Lan_IDBadge", center_x=0.092, z_bot=1.192, z_top=1.246,
-        width=0.084, thickness=0.0024, offset_m=0.0052, mat=mats["LanBadge"], nx=2, nz=2,
-    )
-    # Metal lanyard clip right on top edge of badge
-    hit_clip, nrm_clip, _, _ = blouse_bvh.ray_cast(Vector((0.092, -0.45, 1.250)), Vector((0.0, 1.0, 0.0)), 0.70)
-    if hit_clip is not None:
-        nrm_clip = (-nrm_clip if nrm_clip.y > 0 else nrm_clip).normalized()
-        bm_cl = bmesh.new()
-        uv_cl = bm_cl.loops.layers.uv.new("UVMap")
-        rot_cl = nrm_clip.to_track_quat("Z", "Y").to_matrix().to_4x4()
-        bmesh.ops.create_cube(
-            bm_cl, size=1.0,
-            matrix=Matrix.Translation(hit_clip + nrm_clip * 0.0075) @ rot_cl @ Matrix.Diagonal((0.015, 0.014, 0.0045, 1.0)),
-        )
-        for f in bm_cl.faces:
-            for l in f.loops:
-                l[uv_cl].uv = (0.5, 0.5)
-        me_cl = bpy.data.meshes.new("Lan_BadgeClip_mesh")
-        bm_cl.to_mesh(me_cl)
-        bm_cl.free()
-        cl_obj = bpy.data.objects.new("Lan_BadgeClip", me_cl)
-        bpy.context.collection.objects.link(cl_obj)
-        DH.assign_material(cl_obj, mats["MetalTrim"])
-        detail_objs.append(cl_obj)
+    # Flat Rigid Laminated An Sinh Hospital ID Badge (`TRẦN NGỌC LAN`) suspended from top clip above left chest pocket!
+    hit_b, _nrm_b, _, _ = blouse_bvh.ray_cast(Vector((0.082, -0.45, 1.202)), Vector((0.0, 1.0, 0.0)), 0.70)
+    by_anchor = (hit_b.y if hit_b is not None else -0.136) - 0.0045
+    bm_bdg = bmesh.new()
+    uv_bdg = bm_bdg.loops.layers.uv.new("UVMap")
+    bw_h, bh_h, b_th = 0.036, 0.022, 0.0022
+    bcx, bcz = 0.082, 1.202
+    b_rot = Euler((math.radians(5.0), 0.0, math.radians(-8.0)), "XYZ").to_matrix()
+    f_corners = [
+        Vector((bcx, by_anchor, bcz)) + b_rot @ Vector((-bw_h, -b_th, -bh_h)),
+        Vector((bcx, by_anchor, bcz)) + b_rot @ Vector((bw_h, -b_th, -bh_h)),
+        Vector((bcx, by_anchor, bcz)) + b_rot @ Vector((bw_h, -b_th, bh_h)),
+        Vector((bcx, by_anchor, bcz)) + b_rot @ Vector((-bw_h, -b_th, bh_h)),
+    ]
+    b_corners = [
+        Vector((bcx, by_anchor, bcz)) + b_rot @ Vector((-bw_h, 0.0, -bh_h)),
+        Vector((bcx, by_anchor, bcz)) + b_rot @ Vector((bw_h, 0.0, -bh_h)),
+        Vector((bcx, by_anchor, bcz)) + b_rot @ Vector((bw_h, 0.0, bh_h)),
+        Vector((bcx, by_anchor, bcz)) + b_rot @ Vector((-bw_h, 0.0, bh_h)),
+    ]
+    fv = [bm_bdg.verts.new(p) for p in f_corners]
+    bv = [bm_bdg.verts.new(p) for p in b_corners]
+    ff = bm_bdg.faces.new((fv[0], fv[1], fv[2], fv[3]))
+    ff.smooth = False
+    for l, uv in zip(ff.loops, ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0))):
+        l[uv_bdg].uv = uv
+    fb = bm_bdg.faces.new((bv[3], bv[2], bv[1], bv[0]))
+    for l in fb.loops:
+        l[uv_bdg].uv = (0.05, 0.05)
+    for k in range(4):
+        nk = (k + 1) % 4
+        fs = bm_bdg.faces.new((fv[nk], fv[k], bv[k], bv[nk]))
+        for l in fs.loops:
+            l[uv_bdg].uv = (0.05, 0.05)
+    bmesh.ops.recalc_face_normals(bm_bdg, faces=list(bm_bdg.faces))
+    me_bdg = bpy.data.meshes.new("Lan_IDBadge_mesh")
+    bm_bdg.to_mesh(me_bdg)
+    bm_bdg.free()
+    badge = bpy.data.objects.new("Lan_IDBadge", me_bdg)
+    bpy.context.collection.objects.link(badge)
+    DH.assign_material(badge, mats["LanBadge"])
     detail_objs.append(badge)
+
+    # Metal lanyard alligator clip at top center of flat badge
+    bm_cl = bmesh.new()
+    uv_cl = bm_cl.loops.layers.uv.new("UVMap")
+    clip_pos = Vector((bcx, by_anchor, bcz)) + b_rot @ Vector((0.0, -b_th * 0.5, bh_h + 0.003))
+    bmesh.ops.create_cube(
+        bm_cl, size=1.0,
+        matrix=Matrix.Translation(clip_pos) @ b_rot.to_4x4() @ Matrix.Diagonal((0.014, 0.0045, 0.012, 1.0)),
+    )
+    for f in bm_cl.faces:
+        for l in f.loops:
+            l[uv_cl].uv = (0.5, 0.5)
+    me_cl = bpy.data.meshes.new("Lan_BadgeClip_mesh")
+    bm_cl.to_mesh(me_cl)
+    bm_cl.free()
+    cl_obj = bpy.data.objects.new("Lan_BadgeClip", me_cl)
+    bpy.context.collection.objects.link(cl_obj)
+    DH.assign_material(cl_obj, mats["MetalTrim"])
+    detail_objs.append(cl_obj)
 
     # ------------------------------------------------------------------
     # STAGE 5: SMOOTH CLOSED-TOE BLACK CLINICAL LEATHER LOAFERS (`Lan_Shoes`)
@@ -818,32 +1096,55 @@ def build_lan_animations(rig_obj):
         rig_obj, "Lan_StepOut", "07_04.bvh",
         src_start=96, src_end=336, step=4,
         in_place=True, cyclic_blend=8,
-        scale_rot=0.88,
-        bone_scales={"mixamorig:LeftArm": 0.72, "mixamorig:RightArm": 0.72, "mixamorig:Head": 0.60},
+        scale_rot=0.92,
+        bone_scales={"mixamorig:LeftArm": 0.74, "mixamorig:RightArm": 0.74, "mixamorig:Head": 0.60},
         post_frame_fn=post_step_out,
+        target_world_speed=1.70,
+        stride_cycles=3,
     )
 
-    # 2. Lan_TalkGesture — Real CMU MoCap natural standing conversation gestures (18_08.bvh)!
-    def post_talk(rig, t, fi):
-        g = 0.5 + 0.5 * math.sin(t * math.tau * 2.0)
-        lan_relaxed_hands(rig, open_r=0.52 * g, open_l=0.26 * (1.0 - g))
-        add_breathing(rig, t, cycles=2.0, amp=0.95)
+    # 2. Lan_TalkGesture — Natural grounded Vietnamese nurse speaking poise (facing Minh, gentle open-palm reception gestures!)
+    def talk_frame(rig, t, fi):
+        s1 = math.sin(t * math.tau)
+        s2 = math.sin(t * math.tau * 2.0)
+        c1 = math.cos(t * math.tau)
+        gest_r = 0.5 + 0.5 * math.sin(t * math.tau * 2.0 - 0.5)
+        gest_l = 0.5 + 0.5 * math.sin(t * math.tau - 0.8)
 
-    RC.retarget_cmu_clip(
-        rig_obj, "Lan_TalkGesture", "18_08.bvh",
-        src_start=180, src_end=660, step=4,
-        in_place=True, cyclic_blend=12,
-        scale_rot=0.68,
-        bone_scales={
-            "mixamorig:Hips": 0.55,
-            "mixamorig:LeftUpLeg": 0.42, "mixamorig:RightUpLeg": 0.42,
-            "mixamorig:LeftLeg": 0.42, "mixamorig:RightLeg": 0.42,
-            "mixamorig:LeftArm": 0.78, "mixamorig:RightArm": 0.85,
-            "mixamorig:LeftForeArm": 0.85, "mixamorig:RightForeArm": 0.90,
-            "mixamorig:Head": 0.50,
-        },
-        post_frame_fn=post_talk,
-    )
+        # Grounded, attentive forward-facing stance with organic contrapposto sway
+        RC.add_world_delta(rig, "mixamorig:Hips", rx_deg=1.0, ry_deg=1.6 * s1, rz_deg=2.2 * s1)
+        RC.aim_bone_world(rig, "mixamorig:LeftUpLeg", Vector((0.03 + 0.015 * s1, -0.02, -1.0)))
+        RC.aim_bone_world(rig, "mixamorig:LeftLeg", Vector((0.01, 0.03, -1.0)))
+        RC.aim_bone_world(rig, "mixamorig:RightUpLeg", Vector((-0.03 + 0.015 * s1, 0.01, -1.0)))
+        RC.aim_bone_world(rig, "mixamorig:RightLeg", Vector((-0.01, 0.04, -1.0)))
+
+        # Subtle conversational upper-body lean, chest breath & gentle head emphasis
+        RC.add_world_delta(rig, "mixamorig:Spine", rx_deg=1.8 + 0.6 * gest_r, ry_deg=-1.1 * s1, rz_deg=-1.2 * s1)
+        RC.add_world_delta(rig, "mixamorig:Spine1", rx_deg=1.0 - 0.9 * s2)
+        RC.add_world_delta(rig, "mixamorig:Spine2", rx_deg=-1.0 * s2, rz_deg=-0.8 * s1)
+        RC.add_world_delta(rig, "mixamorig:Neck", rx_deg=0.8 + 1.4 * s2, ry_deg=1.6 * c1, rz_deg=1.8 * s1)
+        RC.add_world_delta(rig, "mixamorig:Head", rx_deg=-0.6 + 1.8 * s2, ry_deg=2.2 * c1, rz_deg=2.0 * s1)
+
+        # Right arm: calm waist-to-lower-chest conversational emphasis gesture (open palm, never above chest!)
+        r_arm_dir = Vector((-0.16, -0.14 - 0.16 * gest_r, -0.97 + 0.08 * gest_r))
+        r_for_dir = Vector((0.18 - 0.10 * gest_r, -0.62 - 0.24 * gest_r, -0.72 + 0.42 * gest_r))
+        r_hnd_dir = Vector((0.20 - 0.12 * gest_r, -0.68 - 0.22 * gest_r, -0.66 + 0.46 * gest_r))
+        RC.aim_bone_world(rig, "mixamorig:RightArm", r_arm_dir)
+        RC.aim_bone_world(rig, "mixamorig:RightForeArm", r_for_dir)
+        RC.aim_bone_world(rig, "mixamorig:RightHand", r_hnd_dir)
+
+        # Left arm: poised softly near front waist / counter edge with gentle responsive lift
+        l_arm_dir = Vector((0.16, -0.12 - 0.10 * gest_l, -0.98 + 0.05 * gest_l))
+        l_for_dir = Vector((-0.34 - 0.12 * gest_l, -0.58 - 0.16 * gest_l, -0.72 + 0.24 * gest_l))
+        l_hnd_dir = Vector((-0.38 - 0.10 * gest_l, -0.62 - 0.14 * gest_l, -0.66 + 0.24 * gest_l))
+        RC.aim_bone_world(rig, "mixamorig:LeftArm", l_arm_dir)
+        RC.aim_bone_world(rig, "mixamorig:LeftForeArm", l_for_dir)
+        RC.aim_bone_world(rig, "mixamorig:LeftHand", l_hnd_dir)
+
+        lan_relaxed_hands(rig, open_r=0.42 * gest_r + 0.12, open_l=0.22 * gest_l + 0.10)
+        return Vector((0.008 * s1, -0.010 * gest_r, 0.0))
+
+    RC.author_layered_action(rig_obj, "Lan_TalkGesture", 120, talk_frame)
 
     # 3. Lan_IdleDesk — Natural relaxed Vietnamese nurse standing poise (arms comfortably down, hands lightly poised!)
     def idle_frame(rig, t, fi):
@@ -912,17 +1213,17 @@ def build_lan_animations(rig_obj):
 
     RC.author_layered_action(rig_obj, "Lan_Listen", 96, listen_frame)
 
-    # 5. Lan_Handover — Smooth lean forward & two-hand-assisted presentation of F101 Clipboard directly to Minh!
+    # 5. Lan_Handover — Smooth lean forward & counter-height two-handed presentation of F101 Clipboard directly to Minh!
     def handover_frame(rig, t, fi):
-        if t < 0.14:
+        if t < 0.04:
             reach = 0.0
-        elif t < 0.50:
-            u = (t - 0.14) / 0.36
+        elif t < 0.28:
+            u = (t - 0.04) / 0.24
             reach = u * u * (3.0 - 2.0 * u)
-        elif t < 0.78:
+        elif t < 0.82:
             reach = 1.0
         else:
-            u = (t - 0.78) / 0.22
+            u = (t - 0.82) / 0.18
             reach = 1.0 - (u * u * (3.0 - 2.0 * u))
 
         sb = math.sin(t * math.tau)
@@ -938,24 +1239,24 @@ def build_lan_animations(rig_obj):
         RC.add_world_delta(rig, "mixamorig:Neck", rx_deg=-2.5 * reach, rz_deg=-2.0 * reach)
         RC.add_world_delta(rig, "mixamorig:Head", rx_deg=-2.2 * reach, ry_deg=1.5 * reach, rz_deg=-2.0 * reach)
 
-        # Right arm lifts clipboard smoothly forward to chest height directly toward Minh (-Y)!
-        r_arm_dir = Vector((-0.15, -0.10, -0.98)).lerp(Vector((-0.06, -0.68, -0.73)), reach)
-        r_for_dir = Vector((0.16, -0.48, -0.86)).lerp(Vector((0.10, -0.98, 0.14)), reach)
-        r_hnd_dir = Vector((0.20, -0.50, -0.84)).lerp(Vector((0.06, -0.99, 0.12)), reach)
+        # Right arm lifts clipboard smoothly forward to chest/counter height directly toward Minh (-Y)!
+        r_arm_dir = Vector((-0.15, -0.10, -0.98)).lerp(Vector((-0.04, -0.78, -0.62)), reach)
+        r_for_dir = Vector((0.16, -0.48, -0.86)).lerp(Vector((0.14, -0.96, 0.24)), reach)
+        r_hnd_dir = Vector((0.20, -0.50, -0.84)).lerp(Vector((0.08, -0.98, 0.18)), reach)
         RC.aim_bone_world(rig, "mixamorig:RightArm", r_arm_dir)
         RC.aim_bone_world(rig, "mixamorig:RightForeArm", r_for_dir)
         RC.aim_bone_world(rig, "mixamorig:RightHand", r_hnd_dir)
 
         # Left arm supports politely near lower chest/clipboard edge
-        l_arm_dir = Vector((0.15, -0.08, -0.98)).lerp(Vector((0.14, -0.44, -0.88)), reach)
-        l_for_dir = Vector((-0.14, -0.44, -0.88)).lerp(Vector((-0.44, -0.88, -0.14)), reach)
-        l_hnd_dir = Vector((-0.18, -0.48, -0.86)).lerp(Vector((-0.46, -0.87, -0.12)), reach)
+        l_arm_dir = Vector((0.15, -0.08, -0.98)).lerp(Vector((0.10, -0.62, -0.77)), reach)
+        l_for_dir = Vector((-0.14, -0.44, -0.88)).lerp(Vector((-0.42, -0.89, 0.12)), reach)
+        l_hnd_dir = Vector((-0.18, -0.48, -0.86)).lerp(Vector((-0.44, -0.88, 0.10)), reach)
         RC.aim_bone_world(rig, "mixamorig:LeftArm", l_arm_dir)
         RC.aim_bone_world(rig, "mixamorig:LeftForeArm", l_for_dir)
         RC.aim_bone_world(rig, "mixamorig:LeftHand", l_hnd_dir)
 
         RC.apply_finger_curl(rig, "Right", 0.30 + 0.32 * reach, 0.36 + 0.34 * reach, 0.42 + 0.32 * reach, 0.48 + 0.28 * reach, 0.26 + 0.18 * reach, 0.02)
-        RC.apply_finger_curl(rig, "Left", 0.22, 0.28, 0.36, 0.44, 0.18, 0.04)
+        RC.apply_finger_curl(rig, "Left", 0.22 + 0.14 * reach, 0.28 + 0.14 * reach, 0.36 + 0.12 * reach, 0.44 + 0.10 * reach, 0.18, 0.04)
         return Vector((0.0, -0.045 * reach, 0.0))
 
     RC.author_layered_action(rig_obj, "Lan_Handover", 78, handover_frame)
@@ -978,43 +1279,44 @@ def build_lan():
     macro["proportions"] = 0.54
     macro["race"] = {"asian": 1.0, "caucasian": 0.0, "african": 0.0}
 
-    # Authentic Vietnamese / Southeast Asian facial anatomy (softer low nasal bridge, rounded nasal tip & alae,
-    # natural epicanthic fold & softer upper eyelid crease, fuller warm cheekbones, oval face, softer chin!)
+    # Authentic 23yo Vietnamese female craniofacial proportions (avoiding over-stacked epicanthus/zygomatic targets
+    # on top of Asian 1.0 macro base!) + dedicated BMesh anatomical sculpt pass!
     facial_targets = {
-        "head-oval": 0.26,
-        "head-scale-horiz-incr": 0.08,
-        "head-scale-depth-decr": 0.16,
-        "l-cheek-bones-incr": 0.30,
-        "r-cheek-bones-incr": 0.30,
-        "l-cheek-volume-incr": 0.16,
-        "r-cheek-volume-incr": 0.16,
-        "chin-width-decr": 0.14,
-        "chin-prominent-decr": 0.24,
-        "chin-height-decr": 0.08,
-        "l-eye-epicanthus-in": 0.54,
-        "r-eye-epicanthus-in": 0.54,
-        "l-eye-eyefold-down": 0.14,
-        "r-eye-eyefold-down": 0.14,
-        "l-eye-push1-out": 0.22,
-        "r-eye-push1-out": 0.22,
-        "l-eye-corner2-up": 0.06,
-        "r-eye-corner2-up": 0.06,
+        "head-oval": 0.24,
+        "head-scale-horiz-incr": 0.04,
+        "head-scale-depth-decr": 0.10,
+        "l-cheek-bones-incr": 0.14,
+        "r-cheek-bones-incr": 0.14,
+        "l-cheek-volume-incr": 0.12,
+        "r-cheek-volume-incr": 0.12,
+        "chin-width-decr": 0.12,
+        "chin-prominent-decr": 0.08,
+        "chin-height-decr": 0.05,
+        "l-eye-epicanthus-in": 0.16,
+        "r-eye-epicanthus-in": 0.16,
+        "l-eye-eyefold-down": 0.08,
+        "r-eye-eyefold-down": 0.08,
+        "l-eye-push1-out": 0.16,
+        "r-eye-push1-out": 0.16,
+        "l-eye-corner2-up": 0.05,
+        "r-eye-corner2-up": 0.05,
         "eyebrows-trans-up": 0.06,
-        "eyebrows-angle-up": 0.10,
-        "nose-scale-depth-decr": 0.36,
-        "nose-compression-compress": 0.24,
-        "nose-hump-decr": 0.26,
-        "nose-point-width-incr": 0.20,
-        "nose-nostrils-width-incr": 0.18,
-        "nose-flaring-incr": 0.12,
-        "nose-scale-vert-decr": 0.10,
-        "mouth-scale-horiz-decr": 0.08,
-        "mouth-upperlip-height-incr": 0.12,
-        "mouth-lowerlip-height-incr": 0.12,
-        "mouth-angles-up": 0.05,
+        "eyebrows-angle-up": 0.08,
+        "nose-scale-depth-decr": 0.18,
+        "nose-compression-compress": 0.16,
+        "nose-hump-decr": 0.18,
+        "nose-point-width-incr": 0.12,
+        "nose-nostrils-width-incr": 0.12,
+        "nose-flaring-incr": 0.08,
+        "nose-scale-vert-decr": 0.06,
+        "mouth-scale-horiz-decr": 0.06,
+        "mouth-upperlip-height-incr": 0.14,
+        "mouth-lowerlip-height-incr": 0.14,
+        "mouth-angles-up": 0.06,
     }
     human = DH.create_calibrated_human(macro, target_height_m=1.600, facial_targets=facial_targets)
     human.name = "Lan_Body_Raw"
+    sculpt_lan_craniofacial_features(human)
 
     # 2. Load CC0 anatomical eyes, teeth, tongue, gentle natural Vietnamese eyebrows (eyebrow001), eyelashes & ponytail01!
     def load_part(cat, frag):
@@ -1045,7 +1347,7 @@ def build_lan():
 
     mats = create_lan_materials()
 
-    # 5. Rig eyes (outer cornea stripped!), teeth, tongue, brows, lashes, and CC0 ponytail01 + nurse barrette!
+    # 5. Rig eyes (outer cornea stripped!), teeth, tongue, brows, lashes, and multi-layer groomed hair + nurse barrette!
     eye_l, eye_r = split_and_rig_eyes(eyes_obj, rig, mats["LanEye"])
     rig_oral_cavity(teeth_obj, tongue_obj, rig, mats["LanTeeth"], mats["LanTongue"])
 
@@ -1057,7 +1359,7 @@ def build_lan():
     DH.assign_material(lashes_obj, mats["LanEyelash"])
     DH.weight_rigid(lashes_obj, rig, "mixamorig:Head")
 
-    hair_obj, clip_obj = finish_lan_hair(hair_raw, rig, mats["LanHairCard"], mats["EnamelBlue"])
+    hair_obj, clip_obj = finish_lan_hair(hair_raw, human, rig, mats["LanHairCard"], mats["EnamelBlue"])
 
     # 6. Build full-body clean copy for garment extraction, cloth collision & smooth weight transfer!
     body_for_cloth = human.copy()
@@ -1107,20 +1409,35 @@ def build_lan():
     # Remove temporary cloth collider body
     bpy.data.objects.remove(body_for_cloth, do_unlink=True)
 
-    # 9. Generate game-ready LOD1 & LOD2 (keeping full 29 BlendShapes on LOD1 body!)
+    # 9. Generate game-ready LOD1 & LOD2 (keeping full 29 BlendShapes on LOD1 & LOD2 body, and protecting collar/trim/badge!)
     lod0_meshes = [body_lod0, eye_l, eye_r, teeth_obj, tongue_obj, hair_obj, clip_obj, uniform_obj]
 
-    body_lod1 = DH.make_skinned_lod(body_lod0, "Lan_Body_LOD1", ratio=1.0, rig_obj=rig, keep_shapekeys=True)
-    uniform_lod1 = DH.make_skinned_lod(uniform_obj, "Lan_Uniform_LOD1", ratio=0.55, rig_obj=rig, keep_shapekeys=False)
-    hair_lod1 = DH.make_skinned_lod(hair_obj, "Lan_Hair_LOD1", ratio=0.68, rig_obj=rig, keep_shapekeys=False)
-    eye_l_lod1 = DH.make_skinned_lod(eye_l, "Lan_Eye_L_LOD1", ratio=0.70, rig_obj=rig, keep_shapekeys=False)
-    eye_r_lod1 = DH.make_skinned_lod(eye_r, "Lan_Eye_R_LOD1", ratio=0.70, rig_obj=rig, keep_shapekeys=False)
-    lod1_meshes = [body_lod1, uniform_lod1, hair_lod1, eye_l_lod1, eye_r_lod1]
+    def protect_uniform_features(v, mat_names):
+        if mat_names & {"NurseTrim", "LanBadge", "MetalTrim"}:
+            return True
+        if v.co.z >= neck_z - 0.045 and abs(v.co.x) < 0.145:
+            return True
+        return False
 
-    body_lod2 = DH.make_skinned_lod(body_lod0, "Lan_Body_LOD2", ratio=0.45, rig_obj=rig, keep_shapekeys=False)
-    uniform_lod2 = DH.make_skinned_lod(uniform_obj, "Lan_Uniform_LOD2", ratio=0.30, rig_obj=rig, keep_shapekeys=False)
+    body_lod1 = DH.make_skinned_lod(body_lod0, "Lan_Body_LOD1", ratio=1.0, rig_obj=rig, keep_shapekeys=True)
+    uniform_lod1 = DH.make_skinned_lod(uniform_obj, "Lan_Uniform_LOD1", ratio=0.58, rig_obj=rig, keep_shapekeys=False, protect_fn=protect_uniform_features)
+    hair_lod1 = DH.make_skinned_lod(hair_obj, "Lan_Hair_LOD1", ratio=0.68, rig_obj=rig, keep_shapekeys=False)
+    clip_lod1 = DH.make_skinned_lod(clip_obj, "Lan_HairClip_LOD1", ratio=0.60, rig_obj=rig, keep_shapekeys=False)
+    eye_l_lod1 = DH.make_skinned_lod(eye_l, "Lan_Eye_L_LOD1", ratio=0.55, rig_obj=rig, keep_shapekeys=False)
+    eye_r_lod1 = DH.make_skinned_lod(eye_r, "Lan_Eye_R_LOD1", ratio=0.55, rig_obj=rig, keep_shapekeys=False)
+    teeth_lod1 = DH.make_skinned_lod(teeth_obj, "Lan_Teeth_LOD1", ratio=0.22, rig_obj=rig, keep_shapekeys=False)
+    tongue_lod1 = DH.make_skinned_lod(tongue_obj, "Lan_Tongue_LOD1", ratio=0.55, rig_obj=rig, keep_shapekeys=False)
+    lod1_meshes = [body_lod1, uniform_lod1, hair_lod1, clip_lod1, eye_l_lod1, eye_r_lod1, teeth_lod1, tongue_lod1]
+
+    body_lod2 = DH.make_skinned_lod(body_lod0, "Lan_Body_LOD2", ratio=0.45, rig_obj=rig, keep_shapekeys=True)
+    uniform_lod2 = DH.make_skinned_lod(uniform_obj, "Lan_Uniform_LOD2", ratio=0.34, rig_obj=rig, keep_shapekeys=False, protect_fn=protect_uniform_features)
     hair_lod2 = DH.make_skinned_lod(hair_obj, "Lan_Hair_LOD2", ratio=0.42, rig_obj=rig, keep_shapekeys=False)
-    lod2_meshes = [body_lod2, uniform_lod2, hair_lod2]
+    clip_lod2 = DH.make_skinned_lod(clip_obj, "Lan_HairClip_LOD2", ratio=0.35, rig_obj=rig, keep_shapekeys=False)
+    eye_l_lod2 = DH.make_skinned_lod(eye_l, "Lan_Eye_L_LOD2", ratio=0.30, rig_obj=rig, keep_shapekeys=False)
+    eye_r_lod2 = DH.make_skinned_lod(eye_r, "Lan_Eye_R_LOD2", ratio=0.30, rig_obj=rig, keep_shapekeys=False)
+    teeth_lod2 = DH.make_skinned_lod(teeth_obj, "Lan_Teeth_LOD2", ratio=0.09, rig_obj=rig, keep_shapekeys=False)
+    tongue_lod2 = DH.make_skinned_lod(tongue_obj, "Lan_Tongue_LOD2", ratio=0.32, rig_obj=rig, keep_shapekeys=False)
+    lod2_meshes = [body_lod2, uniform_lod2, hair_lod2, clip_lod2, eye_l_lod2, eye_r_lod2, teeth_lod2, tongue_lod2]
 
     for m in lod1_meshes + lod2_meshes:
         m.hide_render = True

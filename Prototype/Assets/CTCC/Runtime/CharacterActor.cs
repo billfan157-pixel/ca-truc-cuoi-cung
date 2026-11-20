@@ -61,6 +61,10 @@ namespace CTCC
         private Transform eyeLeft;
         private Transform eyeRight;
         private Transform jawBone;
+        private Transform rightArm, rightForeArm, rightHand, clipboardSocket;
+        private Transform leftArm, leftForeArm, leftHand;
+        private Transform leftFoot, rightFoot, leftToe, rightToe;
+        private float propIkWeight;
         private Quaternion unmodifiedNeckRotation, appliedNeckRotation;
         private Quaternion unmodifiedHeadRotation, appliedHeadRotation;
         private Quaternion unmodifiedJawRotation, appliedJawRotation;
@@ -114,6 +118,7 @@ namespace CTCC
 
         private Renderer[] allRenderers = Array.Empty<Renderer>();
         private Material[] apparitionMaterials = Array.Empty<Material>();
+        private Animator rigAnimator;
         private float apparitionAlpha = 1f;
         private static readonly int AlphaId = Shader.PropertyToID("_Alpha");
 
@@ -179,6 +184,17 @@ namespace CTCC
                 else if (n == "mixamorig:LeftEye" || n == "Eye_L") { eyeLeft = t; eyeLeftRestLocal = t.localRotation; }
                 else if (n == "mixamorig:RightEye" || n == "Eye_R") { eyeRight = t; eyeRightRestLocal = t.localRotation; }
                 else if (n == "mixamorig:Jaw" || n == "Jaw") jawBone = t;
+                else if (n == "mixamorig:RightArm") rightArm = t;
+                else if (n == "mixamorig:RightForeArm") rightForeArm = t;
+                else if (n == "mixamorig:RightHand") rightHand = t;
+                else if (n == "ClipboardSocket_R") clipboardSocket = t;
+                else if (n == "mixamorig:LeftArm") leftArm = t;
+                else if (n == "mixamorig:LeftForeArm") leftForeArm = t;
+                else if (n == "mixamorig:LeftHand") leftHand = t;
+                else if (n == "mixamorig:LeftFoot") leftFoot = t;
+                else if (n == "mixamorig:RightFoot") rightFoot = t;
+                else if (n == "mixamorig:LeftToeBase") leftToe = t;
+                else if (n == "mixamorig:RightToeBase") rightToe = t;
             }
 
             faceBindings.Clear();
@@ -220,8 +236,27 @@ namespace CTCC
 
         private void BuildPlayableGraph()
         {
-            var animator = GetComponentInChildren<Animator>(true);
-            if (animator == null) animator = gameObject.AddComponent<Animator>();
+            // Generic FBX rigs imported with avatarSetup=0 carry no Animator on the FBX root,
+            // and their AnimationClip paths (e.g. "Lan_Armature/mixamorig:Root/...") are relative
+            // to the FBX root child rather than the outer CharacterActor holder.
+            Transform animRoot = transform;
+            for (int c = 0; c < transform.childCount; c++)
+            {
+                var child = transform.GetChild(c);
+                for (int g = 0; g < child.childCount; g++)
+                {
+                    if (child.GetChild(g).name.IndexOf("Armature", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        animRoot = child;
+                        break;
+                    }
+                }
+                if (animRoot != transform) break;
+            }
+            var animator = animRoot.GetComponent<Animator>();
+            if (animator == null) animator = GetComponentInChildren<Animator>(true);
+            if (animator == null) animator = animRoot.gameObject.AddComponent<Animator>();
+            rigAnimator = animator;
             animator.applyRootMotion = false;
             animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
 
@@ -334,7 +369,38 @@ namespace CTCC
         public void SetHeldClipboardVisible(bool visible)
         {
             if (heldClipboard != null)
+            {
+                if (visible)
+                {
+                    // Orient the printed F101 paper face upward toward Minh with metal clip at top
+                    heldClipboard.transform.localPosition = new Vector3(0.02f, 0.07f, -0.02f);
+                    heldClipboard.transform.localRotation = Quaternion.Euler(52f, 0f, -12f) * Quaternion.Euler(0f, 0f, 180f);
+                }
                 heldClipboard.SetActive(visible);
+            }
+        }
+
+        public void SetActionTime(float seconds)
+        {
+            if (!graph.IsValid() || activeSlot < 0 || activeSlot >= clipPlayables.Length) return;
+            previousSlot = -1;
+            for (int i = 0; i < clips.Length; i++)
+                mixer.SetInputWeight(i, i == activeSlot ? 1f : 0f);
+            mixerWeightsDirty = false;
+            var prevCull = rigAnimator != null ? rigAnimator.cullingMode : AnimatorCullingMode.CullUpdateTransforms;
+            if (rigAnimator != null) rigAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            clipPlayables[activeSlot].SetTime(seconds);
+            graph.Evaluate(0f);
+            if (rigAnimator != null) rigAnimator.cullingMode = prevCull;
+        }
+
+        public void ForceOpenEyes()
+        {
+            blinkPhase = -1f;
+            blinkCooldown = 3.5f;
+            currentBlink = 0f;
+            poseDirty = true;
+            ApplyFaceWeights();
         }
 
         public void PlayAction(string actionName, float crossfade = 0.28f, bool restart = false)
@@ -405,6 +471,23 @@ namespace CTCC
                     if (!instances.TryGetValue(source, out var instance))
                     {
                         instance = new Material(source);
+                        // Front-to-back apparition queues pair with ApparitionDepthPrepass (ZWrite On) +
+                        // ApparitionHumanForward (ZTest Equal) so outer dress/hair/skin occlude inner limbs & mouth!
+                        string mn = source.name;
+                        if (mn.IndexOf("Cotton", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            mn.IndexOf("Clothes", StringComparison.OrdinalIgnoreCase) >= 0)
+                            instance.renderQueue = 3001;
+                        else if (mn.IndexOf("Hair", StringComparison.OrdinalIgnoreCase) >= 0)
+                            instance.renderQueue = 3002;
+                        else if (mn.IndexOf("Skin", StringComparison.OrdinalIgnoreCase) >= 0)
+                            instance.renderQueue = 3003;
+                        else if (mn.IndexOf("Eye", StringComparison.OrdinalIgnoreCase) >= 0)
+                            instance.renderQueue = 3004;
+                        else if (mn.IndexOf("Teeth", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                 mn.IndexOf("Tongue", StringComparison.OrdinalIgnoreCase) >= 0)
+                            instance.renderQueue = 3005;
+                        else
+                            instance.renderQueue = 3006;
                         instances.Add(source, instance);
                     }
                     slots[i] = instance;
@@ -433,9 +516,175 @@ namespace CTCC
             long before = MeasureAnimationAllocations ? GC.GetAllocatedBytesForCurrentThread() : 0;
             using (FaceMarker.Auto()) ApplyFaceWeights();
             if (HasVisibleSkin())
-                using (GazeMarker.Auto()) ApplyGazeAndJaw();
+            {
+                using (GazeMarker.Auto())
+                {
+                    ApplyGazeAndJaw();
+                    ApplyCharacterPropIK(Mathf.Min(Time.unscaledDeltaTime, 0.05f));
+                }
+            }
             if (MeasureAnimationAllocations)
                 AnimationAllocationBytes += GC.GetAllocatedBytesForCurrentThread() - before;
+        }
+
+        private void ApplyCharacterPropIK(float dt)
+        {
+            bool handoverActive = heldClipboard != null && heldClipboard.activeSelf &&
+                ActiveActionName.IndexOf("Handover", StringComparison.OrdinalIgnoreCase) >= 0;
+            float targetIk = handoverActive ? 1f : 0f;
+            propIkWeight = Mathf.MoveTowards(propIkWeight, targetIk, dt * 4.5f);
+            if (propIkWeight <= 0.001f || rightArm == null || rightForeArm == null || rightHand == null)
+                return;
+
+            // Present F101 clipboard naturally at counter / chest height with relaxed downward elbows
+            Vector3 fwd = transform.forward;
+            Vector3 right = transform.right;
+            Vector3 up = transform.up;
+            Vector3 rGoal = transform.position + up * 1.11f + fwd * 0.37f + right * 0.09f;
+            Vector3 rElbowHint = transform.position + up * 0.92f - fwd * 0.06f + right * 0.28f;
+            SolveTwoBoneArmIK(rightArm, rightForeArm, rightHand, rGoal, rElbowHint, propIkWeight * 0.60f);
+
+            if (leftArm != null && leftForeArm != null && leftHand != null)
+            {
+                Vector3 lGoal = transform.position + up * 1.07f + fwd * 0.34f - right * 0.12f;
+                Vector3 lElbowHint = transform.position + up * 0.91f - fwd * 0.06f - right * 0.28f;
+                SolveTwoBoneArmIK(leftArm, leftForeArm, leftHand, lGoal, lElbowHint, propIkWeight * 0.38f);
+            }
+        }
+
+        private static void SolveTwoBoneArmIK(Transform upper, Transform lower, Transform hand,
+            Vector3 targetPos, Vector3 elbowPole, float weight)
+        {
+            if (weight <= 0.001f) return;
+            Quaternion uOrig = upper.rotation;
+            Quaternion lOrig = lower.rotation;
+
+            Vector3 pA = upper.position;
+            Vector3 pB = lower.position;
+            Vector3 pC = hand.position;
+            float lenAB = Vector3.Distance(pA, pB);
+            float lenBC = Vector3.Distance(pB, pC);
+            if (lenAB < 0.01f || lenBC < 0.01f) return;
+
+            Vector3 toTarget = targetPos - pA;
+            float dist = Mathf.Clamp(toTarget.magnitude, Mathf.Abs(lenAB - lenBC) + 0.01f, (lenAB + lenBC) * 0.995f);
+            Vector3 dirAT = toTarget.sqrMagnitude > 1e-6f ? toTarget.normalized : Vector3.forward;
+
+            // Law of cosines in the (shoulder -> target, elbowPole) plane; pick bend direction closest to elbowPole
+            float cosA = Mathf.Clamp((lenAB * lenAB + dist * dist - lenBC * lenBC) / (2f * lenAB * dist), -1f, 1f);
+            float angleA = Mathf.Acos(cosA) * Mathf.Rad2Deg;
+            Vector3 poleVec = elbowPole - pA;
+            Vector3 bendAxis = Vector3.Cross(dirAT, poleVec);
+            if (bendAxis.sqrMagnitude < 1e-5f) bendAxis = Vector3.right;
+            else bendAxis.Normalize();
+
+            Vector3 candPos = pA + Quaternion.AngleAxis(angleA, bendAxis) * dirAT * lenAB;
+            Vector3 candNeg = pA + Quaternion.AngleAxis(-angleA, bendAxis) * dirAT * lenAB;
+            Vector3 desiredB = (candPos - elbowPole).sqrMagnitude <= (candNeg - elbowPole).sqrMagnitude ? candPos : candNeg;
+
+            Vector3 curAB = (lower.position - pA).normalized;
+            Vector3 desAB = (desiredB - pA).normalized;
+            if (curAB.sqrMagnitude > 1e-6f && desAB.sqrMagnitude > 1e-6f)
+                upper.rotation = Quaternion.FromToRotation(curAB, desAB) * upper.rotation;
+
+            Vector3 curBC = (hand.position - lower.position).normalized;
+            Vector3 desBC = (targetPos - lower.position).normalized;
+            if (curBC.sqrMagnitude > 1e-6f && desBC.sqrMagnitude > 1e-6f)
+                lower.rotation = Quaternion.FromToRotation(curBC, desBC) * lower.rotation;
+
+            if (weight < 0.999f)
+            {
+                upper.rotation = Quaternion.Slerp(uOrig, upper.rotation, weight);
+                lower.rotation = Quaternion.Slerp(lOrig, lower.rotation, weight);
+            }
+        }
+
+        internal void MeasureStanceSlip(string clipName, float worldSpeedMps,
+            out float medianSlipMps, out float p95SlipMps, out float shoeSoleMedianSlipMps)
+        {
+            bool wasActive = gameObject.activeSelf;
+            if (!wasActive) gameObject.SetActive(true);
+            AnimatorCullingMode prevCull = AnimatorCullingMode.CullUpdateTransforms;
+            bool wasPlaying = false;
+            try
+            {
+                if (!graph.IsValid())
+                {
+                    CacheBonesAndShapes();
+                    BuildPlayableGraph();
+                }
+                if (rigAnimator != null)
+                {
+                    prevCull = rigAnimator.cullingMode;
+                    rigAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                }
+                PlayAction(clipName, 0.001f, restart: true);
+                wasPlaying = graph.IsValid() && graph.IsPlaying();
+                AnimationClip clip = (activeSlot >= 0 && activeSlot < clips.Length) ? clips[activeSlot] : null;
+                const float fps = 30f;
+                const int frames = 61;
+                var slips = new List<float>(64);
+                var soleSlips = new List<float>(64);
+                Vector3 prevL = Vector3.zero, prevR = Vector3.zero;
+                Vector3 prevSoleL = Vector3.zero, prevSoleR = Vector3.zero;
+                bool hasPrev = false;
+
+                Transform tL = leftToe != null ? leftToe : leftFoot;
+                Transform tR = rightToe != null ? rightToe : rightFoot;
+                Transform fL = leftFoot != null ? leftFoot : tL;
+                Transform fR = rightFoot != null ? rightFoot : tR;
+
+                for (int f = 0; f < frames; f++)
+                {
+                    SetActionTime(f / fps);
+                    Vector3 pL = transform.InverseTransformPoint(tL.position);
+                    Vector3 pR = transform.InverseTransformPoint(tR.position);
+                    // Shoe sole contact point right below mid-foot/toe (y = 0 in character local space)
+                    Vector3 sL = Vector3.Lerp(transform.InverseTransformPoint(fL.position), pL, 0.65f);
+                    Vector3 sR = Vector3.Lerp(transform.InverseTransformPoint(fR.position), pR, 0.65f);
+
+                    if (hasPrev)
+                    {
+                        float minCurY = Mathf.Min(pL.y, pR.y);
+                        float minPrevY = Mathf.Min(prevL.y, prevR.y);
+                        // In Unity local space, character faces +Z, so planted foot sweeps backward along -Z at -worldSpeedMps!
+                        if (pL.y <= minCurY + 0.005f && prevL.y <= minPrevY + 0.005f && Mathf.Abs(pL.y - prevL.y) * fps <= 0.08f)
+                        {
+                            float backSpeed = -(pL.z - prevL.z) * fps;
+                            slips.Add(Mathf.Abs(backSpeed - worldSpeedMps));
+                            float soleBackSpeed = -(sL.z - prevSoleL.z) * fps;
+                            soleSlips.Add(Mathf.Abs(soleBackSpeed - worldSpeedMps));
+                        }
+                        if (pR.y <= minCurY + 0.005f && prevR.y <= minPrevY + 0.005f && Mathf.Abs(pR.y - prevR.y) * fps <= 0.08f)
+                        {
+                            float backSpeed = -(pR.z - prevR.z) * fps;
+                            slips.Add(Mathf.Abs(backSpeed - worldSpeedMps));
+                            float soleBackSpeed = -(sR.z - prevSoleR.z) * fps;
+                            soleSlips.Add(Mathf.Abs(soleBackSpeed - worldSpeedMps));
+                        }
+                    }
+                    prevL = pL;
+                    prevR = pR;
+                    prevSoleL = sL;
+                    prevSoleR = sR;
+                    hasPrev = true;
+                }
+                slips.Sort();
+                soleSlips.Sort();
+                medianSlipMps = slips.Count > 0 ? slips[slips.Count / 2] : 99f;
+                p95SlipMps = slips.Count > 0 ? slips[Mathf.Clamp(Mathf.RoundToInt((slips.Count - 1) * 0.95f), 0, slips.Count - 1)] : 99f;
+                shoeSoleMedianSlipMps = soleSlips.Count > 0 ? soleSlips[soleSlips.Count / 2] : medianSlipMps;
+                Debug.Log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "CTCC_STRIDE_CHECK {0} animRoot={1} clip={2} samples={3} med={4:F4} p95={5:F4} sole={6:F4}",
+                    characterId, rigAnimator != null ? rigAnimator.name : "null",
+                    clip != null ? clip.name : "null", slips.Count, medianSlipMps, p95SlipMps, shoeSoleMedianSlipMps));
+            }
+            finally
+            {
+                if (wasPlaying && graph.IsValid()) graph.Play();
+                if (rigAnimator != null) rigAnimator.cullingMode = prevCull;
+                if (!wasActive) gameObject.SetActive(false);
+            }
         }
 
         private bool HasVisibleSkin()
@@ -731,24 +980,50 @@ namespace CTCC
         private void ApplyReceptionAccent(string line, float time, ref float brow, ref float nod, out float asymmetry)
         {
             asymmetry = 0f;
-            // Timed beats for the current Temp VO. Keep them separate from phoneme weights.
+            // Authored emotional beats aligned to VieNeu v3 Turbo voice timestamps.
             switch (line)
             {
                 case "CH01-D03":
-                    float chide = Accent(time, 0.16f, 0.55f, 1.15f);
+                    float chide = Accent(time, 0.14f, 0.62f, 1.45f);
                     brow += 9f * chide;
                     asymmetry = 6f * chide;
                     break;
                 case "CH01-D05":
-                    float redirect = Accent(time, 0.90f, 1.80f, 2.65f);
+                    float redirect = Accent(time, 0.85f, 1.85f, 3.10f);
                     brow += 13f * redirect;
                     if (!ReducedMotion) nod -= 1.6f * redirect;
                     asymmetry = -5f * redirect;
                     break;
                 case "CH01-D07":
-                    float reluctance = Accent(time, 0.42f, 1.20f, 2.20f);
+                    float reluctance = Accent(time, 0.45f, 1.40f, 2.85f);
                     brow *= 1f - 0.35f * reluctance;
                     if (!ReducedMotion) nod += 2.4f * reluctance;
+                    break;
+                case "CH01-D08":
+                    float gentleExplain = Accent(time, 0.35f, 1.25f, 2.60f);
+                    brow += 8f * gentleExplain;
+                    if (!ReducedMotion) nod += 1.4f * gentleExplain;
+                    break;
+                case "CH01-D09":
+                    float quietCare = Accent(time, 0.30f, 1.10f, 2.20f);
+                    brow += 7f * quietCare;
+                    asymmetry = 4f * quietCare;
+                    break;
+                case "CH01-D16":
+                    float urgency = Accent(time, 0.25f, 1.05f, 2.30f);
+                    brow += 14f * urgency;
+                    if (!ReducedMotion) nod -= 1.8f * urgency;
+                    break;
+                case "CH02-D03":
+                    float childQuestion = Accent(time, 0.40f, 1.20f, 2.10f);
+                    brow += 12f * childQuestion;
+                    if (!ReducedMotion) nod -= 1.5f * childQuestion;
+                    break;
+                case "CH02-D05":
+                case "CH03-D05":
+                    float sternWarning = Accent(time, 0.15f, 0.75f, 1.60f);
+                    brow += 11f * sternWarning;
+                    if (!ReducedMotion) nod += 1.8f * sternWarning;
                     break;
             }
         }

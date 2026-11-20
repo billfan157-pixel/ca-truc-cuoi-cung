@@ -24,8 +24,17 @@ namespace CTCC
                 fault == "char-mesh");
             CheckCharacter(scene.AnActor, "An", new[] { "Clothes", "Teeth", "Tongue" },
                 new[] { "IdleLook", "TurnFade" });
-            CheckCharacter(scene.GatekeeperActor, "GK", new[] { "Coat", "KeyRing" },
+            CheckCharacter(scene.GatekeeperActor, "GK", new[] { "Coat", "KeyRing", "Teeth", "Tongue" },
                 new[] { "IdleStill", "StalkWalk", "InspectReach" }, "KeyRing");
+
+            scene.LanActor.MeasureStanceSlip("Lan_StepOut", 1.70f, out float lanMedSlip, out float lanP95Slip, out float lanSoleSlip);
+            scene.GatekeeperActor.MeasureStanceSlip("GK_StalkWalk", 1.78f, out float gkMedSlip, out float gkP95Slip, out float gkSoleSlip);
+            Require(lanMedSlip <= 0.08f && lanP95Slip <= 0.22f && lanSoleSlip <= 0.08f,
+                $"Lan stride slip exceeded target: med={lanMedSlip:F3} p95={lanP95Slip:F3} sole={lanSoleSlip:F3}");
+            Require(gkMedSlip <= 0.08f && gkP95Slip <= 0.22f && gkSoleSlip <= 0.08f,
+                $"Gatekeeper stride slip exceeded target: med={gkMedSlip:F3} p95={gkP95Slip:F3} sole={gkSoleSlip:F3}");
+            scene.LanActor.PlayAction("Lan_IdleDesk", 0.01f, restart: true);
+            scene.GatekeeperActor.PlayAction("GK_IdleStill", 0.01f, restart: true);
 
             var lines = new[] { "CH01-D03", "CH01-D05", "CH01-D06", "CH01-D07", "CH01-D08",
                 "CH01-D09", "CH01-D16", "CH02-D03", "CH02-D05" };
@@ -37,7 +46,7 @@ namespace CTCC
                 Require(CharacterActor.ValidLipSyncTrack(track, line) && voice.TrackMatchesAudio(line, track) &&
                     track.text == Line(line), $"Invalid character track or stale audio/text: {line}");
             }
-            verification.Add("CHAR-Q01/Q07/Q08 PASS: named anatomy and face curves on all built LODs, required clips/sockets, skin bindings, shaders and 9 audio tracks.");
+            verification.Add($"CHAR-Q01/Q04/Q07/Q08 PASS: named anatomy and face curves on all built LODs (incl. GK Teeth/Tongue), stride/sole slip Lan={lanMedSlip:F3}/{lanSoleSlip:F3} m/s GK={gkMedSlip:F3}/{gkSoleSlip:F3} m/s, required clips/sockets, skin bindings, shaders and audio tracks.");
         }
 
         private static void CheckCharacter(CharacterActor actor, string prefix, string[] additionalParts,
@@ -121,6 +130,12 @@ namespace CTCC
                 onComplete: finished => { if (!finished) interrupted++; });
             for (int i = 0; i < 3; i++) yield return null;
             Require(lan.ActiveLineId == "CH01-D03", "Lan: audio did not bind to the face");
+            // Measure live AudioSource.timeSamples lip-sync path for 30 frames (0 B/frame allocation)
+            lan.MeasureAnimationAllocations = true;
+            for (int i = 0; i < 30; i++) yield return null;
+            lan.MeasureAnimationAllocations = false;
+            Require(lan.AnimationAllocationBytes == 0,
+                $"Lan: {lan.AnimationAllocationBytes} managed bytes during live audio timeSamples lip-sync");
             voice.SetPaused(true);
             int pauseSample = lan.voiceSource.timeSamples;
             yield return new WaitForSecondsRealtime(0.15f);
@@ -133,6 +148,59 @@ namespace CTCC
             if (Argument("-ctcc-qa-probe") != "char-interruption") voice.StopFor(lan);
             Require(interrupted == 1 && lan.ActiveLineId == null && !voice.IsSpeaking,
                 "Lan: interrupted character voice did not release face, voice source and callback");
+
+            // Automatic distance-driven LOD transitions in motion (ForceLOD(-1), lodBias=1.0) across all 3 characters
+            float prevBias = QualitySettings.lodBias;
+            float prevFar = camera.farClipPlane;
+            QualitySettings.lodBias = 1.0f;
+            camera.farClipPlane = Mathf.Max(prevFar, 80f);
+            float tanHalfFov = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+            try
+            {
+                foreach (var (actor, prefix, clipName) in new[]
+                {
+                    (scene.LanActor, "Lan", "Lan_StepOut"),
+                    (scene.AnActor, "An", "An_IdleLook"),
+                    (scene.GatekeeperActor, "GK", "GK_StalkWalk"),
+                })
+                {
+                    if (actor == null) continue;
+                    bool wasActive = actor.gameObject.activeSelf;
+                    Vector3 savedPos = actor.transform.position;
+                    Quaternion savedRot = actor.transform.rotation;
+                    actor.gameObject.SetActive(true);
+                    if (actor.isApparition) actor.SetApparitionAlpha(0.84f);
+                    // Unobstructed LOC01 exterior courtyard central axis (x=4, south of z=-10.5)
+                    Vector3 stagePos = new Vector3(4.0f, 0f, -10.5f);
+                    actor.transform.SetPositionAndRotation(stagePos, Quaternion.Euler(0f, 180f, 0f));
+                    actor.PlayAction(clipName, 0.01f, restart: true);
+                    var ag = actor.GetComponentInChildren<LODGroup>();
+                    ag.ForceLOD(-1);
+                    var aLevels = ag.GetLODs();
+                    float d0 = Mathf.Clamp(ag.size / (2f * 0.45f * tanHalfFov), 1.0f, 4.2f);
+                    float d1 = Mathf.Clamp(ag.size / (2f * 0.14f * tanHalfFov), 5.0f, 14.0f);
+                    float d2 = Mathf.Clamp(ag.size / (2f * 0.045f * tanHalfFov), 18.0f, 42.0f);
+                    // Test near (LOD0), mid (LOD1), and far (LOD2) automatic distance thresholds along unobstructed x=4 axis
+                    foreach (var (dist, expectedLod) in new[] { (d0, 0), (d1, 1), (d2, 2) })
+                    {
+                        player.Teleport(new Vector3(4.0f, 0.02f, stagePos.z - dist), Quaternion.identity);
+                        camera.transform.LookAt(stagePos + Vector3.up * 0.85f);
+                        for (int f = 0; f < 5; f++) yield return null;
+                        var bodySmr = (SkinnedMeshRenderer)aLevels[expectedLod].renderers.Single(r => r.name == $"{prefix}_Body_LOD{expectedLod}");
+                        Require(bodySmr.isVisible, $"{prefix}: automatic distance LOD{expectedLod} not visible at {dist:F1}m (size={ag.size:F2})");
+                    }
+                    camera.transform.localRotation = Quaternion.identity;
+                    if (actor.isApparition) actor.SetApparitionAlpha(0f);
+                    actor.transform.SetPositionAndRotation(savedPos, savedRot);
+                    actor.gameObject.SetActive(wasActive);
+                }
+            }
+            finally
+            {
+                QualitySettings.lodBias = prevBias;
+                camera.farClipPlane = prevFar;
+            }
+
             for (int i = 0; i < 12; i++)
             {
                 lan.gameObject.SetActive(false);
@@ -143,7 +211,7 @@ namespace CTCC
             }
             Require(lan.ActiveLineId == null && lan.ActiveActionName == "Lan_IdleDesk", "Lan: stale performance after activation");
             camera.enabled = false;
-            verification.Add($"CHAR-Q05/Q06/Q08 PASS: three forced Lan face LODs, {lan.MeasuredAnimationFrames} steady-state updates at 0 managed bytes, pause/resume, interrupted voice and 12 reactivations.");
+            verification.Add($"CHAR-Q05/Q06/Q08 PASS: three forced Lan face LODs + automatic distance LOD0->1->2 transitions in motion across Lan/An/GK, {lan.MeasuredAnimationFrames} steady-state + live speech updates at 0 managed bytes, pause/resume, interrupted voice and 12 reactivations.");
         }
     }
 }

@@ -191,9 +191,62 @@ def aim_bone_world(rig_obj, bone_name, target_dir_world, twist_deg=0.0):
     _apply_world_rot_to_pose_bone(rig_obj, pb, q_align.to_matrix() @ cur_w)
 
 
+def solve_two_bone_leg_ik(rig_obj, side, target_toe_world, foot_vec_world):
+    """Analytically solve 2-bone leg IK (UpLeg -> Leg -> Foot) so ToeBase lands at target_toe_world."""
+    upleg_name = f"mixamorig:{side}UpLeg"
+    leg_name = f"mixamorig:{side}Leg"
+    foot_name = f"mixamorig:{side}Foot"
+
+    upleg_pb = rig_obj.pose.bones.get(upleg_name)
+    leg_pb = rig_obj.pose.bones.get(leg_name)
+    foot_pb = rig_obj.pose.bones.get(foot_name)
+    if not (upleg_pb and leg_pb and foot_pb):
+        return
+
+    L1 = (upleg_pb.bone.tail_local - upleg_pb.bone.head_local).length
+    L2 = (leg_pb.bone.tail_local - leg_pb.bone.head_local).length
+    L3 = (foot_pb.bone.tail_local - foot_pb.bone.head_local).length
+
+    foot_dir = Vector(foot_vec_world).normalized()
+    target_ankle = Vector(target_toe_world) - foot_dir * L3
+
+    bpy.context.view_layer.update()
+    H = rig_obj.matrix_world @ upleg_pb.head
+    vec_ha = target_ankle - H
+    dist = vec_ha.length
+    max_reach = (L1 + L2) * 0.998
+    min_reach = abs(L1 - L2) + 0.01
+    d_clamped = max(min_reach, min(max_reach, dist))
+    dir_ha = vec_ha.normalized() if dist > 1e-5 else Vector((0.0, 0.0, -1.0))
+
+    cos_a = max(-1.0, min(1.0, (L1 * L1 + d_clamped * d_clamped - L2 * L2) / (2.0 * L1 * d_clamped)))
+    sin_a = math.sqrt(max(0.0, 1.0 - cos_a * cos_a))
+
+    # Forward knee pole (-Y in Blender metric space, with slight natural outward knee alignment)
+    sgn = 1.0 if side == "Left" else -1.0
+    pole = Vector((0.035 * sgn, -1.0, 0.05)).normalized()
+    perp = pole - dir_ha * pole.dot(dir_ha)
+    if perp.length < 1e-5:
+        perp = Vector((0.0, -1.0, 0.0))
+    else:
+        perp.normalize()
+
+    K = H + (dir_ha * cos_a + perp * sin_a) * L1
+    aim_bone_world(rig_obj, upleg_name, K - H)
+    bpy.context.view_layer.update()
+
+    K_actual = rig_obj.matrix_world @ leg_pb.head
+    aim_bone_world(rig_obj, leg_name, target_ankle - K_actual)
+    bpy.context.view_layer.update()
+
+    A_actual = rig_obj.matrix_world @ foot_pb.head
+    aim_bone_world(rig_obj, foot_name, Vector(target_toe_world) - A_actual)
+    bpy.context.view_layer.update()
+
+
 def retarget_cmu_clip(rig_obj, action_name, bvh_filename, src_start, src_end, step=4,
                       in_place=True, cyclic_blend=6, scale_rot=1.0, bone_scales=None,
-                      post_frame_fn=None):
+                      post_frame_fn=None, target_world_speed=None, stride_cycles=3):
     """Retarget a real CMU BVH slice [src_start..src_end] (120fps, step=4 => 30fps) onto rig_obj.
 
     - Computes exact world-space T-pose delta rotations (immune to axis/roll mismatch!)
@@ -222,9 +275,13 @@ def retarget_cmu_clip(rig_obj, action_name, bvh_filename, src_start, src_end, st
     tgt_hips0 = _bone_world_head(rig_obj, "mixamorig:Hips")
     tgt_foot0 = _bone_world_head(rig_obj, "mixamorig:LeftFoot")
     tgt_toe0 = _bone_world_head(rig_obj, "mixamorig:LeftToeBase")
+    tgt_rfoot0 = _bone_world_head(rig_obj, "mixamorig:RightFoot")
+    tgt_rtoe0 = _bone_world_head(rig_obj, "mixamorig:RightToeBase")
     tgt_leg_h = max(0.2, tgt_hips0.z - tgt_foot0.z)
     foot_sole_offset = min(tgt_foot0.z, tgt_toe0.z)
     hip_scale = tgt_leg_h / cmu_leg_h
+    rest_toe_pos = {"Left": tgt_toe0.copy(), "Right": tgt_rtoe0.copy()}
+    rest_foot_vec = {"Left": (tgt_toe0 - tgt_foot0).copy(), "Right": (tgt_rtoe0 - tgt_rfoot0).copy()}
 
     # Sample CMU frames at 30fps (120 / 4)
     src_frames = list(range(src_start, src_end + 1, step))
@@ -371,9 +428,46 @@ def retarget_cmu_clip(rig_obj, action_name, bvh_filename, src_start, src_end, st
 
         bpy.context.view_layer.update()
 
-        # Ground lowest foot/toe strictly onto z = 0.0 so character NEVER floats or sinks!
+        # Ground lowest foot/toe strictly onto z = 0.0 (or solve analytical stride-locked 2-bone leg IK if target_world_speed is set!)
         hips_pb = rig_obj.pose.bones.get("mixamorig:Hips")
-        if hips_pb:
+        if hips_pb and target_world_speed is not None and target_world_speed > 0.1:
+            fps = 30.0
+            n_period = max(1, n_out - 1)
+            cycle_frames = max(6.0, float(n_period) / float(max(1, stride_cycles)))
+            # Keep hips slightly lowered by 3.4 cm with subtle double-frequency gait bob so 2-bone IK reaches full stride cleanly
+            gait_phase = (fi / cycle_frames) % 1.0
+            bob_z = -0.036 + 0.007 * math.cos(gait_phase * math.tau * 2.0)
+            sway_x = 0.011 * math.sin(gait_phase * math.tau)
+            hip_rest_inv = hips_pb.bone.matrix_local.to_3x3().transposed()
+            hips_pb.location = hip_rest_inv @ Vector((sway_x, 0.0, bob_z))
+            bpy.context.view_layer.update()
+
+            stance_frac = 0.50
+            stance_frames = stance_frac * cycle_frames
+            d_stance = target_world_speed * (stance_frames / fps)
+
+            for side, ph_off in (("Left", 0.0), ("Right", 0.5)):
+                u = (gait_phase + ph_off) % 1.0
+                base_toe = rest_toe_pos[side]
+                base_fvec = rest_foot_vec[side]
+                if u <= stance_frac + 1e-6:
+                    # Stance phase: foot is planted flat on floor and sweeps backward (+Y) at exact constant target_world_speed!
+                    s_st = u / stance_frac
+                    ty = base_toe.y + d_stance * (s_st - 0.5)
+                    tz = base_toe.z
+                    fvec = base_fvec
+                else:
+                    # Swing phase: foot lifts well above stance threshold (> +18 mm) and swings forward from +d_stance/2 to -d_stance/2
+                    s_sw = (u - stance_frac) / (1.0 - stance_frac)
+                    s_smooth = s_sw * s_sw * (3.0 - 2.0 * s_sw)
+                    ty = base_toe.y + d_stance * (0.5 - s_smooth)
+                    lift = 0.016 + 0.042 * math.sin(s_sw * math.pi)
+                    tz = base_toe.z + lift
+                    # Subtle natural ankle dorsiflexion during swing
+                    pitch_tilt = -0.012 * math.sin(s_sw * math.pi)
+                    fvec = Vector((base_fvec.x, base_fvec.y, base_fvec.z + pitch_tilt))
+                solve_two_bone_leg_ik(rig_obj, side, Vector((base_toe.x + sway_x * 0.35, ty, tz)), fvec)
+        elif hips_pb:
             lf = _bone_world_head(rig_obj, "mixamorig:LeftFoot").z
             rf = _bone_world_head(rig_obj, "mixamorig:RightFoot").z
             lt = _bone_world_head(rig_obj, "mixamorig:LeftToeBase").z

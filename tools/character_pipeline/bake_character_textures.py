@@ -61,18 +61,32 @@ def load_mask_gray(path: Path, size=2048) -> np.ndarray:
     return np.asarray(im, dtype=np.float32) / 255.0
 
 
+def _write_png_img(img: Image.Image, name: str):
+    import io
+    import time
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", optimize=True)
+    data = buf.getvalue()
+    for target_dir in (TEX_DIR, SRC_TEX_DIR):
+        p = target_dir / f"{name}.png"
+        for attempt in range(5):
+            try:
+                p.write_bytes(data)
+                break
+            except OSError:
+                if attempt == 4:
+                    raise
+                time.sleep(0.15)
+
+
 def save_rgb(name: str, arr: np.ndarray):
     img = Image.fromarray(np.clip(arr * 255.0 + 0.5, 0, 255).astype(np.uint8), "RGB")
-    p = TEX_DIR / f"{name}.png"
-    img.save(p, optimize=True)
-    shutil.copy2(p, SRC_TEX_DIR / p.name)
+    _write_png_img(img, name)
 
 
 def save_rgba(name: str, arr: np.ndarray):
     img = Image.fromarray(np.clip(arr * 255.0 + 0.5, 0, 255).astype(np.uint8), "RGBA")
-    p = TEX_DIR / f"{name}.png"
-    img.save(p, optimize=True)
-    shutil.copy2(p, SRC_TEX_DIR / p.name)
+    _write_png_img(img, name)
 
 
 def build_skin_set(prefix: str, src_diffuse: Path, tone_mul, tone_bias, lip_tint, scalp_darken,
@@ -104,17 +118,26 @@ def build_skin_set(prefix: str, src_diffuse: Path, tone_mul, tone_bias, lip_tint
     pores = BS.center(BS.fbm(sz // 2, [64, 128, 256], seed=seed + 2))
     pores = np.asarray(Image.fromarray(((pores + 0.5) * 255).clip(0, 255).astype(np.uint8)).resize((sz, sz), Image.Resampling.BILINEAR), dtype=np.float32) / 255.0 - 0.5
 
-    col[..., 0] += var_macro * 0.022 + pores * 0.012
-    col[..., 1] += var_macro * 0.015 + pores * 0.010
-    col[..., 2] += var_macro * 0.012 + pores * 0.008
+    col[..., 0] += var_macro * 0.018 + pores * 0.011
+    col[..., 1] += var_macro * 0.014 + pores * 0.009
+    col[..., 2] += var_macro * 0.013 + pores * 0.009
+
+    # Subtle facial vascular zones on face island (warm malar cheek flush, soft lower-lid fatigue, cooler jaw/chin)
+    if soot_veil <= 0.0 and m_face.max() > 0.1:
+        malar = np.clip(m_face - m_lids * 0.7 - m_lips, 0.0, 1.0)
+        col[..., 0] += malar * 0.014
+        col[..., 1] -= malar * 0.004
+        col[..., 2] -= malar * 0.003
 
     # Natural subtle lip hemoglobin & moisture richness (never painted lipstick — natural 23yo nurse!)
     if lip_tint is not None:
         lt = np.array(lip_tint, dtype=np.float32)
-        col = col * (1.0 - m_lips[..., None] * 0.40) + lt * (m_lips[..., None] * 0.40)
+        col = col * (1.0 - m_lips[..., None] * 0.42) + lt * (m_lips[..., None] * 0.42)
 
     # Subtle orbital eyelid depth & tired night-shift lower-lid tone so eyes sit grounded in sockets
-    col *= (1.0 - m_lids[..., None] * 0.12)
+    col[..., 0] *= (1.0 - m_lids * 0.085)
+    col[..., 1] *= (1.0 - m_lids * 0.105)
+    col[..., 2] *= (1.0 - m_lids * 0.095)
 
     # Darken scalp area under hair to natural Vietnamese dark-brown/black root tone
     if scalp_darken > 0.0:
@@ -150,11 +173,11 @@ def build_skin_set(prefix: str, src_diffuse: Path, tone_mul, tone_bias, lip_tint
     # --- Mask Map (Linear RGBA): R=Metallic(0), G=AO/Cavity, B=SSS/Thickness, A=Smoothness ---
     ao = np.clip(0.95 - m_lids * 0.14 - m_ears * 0.10 - np.clip(-photo_hf * 2.5, 0.0, 0.18), 0.58, 1.0)
     # SSS thickness/curvature: ears, lips, nostrils, fingertips scatter warmly; thick bone areas less
-    sss = np.clip(0.42 + m_face * 0.22 + m_ears * 0.36 + m_lips * 0.28 + m_sss_raw * 0.18, 0.18, 1.0)
+    sss = np.clip(0.36 + m_face * 0.18 + m_ears * 0.34 + m_lips * 0.26 + m_sss_raw * 0.16, 0.16, 0.92)
     if soot_veil > 0.0:
         sss *= (1.0 - soot_veil * 0.78)
-    # Per-zone smoothness: lips (0.56), eyelids (0.44), nails (0.64), T-zone/face (0.36..0.44), body (0.30)
-    smooth = np.clip(0.30 + m_face * 0.09 + m_lids * 0.11 + m_lips * 0.24 + m_nails * 0.32 + pores * 0.05, 0.16, 0.72)
+    # Per-zone smoothness: lips (0.52), eyelids (0.40), nails (0.60), T-zone/face (0.31..0.38), body (0.26)
+    smooth = np.clip(0.26 + m_face * 0.07 + m_lids * 0.09 + m_lips * 0.22 + m_nails * 0.30 + pores * 0.04, 0.15, 0.64)
     if soot_veil > 0.0:
         smooth = np.clip(smooth * (1.0 - soot_veil * 0.62), 0.08, 0.30)
 
@@ -432,28 +455,31 @@ def main():
     TEX_DIR.mkdir(parents=True, exist_ok=True)
     SRC_TEX_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 1. CHAR002 Lan Skin (23yo Vietnamese young woman — authentic warm golden-ivory Southeast Asian complexion)
+    # 1. CHAR002 Lan Skin (23yo Vietnamese young woman — natural warm ivory Southeast Asian complexion, balanced blue channel)
     build_skin_set(
         prefix="LanSkin",
         src_diffuse=MPFB_USER / "skins/young_asian_female/young_lightskinned_female_diffuse3.png",
-        tone_mul=(0.84, 0.77, 0.65),
-        tone_bias=(0.012, 0.008, -0.006),
-        lip_tint=(0.58, 0.35, 0.31),
-        scalp_darken=0.88,
-        age_detail=0.0,
+        tone_mul=(0.82, 0.77, 0.71),
+        tone_bias=(0.008, 0.006, 0.004),
+        lip_tint=(0.56, 0.33, 0.31),
+        scalp_darken=0.90,
+        age_detail=0.05,
         soot_veil=0.0,
         seed=9100,
     )
 
-    # 2. CHAR007 Bé An Skin (7-8yo Vietnamese child — authentic warm Southeast Asian child complexion)
+    # 2. CHAR007 Bé An Skin (7-8yo Vietnamese boy — natural warm child complexion from male atlas if available)
+    an_skin_src = MPFB_USER / "skins/young_asian_male/young_lightskinned_male_diffuse.png"
+    if not an_skin_src.exists():
+        an_skin_src = MPFB_USER / "skins/young_asian_female/young_lightskinned_female_diffuse3.png"
     build_skin_set(
         prefix="AnSkin",
-        src_diffuse=MPFB_USER / "skins/young_asian_female/young_lightskinned_female_diffuse3.png",
-        tone_mul=(0.83, 0.75, 0.63),
-        tone_bias=(0.010, 0.006, -0.006),
-        lip_tint=(0.58, 0.36, 0.33),
+        src_diffuse=an_skin_src,
+        tone_mul=(0.82, 0.76, 0.70),
+        tone_bias=(0.008, 0.006, 0.004),
+        lip_tint=(0.56, 0.35, 0.33),
         scalp_darken=0.90,
-        age_detail=-0.25,
+        age_detail=-0.20,
         soot_veil=0.0,
         seed=9200,
     )

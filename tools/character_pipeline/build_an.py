@@ -420,9 +420,9 @@ def build_an_animations(rig_obj):
 def build_an():
     DH.fresh_metric_scene()
 
-    # 1. Calibrated 7-8yo Vietnamese child (`1.150 m`, 100% Asian `hm08` base + Vietnamese child facial features!)
+    # 1. Calibrated 7-8yo Vietnamese boy (`1.150 m`, 100% Asian `hm08` base + balanced Vietnamese child facial features!)
     macro = TargetService.get_default_macro_info_dict()
-    macro["gender"] = 0.45
+    macro["gender"] = 1.0        # Male pediatric child (flat chest, zero female breast cones!)
     macro["age"] = 0.19          # 7-8 year old child proportions!
     macro["weight"] = 0.38
     macro["muscle"] = 0.24
@@ -431,33 +431,33 @@ def build_an():
     macro["race"] = {"asian": 1.0, "caucasian": 0.0, "african": 0.0}
 
     facial_targets = {
-        "head-round": 0.32,
-        "head-scale-horiz-incr": 0.12,
-        "head-scale-depth-decr": 0.18,
-        "l-cheek-volume-incr": 0.34,
-        "r-cheek-volume-incr": 0.34,
-        "l-cheek-bones-incr": 0.24,
-        "r-cheek-bones-incr": 0.24,
-        "chin-prominent-decr": 0.28,
-        "chin-width-decr": 0.16,
-        "chin-height-decr": 0.14,
-        "l-eye-epicanthus-in": 0.56,
-        "r-eye-epicanthus-in": 0.56,
-        "l-eye-eyefold-down": 0.12,
-        "r-eye-eyefold-down": 0.12,
-        "l-eye-push1-out": 0.24,
-        "r-eye-push1-out": 0.24,
+        "head-round": 0.28,
+        "head-scale-horiz-incr": 0.06,
+        "head-scale-depth-decr": 0.12,
+        "l-cheek-volume-incr": 0.22,
+        "r-cheek-volume-incr": 0.22,
+        "l-cheek-bones-incr": 0.14,
+        "r-cheek-bones-incr": 0.14,
+        "chin-prominent-decr": 0.14,
+        "chin-width-decr": 0.12,
+        "chin-height-decr": 0.10,
+        "l-eye-epicanthus-in": 0.18,
+        "r-eye-epicanthus-in": 0.18,
+        "l-eye-eyefold-down": 0.08,
+        "r-eye-eyefold-down": 0.08,
+        "l-eye-push1-out": 0.16,
+        "r-eye-push1-out": 0.16,
         "l-eye-scale-incr": 0.08,
         "r-eye-scale-incr": 0.08,
-        "eyebrows-trans-up": 0.14,
-        "eyebrows-angle-up": 0.18,
-        "nose-scale-depth-decr": 0.44,
-        "nose-compression-compress": 0.28,
-        "nose-point-width-incr": 0.24,
-        "nose-nostrils-width-incr": 0.22,
-        "nose-scale-vert-decr": 0.18,
-        "mouth-scale-horiz-decr": 0.12,
-        "mouth-angles-up": 0.08,
+        "eyebrows-trans-up": 0.10,
+        "eyebrows-angle-up": 0.12,
+        "nose-scale-depth-decr": 0.22,
+        "nose-compression-compress": 0.18,
+        "nose-point-width-incr": 0.16,
+        "nose-nostrils-width-incr": 0.14,
+        "nose-scale-vert-decr": 0.12,
+        "mouth-scale-horiz-decr": 0.08,
+        "mouth-angles-up": 0.06,
     }
     human = DH.create_calibrated_human(macro, target_height_m=1.150, facial_targets=facial_targets)
     human.name = "An_Body_Raw"
@@ -523,7 +523,7 @@ def build_an():
     knee_z = rig.data.bones["mixamorig:LeftLeg"].head_local.z
 
     def an_keep_body(co):
-        if co.z > neck_z - 0.04:
+        if co.z > neck_z - 0.014:
             return True
         if abs(co.x) > sleeve_x:
             return True
@@ -548,17 +548,25 @@ def build_an():
 
     bpy.data.objects.remove(body_for_cloth, do_unlink=True)
 
-    # 6. Game-ready LOD0 / LOD1 / LOD2
+    # 6. Game-ready LOD0 / LOD1 / LOD2 (all 7 parts across all 3 LODs + 29 BlendShapes on Body_LOD0..2!)
     lod0_meshes = [body_lod0, eye_l, eye_r, teeth_obj, tongue_obj, hair_obj, clothes_obj]
     body_lod1 = DH.make_skinned_lod(body_lod0, "An_Body_LOD1", ratio=1.0, rig_obj=rig, keep_shapekeys=True)
-    clothes_lod1 = DH.make_skinned_lod(clothes_obj, "An_Clothes_LOD1", ratio=0.55, rig_obj=rig, keep_shapekeys=False)
+    clothes_lod1 = DH.make_skinned_lod(clothes_obj, "An_Clothes_LOD1", ratio=0.58, rig_obj=rig, keep_shapekeys=False)
     hair_lod1 = DH.make_skinned_lod(hair_obj, "An_Hair_LOD1", ratio=0.65, rig_obj=rig, keep_shapekeys=False)
-    lod1_meshes = [body_lod1, clothes_lod1, hair_lod1]
+    eye_l_lod1 = DH.make_skinned_lod(eye_l, "An_Eye_L_LOD1", ratio=0.55, rig_obj=rig, keep_shapekeys=False)
+    eye_r_lod1 = DH.make_skinned_lod(eye_r, "An_Eye_R_LOD1", ratio=0.55, rig_obj=rig, keep_shapekeys=False)
+    teeth_lod1 = DH.make_skinned_lod(teeth_obj, "An_Teeth_LOD1", ratio=0.22, rig_obj=rig, keep_shapekeys=False)
+    tongue_lod1 = DH.make_skinned_lod(tongue_obj, "An_Tongue_LOD1", ratio=0.55, rig_obj=rig, keep_shapekeys=False)
+    lod1_meshes = [body_lod1, clothes_lod1, hair_lod1, eye_l_lod1, eye_r_lod1, teeth_lod1, tongue_lod1]
 
-    body_lod2 = DH.make_skinned_lod(body_lod0, "An_Body_LOD2", ratio=0.45, rig_obj=rig, keep_shapekeys=False)
+    body_lod2 = DH.make_skinned_lod(body_lod0, "An_Body_LOD2", ratio=0.45, rig_obj=rig, keep_shapekeys=True)
     clothes_lod2 = DH.make_skinned_lod(clothes_obj, "An_Clothes_LOD2", ratio=0.35, rig_obj=rig, keep_shapekeys=False)
     hair_lod2 = DH.make_skinned_lod(hair_obj, "An_Hair_LOD2", ratio=0.42, rig_obj=rig, keep_shapekeys=False)
-    lod2_meshes = [body_lod2, clothes_lod2, hair_lod2]
+    eye_l_lod2 = DH.make_skinned_lod(eye_l, "An_Eye_L_LOD2", ratio=0.30, rig_obj=rig, keep_shapekeys=False)
+    eye_r_lod2 = DH.make_skinned_lod(eye_r, "An_Eye_R_LOD2", ratio=0.30, rig_obj=rig, keep_shapekeys=False)
+    teeth_lod2 = DH.make_skinned_lod(teeth_obj, "An_Teeth_LOD2", ratio=0.09, rig_obj=rig, keep_shapekeys=False)
+    tongue_lod2 = DH.make_skinned_lod(tongue_obj, "An_Tongue_LOD2", ratio=0.32, rig_obj=rig, keep_shapekeys=False)
+    lod2_meshes = [body_lod2, clothes_lod2, hair_lod2, eye_l_lod2, eye_r_lod2, teeth_lod2, tongue_lod2]
 
     for m in lod1_meshes + lod2_meshes:
         m.hide_render = True

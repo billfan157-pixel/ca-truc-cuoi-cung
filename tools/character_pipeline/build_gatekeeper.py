@@ -40,6 +40,12 @@ def create_gatekeeper_materials():
         "LanEye", color_tex="LanEye_Color.png", normal_tex="LanEye_Normal.png",
         roughness=0.14, coat_weight=0.55, normal_strength=0.35,
     )
+    mats["LanTeeth"] = DH.create_pbr_material(
+        "LanTeeth", color_tex="LanTeeth_Color.png", roughness=0.30, coat_weight=0.25,
+    )
+    mats["LanTongue"] = DH.create_pbr_material(
+        "LanTongue", color_tex="LanTongue_Color.png", roughness=0.40, sss_weight=0.22,
+    )
     mats["GatekeeperHairCard"] = DH.create_pbr_material(
         "GatekeeperHairCard", color_tex="GatekeeperHair_Color.png", normal_tex="GatekeeperHair_Normal.png",
         roughness=0.62, coat_weight=0.02, alpha_mode="BLEND", normal_strength=0.72,
@@ -86,6 +92,28 @@ def split_and_rig_eyes(eyes_obj, rig_obj, eye_mat):
         out.append(obj)
     bpy.data.objects.remove(eyes_obj, do_unlink=True)
     return out[0], out[1]
+
+
+def rig_oral_cavity(teeth_obj, tongue_obj, rig_obj, teeth_mat, tongue_mat):
+    teeth_obj.name = "GK_Teeth_LOD0"
+    tongue_obj.name = "GK_Tongue_LOD0"
+    for v in teeth_obj.data.vertices:
+        v.co.x *= 0.89
+    teeth_obj.data.update()
+    zs = [v.co.z for v in teeth_obj.data.vertices]
+    z_mid = 0.5 * (min(zs) + max(zs))
+    teeth_obj.vertex_groups.clear()
+    vg_head = teeth_obj.vertex_groups.new(name="mixamorig:Head")
+    vg_jaw = teeth_obj.vertex_groups.new(name="mixamorig:Jaw")
+    for v in teeth_obj.data.vertices:
+        (vg_head if v.co.z >= z_mid - 0.001 else vg_jaw).add([v.index], 1.0, "REPLACE")
+    DH.set_smooth(teeth_obj)
+    DH.assign_material(teeth_obj, teeth_mat)
+    DH.bind_rig(teeth_obj, rig_obj)
+
+    DH.set_smooth(tongue_obj)
+    DH.assign_material(tongue_obj, tongue_mat)
+    DH.weight_rigid(tongue_obj, rig_obj, "mixamorig:Jaw")
 
 
 def add_keyring_bone(rig_obj):
@@ -487,12 +515,14 @@ def build_gatekeeper_animations(rig_obj):
         rig_obj, "GK_StalkWalk", "08_04.bvh",
         src_start=60, src_end=300, step=4,
         in_place=True, cyclic_blend=8,
-        scale_rot=0.82,
+        scale_rot=0.86,
         bone_scales={
             "mixamorig:LeftArm": 0.65, "mixamorig:RightArm": 0.58,
             "mixamorig:Head": 0.45, "mixamorig:Spine2": 0.72,
         },
         post_frame_fn=post_stalk,
+        target_world_speed=1.78,
+        stride_cycles=3,
     )
 
     # 2. GK_IdleStill — Towering motionless watchfulness, heavy breathing, slight keyring pendulum
@@ -561,24 +591,24 @@ def build_gatekeeper():
     macro["race"] = {"asian": 1.0, "caucasian": 0.0, "african": 0.0}
 
     facial_targets = {
-        "head-scale-depth-decr": 0.16,
-        "l-cheek-bones-incr": 0.36,
-        "r-cheek-bones-incr": 0.36,
-        "l-cheek-inner-decr": 0.24,
-        "r-cheek-inner-decr": 0.24,
-        "l-eye-epicanthus-in": 0.52,
-        "r-eye-epicanthus-in": 0.52,
-        "l-eye-eyefold-down": 0.32,
-        "r-eye-eyefold-down": 0.32,
-        "l-eye-scale-decr": 0.14,
-        "r-eye-scale-decr": 0.14,
-        "eyebrows-trans-down": 0.18,
-        "nose-scale-depth-decr": 0.30,
-        "nose-compression-compress": 0.20,
-        "nose-point-width-incr": 0.18,
-        "nose-nostrils-width-incr": 0.24,
-        "nose-flaring-incr": 0.14,
-        "chin-prominent-decr": 0.14,
+        "head-scale-depth-decr": 0.12,
+        "l-cheek-bones-incr": 0.22,
+        "r-cheek-bones-incr": 0.22,
+        "l-cheek-inner-decr": 0.20,
+        "r-cheek-inner-decr": 0.20,
+        "l-eye-epicanthus-in": 0.18,
+        "r-eye-epicanthus-in": 0.18,
+        "l-eye-eyefold-down": 0.22,
+        "r-eye-eyefold-down": 0.22,
+        "l-eye-scale-decr": 0.10,
+        "r-eye-scale-decr": 0.10,
+        "eyebrows-trans-down": 0.16,
+        "nose-scale-depth-decr": 0.18,
+        "nose-compression-compress": 0.16,
+        "nose-point-width-incr": 0.14,
+        "nose-nostrils-width-incr": 0.16,
+        "nose-flaring-incr": 0.10,
+        "chin-prominent-decr": 0.08,
         "chin-height-incr": 0.08,
     }
     human = DH.create_calibrated_human(macro, target_height_m=1.940, facial_targets=facial_targets)
@@ -591,6 +621,8 @@ def build_gatekeeper():
         return HumanService.add_mhclo_asset(p, human, asset_type=cat, subdiv_levels=0, material_type="NONE")
 
     eyes_obj = load_part("eyes", "high-poly/high-poly.mhclo")
+    teeth_obj = load_part("teeth", "teeth_base/teeth_base.mhclo")
+    tongue_obj = load_part("tongue", "tongue01/tongue01.mhclo")
     brows_obj = load_part("eyebrows", "eyebrow004/eyebrow004.mhclo")
     hair_obj = load_part("hair", "short04/short04.mhclo")
     brows_obj.name = "GK_Eyebrows_LOD0"
@@ -611,6 +643,7 @@ def build_gatekeeper():
     )
 
     eye_l, eye_r = split_and_rig_eyes(eyes_obj, rig, mats["LanEye"])
+    rig_oral_cavity(teeth_obj, tongue_obj, rig, mats["LanTeeth"], mats["LanTongue"])
     DH.set_smooth(brows_obj)
     DH.assign_material(brows_obj, mats["LanEyebrow"])
     DH.weight_rigid(brows_obj, rig, "mixamorig:Head")
@@ -658,18 +691,31 @@ def build_gatekeeper():
 
     bpy.data.objects.remove(body_for_cloth, do_unlink=True)
 
-    # 6. Game-ready LOD0 / LOD1 / LOD2
-    lod0_meshes = [human, eye_l, eye_r, hair_obj, garment_obj, keyring_obj]
+    # 6. Game-ready LOD0 / LOD1 / LOD2 (all 8 parts across all 3 LODs + 29 BlendShapes on Body_LOD0..2!)
+    lod0_meshes = [human, eye_l, eye_r, teeth_obj, tongue_obj, hair_obj, garment_obj, keyring_obj]
+
+    def protect_gk_collar(v, _mats):
+        return v.co.z >= neck_z - 0.055 and abs(v.co.x) < 0.16
+
     body_lod1 = DH.make_skinned_lod(human, "GK_Body_LOD1", ratio=1.0, rig_obj=rig, keep_shapekeys=True)
-    garment_lod1 = DH.make_skinned_lod(garment_obj, "GK_Coat_LOD1", ratio=0.52, rig_obj=rig, keep_shapekeys=False)
+    garment_lod1 = DH.make_skinned_lod(garment_obj, "GK_Coat_LOD1", ratio=0.55, rig_obj=rig, keep_shapekeys=False, protect_fn=protect_gk_collar)
     hair_lod1 = DH.make_skinned_lod(hair_obj, "GK_Hair_LOD1", ratio=0.65, rig_obj=rig, keep_shapekeys=False)
     key_lod1 = DH.make_skinned_lod(keyring_obj, "GK_KeyRing_LOD1", ratio=0.65, rig_obj=rig, keep_shapekeys=False)
-    lod1_meshes = [body_lod1, garment_lod1, hair_lod1, key_lod1]
+    eye_l_lod1 = DH.make_skinned_lod(eye_l, "GK_Eye_L_LOD1", ratio=0.55, rig_obj=rig, keep_shapekeys=False)
+    eye_r_lod1 = DH.make_skinned_lod(eye_r, "GK_Eye_R_LOD1", ratio=0.55, rig_obj=rig, keep_shapekeys=False)
+    teeth_lod1 = DH.make_skinned_lod(teeth_obj, "GK_Teeth_LOD1", ratio=0.22, rig_obj=rig, keep_shapekeys=False)
+    tongue_lod1 = DH.make_skinned_lod(tongue_obj, "GK_Tongue_LOD1", ratio=0.55, rig_obj=rig, keep_shapekeys=False)
+    lod1_meshes = [body_lod1, garment_lod1, hair_lod1, key_lod1, eye_l_lod1, eye_r_lod1, teeth_lod1, tongue_lod1]
 
-    body_lod2 = DH.make_skinned_lod(human, "GK_Body_LOD2", ratio=0.42, rig_obj=rig, keep_shapekeys=False)
-    garment_lod2 = DH.make_skinned_lod(garment_obj, "GK_Coat_LOD2", ratio=0.28, rig_obj=rig, keep_shapekeys=False)
+    body_lod2 = DH.make_skinned_lod(human, "GK_Body_LOD2", ratio=0.42, rig_obj=rig, keep_shapekeys=True)
+    garment_lod2 = DH.make_skinned_lod(garment_obj, "GK_Coat_LOD2", ratio=0.32, rig_obj=rig, keep_shapekeys=False, protect_fn=protect_gk_collar)
+    hair_lod2 = DH.make_skinned_lod(hair_obj, "GK_Hair_LOD2", ratio=0.42, rig_obj=rig, keep_shapekeys=False)
     key_lod2 = DH.make_skinned_lod(keyring_obj, "GK_KeyRing_LOD2", ratio=0.50, rig_obj=rig, keep_shapekeys=False)
-    lod2_meshes = [body_lod2, garment_lod2, key_lod2]
+    eye_l_lod2 = DH.make_skinned_lod(eye_l, "GK_Eye_L_LOD2", ratio=0.30, rig_obj=rig, keep_shapekeys=False)
+    eye_r_lod2 = DH.make_skinned_lod(eye_r, "GK_Eye_R_LOD2", ratio=0.30, rig_obj=rig, keep_shapekeys=False)
+    teeth_lod2 = DH.make_skinned_lod(teeth_obj, "GK_Teeth_LOD2", ratio=0.09, rig_obj=rig, keep_shapekeys=False)
+    tongue_lod2 = DH.make_skinned_lod(tongue_obj, "GK_Tongue_LOD2", ratio=0.32, rig_obj=rig, keep_shapekeys=False)
+    lod2_meshes = [body_lod2, garment_lod2, hair_lod2, key_lod2, eye_l_lod2, eye_r_lod2, teeth_lod2, tongue_lod2]
 
     for m in lod1_meshes + lod2_meshes:
         m.hide_render = True

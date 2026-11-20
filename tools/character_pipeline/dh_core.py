@@ -17,10 +17,13 @@ import math
 import os
 from pathlib import Path
 
+import addon_utils
 import bmesh
 import bpy
 from mathutils import Euler, Matrix, Quaternion, Vector
 from mathutils.bvhtree import BVHTree
+
+addon_utils.enable("bl_ext.blender_org.mpfb", default_set=True)
 
 ROOT = Path(__file__).resolve().parents[2]
 BLEND_DIR = ROOT / "ArtSource" / "Blender"
@@ -30,9 +33,10 @@ EVIDENCE_DIR = ROOT / "output" / "m2c"
 
 
 def fresh_metric_scene():
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    addon_utils.enable("bl_ext.blender_org.mpfb", default_set=True)
     from bl_ext.blender_org.mpfb.services.assetservice import AssetService
 
-    bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.unit_settings.system = "METRIC"
     scene.unit_settings.scale_length = 1.0
@@ -695,29 +699,76 @@ def bind_rig(mesh_obj, rig_obj):
     mod.use_vertex_groups = True
 
 
-def make_skinned_lod(src_obj, new_name, ratio, rig_obj, keep_shapekeys=False):
-    """Create a decimated skinned LOD copy preserving Armature deformation (and optionally Basis for far LOD)."""
+def normalize_skin_weights(mesh_obj, rig_obj):
+    """Cap and normalize deform influences to match Unity's 4-weight importer with 0 unweighted vertices."""
+    bone_names = {b.name for b in rig_obj.data.bones}
+    for vg in list(mesh_obj.vertex_groups):
+        if vg.name not in bone_names:
+            mesh_obj.vertex_groups.remove(vg)
+    groups = {g.index: g for g in mesh_obj.vertex_groups if g.name in bone_names}
+    fallback_vg = mesh_obj.vertex_groups.get("mixamorig:Hips") or mesh_obj.vertex_groups.get("mixamorig:Head")
+    if fallback_vg is None:
+        fallback_vg = mesh_obj.vertex_groups.new(name="mixamorig:Hips")
+        groups[fallback_vg.index] = fallback_vg
+    for vertex in mesh_obj.data.vertices:
+        weights = sorted(((g.weight, g.group) for g in vertex.groups
+                          if g.group in groups and g.weight > 1e-5), reverse=True)
+        if not weights:
+            fallback_vg.add([vertex.index], 1.0, "REPLACE")
+            continue
+        kept = weights[:4]
+        total = sum(w for w, _ in kept)
+        for _, index in weights[4:]:
+            groups[index].remove([vertex.index])
+        for weight, index in kept:
+            groups[index].add([vertex.index], weight / total, "REPLACE")
+
+
+def make_skinned_lod(src_obj, new_name, ratio, rig_obj, keep_shapekeys=False, protect_fn=None):
+    """Create a decimated skinned LOD copy preserving Armature deformation, protected silhouette features, and Shape Keys."""
     dup = src_obj.copy()
     dup.data = src_obj.data.copy()
     dup.name = new_name
     bpy.context.collection.objects.link(dup)
 
-    # Decimate modifier cannot apply while shape keys exist; for LOD1/LOD2 strip shape keys if not needed
-    # (LOD0 always retains full 28+ facial BlendShapes; LOD1 head retains blendshapes without decimation!)
-    if dup.data.shape_keys and not keep_shapekeys:
+    had_shapekeys = bool(dup.data.shape_keys)
+    # If decimation is requested on a mesh with shape keys, strip shape keys before Decimate, then re-transfer from src_obj!
+    if dup.data.shape_keys and (not keep_shapekeys or ratio < 0.99):
         dup.shape_key_clear()
 
     if ratio < 0.99 and not dup.data.shape_keys:
         bpy.ops.object.select_all(action="DESELECT")
         dup.select_set(True)
         bpy.context.view_layer.objects.active = dup
+        dec_vg = None
+        if protect_fn is not None:
+            # Build per-vertex material set so protect_fn(v, v_mat_names) can protect trim, badge, collar, etc.
+            slot_names = [s.material.name if s.material else "" for s in dup.material_slots]
+            v_mats = [set() for _ in range(len(dup.data.vertices))]
+            for poly in dup.data.polygons:
+                mname = slot_names[poly.material_index] if poly.material_index < len(slot_names) else ""
+                for vi in poly.vertices:
+                    v_mats[vi].add(mname)
+            dec_vg = dup.vertex_groups.new(name="_LODDecimateable")
+            for v in dup.data.vertices:
+                w = 0.0 if protect_fn(v, v_mats[v.index]) else 1.0
+                dec_vg.add([v.index], w, "REPLACE")
         dec = dup.modifiers.new("LODDecimate", "DECIMATE")
         dec.ratio = ratio
         dec.use_collapse_triangulate = False
-        # Reduce the bind mesh before the armature, even when a posing action is active.
+        if dec_vg is not None:
+            dec.vertex_group = "_LODDecimateable"
         dup.modifiers.move(len(dup.modifiers) - 1, 0)
         bpy.ops.object.modifier_apply(modifier=dec.name)
+        vg_rem = dup.vertex_groups.get("_LODDecimateable")
+        if vg_rem is not None:
+            dup.vertex_groups.remove(vg_rem)
 
+    triangulate_ngons(dup)
+    if keep_shapekeys and had_shapekeys and not dup.data.shape_keys:
+        transfer_shapekeys_by_surface(src_obj, dup, body_only=False)
+
+    normalize_skin_weights(dup, rig_obj)
     bind_rig(dup, rig_obj)
     return dup
 
@@ -773,6 +824,7 @@ def save_and_export_character(name, rig_obj, lod0_meshes, lod1_meshes=None, lod2
     all_meshes = list(lod0_meshes) + list(lod1_meshes or []) + list(lod2_meshes or [])
     for mesh in all_meshes:
         triangulate_ngons(mesh)
+        normalize_skin_weights(mesh, rig_obj)
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path), relative_remap=True, copy=True)
     export_character(fbx_path, rig_obj, all_meshes)
 
