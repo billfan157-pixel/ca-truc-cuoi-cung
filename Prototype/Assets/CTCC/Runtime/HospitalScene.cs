@@ -163,9 +163,17 @@ namespace CTCC
 
         public void PresentCasework(Investigation state)
         {
+            lastServiceGate = state.chapter == "CH04";
             foreach (var region in registeredZones)
+            {
+                Toggle(region.serviceConnector, !lastServiceGate || !HasZone("LOC09"));
                 region.PresentCasework(state);
+            }
         }
+
+        internal bool ServiceApproachBlocked =>
+            zonesById.TryGetValue("LOC04", out var emergency) && emergency.serviceConnector != null &&
+            emergency.serviceConnector.activeInHierarchy;
 
         private sealed class NavigationSnapshot
         {

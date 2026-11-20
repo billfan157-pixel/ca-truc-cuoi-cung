@@ -286,12 +286,6 @@ namespace CTCC
         // M3.0 REPRESENTATIVE CH03 ('NHỮNG CÁI TÊN BỊ XÓA') CASEWORK
         // ------------------------------------------------------------------
 
-        public CommitResult BeginCh03(Vector3 feet)
-        {
-            if (!PrepareBeginCh03(out var next)) return CommitResult.PadRequired;
-            return reality.Commit(next, feet, warp: true, geometryChanges: true);
-        }
-
         public Task<CommitResult> BeginCh03Async(Vector3 feet)
         {
             if (!PrepareBeginCh03(out var next)) return Task.FromResult(CommitResult.PadRequired);

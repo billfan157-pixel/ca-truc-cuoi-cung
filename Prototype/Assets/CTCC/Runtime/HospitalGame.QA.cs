@@ -1011,7 +1011,15 @@ namespace CTCC
                 !MayDeliver("CH01-D16b", "B06"), "CH03-Q05 evidence and reveal boundary");
             player.Teleport(ap07);
             Apply(casework.CompleteCh03(player.Feet), "Finish CH03 at AP07");
+            if (scene.IsAdditiveMode)
+                yield return scene.UnloadZoneAsync(RegionStreamer.Service);
             yield return WaitForApplied(casework.BeginCh04Async(), "Enter CH04 at AP07");
+            if (scene.IsAdditiveMode)
+            {
+                Require(scene.ServiceApproachBlocked, "Closed service threshold while scene is absent");
+                yield return scene.LoadZoneAsync(RegionStreamer.Service);
+                Require(!scene.ServiceApproachBlocked, "CH04 state opens the service threshold after preload");
+            }
             Require(!MayDeliver("CH04-D06", "B06"), "CH04 Lan closed at entry");
             yield return WaitForApplied(ChapterFour.Take(transaction, EvidenceRegistry.DutyOrders, "LOC06"), "Take E02");
             yield return WaitForApplied(ChapterFour.Take(transaction, EvidenceRegistry.DutyLog, "LOC06"), "Take E09");

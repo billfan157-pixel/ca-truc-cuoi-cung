@@ -1,0 +1,11 @@
+Faulting application name: CaTrucCuoiCung.exe, version: 6000.3.28.2093, time stamp: 0x6ae8a969
+Faulting module name: D3D12Core.dll, version: 1.618.1.0, time stamp: 0x68d311e6
+Exception code: 0xc0000005
+Fault offset: 0x000000000000a1f5
+Faulting process id: 0x8980
+Faulting application start time: 0x1DD7919BB361DC6
+Faulting application path: C:\Ca trực cuối cùng\output\m31\windows-ee42125\CaTrucCuoiCung.exe
+Faulting module path: C:\Ca trực cuối cùng\output\m31\windows-ee42125\D3D12\D3D12Core.dll
+Report Id: 0c519fd2-37ec-4741-b1c9-5522f42fe31d
+Faulting package full name: 
+Faulting package-relative application ID: 

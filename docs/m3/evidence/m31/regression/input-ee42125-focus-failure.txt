@@ -1,0 +1,4 @@
+FAIL: System.InvalidOperationException: Input QA needs a focused Windows player
+  at CTCC.HospitalGame+<Until>d__45.MoveNext () [0x00076] in <c24ef3d035db484dbedee3ec802a2655>:0 
+  at CTCC.HospitalGame+<FinishVerification>d__91.MoveNext () [0x00060] in <c24ef3d035db484dbedee3ec802a2655>:0 
+RESULT=FAIL

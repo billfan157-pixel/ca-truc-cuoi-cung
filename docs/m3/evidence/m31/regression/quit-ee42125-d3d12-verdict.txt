@@ -1,0 +1,3 @@
+FAIL: System.InvalidOperationException: intentional QA module failure
+  at CTCC.HospitalGame+<AutomatedVisit>d__86.MoveNext () [0x00052] in <c24ef3d035db484dbedee3ec802a2655>:0 
+RESULT=FAIL
