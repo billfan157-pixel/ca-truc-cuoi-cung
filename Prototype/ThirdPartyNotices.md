@@ -41,3 +41,7 @@ Toàn bộ tài sản môi trường/đạo cụ (36 tài sản M1 kế thừa +
 ## Tư liệu lịch sử
 
 Ảnh lịch sử, tiêu chuẩn `TCVN 4470:1995`, Quy chế trang phục y tế `1895/1997/QĐ-BYT`, bản vẽ JICA và tư liệu kiến trúc/khí hậu trong register `TASK023` (`docs/prototype/research.md`, `R01–R41` và `docs/m2/research-and-art-direction.md`, `R42–R50`) chỉ dùng làm tài liệu tham chiếu nghiên cứu và liên kết tới nguồn tra cứu; không nhúng ảnh bên thứ ba vào build.
+
+## Bộ đạo cụ kỹ thuật M3.1
+
+Bậc terrazzo, xe thuốc, tủ khô và bảng tải là thiết kế hư cấu do dự án dựng bằng Blender 4.5, với mã dựng tại `tools/blender_assets/build_m31_service_kit.py`. Tệp `.blend` và FBX cùng tên đi kèm mã nguồn. Vật liệu dùng thư viện nội bộ và các lớp PBR CC0 đã kê ở trên. Không đưa ảnh hồ sơ, nhãn bệnh viện hoặc bản vẽ nhà sản xuất vào bản chơi. Tham chiếu và các chi tiết cần duyệt được ghi trong [mặt cắt M3.1](../docs/m3/m31-world.md).
