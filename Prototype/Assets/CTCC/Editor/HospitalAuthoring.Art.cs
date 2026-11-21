@@ -459,9 +459,12 @@ namespace CTCC.Editor
                 var wantedType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
                 var wrap = repeat && !clampedAtlas ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
                 bool wantAlpha = !repeat || leafOrHairAlpha;
+                bool keepPaperSize = family is "Doc" or "F101" or "ObsCard" or "Calendar2005";
+                var npotScale = keepPaperSize ? TextureImporterNPOTScale.None : importer.npotScale;
                 if (importer.textureType == wantedType && importer.sRGBTexture == !linearData &&
                     importer.wrapMode == wrap && importer.anisoLevel == 8 && importer.maxTextureSize == 2048 &&
-                    importer.alphaIsTransparency == wantAlpha && importer.streamingMipmaps == stream)
+                    importer.alphaIsTransparency == wantAlpha && importer.streamingMipmaps == stream &&
+                    importer.npotScale == npotScale)
                     continue;
                 importer.textureType = wantedType;
                 importer.sRGBTexture = !linearData;
@@ -470,6 +473,7 @@ namespace CTCC.Editor
                 importer.anisoLevel = 8;
                 importer.alphaIsTransparency = wantAlpha;
                 importer.streamingMipmaps = stream;
+                importer.npotScale = npotScale;
                 importer.textureCompression = TextureImporterCompression.Compressed;
                 importer.SaveAndReimport();
             }
@@ -1412,9 +1416,9 @@ namespace CTCC.Editor
         {
             CapsuleTarget("GATE-CONG", "Cổng phụ", new Vector3(4, 1.28f, -20.12f), new Vector3(1.10f, 1.18f, 0.22f));
             CapsuleTarget("SEAM", "Thử ra cổng", new Vector3(4, 1.09f, -20.46f), new Vector3(2, 1.6f, 0.2f));
-            CapsuleTarget("AN01", "Sổ trực", new Vector3(2.18f, 1.20f, -3.73f), new Vector3(0.28f, 0.28f, 0.48f));
+            CapsuleTarget("AN01", "Sổ trực", new Vector3(1.95f, 1.17f, -3.42f), new Vector3(0.36f, 0.23f, 0.40f));
             CapsuleTarget("BOARD", "Phiếu bàn giao 101", new Vector3(2.14f, 1.21f, -2.91f), new Vector3(0.30f, 0.30f, 0.55f));
-            CapsuleTarget("E10a", "Bì thư của Bảy", new Vector3(3.17f, 0.94f, -21.44f), new Vector3(0.43f, 0.49f, 0.44f));
+            CapsuleTarget("E10a", "Bì thư của Bảy", new Vector3(3.17f, 0.27f, -21.44f), new Vector3(0.43f, 0.22f, 0.44f));
             CapsuleTarget("AN02", "Điểm neo phòng 101", new Vector3(6.51f, 0.55f, 5.14f), new Vector3(0.59f, 0.45f, 0.33f));
 
             // Hero Blender Wooden Clipboard F101 on Room 101 Wall
@@ -1478,7 +1482,7 @@ namespace CTCC.Editor
                 "Doc_Bed2Transfer", "Doc_Bed2Transfer_Back",
                 "Doc_Bed3Meds", "Doc_Bed3Meds_Back",
                 "Doc_ShiftGuide", "Doc_ShiftGuide_Back",
-                "Doc_WardOverflow", "Doc_DutyRoster",
+                "Doc_WardOverflow", "Doc_DutyRoster", "Calendar2005",
                 "Doc_BayEnvelopeFront", "Doc_BayLetter", "Doc_BayLetter_Back",
                 "BedList", "Transfer", "Drawing",
                 "DrawingPiece1", "DrawingPiece2", "DrawingPiece3"
@@ -1568,6 +1572,7 @@ namespace CTCC.Editor
             // CH01-R Compact STAFF Nursing / Admin Alcove (x=0.92 against east wall -> preserves 1.72m Door-B escape lane!)
             var staffPermRoot = ResolveParent(permanent, new Vector3(0.92f, 0f, 3.65f));
             var staffRepRoot = ResolveParent(report, new Vector3(0.92f, 0f, 3.65f));
+            if (art && multiScene) zones["LOC03"].region.staffChair = MakeStaffChair(staffPermRoot);
             var nursingDesk = PlaceBlenderModel("CTCC_PROP_NursingFilingDesk", staffPermRoot, new Vector3(0.92f, 0f, 3.65f), 90f, pairRB: true);
             Box("Nursing desk col", new Vector3(0.92f, 0.46f, 3.65f), new Vector3(0.36f, 0.92f, 1.18f), Mat("CabinetPaint"), staffPermRoot, solid: true).GetComponent<Renderer>().enabled = false;
             staticArchitecture.Add(nursingDesk);

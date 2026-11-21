@@ -1,0 +1,16 @@
+Windows x64 Release, Direct3D 12, 1920 x 1080, Medium
+revision=4c3420ebdae18e0b449e0c330317ca8997cecbd2
+unity=6000.3.28f1
+assembly_sha256=2555d8c9f0ab059b327acde6acb4daf9067ca13a04a904bb02a896cae1f1f447
+
+INPUT PASS E11/E12/G02 & CH02-Q05 Door A: physical clues, cabinet, assembly, identification, walking escape and ER ledger.
+INPUT PASS Affirmed: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.
+TASK03 INPUT PASS: unchanged F101 submission through the keyboard UI is silent and preserves the revision.
+INPUT PASS E11/E12/G02 & CH02-Q05 Door B: physical clues, cabinet, assembly, identification, walking escape and ER ledger.
+INPUT PASS Unverified: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.
+INPUT CH03–04 PASS: W capsule on three flights, PZ03, C12, R/M, duty papers, circuit controls, H05, dialogue guard and B1 autosave menu.
+CH01 INPUT PASS: full Lan scene, Large Print time reveal, wrong and right time, optional monologue, and Refuted signing reaction.
+INPUT CH01-R FULL ROUTE PASS: zero teleportation from AP00 through STAFF loop, drawers, Room 101 docs, dual-sided inspector, Journal comparison, F101 mouse hotspot, keyboard large print, link and durable refutation, collapse, seam, and CH02 handoff.
+INPUT PASS Refuted: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.
+INPUT STRESS PASS: 100 dual-sided + raking-light open/close cycles; 0 live paper meshes, 0 live paper materials, Unity allocated bytes 296396658→296765379.
+RESULT=PASS

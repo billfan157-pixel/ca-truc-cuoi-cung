@@ -6,6 +6,18 @@ using UnityEngine.Rendering.Universal;
 
 namespace CTCC
 {
+    public readonly struct InspectAnnotationField
+    {
+        public readonly string Id;
+        public readonly Rect Uv;
+
+        public InspectAnnotationField(string id, Rect uv)
+        {
+            Id = id;
+            Uv = uv;
+        }
+    }
+
     public readonly struct InspectDetailTarget
     {
         public readonly string Id;
@@ -52,7 +64,20 @@ namespace CTCC
         private float zoomTarget = 0.41f;
         private bool active;
         private bool reducedMotion;
+        private bool cameraAssist = true;
         private float openBlend;
+        private Vector3 openFrom;
+        private float paperWidth, paperHeight;
+        private Mesh inkMesh;
+        private MeshFilter ink;
+        private Material inkMaterial;
+        private GameObject worldProp;
+        private Renderer worldSheet;
+        private bool sheetWasEnabled;
+        private Vector2 markPointerStart;
+        private bool markClick;
+        private InspectAnnotationField[] annotationFields = Array.Empty<InspectAnnotationField>();
+        private Action<string> onMarkField;
         private bool hasBackSide;
         private bool showingBack;
         private InspectDetailTarget[] details = Array.Empty<InspectDetailTarget>();
@@ -123,6 +148,7 @@ namespace CTCC
         }
 
         public void SetReducedMotion(bool reduced) => reducedMotion = reduced;
+        public void SetCameraAssist(bool enabled) => cameraAssist = enabled;
 
         public void Open(
             GameObject prefabOrTemplate,
@@ -136,12 +162,25 @@ namespace CTCC
             string observationId = null,
             Texture backIndentNormal = null,
             Texture backIndentMask = null,
-            Action onRakingReveal = null)
+            Action onRakingReveal = null,
+            Vector3? source = null,
+            InspectAnnotationField[] annotationFields = null,
+            string markedField = null,
+            Action<string> onMark = null,
+            bool liftModel = false,
+            Renderer liftSheet = null)
         {
             Close();
             active = true;
             currentObservationId = observationId ?? "";
-            openBlend = reducedMotion ? 1f : 0f;
+            openBlend = reducedMotion || !cameraAssist ? 1f : 0f;
+            openFrom = new Vector3(-0.095f, -0.20f, 0.41f);
+            if (source.HasValue && cameraAssist && !reducedMotion)
+            {
+                Vector3 local = eye.transform.InverseTransformPoint(source.Value);
+                openFrom = new Vector3(Mathf.Clamp(local.x, -0.30f, 0.30f),
+                    Mathf.Clamp(local.y, -0.24f, 0.19f), Mathf.Clamp(local.z, 0.48f, 0.86f));
+            }
             rotX = 0f;
             rotY = 0f;
             zoom = 0.41f;
@@ -161,6 +200,9 @@ namespace CTCC
             onFlipped = onFlip;
             onDetailFocused = onDetail;
             onRakingRevealed = onRakingReveal;
+            this.annotationFields = annotationFields ?? Array.Empty<InspectAnnotationField>();
+            onMarkField = onMark;
+            markClick = false;
 
             if (prefabOrTemplate != null)
             {
@@ -181,12 +223,24 @@ namespace CTCC
                 pivot.transform.localRotation = Quaternion.Euler(-58f, 14f, -8f);
                 currentModel = pivot;
                 keyLight.intensity = 0.68f;
+                if (liftModel && prefabOrTemplate.activeSelf)
+                {
+                    worldProp = prefabOrTemplate;
+                    worldProp.SetActive(false);
+                }
             }
             else if (documentTexture != null)
             {
                 currentModel = BuildDualSidedPaperSheet(documentTexture, backTexture, aspect, backIndentNormal, backIndentMask);
                 currentModel.transform.SetParent(holder, false);
                 keyLight.intensity = 0.40f;
+                SetMarkedField(markedField);
+                if (liftSheet != null)
+                {
+                    worldSheet = liftSheet;
+                    sheetWasEnabled = worldSheet.enabled;
+                    worldSheet.enabled = false;
+                }
             }
 
             if (activeGrade != null && activeGrade.sharedProfile != null &&
@@ -195,7 +249,7 @@ namespace CTCC
                 activeDof = dof;
                 baseDofDist = dof.focusDistance.value;
                 baseDofActive = dof.active;
-                activeDof.active = !reducedMotion;
+                activeDof.active = cameraAssist && !reducedMotion;
             }
 
             stage.localPosition = new Vector3(-0.085f, -0.01f, zoom);
@@ -279,6 +333,56 @@ namespace CTCC
             UpdateTransform();
         }
 
+        public void SetMarkedField(string id)
+        {
+            if (inkMesh != null)
+            {
+                if (ink != null) ink.sharedMesh = null;
+                Destroy(inkMesh);
+                inkMesh = null;
+            }
+            if (string.IsNullOrEmpty(id) || currentModel == null) return;
+            foreach (var field in annotationFields)
+            {
+                if (field.Id != id) continue;
+                if (ink == null)
+                {
+                    var stroke = new GameObject("Ballpoint underline");
+                    stroke.transform.SetParent(currentModel.transform, false);
+                    ink = stroke.AddComponent<MeshFilter>();
+                    inkMaterial = MakePaperMaterial("InspectAnnotationInk", Texture2D.whiteTexture, doubleSided: false);
+                    inkMaterial.SetColor("_BaseColor", new Color(0.035f, 0.064f, 0.15f, 1f));
+                    var renderer = stroke.AddComponent<MeshRenderer>();
+                    renderer.sharedMaterial = inkMaterial;
+                    renderer.shadowCastingMode = ShadowCastingMode.Off;
+                }
+                inkMesh = BuildInkStroke(field.Uv);
+                ink.sharedMesh = inkMesh;
+                break;
+            }
+        }
+
+        private Mesh BuildInkStroke(Rect area)
+        {
+            const int segments = 12;
+            var points = new Vector3[(segments + 1) * 2];
+            var indices = new int[segments * 6];
+            for (int i = 0; i <= segments; i++)
+            {
+                float u = Mathf.Lerp(area.xMin + 0.012f, area.xMax - 0.012f, i / (float)segments);
+                float v = area.yMin + 0.015f + Mathf.Sin(i * 0.83f) * 0.0019f;
+                points[i * 2] = SheetPoint(paperWidth, paperHeight, u, v, -0.00145f);
+                points[i * 2 + 1] = SheetPoint(paperWidth, paperHeight, u, v + 0.0048f, -0.00145f);
+                if (i == segments) break;
+                int p = i * 2, j = i * 6;
+                indices[j] = p; indices[j + 1] = p + 1; indices[j + 2] = p + 2;
+                indices[j + 3] = p + 2; indices[j + 4] = p + 1; indices[j + 5] = p + 3;
+            }
+            var mesh = new Mesh { name = "InspectAnnotation", vertices = points, triangles = indices };
+            mesh.RecalculateNormals();
+            return mesh;
+        }
+
         public void Close()
         {
             bool wasActive = active;
@@ -293,6 +397,15 @@ namespace CTCC
             if (backMesh != null) Destroy(backMesh);
             if (frontMaterial != null) Destroy(frontMaterial);
             if (backMaterial != null) Destroy(backMaterial);
+            if (inkMesh != null) Destroy(inkMesh);
+            if (inkMaterial != null) Destroy(inkMaterial);
+            if (worldProp != null) worldProp.SetActive(true);
+            if (worldSheet != null) worldSheet.enabled = sheetWasEnabled;
+            worldProp = null;
+            worldSheet = null;
+            inkMesh = null;
+            inkMaterial = null;
+            ink = null;
             frontMesh = null;
             backMesh = null;
             frontMaterial = null;
@@ -316,6 +429,8 @@ namespace CTCC
             onFlipped = null;
             onDetailFocused = null;
             onRakingRevealed = null;
+            onMarkField = null;
+            annotationFields = Array.Empty<InspectAnnotationField>();
             if (stage != null) stage.gameObject.SetActive(false);
             if (keyLight != null) keyLight.enabled = false;
             if (rimLight != null) rimLight.enabled = false;
@@ -336,7 +451,7 @@ namespace CTCC
             if (!active || currentModel == null) return;
 
             float dt = Time.unscaledDeltaTime;
-            openBlend = Mathf.MoveTowards(openBlend, 1f, dt * (reducedMotion ? 12f : 5.5f));
+            openBlend = Mathf.MoveTowards(openBlend, 1f, dt / 0.22f);
             flipAngle = Mathf.MoveTowards(flipAngle, flipTarget, dt * (reducedMotion ? 1400f : 540f));
             panOffset = Vector2.MoveTowards(panOffset, panTarget, dt * (reducedMotion ? 5f : 0.65f));
             zoom = Mathf.MoveTowards(zoom, zoomTarget, dt * (reducedMotion ? 5f : 0.85f));
@@ -352,7 +467,21 @@ namespace CTCC
 
             if (mouse != null)
             {
-                if (mouse.leftButton.isPressed || mouse.rightButton.isPressed)
+                Vector2 pointer = mouse.position.ReadValue();
+                bool overPaperSide = pointer.x < Screen.width * 0.625f;
+                if (mouse.rightButton.wasPressedThisFrame)
+                {
+                    markClick = overPaperSide && !showingBack && annotationFields.Length != 0;
+                    markPointerStart = pointer;
+                }
+                if (markClick && (pointer - markPointerStart).sqrMagnitude > 64f) markClick = false;
+                if (markClick && mouse.rightButton.wasReleasedThisFrame)
+                {
+                    markClick = false;
+                    MarkAtPointer(pointer);
+                    if (InputBlocked) return;
+                }
+                if (overPaperSide && (mouse.leftButton.isPressed || mouse.rightButton.isPressed && !markClick))
                 {
                     Vector2 d = mouse.delta.ReadValue();
                     rotY -= d.x * 0.32f;
@@ -360,7 +489,7 @@ namespace CTCC
                     activeDetailIndex = -1;
                 }
                 float scroll = mouse.scroll.ReadValue().y;
-                if (Mathf.Abs(scroll) > 0.01f)
+                if (overPaperSide && Mathf.Abs(scroll) > 0.01f)
                 {
                     zoomTarget = Mathf.Clamp(zoomTarget - Mathf.Sign(scroll) * 0.03f, 0.24f, 0.60f);
                     zoom = zoomTarget;
@@ -383,6 +512,12 @@ namespace CTCC
                 if (keys.digit2Key.wasPressedThisFrame && details.Length >= 2) FocusDetail(1);
                 if (keys.digit3Key.wasPressedThisFrame && details.Length >= 3) FocusDetail(2);
                 if (keys.digit0Key.wasPressedThisFrame) ResetView();
+                if (!showingBack && keys.mKey.wasPressedThisFrame && activeDetailIndex >= 0)
+                {
+                    string detail = details[activeDetailIndex].Id;
+                    foreach (var field in annotationFields)
+                        if (field.Id == detail) { MarkField(detail); break; }
+                }
             }
 
             UpdateTransform();
@@ -439,13 +574,30 @@ namespace CTCC
             // Tilt a sheet for reading without rotating past the edge of the selected side.
             if (hasBackSide) rotY = Mathf.Clamp(rotY, -52f, 52f);
             float ease = 1f - Mathf.Pow(1f - openBlend, 3f);
-            float baseX = -0.095f + panOffset.x;
-            float baseY = Mathf.Lerp(-0.20f, 0.01f, ease) + panOffset.y;
-            stage.localPosition = new Vector3(baseX, baseY, zoom);
+            stage.localPosition = Vector3.Lerp(openFrom, new Vector3(-0.095f + panOffset.x, 0.01f + panOffset.y, zoom), ease);
             if (activeDof != null && activeDof.active)
                 activeDof.focusDistance.value = zoom;
-            float idleSway = reducedMotion ? 0f : Mathf.Sin(Time.unscaledTime * 1.05f) * 1.1f;
+            float idleSway = reducedMotion || !cameraAssist ? 0f : Mathf.Sin(Time.unscaledTime * 1.05f) * 1.1f;
             holder.localRotation = Quaternion.Euler(rotX + idleSway * 0.35f, rotY + flipAngle + idleSway, 0f);
+        }
+
+        private void MarkAtPointer(Vector2 pointer)
+        {
+            if (showingBack || Mathf.Abs(flipAngle) > 8f) return;
+            Ray ray = eye.ScreenPointToRay(pointer);
+            var plane = new Plane(-holder.forward, holder.position);
+            if (!plane.Raycast(ray, out float distance)) return;
+            Vector3 hit = holder.InverseTransformPoint(ray.GetPoint(distance));
+            Vector2 uv = new(hit.x / paperWidth + 0.5f, hit.y / paperHeight + 0.5f);
+            foreach (var field in annotationFields)
+                if (field.Uv.Contains(uv)) { MarkField(field.Id); return; }
+        }
+
+        private void MarkField(string id)
+        {
+            if (onMarkField == null) return;
+            audioBus?.From("signaturePen", holder.position, 0.40f);
+            onMarkField(id);
         }
 
         private static void NormalizeModelScale(GameObject root, float targetSpan)
@@ -485,6 +637,8 @@ namespace CTCC
         {
             float h = 0.285f;
             float w = h * Mathf.Clamp(aspect, 0.45f, 1.85f);
+            paperWidth = w;
+            paperHeight = h;
             var root = new GameObject("InspectDocument");
 
             frontMesh = BuildCurvedSheetMesh("InspectPaperFront", w, h, zOffset: -0.0004f, reverseFace: false);
@@ -554,9 +708,8 @@ namespace CTCC
                 {
                     float u = x / (float)nx;
                     float v = y / (float)ny;
-                    float curl = Mathf.Pow(u - 0.5f, 2f) * 0.026f + Mathf.Sin(v * Mathf.PI * 2f) * 0.0035f;
                     int idx = y * (nx + 1) + x;
-                    verts[idx] = new Vector3((u - 0.5f) * w, (v - 0.5f) * h, -curl + zOffset);
+                    verts[idx] = SheetPoint(w, h, u, v, zOffset);
                     uvs[idx] = new Vector2(reverseFace ? (1f - u) : u, v);
                     if (x < nx && y < ny)
                     {
@@ -582,6 +735,12 @@ namespace CTCC
             mesh.RecalculateTangents();
             mesh.UploadMeshData(true);
             return mesh;
+        }
+
+        private static Vector3 SheetPoint(float w, float h, float u, float v, float zOffset)
+        {
+            float curl = Mathf.Pow(u - 0.5f, 2f) * 0.026f + Mathf.Sin(v * Mathf.PI * 2f) * 0.0035f;
+            return new Vector3((u - 0.5f) * w, (v - 0.5f) * h, -curl + zOffset);
         }
     }
 }

@@ -52,6 +52,9 @@ namespace CTCC
         {
             yield return Choose("Ca trực mới");
             if (branch != FormStatus.Affirmed) yield return Choose("Bắt đầu");
+            yield return Until(() => !ui.IsModal && !busy, "free view at the gate");
+            Require(!State.Happened("E10a.SMSRead"), "the envelope starts unread");
+            yield return AimAndUseHere("E10a");
             yield return Until(() => inspector.IsInspecting, branch + " letter uses physical inspector");
             if (branch == FormStatus.Affirmed)
             {
@@ -66,11 +69,10 @@ namespace CTCC
             yield return Choose("Ghi tin nhắn");
             yield return Until(() => !busy && State.Happened("E10a.SMSRead"), "letter checkpoint");
             Require(!inspector.IsInspecting && State.Happened("E10a.SMSRead"), "letter closes and enters journal");
-            yield return UseFrom("GATE-CONG", scene.Pad("AP00").position);
+            yield return AimAndUseHere("GATE-CONG");
             yield return Until(() => State.Happened("CH01-T02"), "gate unlocked");
             if (branch == FormStatus.Affirmed)
             {
-                player.Teleport(scene.Pad("AP00"));
                 yield return Until(() => Application.isFocused, "movement check requires a focused window");
                 float z = player.Feet.z;
                 yield return Hold(Key.W, 0.4f);
@@ -87,12 +89,25 @@ namespace CTCC
                     yield return WalkWithInput(new Vector3(4f, 0f, -18.0f));
                     yield return WalkWithInput(new Vector3(4f, 0f, -10.5f));
                     yield return WalkWithInput(new Vector3(4f, 0f, -3.30f));
-                    yield return Until(() => !busy && State.layer == Reality.B && State.Happened("CH01-T03"), "live reception R→B without modal hijack");
-                    // Optional live Lan interaction via LAN_TALK -> verify transcript & close cleanly!
+                    Require(State.layer == Reality.R && !ui.IsModal, "walking across AP02 leaves the view and layer free");
+                    yield return WalkWithInput(new Vector3(3.28f, 0f, -3.54f));
+                    Vector3 entryFeet = player.Feet;
+                    yield return AimAndUseHere("AN01");
+                    yield return Until(() => !busy && State.layer == Reality.B && State.Happened("CH01-T03"), "reading the ledger changes reception in place");
+                    Require(Vector3.Distance(entryFeet, player.Feet) < .18f && !ui.IsModal, "reception interaction preserves a stance away from AP02");
+                    yield return Until(() => !lanDirector.IsEncounterRunning, "full live Lan encounter", timeoutSeconds: 110);
+                    Require(voice.Transcript.Any(entry => entry.LineId == "CH01-D07b"), "Lan encounter reached its last new beat");
                     yield return WalkWithInput(new Vector3(3.35f, 0f, -3.40f));
+                    yield return Until(() => NextLanReflection() != null, "Lan can answer at the desk");
                     yield return AimAndUseHere("LAN_TALK");
-                    yield return Until(() => ui.IsModal, "Lan optional dialogue opens");
-                    yield return Choose("Xem bảng kẹp");
+                    Require(!ui.IsModal, "optional words with Lan stay in the room");
+                    yield return Until(() => voice.Transcript.Any(t => t.LineId == "CH01-D08"), "optional Lan dialogue recorded");
+                    yield return Tap(Key.Tab);
+                    yield return Choose("Lời Lan tại quầy");
+                    Require(ActivePageContains("Lan — " + Line("CH01-D04c")) &&
+                            !ActivePageContains("không thấy bóng em"),
+                        "Lan transcript keeps the clock line and omits the retired reflection beat");
+                    yield return Tap(Key.Escape);
                     yield return WalkWithInput(new Vector3(2.95f, 0f, -2.75f));
                     yield return AimAndUseHere("BOARD");
                     yield return Until(() => !busy && State.Happened("CH01-T05"), "board granted");
@@ -101,7 +116,14 @@ namespace CTCC
 
                     // Walk optional compact nonlinear exploration loop: Reception -> STAFF Nursing Alcove -> open DOOR-STAFF -> HALL -> Room 101!
                     yield return WalkWithInput(new Vector3(0.05f, 0f, -1.0f));
+                    yield return AimAndUseHere("OBS_CLOCK_0317");
+                    yield return Until(() => !busy && State.Observed(ObservationRegistry.StoppedClock0317),
+                        "read the stopped clock in reception");
                     yield return WalkWithInput(new Vector3(-0.12f, 0f, 3.65f));
+                    yield return AimAndUseHere("CHAIR-STAFF");
+                    yield return Until(() => State.FindPropPose("CHAIR-STAFF", Reality.B)?.openness > .9f, "STAFF chair slides and saves");
+                    yield return AimAndUseHere("CH01_NURSE_DESK");
+                    yield return Until(() => State.Observed("CH01_NURSE_DESK"), "STAFF desk note is optional and has provenance");
                     yield return AimAndUseHere("OBS_CORRIDOR_NOTICE");
                     yield return Until(() => !busy && inspector.IsInspecting, "STAFF overflow notice inspected");
                     Require(StaffTranscriptCount("CH01-D17") == 0 && ActivePageContains("Một tờ thông báo") &&
@@ -181,37 +203,55 @@ namespace CTCC
                             State.FindObservation(ObservationRegistry.Bed4Card).flippedBack,
                         "Bed-4 Large Print grants both sides without explicit flip");
                     ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "task04-05-card-large-print.png"));
+                    Require(!ActivePageContains("03g17") && !CorroborationService.CanCorroborate0317(State),
+                        "Large Print opening alone does not disclose the hidden time");
+                    yield return Choose("Đọc vết hằn mặt sau");
+                    yield return Until(() => !busy && CorroborationService.HasCardTimestamp(State) &&
+                        ActivePageContains("03g17") && !ActivePageContains("C01"), "accessible reading finds a canon-safe card time");
                     yield return Tap(Key.Escape);
 
                     yield return WalkWithInput(new Vector3(10.75f, 0f, 4.35f));
                     yield return AimAndUseHere("OBS101A");
                     yield return Until(() => !busy && State.Observed("OBS101A"), "OBS101A Bed-4 trace observed");
 
-                    // Open Evidence Journal (Tab) & test Side-by-Side Document Comparison!
                     yield return Tap(Key.Tab);
                     yield return Until(() => ui.IsModal, "Journal opened via Tab");
-                    yield return Choose("Quan sát & Nguồn chứng cứ");
-                    Require(ActivePageContains("Phần ghi nơi chuyển bị nhòe") && ActivePageContains("Nhận định"),
-                        "journal keeps interpretation and discovered back evidence");
+                    yield return Choose("Dòng thời gian");
+                    yield return Choose("So khớp giờ ghi chép");
+                    yield return Choose("19:20");
+                    Require(!CorroborationService.IsCorroborated(State) && ActivePageContains("Giờ đó chưa khớp"),
+                        "wrong time stays open for another deduction");
+                    yield return Choose("03:17");
+                    yield return Until(() => !busy && CorroborationService.IsCorroborated(State), "correct time records CH01-EX01");
                     yield return Choose("Quay lại Sổ điều tra");
-                    yield return Choose("So sánh hai tài liệu");
-                    yield return Choose("Đổi tài liệu phải");
-                    yield return Choose("Quay lại");
-                    yield return Choose("Khép sổ");
+                    yield return VerifyNotebookInput();
 
                     // Mark the report and card in different reading modes, then link the field observation.
-                    yield return WalkWithInput(new Vector3(6.52f, 0f, 4.93f));
+                    yield return WalkWithInput(new Vector3(7.36f, 0f, 4.98f));
                     yield return AimAndUseHere("F101");
-                    yield return Choose("Soi phiếu F101");
+                    yield return Until(() => !busy && inspector.IsInspecting, "F101 is lifted from the clipboard");
+                    Require(!transaction.OnPad(player.Feet, "AP04"), "F101 is reachable from a free stance outside AP04");
+                    Require(scene.f101WallRenderer != null && !scene.f101WallRenderer.enabled,
+                        "the sheet disappears from the board while held");
                     Require(ActivePageContains("Một phiếu in sẵn") && !ActivePageContains("[3] Soi"), "F101 opens neutral");
                     yield return Choose("Lật sang mặt sau");
                     yield return Tap(Key.Digit3);
                     yield return Until(() => !busy && ActivePageContains("Chưa thấy phiếu chốt"), "F101 back detail unlocks after explicit flip");
-                    yield return Tap(Key.Escape);
-                    Require(ui.IsModal && !inspector.IsInspecting, "return to F101 decision closes inspector");
+                    yield return Choose("Lật về mặt trước");
+                    yield return Tap(Key.Digit2);
+                    yield return Tap(Key.M);
+                    yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet) == F101Annotations.Zero,
+                        "mark the actual 3D sheet using the keyboard");
+                    yield return Choose("Đặt lên bảng kẹp để ký");
+                    Require(ui.IsModal && !inspector.IsInspecting, "placing the paper back keeps signing available");
+                    Require(scene.f101WallRenderer.enabled, "the sheet returns to the board before signing");
                     yield return Choose("C    Ghi nhận bất nhất");
                     Require(!ButtonMatching("Viết vào phiếu").interactable, "Collecting observations alone does not authorize signing C");
                     yield return Choose("Đánh dấu trên F101");
+                    ClickDocumentHotspot(1);
+                    yield return Until(() => !busy && string.IsNullOrEmpty(State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet)),
+                        "same mark can be removed from the flat view");
+                    yield return null;
                     ClickDocumentHotspot(1);
                     yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet) == F101Annotations.Zero,
                         "Mouse marks the zero on the printed F101");
@@ -241,6 +281,7 @@ namespace CTCC
                     yield return Choose("Quay lại phiếu F101");
                     yield return Choose("Đặt phiếu xuống");
                     yield return AimAndUseHere("F101");
+                    yield return Choose("Đặt lên bảng kẹp để ký");
                     yield return Choose("C    Ghi nhận bất nhất");
                     Require(ButtonMatching("Viết vào phiếu").interactable, "F101 keeps the marked and linked fields across closing");
                     var annotationSaves = new AtomicSaves(Argument("-ctcc-save"));
@@ -259,16 +300,24 @@ namespace CTCC
 
                     // Walk back out of Room 101 to Reception (B->R collapse), outer gate seam, and Reception (CH02 handoff) — ZERO TELEPORTS!
                     yield return WalkWithInput(new Vector3(4.00f, 0f, 4.75f));
+                    yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.F101RefutedCrack),
+                        "Refuted reaction plays on the normal return route before collapse");
+                    yield return Until(() => voice.Transcript.Any(entry => entry.LineId == "CH01-D19"), "03:17 monologue begins in the corridor",
+                        timeoutSeconds: 15);
+                    yield return Until(() => !voice.IsSpeaking, "03:17 monologue finishes before collapse", timeoutSeconds: 20);
+                    verification.Add("CH01 INPUT PASS: full Lan scene, Large Print time reveal, wrong and right time, optional monologue, and Refuted signing reaction.");
                     player.Eye.transform.LookAt(new Vector3(5.46f, 1.66f, 3.78f));
                     ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "f101-corridor-slip.png"));
                     yield return null;
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -3.30f));
-                    yield return Until(() => !busy && State.layer == Reality.R && State.Happened("CH01-T08"), "reception B→R collapse via walk");
+                    yield return AimAndUseHere("AN01");
+                    yield return Until(() => !busy && State.layer == Reality.R && State.Happened("CH01-T08"), "reception B→R collapse at the ledger");
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -20.30f));
                     yield return Until(() => !busy && State.Happened("CH01-T09"), "exterior seam via walk");
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -3.30f));
+                    yield return AimAndUseHere("AN01");
                     yield return Until(() => !busy && State.chapter == "CH02", "CH02 handoff via pure keyboard+mouse CH01 route");
                     verification.Add("INPUT CH01-R FULL ROUTE PASS: zero teleportation from AP00 through STAFF loop, drawers, Room 101 docs, dual-sided inspector, Journal comparison, F101 mouse hotspot, keyboard large print, link and durable refutation, collapse, seam, and CH02 handoff.");
                 }
@@ -276,46 +325,67 @@ namespace CTCC
             }
             else
             {
-                player.Teleport(scene.Pad("AP02"));
+                yield return WalkWithInput(new Vector3(4f, 0f, -18.0f));
+                yield return WalkWithInput(new Vector3(4f, 0f, -10.5f));
+                yield return WalkWithInput(new Vector3(4f, 0f, -3.30f));
+                yield return AimAndUseHere("AN01");
                 yield return Until(() => !busy && State.layer == Reality.B && State.Happened("CH01-T03"), "reception R→B");
-                yield return UseFrom("BOARD", scene.Pad("AP02").position);
+                yield return WalkWithInput(new Vector3(2.98f, 0f, -2.76f));
+                yield return AimAndUseHere("BOARD");
                 yield return Until(() => !busy && State.Happened("CH01-T05"), "board granted");
                 yield return Until(() => Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.Euler(0, scene.roomDoor.openAngle, 0)) < 1,
                     "room door opens");
 
+                yield return WalkWithInput(new Vector3(4f, 0f, -1f));
+                yield return WalkWithInput(new Vector3(4f, 0f, 4.77f));
+                yield return WalkWithInput(new Vector3(6.52f, 0f, 4.90f));
                 if (branch == FormStatus.Affirmed)
                 {
-                    yield return UseFrom("DOOR-101", scene.Pad("AP04").position);
+                    yield return AimAndUseHere("DOOR-101");
                     yield return Until(() => !scene.roomDoor.isOpen && Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.identity) < 1,
                         "door closes through use input");
-                    yield return UseFrom("DOOR-101", scene.Pad("AP04").position);
+                    yield return AimAndUseHere("DOOR-101");
                     yield return Until(() => scene.roomDoor.isOpen && Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.Euler(0, scene.roomDoor.openAngle, 0)) < 1,
                         "door reopens through use input");
+                    yield return WalkWithInput(new Vector3(10.15f, 0f, 5.10f));
+                    yield return AimAndUseHere("OBS101C");
+                    yield return Until(() => !busy && inspector.IsInspecting, "first look goes to a document");
+                    Require(!State.Observed(ObservationRegistry.Bed4Traces), "the document can be read before examining bed 4");
+                    yield return Tap(Key.Escape);
                 }
                 if (branch == FormStatus.Unverified)
                 {
                     var cloth = scene.interactables.curtainCloth;
                     var scale = cloth.localScale;
-                    yield return UseFrom("CURTAIN-101", new Vector3(11.68f, 0.02f, 4.92f));
+                    yield return WalkWithInput(new Vector3(11.68f, 0.02f, 4.92f));
+                    yield return AimAndUseHere("CURTAIN-101");
                     yield return Until(() => scene.interactables.curtainPulled && (cloth.localScale - scale).sqrMagnitude > 0.05f,
                         "curtain opens through use input");
-                    yield return UseFrom("CURTAIN-101", new Vector3(11.68f, 0.02f, 4.92f));
+                    yield return AimAndUseHere("CURTAIN-101");
                     yield return Until(() => !scene.interactables.curtainPulled && (cloth.localScale - scale).sqrMagnitude < 0.001f,
                         "curtain closes through use input");
+                    yield return WalkWithInput(new Vector3(10.75f, 0f, 4.56f));
+                    yield return AimAndUseHere("OBS101A");
+                    yield return Until(() => State.Observed(ObservationRegistry.Bed4Traces), "site-first route records physical traces");
+                    Require(!State.Observed(ObservationRegistry.Bed2Transfer) && !State.Observed(ObservationRegistry.Bed4Card),
+                        "the trace can be recorded without reading any bed document");
                 }
 
+                yield return WalkWithInput(new Vector3(7.24f, 0f, 4.93f));
                 yield return OpenFormInput();
                 yield return Choose(branch == FormStatus.Affirmed ? "A    Xác nhận" : "B    Để ngỏ");
                 yield return Choose("Xác nhận và đóng dấu phiếu");
                 yield return Until(() => !busy && GateService.G01(State), $"F101 {branch} confirmation");
                 Require(State.f101.firstDecision == branch && State.f101.revision == 1 &&
                     FormService.Distortion(State) == (branch == FormStatus.Affirmed ? 1 : 0), $"F101 {branch} state");
+                yield return Until(() => !busy && State.HasDreadEvent(AmbientDreadDirector.F101ReactionId(branch)),
+                    $"F101 {branch} cue follows the signature");
                 if (branch == FormStatus.Unverified)
                 {
                     var audio = scene.atmosphere;
                     bool SignatureCuePlaying() => audio.GetComponentsInChildren<AudioSource>().Any(source =>
                         source.isPlaying && (source.clip == audio.stamp || source.clip == audio.switchLayer));
-                    yield return new WaitForSecondsRealtime(1.5f);
+                    yield return new WaitForSecondsRealtime(2.3f);
                     yield return Until(() => !voice.IsSpeaking && !SignatureCuePlaying(), "first signature cue finished");
                     long sequence = State.sequence;
                     int historyCount = State.f101History.Count;
@@ -328,11 +398,17 @@ namespace CTCC
                         "Unchanged F101 UI submission issues no PA, stamp, transition cue, save or revision");
                     verification.Add("TASK03 INPUT PASS: unchanged F101 submission through the keyboard UI is silent and preserves the revision.");
                 }
-                player.Teleport(scene.Pad("AP02"));
+                yield return WalkWithInput(new Vector3(4f, 0f, 4.75f));
+                yield return WalkWithInput(new Vector3(4f, 0f, -3.30f));
+                yield return Until(() => !F101SignaturePlaying, "the signature response finishes before the return");
+                yield return AimAndUseHere("AN01");
                 yield return Until(() => !busy && State.layer == Reality.R, "reception B→R");
-                player.Teleport(new Vector3(4, 0.02f, -20.30f), Quaternion.identity);
+                yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
+                yield return WalkWithInput(new Vector3(4.00f, 0f, -20.30f));
                 yield return Until(() => !busy && State.Happened("CH01-T09"), "exterior seam");
-                player.Teleport(scene.Pad("AP02"));
+                yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
+                yield return WalkWithInput(new Vector3(4.00f, 0f, -3.30f));
+                yield return AimAndUseHere("AN01");
                 yield return Until(() => !busy && State.chapter == "CH02", "CH02 handoff");
             }
 
@@ -342,9 +418,9 @@ namespace CTCC
             if (branch == FormStatus.Refuted)
             {
                 yield return Choose("Cài đặt & Trợ năng");
-                foreach (string label in new[] { "Chuyển động", "Chú thích âm thanh", "Âm lượng tổng", "Âm lượng tổng", "Âm nền môi trường", "Âm nền môi trường",
+                foreach (string label in new[] { "Chuyển động", "Hỗ trợ lấy nét", "Chú thích âm thanh", "Âm lượng tổng", "Âm lượng tổng", "Âm nền môi trường", "Âm nền môi trường",
                     "Âm thanh ·", "Cỡ chữ", "Độ sáng", "Phím ·" }) yield return Choose(label);
-                Require(State.settings.reduceMotion && !State.settings.captions && State.settings.volume == 0 &&
+                Require(State.settings.reduceMotion && State.settings.disableCameraAssist && !State.settings.captions && State.settings.volume == 0 &&
                     State.settings.ambienceVolume == 0 && State.settings.monoAudio && State.settings.textScale > 1.25f &&
                     State.settings.visibility > 0 && State.settings.alternateBindings && AudioListener.volume == 0,
                     "accessibility settings changed through actual controls");
@@ -377,6 +453,11 @@ namespace CTCC
                     "Supported F101 argument and its single committed revision survive CH02 manual load");
                 Require(State.settings.alternateBindings && State.settings.textScale > 1.25f && AudioListener.volume == 0,
                     "accessibility survives manual load");
+                Require(State.journalNotes.Count == 1 && State.journalNotes[0].source == ObservationRegistry.Bed4Card &&
+                    string.IsNullOrEmpty(State.journalNotes[0].related) &&
+                    State.FindPropPose("CHAIR-STAFF", Reality.B)?.openness > .9f &&
+                    State.FindPropPose("DRAWER-NURSE", Reality.B)?.openness > .9f,
+                    "authored notes and independent physical poses survive handoff and manual reload");
                 yield return Tap(Key.J);
                 yield return Until(() => ui.IsModal, "remapped J opens journal");
                 yield return Tap(Key.Escape);
@@ -539,7 +620,7 @@ namespace CTCC
                 yield return Until(() => !busy && !ui.IsModal, id + " durable pickup completed");
             }
             player.Teleport(scene.Pad("AP04"));
-            yield return Tap(Key.Q);
+            yield return AimAndUseHere("F101");
             yield return Choose("Ghép tranh và kiểm hồ sơ");
             yield return Choose("Ghép tranh theo đường mép");
             yield return Until(() => !busy && State.Has(EvidenceRegistry.Drawing), "assembled drawing was saved");
@@ -560,10 +641,9 @@ namespace CTCC
 
         private IEnumerator OpenFormInput()
         {
-            player.Teleport(scene.Pad("AP04"));
             yield return Until(() => State.Happened("CH01-T06"), "room checkpoint");
-            yield return Tap(Key.Tab);
-            yield return Choose("Mở phiếu F101");
+            yield return AimAndUseHere("F101");
+            yield return Choose("Đặt lên bảng kẹp để ký");
         }
 
         private IEnumerator AimAndUseHere(string id)
@@ -575,8 +655,14 @@ namespace CTCC
             if (planar.sqrMagnitude > 0.0001f)
                 player.transform.rotation = Quaternion.LookRotation(planar);
             player.Eye.transform.LookAt(target.transform.position);
-            Require(player.Focus(Available) == target,
-                $"No non-teleport sightline to {id} from walked position {player.Feet} (target at {target.transform.position})");
+            var focus = player.Focus(Available);
+            if (focus != target)
+            {
+                Physics.Raycast(player.Eye.transform.position, look.normalized, out var occlusion, look.magnitude - .04f,
+                    HospitalScene.SolidMask, QueryTriggerInteraction.Ignore);
+                Require(false, $"No sightline to {id} from {player.Feet}; target={target.transform.position}, " +
+                    $"available={Available(target)}, focus={focus?.id}, obstruction={occlusion.collider?.name}");
+            }
             player.CanPlay = false;
             yield return Tap(State.settings.alternateBindings ? Key.K : Key.E);
             RefreshControls();
@@ -622,6 +708,54 @@ namespace CTCC
             EventSystem.current.RaycastAll(pointer, hits);
             Require(hits.Count > 0 && hits[0].gameObject == hotspot.gameObject, "Mouse hits the field printed on the document");
             ExecuteEvents.Execute(hits[0].gameObject, pointer, ExecuteEvents.pointerClickHandler);
+        }
+
+        private IEnumerator VerifyNotebookInput()
+        {
+            yield return Choose("Tài liệu");
+            yield return Choose("Thẻ bàn giao giường số 4");
+            Require(ActivePageContains("Phần ghi nơi chuyển bị nhòe") &&
+                !ActivePageContains("Nhận định thận trọng"), "notebook preserves the inspected reverse side as an observation");
+            yield return Choose("Kẹp sang trái");
+            var source = ButtonMatching("Phiếu chuyển giường 02");
+            var right = ui.GetComponentsInChildren<RectTransform>().Where(rect => rect.name == "Document clip").Last();
+            Canvas.ForceUpdateCanvases();
+            var pointer = new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left };
+            pointer.position = RectTransformUtility.WorldToScreenPoint(null, source.transform.position);
+            ExecuteEvents.Execute(source.gameObject, pointer, ExecuteEvents.beginDragHandler);
+            pointer.position = RectTransformUtility.WorldToScreenPoint(null, right.TransformPoint(right.rect.center));
+            ExecuteEvents.Execute(source.gameObject, pointer, ExecuteEvents.dragHandler);
+            ExecuteEvents.Execute(source.gameObject, pointer, ExecuteEvents.endDragHandler);
+            Require(leftDocument == ObservationRegistry.Bed4Card && rightDocument == ObservationRegistry.Bed2Transfer &&
+                ui.GetComponentsInChildren<RawImage>().Count(image => image.texture != null) == 2, "two inspected sheets placed by keyboard and drag");
+            ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "notebook-comparison.png"));
+            yield return null;
+
+            yield return Choose("Suy luận");
+            yield return Choose("Viết giả thuyết");
+            var writing = ui.GetComponentInChildren<InputField>();
+            yield return Until(() => writing != null && writing.isFocused, "notebook takes keyboard focus for writing");
+            writing.text = "Cần trở lại xem chỗ đặt tấm thẻ.";
+            yield return Tap(Key.Tab);
+            yield return Choose("Chọn nguồn");
+            yield return Choose("Thẻ bàn giao giường số 4");
+            yield return Choose("Nối nguồn thứ hai");
+            yield return Choose("Dấu sử dụng tại vị trí giường 4");
+            yield return Choose("Lưu dòng này");
+            yield return Until(() => !busy && State.journalNotes.Count == 1, "authored note with two sources saved");
+            var note = State.journalNotes[0];
+            Require(note.kind == JournalNoteKind.Hypothesis && note.source == ObservationRegistry.Bed4Card &&
+                note.related == ObservationRegistry.Bed4Traces && !State.f101Annotations.HasLink && !GateService.G01(State),
+                "a personal hypothesis and its source link do not sign the form");
+            yield return Choose("Cần trở lại");
+            yield return Tap(Key.Tab);
+            ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "notebook-reasoning.png"));
+            yield return null;
+            yield return Choose("Tháo liên kết");
+            yield return Choose("Lưu dòng này");
+            yield return Until(() => !busy && string.IsNullOrEmpty(State.journalNotes[0].related), "removing a link leaves the note intact");
+            yield return Tap(Key.Escape);
+            verification.Add("CH01 NOTEBOOK INPUT PASS: two documents placed, drag target, independent hypothesis, linked sources, durable unlink.");
         }
 
         private Button ButtonMatching(string label)
@@ -677,9 +811,9 @@ namespace CTCC
             }, "keyboard release " + key);
         }
 
-        private static IEnumerator Until(Func<bool> ready, string step)
+        private static IEnumerator Until(Func<bool> ready, string step, float timeoutSeconds = 6)
         {
-            double deadline = Time.realtimeSinceStartupAsDouble + 6;
+            double deadline = Time.realtimeSinceStartupAsDouble + timeoutSeconds;
             while (!ready() && Time.realtimeSinceStartupAsDouble < deadline) yield return null;
             Require(ready(), step);
         }

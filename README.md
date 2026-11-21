@@ -9,10 +9,12 @@ Project dùng Unity 6.3 LTS, URP 17.3 và nguồn Blender 4.5. [Audit M3.1](docs
 | Phím | Thao tác |
 | --- | --- |
 | WASD và chuột | Di chuyển và nhìn |
-| E | Tương tác vật lý (mở/đóng cửa gỗ, kéo rèm, lăn tủ, soi vật chứng 3D) |
+| E | Cầm bì thư hoặc giấy, giở sổ trên quầy, mở cửa và thao tác với vật thể đang nhìn |
+| Giữ chuột trái khi nhìn tay nắm | Kéo cửa, ngăn, rèm hoặc ghế. Thả để giữ vị trí, Esc để hủy |
 | Kéo chuột / WASD & lăn chuột / Q-Z (khi soi 3D) | Xoay và thu phóng vật chứng / hồ sơ trong 3D Physical Inspector |
-| Tab | Mở sổ trực. Trong trang đọc, Tab hoặc mũi tên chuyển nút và Enter chọn |
-| Q tại vạch đồng phòng 101 | Mở điểm neo AN02 trong CH02 |
+| Space / M (khi cầm giấy) | Lật mặt giấy. Bấm phải vào dòng trên F101 hoặc AS-05B để đánh dấu, hoặc chọn vùng bằng phím số rồi nhấn M |
+| Tab | Mở sổ trực. Tab hoặc mũi tên chuyển mục, Enter chọn. Có thể kéo tài liệu vào trang đối chiếu |
+| Q khi nhìn bảng kẹp phòng 101 | Đổi lớp tại chỗ trong CH02. Dùng E để mở hồ sơ |
 | F | Đèn pin (bóng đổ thật, cảnh báo pin yếu) |
 | Shift và Ctrl | Chạy và cúi |
 | Esc | Khép trang đọc / thoát soi 3D hoặc mở menu |

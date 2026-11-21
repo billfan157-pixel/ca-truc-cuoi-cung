@@ -41,7 +41,7 @@ namespace CTCC
         {
             using var _ = CommitMarker.Auto();
             if (savingAsync) return CommitResult.SaveUnavailable;
-            if (requiredPad != null && !OnPad(feet, requiredPad))
+            if (requiredPad != null && !AtRequiredPlace(feet, requiredPad))
                 return CommitResult.PadRequired;
             if (!scene.TryPad(SafeCheckpoints.Pad(proposed.checkpoint), out var checkpoint))
                 return CommitResult.Obstructed;
@@ -52,18 +52,20 @@ namespace CTCC
             if (!warp || proposed.checkpoint != "CH01-CP00")
                 proposed.torchSeconds = ReadCharge?.Invoke() ?? proposed.torchSeconds;
             bool changedF101 = proposed.f101.current != Current.f101.current;
-            Present(proposed, deferF101Visuals: changedF101);
+            var previousPoses = newVisit || proposed.layer != Current.layer ? scene.interactables?.CapturePoses() : null;
+            Present(proposed, deferF101Visuals: changedF101, resetProps: newVisit);
             if ((geometryChanges || warp) &&
-                (HospitalScene.Occupied(landing) || !scene.TryRefreshNavigation(landing)))
+                (HospitalScene.Occupied(landing) || !scene.TryRefreshNavigation(landing) ||
+                 !CheckpointClear(requiredPad, checkpoint.position)))
             {
-                Revert(landing);
+                Revert(landing, previousPoses);
                 return CommitResult.Obstructed;
             }
             int included = newVisit ? newDialogue.Count : IncludePendingDialogue(proposed);
             try { saves.Write(SaveSlot.Auto, proposed); }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
             {
-                Revert(landing);
+                Revert(landing, previousPoses);
                 Debug.LogWarning($"CTCC snapshot write failed: {e.GetType().Name} (0x{e.HResult:X8}) {e.Message}");
                 return CommitResult.SaveUnavailable;
             }
@@ -82,7 +84,7 @@ namespace CTCC
             bool warp = false, bool geometryChanges = false, Action afterFlush = null)
         {
             if (savingAsync) return CommitResult.SaveUnavailable;
-            if (requiredPad != null && !OnPad(feet, requiredPad))
+            if (requiredPad != null && !AtRequiredPlace(feet, requiredPad))
                 return CommitResult.PadRequired;
 
             if (!scene.TryPad(SafeCheckpoints.Pad(proposed.checkpoint), out var checkpoint))
@@ -95,6 +97,7 @@ namespace CTCC
             try
             {
                 bool changedF101 = proposed.f101.current != Current.f101.current;
+                var previousPoses = proposed.layer != Current.layer ? scene.interactables?.CapturePoses() : null;
                 using (CommitMarker.Auto())
                 {
                     proposed.sequence = Current.sequence + 1;
@@ -103,9 +106,10 @@ namespace CTCC
                     Present(proposed, deferF101Visuals: changedF101);
                 }
                 if ((geometryChanges || warp) &&
-                    (HospitalScene.Occupied(landing) || !await scene.TryRefreshNavigationAsync(landing)))
+                    (HospitalScene.Occupied(landing) || !await scene.TryRefreshNavigationAsync(landing) ||
+                     !CheckpointClear(requiredPad, checkpoint.position)))
                 {
-                    Revert(landing);
+                    Revert(landing, previousPoses);
                     return CommitResult.Obstructed;
                 }
 
@@ -113,7 +117,7 @@ namespace CTCC
                 try { await Task.Run(() => saves.Write(SaveSlot.Auto, proposed, afterFlush)); }
                 catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
                 {
-                    Revert(landing);
+                    Revert(landing, previousPoses);
                     Debug.LogWarning($"CTCC async snapshot write failed: {e.GetType().Name} (0x{e.HResult:X8}) {e.Message}");
                     return CommitResult.SaveUnavailable;
                 }
@@ -174,15 +178,15 @@ namespace CTCC
                 proposed.layer = Reality.R;
             if (!scene.TryPad(SafeCheckpoints.Pad(proposed.checkpoint), out var checkpoint))
                 return SaveRead.Damaged;
-            Present(proposed);
+            var previousPoses = scene.interactables?.CapturePoses();
+            Present(proposed, deferF101Visuals: false, resetProps: true);
             if (HospitalScene.Occupied(checkpoint.position) || !scene.TryRefreshNavigation(checkpoint.position))
             {
-                Revert(checkpoint.position);
+                Revert(checkpoint.position, previousPoses);
                 return SaveRead.Damaged;
             }
             Current = proposed;
             newDialogue.Clear();
-            scene.interactables?.ResetCurtainPose();
             scene.motion?.ClearFanSlowdown();
             landing = checkpoint;
             Committed?.Invoke(Current);
@@ -214,23 +218,67 @@ namespace CTCC
             return Mathf.Abs(offset.y) < .22f && new Vector2(offset.x, offset.z).sqrMagnitude < .58f * .58f;
         }
 
+        // AP02/AP04 remain the checkpoint positions. The counter and clipboard
+        // can be used from several stances on the same side of the furniture.
+        internal const string ReceptionDesk = "AN01";
+        internal const string WardClipboard = "AN02";
+
+        internal bool AtRequiredPlace(Vector3 feet, string id)
+        {
+            if (id is not (ReceptionDesk or WardClipboard)) return OnPad(feet, id);
+            if (!scene.TryPad(id == ReceptionDesk ? "AP02" : "AP04", out var pad)) return false;
+            Vector3 offset = feet - pad.position;
+            if (Mathf.Abs(offset.y) >= 0.22f) return false;
+            if (id == ReceptionDesk)
+                return offset.x >= -1.08f && offset.x <= 0.94f && Mathf.Abs(offset.z) <= 1.45f;
+            return offset.x >= -0.25f && offset.x <= 1.34f && Mathf.Abs(offset.z) <= 1.26f;
+        }
+
+        private static bool CheckpointClear(string workArea, Vector3 position) =>
+            workArea is not (ReceptionDesk or WardClipboard) ||
+            !HospitalScene.Occupied(position) &&
+                UnityEngine.AI.NavMesh.SamplePosition(position, out _, .36f, UnityEngine.AI.NavMesh.AllAreas);
+
         public void Present(Investigation snapshot) => Present(snapshot, deferF101Visuals: false);
 
-        private void Present(Investigation snapshot, bool deferF101Visuals)
+        private void Present(Investigation snapshot, bool deferF101Visuals, bool resetProps = false)
         {
+            bool restoreProps = resetProps || snapshot.layer != Current.layer;
+            if (restoreProps) scene.interactables?.ResetSessionProps();
+            var roomPose = snapshot.FindPropPose("DOOR-101", snapshot.layer);
             scene.Present(snapshot.layer == Reality.B, (int)snapshot.f101.current,
                 snapshot.Happened("CH01-T02"), snapshot.Happened("CH01-T05"),
                 snapshot.Has("E12"), GateService.G02(snapshot),
-                snapshot.layer == Reality.M, GateService.G03(snapshot), snapshot.chapter == "CH04", deferF101Visuals);
+                snapshot.layer == Reality.M, GateService.G03(snapshot), snapshot.chapter == "CH04", deferF101Visuals,
+                roomPose?.openness);
+            if (restoreProps && scene.interactables != null)
+            {
+                foreach (var pose in snapshot.sceneProps)
+                {
+                    if (pose.layer != snapshot.layer || pose.id == "DOOR-101") continue;
+                    scene.interactables.RestorePose(pose.id, pose.openness);
+                }
+                if (scene.staffCrossDoor != null)
+                    scene.staffCrossDoor.isOpen = scene.interactables.IsDoorOpen("DOOR-STAFF");
+            }
             scene.PresentCasework(snapshot);
             scene.PresentCheckpointProps(snapshot.Happened("CH01-T09"), snapshot.Happened("CH01-BATTERY"));
         }
 
-        private void Revert(Vector3 point)
+        private void Revert(Vector3 point, List<(string Id, float Openness)> previousPoses)
         {
             bool smooth = scene.smoothPresentation;
             scene.smoothPresentation = false;
-            try { Present(Current); }
+            try
+            {
+                Present(Current, deferF101Visuals: false, resetProps: previousPoses != null);
+                if (previousPoses != null)
+                {
+                    scene.interactables.RestorePoses(previousPoses);
+                    if (scene.roomDoor != null) scene.roomDoor.isOpen = scene.interactables.IsDoorOpen("DOOR-101");
+                    if (scene.staffCrossDoor != null) scene.staffCrossDoor.isOpen = scene.interactables.IsDoorOpen("DOOR-STAFF");
+                }
+            }
             finally { scene.smoothPresentation = smooth; }
             if (HospitalScene.Occupied(point) && scene.TryPad(SafeCheckpoints.Pad(Current.checkpoint), out var fallback))
                 point = fallback.position;

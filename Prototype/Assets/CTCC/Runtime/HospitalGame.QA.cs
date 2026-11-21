@@ -356,16 +356,17 @@ namespace CTCC
         private IEnumerator VerifyKeyboard()
         {
             bool first=false,second=false,escaped=false;
-            var keyboard=InputSystem.AddDevice<Keyboard>();
             ui.Show("KIỂM THỬ TRỢ NĂNG","Điều hướng bàn phím","Cỡ chữ 130%. Đổi cách điều khiển được lưu.",
                 new[]{new ActionChoice("Lựa chọn 1",()=>first=true),new ActionChoice("Lựa chọn 2",()=>second=true)},
                 ()=>{escaped=true;ui.Close();});
             var before=InputSystem.settings.updateMode;
             var background=InputSystem.settings.backgroundBehavior;
+            InputSystem.settings.updateMode=InputSettings.UpdateMode.ProcessEventsManually;
+            InputSystem.settings.backgroundBehavior=InputSettings.BackgroundBehavior.IgnoreFocus;
+            var keyboard=InputSystem.AddDevice<Keyboard>();
+            InputSystem.EnableDevice(keyboard);
             try
             {
-                InputSystem.settings.updateMode=InputSettings.UpdateMode.ProcessEventsManually;
-                InputSystem.settings.backgroundBehavior=InputSettings.BackgroundBehavior.IgnoreFocus;
                 foreach(Key key in new[]{Key.Tab,Key.Enter,Key.Escape})
                 {
                     InputSystem.QueueStateEvent(keyboard,new KeyboardState(key));
@@ -980,6 +981,7 @@ namespace CTCC
             VerifyLegacySave(2);
             VerifyLegacySave(3);
             VerifyLegacySave(4);
+            VerifyLegacySave(5);
 
             var multi = State.Copy();
             multi.f101.current = FormStatus.Affirmed;
@@ -1074,7 +1076,7 @@ namespace CTCC
                 restored == scene.Pad("AP09") && State.servicePower == 10 && GateService.G04(State),
                 "CH04-Q05 saved circuit and clues restored in reloaded B1");
             yield return CaptureHospitalFrame("ch04-morgue", restored, 0f);
-            verification.Add("CH03-Q01/Q02/Q04/Q05 and CH04-Q02–Q06 module PASS. C02/C12, M restore, two legacy schemas, local forms, power and H05/guard, reloaded region save.");
+            verification.Add("CH03-Q01/Q02/Q04/Q05 and CH04-Q02–Q06 module PASS. C02/C12, M restore, legacy schemas 1–5, local forms, power and H05/guard, reloaded region save.");
         }
 
         private IEnumerator VerifyArchiveNavigation(Transform safe)
@@ -1130,6 +1132,7 @@ namespace CTCC
                 seed.dreadSeed = 0;
             }
             string payload = JsonUtility.ToJson(seed);
+            payload = payload.Replace(",\"journalNotes\":[]", "").Replace(",\"sceneProps\":[]", "");
             if (schema == 4)
             {
                 string draftField = ",\"f101Annotations\":" + JsonUtility.ToJson(seed.f101Annotations);
@@ -1147,6 +1150,7 @@ namespace CTCC
                 upgraded.f101History.Count == upgraded.f101.revision &&
                 upgraded.f101.current == seed.f101.current && upgraded.f101.firstDecision == seed.f101.firstDecision &&
                 upgraded.f101Annotations.marks.Count == 0 &&
+                upgraded.sceneProps.Count == 0 && upgraded.journalNotes.Count == 0 &&
                 upgraded.observationRecords.Count >= upgraded.observed.Count,
                 "Upgrade legacy schema " + schema);
         }
@@ -1231,9 +1235,30 @@ namespace CTCC
             Require(State.FindObservation(ObservationRegistry.Bed4Card).stage == ObservationStage.Interpreted &&
                     State.FindObservation(ObservationRegistry.Bed4Card).flippedBack, "OBS101B advances to Interpreted on flip");
 
-            // Upgrade #1 & #4: Verify CH01-D15 SMS + expanded Lan hesitation/denial beats + CH01-D19 guard before corroboration!
-            foreach (string reqLine in new[] { "CH01-D15", "CH01-D03b", "CH01-D03c", "CH01-D04b", "CH01-D04c", "CH01-D05b", "CH01-D05c", "CH01-D07b" })
-                Require(!string.IsNullOrEmpty(Line(reqLine)), "CH01 upgrade dialogue line present: " + reqLine);
+            Require(!CorroborationService.HasCardTimestamp(State) && !CorroborationService.CanCorroborate0317(State) &&
+                    casework.CrossCheck0317Exception(player.Feet, CorroborationService.MatchingTime) != CommitResult.Applied,
+                "03:17 remains locked after a normal inspection and flip, despite having the clock and shift context");
+            foreach (string id in LanDirector.EncounterLineIds())
+                Require(!string.IsNullOrEmpty(Line(id)) && voice.HasClip(id), "Lan encounter has dialogue and an imported clip: " + id);
+            string encounter = BuildLanTranscript(record: false);
+            Require(encounter.Contains("Lan  —  " + Line("CH01-D04c")) && !MayDeliver("CH01-D04b", null),
+                "Lan transcript attributes the clock line to Lan and removes the retired reflection cue");
+            var oldTranscript = State.Copy();
+            oldTranscript.transcript.Clear();
+            oldTranscript.transcript.Add(new TranscriptEntry("CH01-D04b", "Minh", "Câu thoại về bóng phản chiếu"));
+            oldTranscript.transcript.Add(new TranscriptEntry("CH01-D04c", "Lan", "Câu thoại cũ về tấm kính"));
+            RestoreJournal(oldTranscript);
+            Require(StaffTranscriptCount("CH01-D04b") == 0 && StaffTranscriptCount("CH01-D04c") == 1 &&
+                    voice.Transcript[voice.Transcript.Count - 1].Text == Line("CH01-D04c"),
+                "Loading an older transcript drops the retired cue and displays Lan's updated line");
+            RestoreJournal(State);
+            var cardSpec = ObservationRegistry.Get(ObservationRegistry.Bed4Card);
+            Require(!BuildLargePrintTranscript(cardSpec, readRaking: false).Contains("03g17") &&
+                    !cardSpec.InterpretationNote.Contains("03g17"),
+                "Card summaries and ordinary Large Print keep the time hidden until the impression is read");
+            string card = BuildLargePrintTranscript(cardSpec, readRaking: true);
+            Require(card.Contains("03g17") && !card.Contains("C01") && !card.Contains("Bé An") && !card.Contains("Khu C"),
+                "LOG06-Q01: AS-05B still shows the time and keeps Chapter 2's reveal locked");
             Require(!MayDeliver("CH01-D19", "B05"), "CH01-D19 strictly locked before CH01-EX01 corroboration & G01");
 
             // Dual-sided 3D PhysicalInspector flip + Upgrade #6 raking-light ballpoint indentation reveal + interrupted close recovery!
@@ -1266,7 +1291,7 @@ namespace CTCC
                     yield return null;
                     yield return CaptureHospitalFrame("ch01r-inspector-obscard-back", player.transform, 0f);
                 }
-                // Tilt paper 25-40 deg into grazing keyLight to reveal hidden C01? / 03g17 ballpoint indentation!
+                // Tilt the reverse toward the light to reveal its 03g17 impression.
                 inspector.TiltForRakingLight();
                 float waitRaking = Time.realtimeSinceStartup + 0.35f;
                 while (!inspector.RakingRevealed && Time.realtimeSinceStartup < waitRaking)
@@ -1471,21 +1496,38 @@ namespace CTCC
             scene.motion?.ClearTubeBlackout();
             Require(dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B06ClockTick), "Dread triggers cleanly when unsuppressed");
             yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.B06ClockTick), "Dread event persisted to state");
-            Require(dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.F101AffirmedSuffocation), "Upgrade #2 F101AffirmedSuffocation triggers cleanly");
+            foreach (string id in new[] { DreadCatalog.B02GlassShadow, DreadCatalog.B04TrolleyStop, DreadCatalog.B04CurtainBreath,
+                DreadCatalog.B05FanDecelerate, DreadCatalog.B05DistantSteps, DreadCatalog.ShiftCurtainCreep, DreadCatalog.ShiftHallChair })
+            {
+                if (dreadDirector.AmbientBudgetExhausted) break;
+                if (State.HasDreadEvent(id)) continue;
+                Require(dreadDirector.TryTriggerDeterministicForQA(id), "Fill ambient budget: " + id);
+                yield return Until(() => !busy && State.HasDreadEvent(id), "Persist ambient fixture: " + id);
+            }
+            Require(dreadDirector.AmbientBudgetExhausted, "Long exploration fixture exhausted the ambient budget");
+            dreadDirector.NotifyF101Signing();
+            int ambientEvents = dreadDirector.EventsFiredThisSession;
+            Require(dreadDirector.TryPlayF101Reaction() && dreadDirector.EventsFiredThisSession == ambientEvents,
+                "Production F101 reaction plays during signing quiet window even if the ambient budget is exhausted");
             yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.F101AffirmedSuffocation), "F101AffirmedSuffocation persisted to state");
             Require(transaction.Restore(SaveSlot.Auto, out _) == SaveRead.Valid && State.HasDreadEvent(DreadCatalog.B06ClockTick) &&
                     State.HasDreadEvent(DreadCatalog.F101AffirmedSuffocation) &&
                     (State.HasDreadEvent(DreadCatalog.ShiftTubeBlackout) || State.HasDreadEvent(DreadCatalog.ShiftCurtainCreep) || State.HasDreadEvent(DreadCatalog.ShiftHallChair)),
                 "Persisted dread & micro-shift events survive save/reload");
             Require(!dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B06ClockTick), "One-time dread event never replays after reload");
+            Require(!dreadDirector.TryPlayF101Reaction(), "Signed F101 reaction does not replay after reload");
 
             // 6b) Upgrade #5: Optional 03:17 Corroboration Branch (OBS_CLOCK_0317 + OBS101B + shift context -> CH01-EX01 -> CH01-D19!)
             Require(CorroborationService.CanCorroborate0317(State) && !CorroborationService.IsCorroborated(State),
                 "Upgrade #5 03:17 corroboration eligible once clock, AS-05B, and shift context observed");
-            Apply(casework.CrossCheck0317Exception(player.Feet), "Upgrade #5 commit CH01-EX01");
+            long beforeWrongTime = State.sequence;
+            Require(casework.CrossCheck0317Exception(player.Feet, 1920) != CommitResult.Applied &&
+                    State.sequence == beforeWrongTime && !CorroborationService.IsCorroborated(State),
+                "Wrong time leaves CH01-EX01 locked and does not write a save");
+            Apply(casework.CrossCheck0317Exception(player.Feet, CorroborationService.MatchingTime), "Upgrade #5 commit CH01-EX01");
             Require(CorroborationService.IsCorroborated(State) && State.Happened(CorroborationService.Exception0317Event) &&
                     State.FindObservation(ObservationRegistry.StoppedClock0317).stage == ObservationStage.Corroborated &&
-                    State.evidence.Count == 1 && MayDeliver("CH01-D19", "B05") && !string.IsNullOrEmpty(LineAtBeat("CH01-D19", 1, "B05")),
+                    State.evidence.Count == 1 && voice.HasClip("CH01-D19", "B05") && !string.IsNullOrEmpty(LineAtBeat("CH01-D19", 1, "B05")),
                 "Upgrade #5 CH01-EX01 persists cleanly, unlocks CH01-D19 at B05, and keeps CH01 evidence.Count == 1");
             Require(transaction.Restore(SaveSlot.Auto, out _) == SaveRead.Valid && CorroborationService.IsCorroborated(State),
                 "Upgrade #5 CH01-EX01 survives save/reload");
@@ -1525,7 +1567,7 @@ namespace CTCC
             // Restore pre-test CH02 snapshot so VerifyRender + VerifyScalableM3AndCh03 continue seamlessly!
             Apply(transaction.Commit(savedBefore, scene.Pad("AP05").position, warp: false, geometryChanges: true), "Restore post-CH02 snapshot");
             player.Teleport(scene.Pad("AP05"));
-            verification.Add("CH01-R + 8-UPGRADE ADVERSARIAL PASS: delayed Lan beats + CH01-D15, DeferredMicroShift + Affirmed knock, introspective F101 validation, 03:17 corroboration CH01-EX01 -> CH01-D19, 3D raking-light ballpoint indentation reveal, analog curtain/door hold-drag, weathering/volumetric pass, and Reality.R independence.");
+            verification.Add("CH01-R ADVERSARIAL PASS: Lan VO and old transcripts, LOG06-Q01 card content, 03:17 inspection and answer validation, D19 guard, F101 reaction at exhausted ambient budget, once-only cues after reload, and independent Reality.R progression.");
         }
 
         private IEnumerator VerifyStaffReactionOrder()
@@ -1543,7 +1585,7 @@ namespace CTCC
             Require(staffReactions.Count == 1 && StaffTranscriptCount("CH01-D18") == 0 &&
                     !MayDeliver("CH01-D18", null), "AS-05 queues only when closed");
 
-            lanDirector.StartEncounter(Line);
+            lanDirector.StartEncounter(LanEncounterLine);
             Require(lanDirector.IsEncounterRunning && !voice.IsSpeaking && !TryPlayStaffReaction(),
                 "STAFF reaction waits through a pause in Lan's encounter");
             lanDirector.StopEncounter(false);

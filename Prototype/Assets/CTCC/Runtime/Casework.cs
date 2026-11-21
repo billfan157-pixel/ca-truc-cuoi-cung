@@ -33,19 +33,19 @@ namespace CTCC
 
         public CommitResult AtHub(Vector3 feet, out bool warp)
         {
-            if (!PrepareHub(out var next, out warp)) return CommitResult.Applied;
-            return reality.Commit(next, feet, "AP02", true, true);
+            warp = false;
+            if (!PrepareHub(out var next)) return CommitResult.Applied;
+            return reality.Commit(next, feet, RealityTransaction.ReceptionDesk, geometryChanges: true);
         }
 
         public Task<CommitResult> AtHubAsync(Vector3 feet)
         {
-            if (!PrepareHub(out var next, out _)) return Task.FromResult(CommitResult.Applied);
-            return reality.CommitAsync(next, feet, "AP02", true, true);
+            if (!PrepareHub(out var next)) return Task.FromResult(CommitResult.Applied);
+            return reality.CommitAsync(next, feet, RealityTransaction.ReceptionDesk, geometryChanges: true);
         }
 
-        private bool PrepareHub(out Investigation next, out bool warp)
+        private bool PrepareHub(out Investigation next)
         {
-            warp = false;
             next = null;
             if (State.chapter == "CH02") return false;
             var candidate = State.Copy();
@@ -55,7 +55,6 @@ namespace CTCC
                 candidate.checkpoint = "CH01-CP01";
                 candidate.Remember("CH01-T03");
                 candidate.Remember("CH01-T04");
-                warp = true;
                 next = candidate;
                 return true;
             }
@@ -64,7 +63,6 @@ namespace CTCC
                 candidate.layer = Reality.R;
                 candidate.checkpoint = "CH01-CP03";
                 candidate.Remember("CH01-T08");
-                warp = true;
                 next = candidate;
                 return true;
             }
@@ -74,21 +72,36 @@ namespace CTCC
                 candidate.chapter = "CH02";
                 candidate.checkpoint = "CH01-CP04";
                 candidate.Remember("CH01-T10");
-                warp = true;
                 next = candidate;
                 return true;
             }
             return false;
         }
 
-        public CommitResult Board(Vector3 feet) =>
-            MayTakeBoard
-                ? Record("CH01-T05", feet, "CH01-CP01", true) : CommitResult.PadRequired;
+        public CommitResult Board(Vector3 feet)
+        {
+            if (!MayTakeBoard) return CommitResult.PadRequired;
+            return State.Happened("CH01-T05") ? CommitResult.Applied :
+                reality.Commit(PrepareBoard(), feet, geometryChanges: true);
+        }
 
         private bool MayTakeBoard => State.layer == Reality.B && State.chapter == "CH01" && State.Happened("CH01-T03");
 
-        public Task<CommitResult> BoardAsync(Vector3 feet) => MayTakeBoard
-            ? RecordAsync("CH01-T05", feet, "CH01-CP01", true) : Task.FromResult(CommitResult.PadRequired);
+        public Task<CommitResult> BoardAsync(Vector3 feet)
+        {
+            if (!MayTakeBoard) return Task.FromResult(CommitResult.PadRequired);
+            return State.Happened("CH01-T05") ? Task.FromResult(CommitResult.Applied) :
+                reality.CommitAsync(PrepareBoard(), feet, geometryChanges: true);
+        }
+
+        private Investigation PrepareBoard()
+        {
+            var next = State.Copy();
+            next.Remember("CH01-T05");
+            next.checkpoint = "CH01-CP01";
+            next.RecordObservation(ObservationRegistry.F101Sheet, Reality.B, "LOC02", ObservationStage.Discovered);
+            return next;
+        }
 
         public CommitResult EnterRoom(Vector3 feet) =>
             MayEnterRoom
@@ -125,13 +138,13 @@ namespace CTCC
         public CommitResult SwitchIn101(Vector3 feet)
         {
             if (!PrepareSwitch101(out var next)) return CommitResult.PadRequired;
-            return reality.Commit(next, feet, "AP04", true, true);
+            return reality.Commit(next, feet, RealityTransaction.WardClipboard, geometryChanges: true);
         }
 
         public Task<CommitResult> SwitchIn101Async(Vector3 feet)
         {
             if (!PrepareSwitch101(out var next)) return Task.FromResult(CommitResult.PadRequired);
-            return reality.CommitAsync(next, feet, "AP04", true, true);
+            return reality.CommitAsync(next, feet, RealityTransaction.WardClipboard, geometryChanges: true);
         }
 
         private bool PrepareSwitch101(out Investigation next)
@@ -172,6 +185,46 @@ namespace CTCC
             if (!next.MarkObservationDetail(id, detailId, flippedBack))
                 return Task.FromResult(CommitResult.Applied);
             return reality.CommitEvidenceAsync(next);
+        }
+
+        internal Task<CommitResult> WriteJournalNoteAsync(int index, JournalNote note)
+        {
+            if (index < -1 || index >= State.journalNotes.Count ||
+                index == -1 && (note == null || State.journalNotes.Count >= JournalNote.MaxNotes))
+                return Task.FromResult(CommitResult.PadRequired);
+            if (note != null && !note.ValidFor(State))
+                return Task.FromResult(CommitResult.PadRequired);
+            var next = State.Copy();
+            if (note == null) next.journalNotes.RemoveAt(index);
+            else if (index == -1) next.journalNotes.Add(note);
+            else next.journalNotes[index] = note;
+            return reality.CommitEvidenceAsync(next, publishGameplay: false);
+        }
+
+        internal Task<CommitResult> StorePropPoseAsync(string id, float openness)
+        {
+            if (!ScenePropPose.Known(id) || State.layer == Reality.M || !float.IsFinite(openness))
+                return Task.FromResult(CommitResult.PadRequired);
+            var next = State.Copy();
+            var pose = next.FindPropPose(id, next.layer);
+            if (pose == null)
+            {
+                pose = new ScenePropPose { id = id, layer = next.layer };
+                next.sceneProps.Add(pose);
+            }
+            pose.openness = Mathf.Clamp01(openness);
+            return reality.CommitEvidenceAsync(next, publishGameplay: false);
+        }
+
+        internal Task<CommitResult> ObserveF101ConsequenceAsync(int revision)
+        {
+            if (State.layer != Reality.B || revision < 1 || revision != State.f101.revision)
+                return Task.FromResult(CommitResult.PadRequired);
+            if (State.f101History[revision - 1].consequenceObserved)
+                return Task.FromResult(CommitResult.Applied);
+            var next = State.Copy();
+            next.f101History[revision - 1].consequenceObserved = true;
+            return reality.CommitEvidenceAsync(next, publishGameplay: false);
         }
 
         private CommitResult PrepareObservation(string id, string location, ObservationStage stage, out Investigation next)
@@ -236,7 +289,7 @@ namespace CTCC
                 return CommitResult.PadRequired;
             }
             return geometryChanged
-                ? reality.Commit(next, feet, "AP04", false, true)
+                ? reality.Commit(next, feet, RealityTransaction.WardClipboard, geometryChanges: true)
                 : reality.Commit(next, feet);
         }
 
@@ -253,7 +306,7 @@ namespace CTCC
                 return (CommitResult.PadRequired, evaluation);
             }
             var result = geometryChanged
-                ? await reality.CommitAsync(next, feet, "AP04", false, true)
+                ? await reality.CommitAsync(next, feet, RealityTransaction.WardClipboard, geometryChanges: true)
                 : await reality.CommitEvidenceAsync(next);
             return (result, evaluation);
         }
@@ -274,8 +327,8 @@ namespace CTCC
         {
             next = null;
             geometryChanged = false;
-            evaluation = HypothesisEvaluation.Reject(HypothesisOutcome.ContradictsDecision, "Chưa thể ký phiếu", "Cần đứng tại vị trí phiếu F101 ở phòng 101 để xác nhận.");
-            if (!CanRevise || !reality.OnPad(feet, "AP04"))
+            evaluation = HypothesisEvaluation.Reject(HypothesisOutcome.ContradictsDecision, "Chưa thể ký phiếu", "Ký trên bảng kẹp trong phòng 101.");
+            if (!CanRevise || !reality.AtRequiredPlace(feet, RealityTransaction.WardClipboard))
                 return CommitResult.PadRequired;
 
             var candidate = State.Copy();
@@ -322,32 +375,33 @@ namespace CTCC
             return reality.Commit(next, feet);
         }
 
-        public CommitResult CrossCheck0317Exception(Vector3 feet)
+        public CommitResult CrossCheck0317Exception(Vector3 feet, int selectedTime)
         {
-            var result = PrepareCrossCheck0317(out var next);
+            var result = PrepareCrossCheck0317(selectedTime, out var next);
             return next == null ? result : reality.Commit(next, feet);
         }
 
-        public Task<CommitResult> CrossCheck0317ExceptionAsync()
+        public Task<CommitResult> CrossCheck0317ExceptionAsync(int selectedTime)
         {
-            var result = PrepareCrossCheck0317(out var next);
+            var result = PrepareCrossCheck0317(selectedTime, out var next);
             return next == null ? Task.FromResult(result) : reality.CommitEvidenceAsync(next);
         }
 
-        private CommitResult PrepareCrossCheck0317(out Investigation next)
+        private CommitResult PrepareCrossCheck0317(int selectedTime, out Investigation next)
         {
             next = null;
+            if (selectedTime != CorroborationService.MatchingTime)
+                return CommitResult.PadRequired;
             if (CorroborationService.IsCorroborated(State))
                 return CommitResult.Applied;
             if (!CorroborationService.CanCorroborate0317(State))
                 return CommitResult.PadRequired;
             next = State.Copy();
             next.Remember(CorroborationService.Exception0317Event);
-            var clockRec = next.FindObservation(ObservationRegistry.StoppedClock0317);
-            if (clockRec != null && clockRec.stage < ObservationStage.Corroborated)
-                clockRec.stage = ObservationStage.Corroborated;
             foreach (string ctxId in new[]
             {
+                ObservationRegistry.StoppedClock0317,
+                ObservationRegistry.Bed4Card,
                 ObservationRegistry.ReceptionDrawerLog,
                 ObservationRegistry.ShiftGuide,
                 ObservationRegistry.WardOverflowNotice
@@ -419,13 +473,14 @@ namespace CTCC
         public CommitResult VerifyAn(Vector3 feet)
         {
             var result = PrepareVerifyAn(out var next);
-            return next == null ? result : reality.Commit(next, feet, "AP04", false, true);
+            return next == null ? result : reality.Commit(next, feet, RealityTransaction.WardClipboard, geometryChanges: true);
         }
 
         public Task<CommitResult> VerifyAnAsync(Vector3 feet)
         {
             var result = PrepareVerifyAn(out var next);
-            return next == null ? Task.FromResult(result) : reality.CommitAsync(next, feet, "AP04", false, true);
+            return next == null ? Task.FromResult(result) :
+                reality.CommitAsync(next, feet, RealityTransaction.WardClipboard, geometryChanges: true);
         }
 
         private CommitResult PrepareVerifyAn(out Investigation next)

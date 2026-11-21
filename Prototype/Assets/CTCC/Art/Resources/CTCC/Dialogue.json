@@ -309,18 +309,11 @@
       "copy": "Tối 17 tháng 11 trời mưa lớn quá, ca sốt lại dồn xuống tầng trệt. Anh đứng mãi ngoài ô kính làm gì thế?"
     },
     {
-      "id": "CH01-D04b",
-      "chapter": "CH01",
-      "speaker": "Minh",
-      "context": "CH01 B03; chi tiết bất thường trên mặt kính quầy lễ tân sau cú sốc D04",
-      "copy": "Em… nhìn tấm kính quầy trực kìa. Trên mặt kính chỉ có bóng đèn tuýp, không thấy bóng em đâu cả…"
-    },
-    {
       "id": "CH01-D04c",
       "chapter": "CH01",
       "speaker": "Lan",
-      "context": "CH01 B03; Lan né nhẹ ánh mắt, nhắc đồng hồ đứng kim 03:17 mà không lộ kết cục khu C",
-      "copy": "Kính quầy mờ hơi nước thôi. Đồng hồ quầy cũng vừa đứng kim nữa — em bận chạy buồng nên chưa kịp thay pin."
+      "context": "CH01 B03; sau cú sốc D04, Lan chuyển sang chuyện đồng hồ ở quầy.",
+      "copy": "Đồng hồ quầy đứng kim rồi. Em chạy buồng suốt, chưa kịp thay pin."
     },
     {
       "id": "CH01-D05b",
@@ -347,8 +340,8 @@
       "id": "CH01-D19",
       "chapter": "CH01",
       "speaker": "Minh",
-      "context": "CH01 B05; lớp B sau F101 trước sụp đổ B->R. Yêu cầu CH01-T07 và CH01-EX01 (đối chiếu 03:17 giữa thẻ AS-05B và đồng hồ quầy). Tùy chọn, một lần.",
-      "copy": "03 giờ 17… Giờ ghi dở trên thẻ giường 4 trùng khít từng phút với chiếc đồng hồ chết ngoài quầy — đúng lúc tầng dưới mất liên lạc. Thế mà trên phiếu bàn giao vẫn ghi tròn trịa con số 0…"
+      "context": "CH01 B05; lớp B sau F101 trước sụp đổ B->R. Yêu cầu CH01-T07 và CH01-EX01 (đối chiếu 03:17 từ vết hằn sau thẻ AS-05B, đồng hồ quầy và bối cảnh ca trực). Tùy chọn, một lần.",
+      "copy": "Ba giờ mười bảy… Vết hằn sau thẻ giường bốn ghi đúng giờ chiếc đồng hồ ngoài quầy dừng lại. Vậy mà trên phiếu bàn giao vẫn ghi tròn trịa con số không…"
     }
   ],
   "conditions": [

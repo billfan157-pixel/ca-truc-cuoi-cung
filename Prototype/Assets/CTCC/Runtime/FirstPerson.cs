@@ -28,7 +28,10 @@ namespace CTCC
         public bool IsCrouching => capsule != null && capsule.height < 1.35f;
         public bool IsRunning => currentVelocity.sqrMagnitude > 9.0f;
         public bool IsMoving => currentVelocity.sqrMagnitude > 0.05f;
-        private readonly Collider[] nearby = new Collider[18];
+        private const float Reach = 2.60f;
+        private const float SurfaceTolerance = 0.085f;
+        private readonly Collider[] nearby = new Collider[64];
+        private SceneTarget focusedTarget;
 
         public void Initialize(Camera camera, EnvironmentalAudio bus)
         {
@@ -91,6 +94,7 @@ namespace CTCC
 
         public void Teleport(Vector3 point, Quaternion rotation)
         {
+            ClearFocus();
             capsule.enabled = false;
             transform.SetPositionAndRotation(point, rotation);
             pitch = 0f;
@@ -111,6 +115,11 @@ namespace CTCC
             var k = Keyboard.current;
             var m = Mouse.current;
             if (k == null) return;
+            if (LookSuppressed)
+            {
+                currentVelocity = Vector3.zero;
+                return;
+            }
 
             float dt = Mathf.Min(Time.deltaTime, 0.045f);
             float sens = settings.mouseSensitivity > 0.05f ? settings.mouseSensitivity : 1f;
@@ -213,32 +222,48 @@ namespace CTCC
         public SceneTarget Focus(FuncTarget allowed)
         {
             var camera = eye.transform;
-            const float range = 2.60f;
-            if (Physics.Raycast(camera.position, camera.forward, out var ray, range,
-                HospitalScene.InteractMask | HospitalScene.SolidMask, QueryTriggerInteraction.Collide))
-            {
-                var target = ray.collider.GetComponent<SceneTarget>();
-                if (target != null && allowed(target)) return target;
-            }
-            Vector3 seed = camera.position + camera.forward * 0.62f;
-            int count = Physics.OverlapSphereNonAlloc(seed, 1.25f, nearby, HospitalScene.InteractMask, QueryTriggerInteraction.Collide);
+            Vector3 origin = camera.position;
+            Vector3 forward = camera.forward;
+            int count = Physics.OverlapSphereNonAlloc(origin + forward * 1.25f, 1.58f, nearby,
+                HospitalScene.InteractMask, QueryTriggerInteraction.Collide);
+            var aim = new Ray(origin, forward);
             SceneTarget best = null;
-            float bestWeight = 0.64f;
+            float bestWeight = float.NegativeInfinity;
+            float heldWeight = float.NegativeInfinity;
             for (int i = 0; i < count; i++)
             {
-                var target = nearby[i].GetComponent<SceneTarget>();
+                var candidate = nearby[i];
+                var target = candidate.GetComponent<SceneTarget>();
                 if (target == null || !allowed(target)) continue;
-                Vector3 to = target.transform.position - camera.position;
-                float dist = to.magnitude;
-                if (dist < 0.001f || dist > range) continue;
-                float weight = Vector3.Dot(camera.forward, to / dist) - dist * 0.052f;
-                if (weight <= bestWeight || Physics.Raycast(camera.position, to / dist, dist - 0.095f, HospitalScene.SolidMask,
-                    QueryTriggerInteraction.Ignore)) continue;
+                Vector3 center = candidate.bounds.center;
+                Vector3 offset = center - origin;
+                float distance = offset.magnitude;
+                if (distance < 0.01f || distance > Reach + 0.30f) continue;
+                float alignment = Vector3.Dot(forward, offset / distance);
+                bool direct = candidate.Raycast(aim, out var hit, Reach);
+                if (!direct && (alignment < (target == focusedTarget ? 0.945f : 0.965f) || distance > Reach))
+                    continue;
+
+                // The trigger can extend in front of a handle or sheet. Its
+                // centre must still be visible so it cannot be used through a wall.
+                if (Physics.Raycast(origin, offset / distance, out var blocker, distance - SurfaceTolerance,
+                    HospitalScene.SolidMask, QueryTriggerInteraction.Ignore) &&
+                    (target.visibilitySurface == null || blocker.collider != target.visibilitySurface))
+                    continue;
+                float weight = alignment - (direct ? hit.distance : distance) * 0.028f +
+                    (direct ? 0.08f : 0f) + target.focusPriority * 0.025f;
+                if (target == focusedTarget) heldWeight = weight;
+                if (weight <= bestWeight) continue;
                 best = target;
                 bestWeight = weight;
             }
-            return best;
+            // Hold only while the previous target still passes reach and visibility.
+            if (heldWeight > float.NegativeInfinity && heldWeight + 0.025f >= bestWeight)
+                return focusedTarget;
+            return focusedTarget = best;
         }
+
+        public void ClearFocus() => focusedTarget = null;
 
         public delegate bool FuncTarget(SceneTarget target);
     }

@@ -162,6 +162,7 @@ namespace CTCC
         public Reality layer = Reality.B;
         public int annotationVersion;
         public F101Annotations annotations;
+        public bool consequenceObserved;
     }
 
     public sealed class HypothesisEvaluation
@@ -335,8 +336,8 @@ namespace CTCC
                 }),
             new(
                 Bed4Card, "OBS101B", "Thẻ bàn giao giường số 4 (AS-05B)",
-                "Thẻ ghi ngày 17/11/2005, 'Khám sốt tạm', khoanh tròn 'CHƯA BÀN GIAO', ghi lề 'Kiểm cuối ca: 03g17', trống ô chữ ký người nhận và nhòe dấu mực xanh.",
-                "Thẻ vẫn giữ tình trạng dở dang từ đêm 17–18/11 với mốc giờ cuối 03g17. Ô ký nhận còn trống nên chưa rõ sau đó ca trực đã làm gì.",
+                "Thẻ ghi ngày 17/11/2005, 'Khám sốt tạm', khoanh tròn 'CHƯA BÀN GIAO', trống ô chữ ký người nhận và nhòe dấu mực xanh.",
+                "Thẻ vẫn giữ tình trạng dở dang từ đêm 17–18/11. Ô ký nhận còn trống nên chưa rõ sau đó ca trực đã làm gì.",
                 "Lớp B · Giá treo đầu giường 4, Phòng 101",
                 ObservationCategory.Fact,
                 new[] { Reality.B },
@@ -350,7 +351,7 @@ namespace CTCC
                 detailLabels: new[]
                 {
                     "Mục tình trạng khoanh tròn 'CHƯA BÀN GIAO' bằng bút bi xanh.",
-                    "Ô người giao chỉ ký tắt nhòe mực kèm mốc 'Kiểm cuối ca: 03g17'; ô người nhận để trống hoàn toàn.",
+                    "Ô người giao chỉ có nét ký tắt nhòe mực. Ô người nhận để trống hoàn toàn.",
                     "Mặt sau: ghi chú bút chì nhòe nước — nghiêng mặt giấy đón sáng lộ vết hằn bút bi bị gạch xóa."
                 }),
             new(
@@ -447,7 +448,7 @@ namespace CTCC
                 }),
             new(
                 StoppedClock0317, "FS01", "Đồng hồ quầy tiếp nhận dừng ở 03:17",
-                "Chiếc đồng hồ nhựa tròn sau quầy tiếp nhận đứng kim đúng 03:17 — trùng thời điểm vụ cháy bệnh viện An Sinh đêm 18/11/2005 mà Minh đã biết.",
+                "Chiếc đồng hồ nhựa tròn sau quầy tiếp nhận đứng kim đúng 03:17.",
                 "Chi tiết hiện trường ký ức (FS01): gợi mốc thời gian bất thường của đêm cháy, không phải bằng chứng trực tiếp cho số bệnh nhân trên F101.",
                 "Lớp B/R · Quầy tiếp nhận",
                 ObservationCategory.Context,
@@ -495,15 +496,17 @@ namespace CTCC
         };
 
         private static readonly Dictionary<string, ObservationSpec> ById;
+        private static readonly List<ObservationSpec> Catalog;
 
         static ObservationRegistry()
         {
             ById = new Dictionary<string, ObservationSpec>(StringComparer.Ordinal);
-            for (int i = 0; i < OrderedSpecs.Length; i++)
-                ById[OrderedSpecs[i].Id] = OrderedSpecs[i];
+            Catalog = new List<ObservationSpec>(OrderedSpecs);
+            foreach (var prop in Ch01FieldObjects.All) Catalog.Add(prop.Observation);
+            foreach (var spec in Catalog) ById.Add(spec.Id, spec);
         }
 
-        public static IReadOnlyList<ObservationSpec> All => OrderedSpecs;
+        public static IReadOnlyList<ObservationSpec> All => Catalog;
 
         public static bool Registered(string id) =>
             !string.IsNullOrEmpty(id) && ById.ContainsKey(id);
@@ -848,6 +851,7 @@ namespace CTCC
         public const string Exception0317Event = "CH01-EX01";
         public const string Exception0317Dialogue = "CH01-D19";
         public const string RakingDetailId = "RAKING_INDENT";
+        public const int MatchingTime = 317;
 
         public static bool HasShiftContext(Investigation state) =>
             state != null && (state.Observed(ObservationRegistry.ReceptionDrawerLog) ||
@@ -858,10 +862,8 @@ namespace CTCC
             state != null && state.Observed(ObservationRegistry.StoppedClock0317);
 
         public static bool HasCardTimestamp(Investigation state) =>
-            state != null && HypothesisService.HasExaminedInLayerB(state, ObservationRegistry.Bed4Card);
-
-        public static bool HasAnyPiece(Investigation state) =>
-            HasClock(state) || HasShiftContext(state);
+            state != null && HypothesisService.HasExaminedInLayerB(state, ObservationRegistry.Bed4Card) &&
+            state.FindObservation(ObservationRegistry.Bed4Card).HasDetail(RakingDetailId);
 
         public static bool CanCorroborate0317(Investigation state) =>
             state != null && state.chapter == "CH01" && state.layer == Reality.B &&
@@ -879,18 +881,5 @@ namespace CTCC
             return f101 != null && f101.HasDetail(RakingDetailId);
         }
 
-        public static string BuildStatusSummary(Investigation state)
-        {
-            if (state == null) return "";
-            if (IsCorroborated(state))
-                return "Đã ghi chú ngoại lệ 03:17: mốc giờ ghi dở cuối ca trên thẻ AS-05B (03g17) trùng khít với chiếc đồng hồ chết sau quầy và sổ trực đêm 17–18/11/2005.";
-            if (CanCorroborate0317(state))
-                return "Cả đồng hồ quầy (03:17), sổ/quy chế trực và mốc 'Kiểm cuối ca: 03g17' trên thẻ AS-05B đều đã nằm trong sổ. Có thể đối chiếu nhánh ngoại lệ 03:17.";
-            if (HasClock(state) && !HasCardTimestamp(state))
-                return "Kim đồng hồ quầy dừng ở 03:17. Mình cần xem trên các phiếu hoặc thẻ ở phòng 101 có mốc giờ nào trùng với khoảnh khắc đó không.";
-            if (HasClock(state) && !HasShiftContext(state))
-                return "Thẻ AS-05B có ghi lề 03g17 trùng với đồng hồ chết ngoài quầy — nhưng mình cần kiểm tra thêm sổ phân ca hoặc quy chế/thông báo ở lối nhân viên để xác nhận ca trực đêm 17–18/11.";
-            return "Chưa đủ móc nối giữa đồng hồ 03:17, sổ trực và thẻ giường 4 AS-05B.";
-        }
     }
 }

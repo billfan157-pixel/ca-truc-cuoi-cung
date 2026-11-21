@@ -155,6 +155,8 @@ namespace CTCC
             int fromVersion = s.schemaVersion;
             s.schemaVersion = Investigation.Schema;
             s.f101Annotations ??= new();
+            s.journalNotes ??= new();
+            s.sceneProps ??= new();
             if (fromVersion >= 4) return;
             if (fromVersion <= 2)
             {
@@ -282,6 +284,9 @@ namespace CTCC
                 }
             }
             if (!HypothesisService.ValidPersistedF101(s))
+                return false;
+            if (s.journalNotes == null || s.journalNotes.Count > JournalNote.MaxNotes ||
+                s.journalNotes.Exists(n => n == null || !n.ValidFor(s)) || !ScenePropPose.ValidList(s.sceneProps))
                 return false;
             if (s.dreadEventsSeen != null)
             {

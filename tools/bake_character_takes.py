@@ -55,6 +55,8 @@ def main():
             continue
         spoken = re.sub(r"\b101\b", "một linh một", canonical)
         spoken = re.sub(r"\bC01\b", "xê không một", spoken)
+        if line_id == "CH01-D03c":
+            spoken = spoken.replace("17 tháng 11", "mười bảy tháng mười một")
         if line_id == "CH01-D10":
             spoken = spoken.replace("…", "")
         # Keep pauses and intonation in the spoken copy. The preset supplies the speaking style.

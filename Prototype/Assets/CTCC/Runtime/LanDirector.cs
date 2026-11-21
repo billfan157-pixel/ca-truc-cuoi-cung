@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace CTCC
@@ -9,6 +10,21 @@ namespace CTCC
     {
         private enum ReceptionPose { Absent, BehindGlass, AtCounter }
 
+        private static readonly (string id, float pause, float warm, float concern, float sorrow,
+            float yawBias, float pitchBias, bool lookAtBoard, bool microBlink)[] EncounterBeats =
+        {
+            ("CH01-D03", 0.52f, 0.46f, 0.12f, 0.00f,  7.5f, 2.0f, false, true),
+            ("CH01-D03b", 0.55f, 0.36f, 0.16f, 0.02f, 11.0f, 4.0f, false, false),
+            ("CH01-D03c", 0.48f, 0.38f, 0.20f, 0.02f, 14.0f, 5.0f, false, true),
+            ("CH01-D04", 0.72f, 0.24f, 0.28f, 0.06f, 16.5f, 6.5f, false, true),
+            ("CH01-D04c", 0.58f, 0.26f, 0.26f, 0.07f, 19.0f, 7.0f, false, true),
+            ("CH01-D05", 0.76f, 0.34f, 0.22f, 0.05f,  6.0f, 4.0f, true,  true),
+            ("CH01-D05b", 0.54f, 0.28f, 0.24f, 0.08f, 10.5f, 5.5f, true,  false),
+            ("CH01-D05c", 0.46f, 0.35f, 0.20f, 0.05f,  4.0f, 6.0f, true,  true),
+            ("CH01-D07", 0.34f, 0.38f, 0.19f, 0.04f,  8.5f, 2.5f, false, true),
+            ("CH01-D07b", 0.44f, 0.25f, 0.18f, 0.05f, 12.0f, 4.5f, false, false),
+        };
+
         private HospitalScene scene;
         private VoiceDirector voice;
         private FirstPerson player;
@@ -17,6 +33,11 @@ namespace CTCC
         private Coroutine encounterRoutine;
         private Coroutine glassPass;
         private bool glassPassPlayed;
+
+        internal static IEnumerable<string> EncounterLineIds()
+        {
+            foreach (var beat in EncounterBeats) yield return beat.id;
+        }
 
         public bool IsEncounterRunning => encounterRoutine != null;
 
@@ -108,7 +129,7 @@ namespace CTCC
             glassPass = null;
         }
 
-        public void StartEncounter(Func<string, int, string> lineLookup)
+        public void StartEncounter(Func<string, (string speaker, string text)> lineLookup)
         {
             StopEncounter(false);
             var lan = scene?.LanActor;
@@ -154,35 +175,18 @@ namespace CTCC
             }
         }
 
-        private IEnumerator PlayEncounterSequence(CharacterActor lan, Func<string, int, string> lineLookup)
+        private IEnumerator PlayEncounterSequence(CharacterActor lan, Func<string, (string speaker, string text)> lineLookup)
         {
-            // Upgrade #1 & #8: Extended 11-beat emotional reception encounter with hesitation, 17/11/2005 present-tense
-            // uncanny cue, missing glass reflection observation, semi-profile gaze shifts, and subtle micro-blinks.
+            // Lan speaks as if the night shift is still underway, with averted gaze and subtle blinks.
             lan.LookTarget = MinhEye;
             lan.EnableCloseUpAversion = true;
             lan.GazeYawBias = 9f;
             lan.GazePitchBias = 3f;
             lan.SetExpression(0.32f, 0.12f, 0f);
 
-            var beats = new (string id, bool isLan, float pause, float warm, float concern, float sorrow,
-                float yawBias, float pitchBias, bool lookAtBoard, bool microBlink)[]
+            foreach (var beat in EncounterBeats)
             {
-                ("CH01-D03",  true,  0.52f, 0.46f, 0.12f, 0.00f,  7.5f, 2.0f, false, true),
-                ("CH01-D03b", false, 0.55f, 0.36f, 0.16f, 0.02f, 11.0f, 4.0f, false, false),
-                ("CH01-D03c", true,  0.48f, 0.38f, 0.20f, 0.02f, 14.0f, 5.0f, false, true),
-                ("CH01-D04",  false, 0.72f, 0.24f, 0.28f, 0.06f, 16.5f, 6.5f, false, true),
-                ("CH01-D04b", false, 0.62f, 0.20f, 0.32f, 0.08f, 22.0f, 5.5f, false, false),
-                ("CH01-D04c", true,  0.58f, 0.26f, 0.26f, 0.07f, 19.0f, 7.0f, false, true),
-                ("CH01-D05",  true,  0.76f, 0.34f, 0.22f, 0.05f,  6.0f, 4.0f, true,  true),
-                ("CH01-D05b", false, 0.54f, 0.28f, 0.24f, 0.08f, 10.5f, 5.5f, true,  false),
-                ("CH01-D05c", true,  0.46f, 0.35f, 0.20f, 0.05f,  4.0f, 6.0f, true,  true),
-                ("CH01-D07",  true,  0.34f, 0.38f, 0.19f, 0.04f,  8.5f, 2.5f, false, true),
-                ("CH01-D07b", false, 0.44f, 0.25f, 0.18f, 0.05f, 12.0f, 4.5f, false, false),
-            };
-
-            foreach (var beat in beats)
-            {
-                string text = lineLookup(beat.id, 1);
+                var (speaker, text) = lineLookup(beat.id);
                 if (string.IsNullOrWhiteSpace(text)) continue;
 
                 lan.SetExpression(beat.warm, beat.concern, beat.sorrow);
@@ -190,7 +194,7 @@ namespace CTCC
                 lan.GazePitchBias = beat.pitchBias;
                 lan.LookTarget = beat.lookAtBoard && scene.ReceptionBoard != null ? scene.ReceptionBoard.transform : MinhEye;
                 if (beat.microBlink) lan.TriggerMicroBlink();
-                lan.PlayAction(beat.id is "CH01-D04" or "CH01-D04b" or "CH01-D05" or "CH01-D05b" ? "Lan_Listen" : "Lan_IdleDesk", 0.34f);
+                lan.PlayAction(beat.id is "CH01-D04" or "CH01-D05" or "CH01-D05b" ? "Lan_Listen" : "Lan_IdleDesk", 0.34f);
 
                 for (float pause = beat.pause; pause > 0f;)
                 {
@@ -200,8 +204,9 @@ namespace CTCC
 
                 bool finished = false;
                 bool completed = false;
-                voice.Speak(beat.id, beat.isLan ? "Lan" : "Minh", text,
-                    beat.isLan ? scene.LanVoiceAnchor : null, beat.isLan ? lan : null,
+                bool isLan = speaker == "Lan";
+                voice.Speak(beat.id, speaker, text,
+                    isLan ? scene.LanVoiceAnchor : null, isLan ? lan : null,
                     onComplete: heard => { completed = heard; finished = true; });
 
                 if (beat.id == "CH01-D04") voice.SetLanMotif(true, 0.13f);

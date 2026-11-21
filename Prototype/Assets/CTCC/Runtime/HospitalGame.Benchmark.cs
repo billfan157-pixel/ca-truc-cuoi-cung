@@ -226,7 +226,7 @@ namespace CTCC
             yield return new("lan-reception-B", () =>
             {
                 player.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
-                lanDirector.StartEncounter(Line);
+                lanDirector.StartEncounter(LanEncounterLine);
                 return CommitResult.Applied;
             }, 5.2f);
             yield return new("board", () => { lanDirector.StopEncounter(true); voice.StopCurrent(); return casework.BoardAsync(player.Feet); });

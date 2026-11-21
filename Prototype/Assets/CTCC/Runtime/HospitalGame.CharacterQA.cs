@@ -36,7 +36,7 @@ namespace CTCC
             scene.LanActor.PlayAction("Lan_IdleDesk", 0.01f, restart: true);
             scene.GatekeeperActor.PlayAction("GK_IdleStill", 0.01f, restart: true);
 
-            var lines = new[] { "CH01-D03", "CH01-D05", "CH01-D06", "CH01-D07", "CH01-D08",
+            var lines = new[] { "CH01-D03", "CH01-D03c", "CH01-D04c", "CH01-D05", "CH01-D05c", "CH01-D06", "CH01-D07", "CH01-D08",
                 "CH01-D09", "CH01-D16", "CH02-D03", "CH02-D05" };
             foreach (string line in lines)
             {

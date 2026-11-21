@@ -530,14 +530,9 @@ def render_verification_plot(samples_debug, evidence_dir=EVIDENCE_DIR):
     print(f"[LIPSYNC] Saved visual verification plot -> {out}")
 
 
-def main(evidence_dir=EVIDENCE_DIR):
+def main(evidence_dir=EVIDENCE_DIR, lines=None):
     raw = json.loads(DIALOGUE_JSON.read_text(encoding="utf-8"))
     entries = {e["id"]: e for e in raw["entries"]}
-    # Hard LOCK-V22-02 guard
-    for forbidden in ("CH01-D16b", "CH04-D06"):
-        if forbidden in entries:
-            raise RuntimeError(f"LOCK-V22-02 violation: {forbidden} in Dialogue.json")
-
     def clean_quote(eid, n=1):
         txt = entries[eid]["copy"]
         m = re.findall(r"“([^”]+)”", txt)
@@ -546,7 +541,10 @@ def main(evidence_dir=EVIDENCE_DIR):
     # All character-spoken lines in M2–M3 slice (Lan, Bé An, Gatekeeper, Bà Lành)
     character_lines = [
         ("CH01-D03", "Lan", clean_quote("CH01-D03")),
+        ("CH01-D03c", "Lan", clean_quote("CH01-D03c")),
+        ("CH01-D04c", "Lan", clean_quote("CH01-D04c")),
         ("CH01-D05", "Lan", clean_quote("CH01-D05")),
+        ("CH01-D05c", "Lan", clean_quote("CH01-D05c")),
         ("CH01-D06", "Minh", clean_quote("CH01-D06")),
         ("CH01-D07", "Lan", clean_quote("CH01-D07")),
         ("CH01-D08", "Lan", clean_quote("CH01-D08")),
@@ -557,6 +555,14 @@ def main(evidence_dir=EVIDENCE_DIR):
         ("CH03-D03", "BaLanh", clean_quote("CH03-D03")),
         ("CH03-D05", "Gatekeeper", clean_quote("CH03-D05")),
     ]
+    if {"CH01-D16b", "CH04-D06"}.intersection(line_id for line_id, _, _ in character_lines):
+        raise RuntimeError("LOCK-V22-02: CH04 reveal lines cannot enter this lip-sync pack")
+
+    if lines:
+        selected = set(lines)
+        if unknown := selected - {line_id for line_id, _, _ in character_lines}:
+            raise ValueError("Unknown lip-sync line IDs: " + ", ".join(sorted(unknown)))
+        character_lines = [line for line in character_lines if line[0] in selected]
 
     OUT_RES_DIR.mkdir(parents=True, exist_ok=True)
     OUT_SRC_DIR.mkdir(parents=True, exist_ok=True)
@@ -582,4 +588,6 @@ def main(evidence_dir=EVIDENCE_DIR):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--evidence-dir", type=Path, default=EVIDENCE_DIR)
-    main(parser.parse_args().evidence_dir)
+    parser.add_argument("--lines", nargs="+", help="Align only the specified dialogue IDs")
+    args = parser.parse_args()
+    main(args.evidence_dir, args.lines)

@@ -167,11 +167,6 @@ def extract_clean_lines():
     """Load canonical CH01 & CH02 spoken lines from Dialogue.json with strict LOCK-V22-02 guard."""
     raw = json.loads(DIALOGUE_JSON.read_text(encoding="utf-8"))
     entries = {e["id"]: e for e in raw["entries"]}
-    # Hard canon assertion: CH01-D16b and CH04-D06 MUST NEVER enter M2 VO!
-    for forbidden in ("CH01-D16b", "CH04-D06"):
-        if forbidden in entries:
-            raise RuntimeError(f"CANON VIOLATION (LOCK-V22-02): Forbidden CH04 line {forbidden} found in Dialogue.json!")
-
     def quote_n(entry_id, n=1):
         txt = entries[entry_id]["copy"]
         matches = re.findall(r"“([^”]+)”", txt)
@@ -180,14 +175,20 @@ def extract_clean_lines():
         return txt.strip()
 
     # Exact mapping: (clip_id, role, vietnamese_text)
-    return [
+    lines = [
         ("CH01-D01", "minh", quote_n("CH01-D01")),
         ("CH01-D02", "minh", quote_n("CH01-D02")),
         ("CH01-D03", "lan", quote_n("CH01-D03")),
+        ("CH01-D03b", "minh", quote_n("CH01-D03b")),
+        ("CH01-D03c", "lan", quote_n("CH01-D03c")),
         ("CH01-D04", "minh", quote_n("CH01-D04")),
+        ("CH01-D04c", "lan", quote_n("CH01-D04c")),
         ("CH01-D05", "lan", quote_n("CH01-D05")),
+        ("CH01-D05b", "minh", quote_n("CH01-D05b")),
+        ("CH01-D05c", "lan", quote_n("CH01-D05c")),
         ("CH01-D06", "minh", quote_n("CH01-D06")),
         ("CH01-D07", "lan", quote_n("CH01-D07")),
+        ("CH01-D07b", "minh", quote_n("CH01-D07b")),
         ("CH01-D08", "lan", quote_n("CH01-D08")),
         ("CH01-D09", "lan", quote_n("CH01-D09")),
         ("CH01-D10", "minh", quote_n("CH01-D10", 1)),
@@ -196,6 +197,7 @@ def extract_clean_lines():
         ("CH01-D13", "minh", quote_n("CH01-D13", 1)),
         ("CH01-D14", "minh", quote_n("CH01-D13", 2)),
         ("CH01-D16", "lan", quote_n("CH01-D16")),
+        ("CH01-D19", "minh", quote_n("CH01-D19")),
         ("CH01-PA01", "pa", quote_n("CH01-PA01")),
         ("CH01-PA02", "pa", quote_n("CH01-PA02")),
         ("CH01-PA03", "pa", quote_n("CH01-PA03")),
@@ -211,6 +213,9 @@ def extract_clean_lines():
         ("CH03-D04", "minh", quote_n("CH03-D04")),
         ("CH03-D05", "gatekeeper", quote_n("CH03-D05")),
     ]
+    if {"CH01-D16b", "CH04-D06"}.intersection(line_id for line_id, _, _ in lines):
+        raise RuntimeError("LOCK-V22-02: CH04 reveal lines cannot enter this VO pack")
+    return lines
 
 
 if __name__ == "__main__":

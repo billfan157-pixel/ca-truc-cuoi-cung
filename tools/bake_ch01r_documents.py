@@ -441,7 +441,6 @@ def build_obs101b_bed4_card() -> None:
     d.text((316, sy + 26), "NGƯỜI GIAO CA", font=font(20, True), fill=INK_PRINT, anchor="mm")
     d.text((744, sy + 26), "NGƯỜI NHẬN BÀN GIAO", font=font(20, True), fill=INK_PRINT, anchor="mm")
     draw_handwritten(img, (154, sy + 88), "T. N. L. (chưa ký đủ)", size=22, color=INK_PEN, alpha=175)
-    draw_handwritten(img, (154, sy + 138), "Kiểm cuối ca: 03g17", size=20, color=INK_PENCIL, alpha=205)
     draw_handwritten(img, (578, sy + 96), "(Chưa có chữ ký nhận)", size=22, color=INK_PENCIL, alpha=185)
     # Ink thumb smudge across lower receiver/sender divider (Core 04 OBS101B: dấu tay mực nhòe)
     draw_ink_smudge(img, (515, sy + 162), radius=52, color=INK_PEN, seed=7205)
@@ -788,7 +787,7 @@ def build_raking_indentation_maps() -> None:
 
     When viewed straight-on in PhysicalInspector, these impressions stay barely perceptible on paper fibers.
     Tilting the reverse page 25-40 deg into keyLight catches raking specular highlights along the pen grooves:
-    - ObsCard_Back (AS-05B): erased/impressed marginal code '03g17 · CHUYỂN TẠM — C01?' (no patient name or Area C!)
+    - ObsCard_Back (AS-05B): impressed shift note '03g17 · CHƯA CHỐT SỔ'.
     - F101_Back: erased ballpoint line 'GIƯỜNG 04 — CHƯA CHỐT [GẠCH BỎ] → 0'
     """
     specs = (
@@ -796,7 +795,7 @@ def build_raking_indentation_maps() -> None:
             "ObsCard_Back",
             7811,
             (
-                (140, 680, "03g17 · CHUYỂN TẠM — C01?", 42, -0.16, -1.2),
+                (140, 680, "03g17 · CHƯA CHỐT SỔ", 42, -0.16, -1.2),
                 (148, 764, "CHƯA CÓ NGƯỜI NHẬN — ĐỂ LẠI THẺ", 31, -0.14, -0.6),
                 (152, 838, "[Vết gạch xóa bút bi hằn sâu sang mặt sau]", 25, -0.12, 0.4),
             ),
@@ -809,7 +808,7 @@ def build_raking_indentation_maps() -> None:
             (
                 (128, 660, "GIƯỜNG 04 — CHƯA CHỐT SỔ", 40, -0.15, -1.0),
                 (136, 744, "GẠCH BỎ MỤC TẠM → GHI TRÒN: 0", 33, -0.16, -0.5),
-                (142, 822, "03g17 · MẤT LIÊN LẠC TẦNG TRÊN", 28, -0.12, 0.3),
+                (142, 822, "03g17 · LIÊN LẠC GIÁN ĐOẠN", 28, -0.12, 0.3),
             ),
             ((120, 684, 820, 678), (128, 766, 840, 756)),
         ),

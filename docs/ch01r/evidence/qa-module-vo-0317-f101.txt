@@ -1,0 +1,27 @@
+Windows x64 Release, Direct3D 11, 1920 x 1080, Medium
+revision=4c3420ebdae18e0b449e0c330317ca8997cecbd2
+unity=6000.3.28f1
+assembly_sha256=2555d8c9f0ab059b327acde6acb4daf9067ca13a04a904bb02a896cae1f1f447
+
+TASK025-A PASS Affirmed: actual controller/collision path and runtime modules; F101 r3, D=0, G01/G02, CP04, E12/E11 and slots.
+TASK025-A PASS Unverified: actual controller/collision path and runtime modules; F101 r1, D=0, G01/G02, CP04, E12/E11 and slots.
+TASK025-A PASS Refuted: actual controller/collision path and runtime modules; F101 r1, D=0, G01/G02, CP04, E12/E11 and slots.
+TASK025-B / T02 / T03 PASS: 30 denied doorway attempts, 30 valid swaps, forced rollback and 10 reloads in the same build.
+T08 PASS: fault after durable temp write retains previous commit; damaged primary recovers verified backup.
+V22-Q03 partial PASS: CH04 lines blocked before CH04.
+T08 deferred PASS: 10 main-loop frames while the worker was held after flush; previous state retained; failed publication returns SaveUnavailable.
+M2-ADDITIVE PASS: duplicate zone/pad rejected; LOC04 released bindings, rejected unloaded restore, then rebound and restored AP05.
+V22-Q03 runtime PASS: text/VO/transcript blocked in slice; CH04 B06 condition admits both guarded IDs only with both prerequisites.
+M2A-DIALOGUE PASS: interruption settles once, allowed transcript persists through the snapshot and restore.
+CHAR-Q01/Q04/Q07/Q08 PASS: named anatomy and face curves on all built LODs (incl. GK Teeth/Tongue), stride/sole slip Lan=0,008/0,008 m/s GK=0,009/0,009 m/s, required clips/sockets, skin bindings, shaders and audio tracks.
+M2 dual GI PASS: R=261, B=261.
+CH02-Q05 PASS: both escape thresholds, outside rejected, failed publication keeps cameo live, retry durably commits T06/CP04 once.
+AU01 spatial PASS: relative captions, overlapping anchors, collider low-pass, mono falloff, hot stereo switch and master mute.
+T06 keyboard subtest PASS: Tab focus within modal, Enter action, Esc dismiss, alternate binding and 130% font settings kept.
+TASK04–05 STAFF PASS: reverse discovery order, Large Print, Lan and reading guards, scene cancellation, autosave and once-only reactions.
+TASK03 F101 PASS: initial presentations, revisions, manual curtain, motion expiry, save restore, additive rebind, and R collider independence.
+CH01-R ADVERSARIAL PASS: Lan VO and old transcripts, LOG06-Q01 card content, 03:17 inspection and answer validation, D19 guard, F101 reaction at exhausted ambient budget, once-only cues after reload, and independent Reality.R progression.
+CHAR-Q05/Q06/Q08 PASS: three forced Lan face LODs + automatic distance LOD0->1->2 transitions in motion across Lan/An/GK, 150 steady-state + live speech updates at 0 managed bytes, pause/resume, interrupted voice and 12 reactivations.
+CH03-Q03 local module PASS: partition blocks LOS; 3 invalid paths in 3 queries over 0.8 s, zero raw movement, radio displacement 1,77 m.
+CH03-Q01/Q02/Q04/Q05 and CH04-Q02–Q06 module PASS. C02/C12, M restore, two legacy schemas, local forms, power and H05/guard, reloaded region save.
+RESULT=PASS

@@ -99,6 +99,8 @@ namespace CTCC
         private const float DefaultQuietWindow = 8f;
         private const int MaxSessionBudget = 7;
 
+        internal bool AmbientBudgetExhausted => EventsFiredThisSession >= MaxSessionBudget;
+
         public bool HasPendingMicroShift => deferredShifts.Count > 0 || armedShift.HasValue;
 
         public void Initialize(
@@ -153,6 +155,13 @@ namespace CTCC
         public void NotifyMajorBeatQuietWindow(float seconds = DefaultQuietWindow)
         {
             quietTimer = Mathf.Max(quietTimer, seconds);
+        }
+
+        internal void NotifyF101Signing()
+        {
+            NotifyMajorBeatQuietWindow(10f);
+            deferredShifts.Clear();
+            armedShift = null;
         }
 
         /// <summary>
@@ -247,7 +256,7 @@ namespace CTCC
                 {
                     var shift = armedShift.Value;
                     armedShift = null;
-                    if (state.layer == Reality.B && EventsFiredThisSession < MaxSessionBudget && CanFire(state, shift.DreadId))
+                    if (state.layer == Reality.B && !AmbientBudgetExhausted && CanFire(state, shift.DreadId))
                     {
                         ExecuteDeferredShift(state, shift.DreadId, state.settings.reduceMotion);
                         return;
@@ -257,7 +266,7 @@ namespace CTCC
 
             if (globalCooldown > 0f) globalCooldown -= dt;
             if (quietTimer > 0f) quietTimer -= dt;
-            if (globalCooldown > 0f || quietTimer > 0f || EventsFiredThisSession >= MaxSessionBudget)
+            if (globalCooldown > 0f || quietTimer > 0f || AmbientBudgetExhausted)
                 return;
 
             TryEvaluateBeat(state, feet, state.settings.reduceMotion);
@@ -379,44 +388,7 @@ namespace CTCC
                 return;
             }
 
-            // 6. B06: F101-branch psychological dread variants right after signing F101 (before B->R collapse!)
-            if (layerB && g01Done && !collapsedToR && (zone == "LOC03" || zone == "HALL"))
-            {
-                if (state.f101.current == FormStatus.Affirmed &&
-                    CanFire(state, DreadCatalog.F101AffirmedSuffocation))
-                {
-                    Fire(state, DreadCatalog.F101AffirmedSuffocation, persistent: true, () =>
-                    {
-                        audioBus?.From("partitionKnock", new Vector3(12.14f, 1.25f, 4.32f), 0.90f);
-                        onCaption?.Invoke("[Phía sau vách ngăn vừa dựng kín Giường 4 vang lên hai tiếng gõ trầm, nghẹt hẳn lại.]");
-                    });
-                    return;
-                }
-                if (state.f101.current == FormStatus.Unverified && zone == "HALL" &&
-                    CanFire(state, DreadCatalog.F101UnverifiedStillness))
-                {
-                    Fire(state, DreadCatalog.F101UnverifiedStillness, persistent: true, () =>
-                    {
-                        scene.motion?.SlowFans(4.5f);
-                        audioBus?.From("clockTick", new Vector3(1.2f, 2.0f, -5.8f), 0.62f);
-                        onCaption?.Invoke("[Hành lang chùng xuống; cánh quạt quay chậm lại như đang chờ người ký dứt khoát.]");
-                    });
-                    return;
-                }
-                if (state.f101.current == FormStatus.Refuted &&
-                    CanFire(state, DreadCatalog.F101RefutedCrack))
-                {
-                    Fire(state, DreadCatalog.F101RefutedCrack, persistent: true, () =>
-                    {
-                        scene.motion?.BlackoutTubes(0.35f);
-                        audioBus?.From("distantThunder", new Vector3(9.8f, 3.2f, 10.5f), 0.34f);
-                        onCaption?.Invoke("[Đèn đầu Giường 4 chớp sâu một nhịp; thoảng nghe tiếng mưa lạnh lọt qua lớp hành lang 2005.]");
-                    });
-                    return;
-                }
-            }
-
-            // 6b. B06: PA static crackle right after submitting F101 as player moves back through corridor
+            // 6. B06: PA static crackle right after submitting F101 as player moves back through corridor
             if (layerB && g01Done && !collapsedToR && zone == "HALL" && feet.z < 6.5f &&
                 CanFire(state, DreadCatalog.B06PaInterference))
             {
@@ -454,6 +426,47 @@ namespace CTCC
                     onCaption?.Invoke("[Tiếng sấm rền rất xa ngoài cổng sắt, mưa lạnh quất rào rạt lên sân vắng.]");
                 });
             }
+        }
+
+        internal static string F101ReactionId(FormStatus status) => status switch
+        {
+            FormStatus.Affirmed => DreadCatalog.F101AffirmedSuffocation,
+            FormStatus.Unverified => DreadCatalog.F101UnverifiedStillness,
+            FormStatus.Refuted => DreadCatalog.F101RefutedCrack,
+            _ => ""
+        };
+
+        internal bool TryPlayF101Reaction()
+        {
+            var state = stateGetter?.Invoke();
+            if (state == null || state.chapter != "CH01" || state.layer != Reality.B ||
+                state.Happened("CH01-T08") || !GateService.G01(state) || suppressionCheck?.Invoke() == true)
+                return false;
+
+            string id = F101ReactionId(state.f101.current);
+            if (!CanFire(state, id)) return false;
+
+            switch (state.f101.current)
+            {
+                case FormStatus.Affirmed:
+                    audioBus?.From("partitionKnock", new Vector3(12.14f, 1.25f, 4.32f), 0.90f);
+                    onCaption?.Invoke("[Phía sau vách ngăn vừa dựng kín Giường 4 vang lên hai tiếng gõ trầm, nghẹt hẳn lại.]");
+                    break;
+                case FormStatus.Unverified:
+                    scene.motion?.SlowFans(4.5f);
+                    audioBus?.From("clockTick", new Vector3(9.6f, 2.1f, 5.4f), 0.62f);
+                    onCaption?.Invoke("[Trong phòng chợt lặng, cánh quạt trên trần quay chậm lại.]");
+                    break;
+                case FormStatus.Refuted:
+                    scene.motion?.BlackoutTubes(0.35f);
+                    audioBus?.From("distantThunder", new Vector3(9.8f, 3.2f, 10.5f), 0.34f);
+                    onCaption?.Invoke("[Đèn đầu Giường 4 chớp một nhịp; thoảng nghe tiếng mưa lạnh từ hành lang.]");
+                    break;
+            }
+
+            LastTriggeredId = id;
+            onOneTimeTriggered?.Invoke(id);
+            return true;
         }
 
         private bool CanFire(Investigation state, string id) =>
@@ -517,8 +530,6 @@ namespace CTCC
                     audioBus?.From("clockTick", new Vector3(1.2f, 2.0f, -5.8f), 0.55f);
                 else if (dreadId == DreadCatalog.B05DistantSteps)
                     audioBus?.From("distantSteps", new Vector3(4.0f, 1.0f, 13.5f), 0.50f);
-                else if (dreadId == DreadCatalog.F101AffirmedSuffocation)
-                    audioBus?.From("partitionKnock", new Vector3(12.14f, 1.25f, 4.32f), 0.85f);
             });
             return true;
         }

@@ -37,6 +37,7 @@ namespace CTCC
     public sealed class VisitSettings
     {
         public bool reduceMotion;
+        public bool disableCameraAssist;
         public bool captions = true;
         public bool monoAudio;
         public bool alternateBindings;
@@ -79,7 +80,7 @@ namespace CTCC
     [Serializable]
     public sealed class Investigation
     {
-        public const int Schema = 5;
+        public const int Schema = 6;
         public const int MinSupportedSchema = 1;
         public int schemaVersion = Schema;
         public long sequence;
@@ -103,6 +104,8 @@ namespace CTCC
         public List<FormRevisionEntry> f101History = new();
         public DeductionSubmission f101Argument = new();
         public F101Annotations f101Annotations = new();
+        public List<JournalNote> journalNotes = new();
+        public List<ScenePropPose> sceneProps = new();
         public List<string> dreadEventsSeen = new();
         public int dreadSeed = 20051118;
         public List<TranscriptEntry> transcript = new();
@@ -118,6 +121,9 @@ namespace CTCC
             return true;
         }
         public bool Has(string id) => evidence.Contains(id);
+
+        internal ScenePropPose FindPropPose(string id, Reality atLayer) =>
+            sceneProps.Find(p => p.id == id && p.layer == atLayer);
 
         public ObservationRecord FindObservation(string id)
         {

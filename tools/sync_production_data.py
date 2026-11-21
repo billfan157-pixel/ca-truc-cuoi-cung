@@ -51,7 +51,7 @@ def run():
     guarded = locked | staff_reactions.keys() | exception_monologues.keys()
     assert guarded <= known and {condition["id"] for condition in conditions} == guarded
     assert {
-        "CH01-D03", "CH01-D03b", "CH01-D03c", "CH01-D04", "CH01-D04b", "CH01-D04c",
+        "CH01-D03", "CH01-D03b", "CH01-D03c", "CH01-D04", "CH01-D04c",
         "CH01-D05", "CH01-D05b", "CH01-D05c", "CH01-D07", "CH01-D07b", "CH01-D15", "CH01-D16", "CH01-D19",
         "CH02-D04", "CH03-D01", "CH03-D02", "CH03-D03", "CH03-D04", "CH03-D05", "CH03-D06",
     } <= known

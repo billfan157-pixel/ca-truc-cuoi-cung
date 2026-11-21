@@ -53,6 +53,7 @@ namespace CTCC
             playedCh01Ex01Monologue = false;
             ch01StartUnscaledTime = Time.unscaledTime;
             if (!Report(casework.Begin(player.Feet, startOptions))) return;
+            ResetNotebookSession();
             scene.interactables?.ResetSessionProps();
             if (scene.staffCrossDoor != null) scene.staffCrossDoor.isOpen = false;
             dreadDirector?.ResetSeed(State.dreadSeed);
@@ -61,7 +62,7 @@ namespace CTCC
             player.Teleport(scene.Pad("AP00"));
             player.RestoreBattery(State.torchSeconds);
             ui.ShowChapterCard("CHƯƠNG 01  ·  17.11.2012", "NGƯỜI TRỞ VỀ", 4.4f);
-            Letter();
+            CloseModal();
         }
 
         private void Load(SaveSlot slot) => StartCoroutine(LoadAsync(slot));
@@ -109,6 +110,7 @@ namespace CTCC
             lanDirector?.StopEncounter(false);
             anDirector?.HideImmediately();
             playedCh01Ex01Monologue = State != null && State.transcript.Exists(t => t.LineId == "CH01-D19");
+            ResetNotebookSession();
             RestoreJournal(State);
             live = true;
             player.Teleport(safe);
@@ -132,12 +134,13 @@ namespace CTCC
                 _ => "PHÒNG BỆNH TRỐNG"
             };
             ui.Show(chapterTitle, "Tạm dừng",
-                transaction.OnPad(player.Feet, "AP02") ? "Có thể lưu tay tại sổ trực." : "Lưu tay khả dụng tại sổ trực ở lễ tân.",
+                transaction.AtRequiredPlace(player.Feet, RealityTransaction.ReceptionDesk)
+                    ? "Có thể lưu tay tại sổ trực." : "Lưu tay khả dụng tại sổ trực ở lễ tân.",
                 new[]
                 {
                     new ActionChoice("Tiếp tục", CloseModal),
                     new ActionChoice("Lưu tay", () => { if (transaction.KeepManual()) { CloseModal(); ui.Caption("Đã lưu ca trực.", 4, true); } },
-                        transaction.OnPad(player.Feet, "AP02")),
+                        transaction.AtRequiredPlace(player.Feet, RealityTransaction.ReceptionDesk)),
                     new ActionChoice("Tải điểm lưu tự động", () => Load(SaveSlot.Auto), automatic == SaveRead.Valid || automatic == SaveRead.Backup),
                     new ActionChoice("Mở bản lưu tay", () => Load(SaveSlot.Manual), manual == SaveRead.Valid || manual == SaveRead.Backup),
                     new ActionChoice("Cài đặt & Trợ năng", () => Settings(Pause)),
@@ -161,6 +164,8 @@ namespace CTCC
                     startOptions = next;
                     ui.Apply(next);
                     player.Apply(next);
+                    inspector?.SetReducedMotion(next.reduceMotion);
+                    inspector?.SetCameraAssist(!next.disableCameraAssist);
                     scene.atmosphere?.Apply(next);
                     voice?.Apply(next);
                 }
@@ -176,6 +181,8 @@ namespace CTCC
                 new[]
                 {
                     new ActionChoice(current.reduceMotion ? "Chuyển động · Giảm (An toàn)" : "Chuyển động · Đầy đủ", () => Change(x => x.reduceMotion = !x.reduceMotion)),
+                    new ActionChoice(current.disableCameraAssist ? "Hỗ trợ lấy nét · Tắt" : "Hỗ trợ lấy nét · Bật",
+                        () => Change(x => x.disableCameraAssist = !x.disableCameraAssist)),
                     new ActionChoice(current.captions ? "Chú thích âm thanh · Bật" : "Chú thích âm thanh · Tắt", () => Change(x => x.captions = !x.captions)),
                     new ActionChoice("Âm lượng tổng · " + Mathf.RoundToInt(current.volume * 100) + "%", () => Change(x => x.volume = x.volume <= 0.01f ? 0.50f : x.volume < 0.70f ? 0.72f : x.volume < 0.95f ? 1f : 0f)),
                     new ActionChoice("Âm nền môi trường · " + Mathf.RoundToInt(ambVal * 100) + "%", () => Change(x => x.ambienceVolume = ambVal >= 0.95f ? 0f : Mathf.Min(1f, ambVal + 0.25f))),
@@ -201,7 +208,9 @@ namespace CTCC
                 }, back);
         }
 
-        private void Letter()
+        private void Letter() => Letter(null);
+
+        private void Letter(Transform source)
         {
             string body = "Giấy hẹn có chữ ký Bảy\n23 giờ, 17/11/2012 · Chốt cổng phụ. Tôi trực ca cuối.\n\n" +
                 "Tin nhắn mới\n" + Line("CH01-D15") + "\n\n" +
@@ -219,7 +228,8 @@ namespace CTCC
             if (envModel != null && inspector != null && qaFolder == null)
             {
                 scene.atmosphere?.From("paper", player.Feet + Vector3.up);
-                inspector.Open(envModel, null, 1f, ActiveVolume(), observationId: "E10a");
+                inspector.Open(envModel, null, 1f, ActiveVolume(), observationId: "E10a",
+                    source: source != null ? source.position : null);
                 ui.ShowInspectSidebar("THƯ · TỜ HẸN · CHÌA KHÓA", "Bì thư của Bảy", body,
                     new[]
                     {
@@ -243,59 +253,17 @@ namespace CTCC
             }
         }
 
-        private void LanTranscript()
+        private string BuildLanTranscript(bool record)
         {
-            // Ensure core encounter lines are always preserved in Transcript even if player skips immediately (CH01-Q06)
-            voice?.RecordTranscriptOnly("CH01-D03", "Lan", Line("CH01-D03"));
-            voice?.RecordTranscriptOnly("CH01-D04", "Minh", Line("CH01-D04"));
-            voice?.RecordTranscriptOnly("CH01-D05", "Lan", Line("CH01-D05"));
-            voice?.RecordTranscriptOnly("CH01-D07", "Lan", Line("CH01-D07"));
-
-            Action closeEncounter = () =>
+            var body = new StringBuilder();
+            foreach (string id in LanDirector.EncounterLineIds())
             {
-                voice?.StopCurrent();
-                lanDirector?.StopEncounter(keepMotifQuietly: true);
-                CloseModal();
-            };
-
-            string encounterText =
-                "Lan  —  " + Line("CH01-D03") +
-                "\n\nMinh  —  " + Line("CH01-D03b") +
-                "\n\nLan  —  " + Line("CH01-D03c") +
-                "\n\nMinh  —  " + Line("CH01-D04") +
-                "\n\nLan  —  " + Line("CH01-D04b") +
-                "\n\nMinh  —  " + Line("CH01-D04c") +
-                "\n\nLan  —  " + Line("CH01-D05") +
-                "\n\nMinh  —  " + Line("CH01-D05b") +
-                "\n\nLan  —  " + Line("CH01-D05c") +
-                "\n\nLan  —  " + Line("CH01-D07") +
-                "\n\nMinh  —  " + Line("CH01-D07b") +
-                "\n\nMinh vẫn nhớ lần anh đã từ chối mở cửa. Anh chưa biết chuyện gì xảy ra sau đó.";
-
-            ui.ShowInspectSidebar("BÀN TRỰC LỄ TÂN  /  LỚP B · 2005", "Trần Ngọc Lan",
-                encounterText,
-                new[]
-                {
-                    new ActionChoice("Xem bảng kẹp", closeEncounter),
-                    new ActionChoice("Hỏi về ca trực đêm nay", () =>
-                    {
-                        lanDirector?.PlayOptionalLine("CH01-D08", "Lan", Line("CH01-D08"), 0.30f, 0.48f, 0.12f);
-                        ui.ShowInspectSidebar("BÀN TRỰC LỄ TÂN  /  ĐỐI THOẠI", "Về bệnh viện",
-                            "Lan  —  " + Line("CH01-D08") + "\n\nLan  —  " + Line("CH01-D09"),
-                            new[]
-                            {
-                                new ActionChoice("Nghe tiếp", () => lanDirector?.PlayOptionalLine("CH01-D09", "Lan", Line("CH01-D09"), 0.25f, 0.55f, 0.20f)),
-                                new ActionChoice("Quay lại", LanTranscript)
-                            }, LanTranscript);
-                    }),
-                    new ActionChoice("Đọc đối thoại về ca cũ", () =>
-                    {
-                        lanDirector?.PlayOptionalLine("CH01-D16", "Lan", Line("CH01-D16"), 0.18f, 0.55f, 0.45f);
-                        ui.ShowInspectSidebar("BẢN GHI CUỘC GẶP", "Về ca cũ",
-                            "Lan  —  " + Line("CH01-D16"),
-                            new[] { new ActionChoice("Khép sổ", closeEncounter) }, closeEncounter);
-                    })
-                }, closeEncounter);
+                var (speaker, copy) = LanEncounterLine(id);
+                if (string.IsNullOrWhiteSpace(copy)) continue;
+                if (record) voice?.RecordTranscriptOnly(id, speaker, copy);
+                body.Append(speaker).Append("  —  ").Append(copy).Append("\n\n");
+            }
+            return body.Append("Minh vẫn nhớ lần anh đã từ chối mở cửa. Anh chưa biết chuyện gì xảy ra sau đó.").ToString();
         }
 
         private void DiegeticObservation(string id, string title, string copy, Action after = null) =>
@@ -312,15 +280,18 @@ namespace CTCC
         private void InspectDocumentObservation(string id, string title, string copy, string imageId) =>
             SaveCheckpoint(() => casework.ObserveAsync(id, "LOC03", ObservationStage.Examined), () => ShowObservedDocument(title, copy, imageId));
 
-        private void InspectRegisteredObservation(string obsId, string location, Action onReturn = null)
+        private void InspectRegisteredObservation(string obsId, string location, Action onReturn = null,
+            Transform source = null, Action afterRead = null)
         {
             var spec = ObservationRegistry.Get(obsId);
             if (spec == null) return;
             SaveCheckpoint(() => casework.ObserveAsync(obsId, location, ObservationStage.Examined), () =>
-                OpenObservationInspector(spec, onReturn, staffDiscovery: location == "STAFF"));
+                OpenObservationInspector(spec, onReturn, staffDiscovery: location == "STAFF",
+                    origin: source != null ? source.position : null, afterRead: afterRead));
         }
 
-        private void OpenObservationInspector(ObservationSpec spec, Action onReturn = null, bool staffDiscovery = false)
+        private void OpenObservationInspector(ObservationSpec spec, Action onReturn = null, bool staffDiscovery = false,
+            Vector3? origin = null, Action afterRead = null)
         {
             var frontTex = Image(spec.FrontTexture);
             var backTex = spec.HasBackSide ? Image(spec.BackTexture) : null;
@@ -330,6 +301,7 @@ namespace CTCC
             string closeLabel = onReturn != null ? "Quay lại sổ trực" : "Đặt xuống & tiếp tục";
             // The one-sided notice is read in its entirety in the ordinary viewer.
             bool examined = spec.Id == ObservationRegistry.WardOverflowNotice;
+            const string signLabel = "Đặt lên bảng kẹp để ký";
 
             void Finish()
             {
@@ -349,22 +321,32 @@ namespace CTCC
                 }));
             }
 
-            void ShowLargePrint()
+            void ShowLargePrintPage()
             {
-                SaveCheckpoint(() => casework.MarkObservationDetailAsync(spec.Id, "LARGE_PRINT", flippedBack: spec.HasBackSide), () =>
+                inspector?.Close();
+                examined = true;
+                bool isCard = spec.Id == ObservationRegistry.Bed4Card;
+                bool readRaking = !isCard || CorroborationService.HasCardTimestamp(State);
+                var choices = new List<ActionChoice>();
+                if (physicalView) choices.Add(new ActionChoice("Xem lại bản 3D", () => ShowPhysical(null)));
+                if (isCard && !readRaking)
                 {
-                    inspector?.Close();
-                    examined = true;
-                    var choices = new List<ActionChoice>();
-                    if (physicalView) choices.Add(new ActionChoice("Xem lại bản 3D", ShowPhysical));
-                    AddAnnotationChoice(choices, largePrint: true);
-                    choices.Add(new ActionChoice(closeLabel, Finish));
-                    ui.Show(spec.ProvenanceLabel, spec.Title, BuildLargePrintTranscript(spec),
-                        choices.ToArray(), Finish, frontTex);
-                });
+                    choices.Add(new ActionChoice("Đọc vết hằn mặt sau", () =>
+                        SaveCheckpoint(() => casework.MarkObservationDetailAsync(spec.Id, CorroborationService.RakingDetailId, flippedBack: true),
+                            ShowLargePrintPage)));
+                }
+                AddAnnotationChoice(choices, largePrint: true);
+                if (afterRead != null) choices.Add(new ActionChoice(signLabel, afterRead));
+                choices.Add(new ActionChoice(closeLabel, Finish));
+                ui.Show(spec.ProvenanceLabel, spec.Title, BuildLargePrintTranscript(spec, readRaking),
+                    choices.ToArray(), Finish, frontTex);
             }
 
-            void ShowPhysical()
+            void ShowLargePrint() =>
+                SaveCheckpoint(() => casework.MarkObservationDetailAsync(spec.Id, "LARGE_PRINT", flippedBack: spec.HasBackSide),
+                    ShowLargePrintPage);
+
+            void ShowPhysical(Vector3? from)
             {
                 Texture indentNormal = spec.Id == ObservationRegistry.Bed4Card ? Image("ObsCard_Back_Indent_Normal")
                     : spec.Id == ObservationRegistry.F101Sheet ? Image("F101_Back_Indent_Normal") : null;
@@ -409,7 +391,13 @@ namespace CTCC
                                 ShowSide(rakingCopy);
                             }
                         });
-                    });
+                    },
+                    source: from,
+                    annotationFields: CanMarkF101Document(spec.Id) ? AnnotationFields(spec.Id) : null,
+                    markedField: State.f101Annotations.MarkedHotspot(spec.Id),
+                    onMark: field => SaveCheckpoint(() => casework.ToggleF101MarkAsync(spec.Id, field),
+                        () => inspector.SetMarkedField(State.f101Annotations.MarkedHotspot(spec.Id))),
+                    liftSheet: afterRead != null ? scene.f101WallRenderer : null);
                 ShowSide();
             }
 
@@ -429,12 +417,14 @@ namespace CTCC
                 }
                 choices.Add(new ActionChoice("Mở bản chữ lớn", ShowLargePrint));
                 AddAnnotationChoice(choices, largePrint: false);
+                if (afterRead != null) choices.Add(new ActionChoice(signLabel, afterRead));
                 choices.Add(new ActionChoice(closeLabel, Finish));
 
                 string side = back ? "MẶT SAU" : "MẶT TRƯỚC";
                 string hint = (backTex != null ? "Space/R: Lật giấy · " : "") +
                     (back && inspector.HasRakingIndent ? "T: Nghiêng đón sáng (25°–40°) · " : "") +
-                    "Chuột/WASD: Xoay · Lăn/Q-Z: Thu phóng · 0: Đặt lại";
+                    "Chuột/WASD: Xoay · Lăn/Q-Z: Thu phóng · 0: Đặt lại" +
+                    (!back && CanMarkF101Document(spec.Id) ? "\nBấm phải trên dòng giấy để đánh dấu, hoặc chọn vùng rồi nhấn M." : "");
                 ui.ShowInspectSidebar(spec.ShortCode + "  ·  " + side, spec.Title,
                     revealedDetail ?? description ?? BuildFullObservationBody(spec, State.FindObservation(spec.Id)),
                     choices.ToArray(), Finish, inspector.Close, hint);
@@ -443,7 +433,7 @@ namespace CTCC
             if (physicalView)
             {
                 scene.atmosphere?.From("paper", player.Feet + player.transform.forward * 0.5f + Vector3.up);
-                ShowPhysical();
+                ShowPhysical(origin);
             }
             else ShowLargePrint();
         }
@@ -494,15 +484,13 @@ namespace CTCC
         private static string BuildFullObservationBody(ObservationSpec spec, ObservationRecord rec)
         {
             var sb = new StringBuilder();
-            sb.Append("Loại: ").Append(ObservationRegistry.CategoryLabel(spec.Category)).Append("\n\n");
-            sb.Append("Dữ kiện quan sát:\n").Append(spec.FactSummary).Append("\n\n");
-            sb.Append("Nhận định thận trọng:\n").Append(spec.InterpretationNote);
+            sb.Append(spec.FactSummary);
             if (rec != null && rec.flippedBack)
                 sb.Append("\n\n✓ Đã kiểm tra mặt sau tài liệu.");
             return sb.ToString();
         }
 
-        private static string BuildLargePrintTranscript(ObservationSpec spec)
+        private static string BuildLargePrintTranscript(ObservationSpec spec, bool readRaking)
         {
             var sb = new StringBuilder();
             sb.Append("NGUỒN: ").Append(spec.ProvenanceLabel).Append("  ·  ").Append(ObservationRegistry.CategoryLabel(spec.Category)).Append("\n\n");
@@ -518,7 +506,7 @@ namespace CTCC
                 if (spec.Id == ObservationRegistry.ShiftGuide)
                     sb.Append("\n\nMục 4: Giữ chữ ký cũ và bản chụp xác nhận ban đầu. Ghi rõ mỗi lần sửa.");
                 if (back != null) sb.Append("\n\nMẶT SAU\n").Append(back);
-                if (ObservationRakingText(spec.Id) is string raking)
+                if (readRaking && ObservationRakingText(spec.Id) is string raking)
                     sb.Append("\n\nVẾT HẰN BÚT BI (SOI NGHIÊNG ÁNH SÁNG)\n").Append(raking);
                 return sb.ToString();
             }
@@ -536,9 +524,9 @@ namespace CTCC
         private static string ObservationRakingText(string id) => id switch
         {
             ObservationRegistry.Bed4Card =>
-                "Nghiêng thẻ 25°–40° đón sáng thấy vết hằn bút bi đè từ tờ giấy phía trên: «03g17 · CHUYỂN TẠM — C01?» — không có trong mực in thường.",
+                "Vết hằn bút bi từ tờ giấy phía trên: «03g17 · CHƯA CHỐT SỔ» và «CHƯA CÓ NGƯỜI NHẬN — ĐỂ LẠI THẺ».",
             ObservationRegistry.F101Sheet =>
-                "Nghiêng phiếu 25°–40° đón sáng thấy dòng bị ấn đè ở mặt sau: «GIƯỜNG 04 — CHƯA CHỐT SỔ / GẠCH BỎ MỤC TẠM → GHI TRÒN: 0 / 03g17 · MẤT LIÊN LẠC TẦNG TRÊN».",
+                "Nghiêng phiếu 25°–40° đón sáng thấy dòng bị ấn đè ở mặt sau: «GIƯỜNG 04 — CHƯA CHỐT SỔ / GẠCH BỎ MỤC TẠM → GHI TRÒN: 0 / 03g17 · LIÊN LẠC GIÁN ĐOẠN».",
             _ => null
         };
 
@@ -565,23 +553,6 @@ namespace CTCC
                 "Giấy kẹp của Lan gửi Minh: Bảng tổng hợp phòng 101 ghi 0, nhưng sau rèm còn một mục tối 17/11 thiếu chữ ký. Lan nhắc Minh xem cả hai mặt thẻ trước khi ký.",
             _ => null
         };
-
-        private static void AppendObservationNotes(StringBuilder body, ObservationSpec spec, ObservationRecord record)
-        {
-            if (record == null || ObservationDescription(spec.Id) == null) return;
-            if (record.flippedBack && ObservationBackText(spec.Id) is string back)
-                body.Append("\n  Mặt sau: ").Append(back);
-            if (record.inspectedDetails != null && record.inspectedDetails.Contains(CorroborationService.RakingDetailId) &&
-                ObservationRakingText(spec.Id) is string raking)
-                body.Append("\n  Vết hằn bút bi: ").Append(raking);
-            if (record.stage >= ObservationStage.Interpreted || spec.Id == ObservationRegistry.WardOverflowNotice)
-            {
-                string interpretation = spec.Id == ObservationRegistry.F101Sheet
-                    ? "Số tổng hợp chỉ dựa trên các dòng có trong mẫu. Cần đối chiếu với những gì ghi nhận tại phòng."
-                    : spec.InterpretationNote;
-                body.Append("\n  Nhận định: ").Append(interpretation);
-            }
-        }
 
         private void ShowObservedDocument(string title, string copy, string imageId)
         {
@@ -653,17 +624,19 @@ namespace CTCC
         private void SaveEvidence(string id, Action committed) =>
             SaveCheckpoint(() => casework.TakeAsync(id), committed, closeOnFailure: true);
 
-        private void SaveCheckpoint(Func<System.Threading.Tasks.Task<CommitResult>> save, Action committed = null, bool closeOnFailure = false)
+        private void SaveCheckpoint(Func<System.Threading.Tasks.Task<CommitResult>> save, Action committed = null,
+            bool closeOnFailure = false, Action onFailure = null)
         {
-            if (!busy) StartCoroutine(WaitForCheckpoint(save, committed, closeOnFailure));
+            if (!busy) StartCoroutine(WaitForCheckpoint(save, committed, closeOnFailure, onFailure));
         }
 
-        private IEnumerator WaitForCheckpoint(Func<System.Threading.Tasks.Task<CommitResult>> save, Action committed, bool closeOnFailure)
+        private IEnumerator WaitForCheckpoint(Func<System.Threading.Tasks.Task<CommitResult>> save, Action committed,
+            bool closeOnFailure, Action onFailure)
         {
-            while (savingDialogue) yield return null;
             busy = true;
             ui.ModalInputBlocked = true;
             RefreshControls();
+            while (savingDialogue) yield return null;
             System.Threading.Tasks.Task<CommitResult> pending;
             try
             {
@@ -681,26 +654,33 @@ namespace CTCC
                 Debug.LogException(pending.Exception);
                 if (closeOnFailure) CloseModal();
                 Report(CommitResult.SaveUnavailable);
+                onFailure?.Invoke();
             }
             else
             {
                 var result = pending.GetAwaiter().GetResult();
                 if (result != CommitResult.Applied && closeOnFailure) CloseModal();
                 if (Report(result)) committed?.Invoke();
+                else onFailure?.Invoke();
             }
         }
 
         private void Form()
         {
-            if (!casework.CanRevise) { ui.Caption("Phiếu có thể đối chiếu lại tại điểm neo phòng 101.", 4, true); return; }
+            if (!casework.CanRevise) { ui.Caption("Có thể đối chiếu lại ở bảng kẹp phòng 101.", 4, true); return; }
+            inspector?.Close();
             var record = State.f101;
-            string pad = transaction.OnPad(player.Feet, "AP04") ? "" : "\nĐứng trên vạch đồng cạnh cửa để ký.";
             string summary = "Số bệnh nhân chưa bàn giao: 0.\n" +
-                (record.revision == 0 ? "Chưa ký." : $"Lần ghi {record.revision} · {Status(record.current)}") + pad;
+                (record.revision == 0 ? "Chưa ký." : $"Lần ghi {record.revision} · {Status(record.current)}");
             ui.Show("SỔ BÀN GIAO  /  18.11.2005  ·  MẪU AS-05", "Phiếu phòng 101 (F101)", summary,
                 new ActionChoice[]
                 {
-                    new("Soi phiếu F101", () => InspectRegisteredObservation(ObservationRegistry.F101Sheet, "LOC03", Form)),
+                    new("Soi phiếu F101", () =>
+                    {
+                        if (State.layer == Reality.B)
+                            InspectRegisteredObservation(ObservationRegistry.F101Sheet, "LOC03", Form);
+                        else OpenObservationInspector(ObservationRegistry.Get(ObservationRegistry.F101Sheet), Form);
+                    }),
                     new("A    Xác nhận 0 tồn đọng", () => PreviewForm(FormStatus.Affirmed, null)),
                     new("B    Để ngỏ", () => PreviewForm(FormStatus.Unverified, null)),
                     new("C    Ghi nhận bất nhất", OpenF101Notes),
@@ -726,14 +706,9 @@ namespace CTCC
             if (!CanMarkF101Document(id)) { back(); return; }
             var spec = ObservationRegistry.Get(id);
             bool report = id == ObservationRegistry.F101Sheet;
-            var fields = report ? new[] { F101Annotations.Table, F101Annotations.Zero }
-                : new[] { F101Annotations.CardStatus, F101Annotations.Receiver };
-            // Field bounds from F101.png and ObsCard.png (1024 x 1360, top-left origin).
             const float paperWidth = 1024f;
             const float paperHeight = 1360f;
-            var bounds = report
-                ? new[] { new Rect(110, 394, 844, 256), new Rect(110, 684, 844, 132) }
-                : new[] { new Rect(112, 622, 840, 162), new Rect(536, 816, 416, 215) };
+            var fields = AnnotationFields(id);
 
             var texture = Image(spec.FrontTexture);
             var choices = new List<ActionChoice>();
@@ -741,14 +716,12 @@ namespace CTCC
             for (int i = 0; i < fields.Length; i++)
             {
                 int index = i;
-                string field = fields[i];
+                string field = fields[i].Id;
                 bool marked = State.f101Annotations.MarkedHotspot(id) == field;
                 Action toggle = () => SaveCheckpoint(() => casework.ToggleF101MarkAsync(id, field),
                     () => AnnotateF101Document(id, largePrint, back, index));
                 choices.Add(new ActionChoice((marked ? "[✓]  " : "[ ]  ") + AnnotationLabel(field), toggle));
-                var b = bounds[i];
-                var uv = Rect.MinMaxRect(b.xMin / paperWidth, 1f - b.yMax / paperHeight, b.xMax / paperWidth, 1f - b.yMin / paperHeight);
-                hotspots[i] = new DocumentHotspot(uv, marked, toggle);
+                hotspots[i] = new DocumentHotspot(fields[i].Uv, marked, toggle);
             }
 
             if (texture != null)
@@ -762,6 +735,22 @@ namespace CTCC
             ui.ShowAnnotatedDocument(report ? "F101" : "AS-05B", spec.Title, body, choices.ToArray(), back,
                 largePrint ? null : texture, paperWidth / paperHeight, hotspots, largePrint, focus);
         }
+
+        private static InspectAnnotationField[] AnnotationFields(string id) =>
+            id == ObservationRegistry.F101Sheet
+                ? new[]
+                {
+                    PaperField(F101Annotations.Table, 110, 394, 844, 256),
+                    PaperField(F101Annotations.Zero, 110, 684, 844, 132)
+                }
+                : new[]
+                {
+                    PaperField(F101Annotations.CardStatus, 112, 622, 840, 162),
+                    PaperField(F101Annotations.Receiver, 536, 816, 416, 215)
+                };
+
+        private static InspectAnnotationField PaperField(string id, int x, int y, int width, int height) =>
+            new(id, new Rect(x / 1024f, 1f - (y + height) / 1360f, width / 1024f, height / 1360f));
 
         private void OpenF101Notes()
         {
@@ -808,11 +797,8 @@ namespace CTCC
             };
             var evaluation = HypothesisService.EvaluateF101(State, FormStatus.Refuted, submission);
             bool ready = evaluation.Accepted;
-            if (!ready && !string.IsNullOrEmpty(evaluation.Message))
-            {
-                body.AppendLine().AppendLine()
-                    .Append("Minh (tự vấn) — ").Append(evaluation.Message);
-            }
+            if (!ready) choices.Add(new ActionChoice("Xem vì sao chưa đủ căn cứ", () =>
+                ui.Caption(evaluation.Message, 5f, true, aboveModal: true)));
             choices.Add(new ActionChoice("Viết vào phiếu", () => PreviewForm(FormStatus.Refuted, submission), ready));
             choices.Add(new ActionChoice("Quay lại phiếu F101", Form));
             ui.Show("SỔ TRỰC  /  PHÒNG 101", "Đối chiếu F101", body.ToString(), choices.ToArray(), Form);
@@ -852,10 +838,10 @@ namespace CTCC
         private IEnumerator SignF101(FormStatus choice, DeductionSubmission submission)
         {
             if (busy) yield break;
-            if (!casework.CanRevise || !transaction.OnPad(player.Feet, "AP04"))
+            if (!casework.CanRevise || !transaction.AtRequiredPlace(player.Feet, RealityTransaction.WardClipboard))
             {
                 CloseModal();
-                ui.Caption("Đứng trên vạch đồng cạnh cửa để ký phiếu.", 4f, true);
+                ui.Caption("Lại gần bảng kẹp để ký phiếu.", 4f, true);
                 yield break;
             }
             busy = true;
@@ -870,7 +856,7 @@ namespace CTCC
             Vector3 paperPosition = paper != null ? paper.bounds.center : player.Feet + Vector3.up;
             if (choice != State.f101.current)
             {
-                dreadDirector?.NotifyMajorBeatQuietWindow(10f);
+                dreadDirector?.NotifyF101Signing();
                 voice?.StopCurrent();
                 scene.atmosphere?.From("signaturePen", paperPosition);
                 ui.Caption("[Tiếng ngòi bút trên giấy]", 0.6f, aboveModal: true);
@@ -896,16 +882,34 @@ namespace CTCC
             ui.Caption("[Dấu cao su chạm giấy]", 1.1f);
             if (State.layer != Reality.B) yield break;
 
-            f101PaperRevealUntil = Time.unscaledTime + 1.45f;
+            f101SignatureRevision = revision;
             ui.Prompt(null);
-            yield return new WaitForSecondsRealtime(1.45f);
-            if (!live || ui.IsModal || State.layer != Reality.B || State.f101.revision != revision) yield break;
-            string paId = choice == FormStatus.Affirmed ? "CH01-PA01" : choice == FormStatus.Unverified ? "CH01-PA02" : "CH01-PA03";
-            Vector3 paPosition = scene.PaSpeakerAnchor != null ? scene.PaSpeakerAnchor.transform.position : new Vector3(5.5f, 2.6f, 3.35f);
-            scene.atmosphere?.From("paStatic", paPosition, choice == FormStatus.Affirmed ? 0.20f : 0.46f);
-            string direction = scene.atmosphere?.DirectionTo(paPosition) ?? "ngoài cửa phòng 101";
-            voice?.Speak(paId, "Loa hành lang", Line(paId), scene.PaSpeakerAnchor,
-                directionalPrefix: $"[Loa hành lang · {direction}]");
+            bool SameSignature() => live && State.layer == Reality.B &&
+                State.f101.revision == revision && State.f101.current == choice;
+
+            try
+            {
+                yield return new WaitForSecondsRealtime(1.45f);
+                while (SameSignature() && (ui.IsModal || busy || voice?.IsSpeaking == true))
+                    yield return null;
+                if (!SameSignature()) yield break;
+
+                // Keep the room response ahead of PA and corridor dialogue even when Minh walks away immediately.
+                if (dreadDirector?.TryPlayF101Reaction() == true)
+                    yield return new WaitForSecondsRealtime(2.1f);
+                if (!SameSignature() || ui.IsModal || busy || voice?.IsSpeaking == true) yield break;
+
+                string paId = choice == FormStatus.Affirmed ? "CH01-PA01" : choice == FormStatus.Unverified ? "CH01-PA02" : "CH01-PA03";
+                Vector3 paPosition = scene.PaSpeakerAnchor != null ? scene.PaSpeakerAnchor.transform.position : new Vector3(5.5f, 2.6f, 3.35f);
+                scene.atmosphere?.From("paStatic", paPosition, choice == FormStatus.Affirmed ? 0.20f : 0.46f);
+                string direction = scene.atmosphere?.DirectionTo(paPosition) ?? "ngoài cửa phòng 101";
+                voice?.Speak(paId, "Loa hành lang", Line(paId), scene.PaSpeakerAnchor,
+                    directionalPrefix: $"[Loa hành lang · {direction}]");
+            }
+            finally
+            {
+                if (f101SignatureRevision == revision) f101SignatureRevision = 0;
+            }
         }
 
         private void PhysicalContradiction()
@@ -967,119 +971,53 @@ namespace CTCC
                         voice?.RecordTranscriptOnly("CH02-D04", "Minh", Line("CH02-D04"));
                     });
                 }));
-            choices.Add(new ActionChoice("Trở lại điểm neo", Anchor));
+            choices.Add(new ActionChoice("Trở lại bảng kẹp", Anchor));
             ui.Show("HỒ SƠ TRONG KHO 101", "Bức tranh của An", missing ??
                 "Tranh ghi lại một cánh cửa có khóa. Vòng cũ ghi C01. Phiếu chuyển ghi An, khám sốt tạm ở 101/4 ngày 17/11/2005, rồi trở lại C01.",
                 choices.ToArray(), Anchor, State.Has(EvidenceRegistry.Drawing) ? Image("Drawing") : null);
         }
 
-        private void Journal()
+        private void Exception0317Page(Action back, bool mismatch = false)
         {
-            var r = State.f101;
-            int fragments = 0;
-            foreach (var id in EvidenceRegistry.DrawingFragments) if (State.Has(id)) fragments++;
-            int obsCount = State.observed != null ? State.observed.Count : 0;
-            int docCount = CollectObservedDocuments().Count;
-
-            string status = $"F101 · {Status(r.current)}  (Lần ghi: {r.revision} · Lần đầu: {Status(r.firstDecision)})\n" +
-                $"Quan sát & tài liệu đã ghi nhận: {obsCount} mục  ({docCount} tài liệu có thể so sánh)";
-            if (CorroborationService.IsCorroborated(State))
-                status += "\n✓ Ghi chú ngoại lệ · Mốc 03:17 đã được đối chiếu chéo.";
-            if (State.chapter == "CH02")
-                status += "\n\nHiện trường R · " + (State.Has("E12") ? "Đã đối chiếu E12" : "Chưa đối chiếu chỗ kê") +
-                    "\nTranh " + fragments + "/3 · Vòng " + (State.Has(EvidenceRegistry.Wristband) ? "đã ghi" : "chưa có") +
-                    " · Phiếu chuyển " + (State.Has(EvidenceRegistry.Transfer) ? "đã ghi" : "chưa có") +
-                    "\nHồ sơ " + (GateService.G02(State) ? "C01 đã xác thực" : "còn mở");
-            if (State.chapter is "CH03" or "CH04")
-                status += "\n\nC02 · " + (State.PatientIdentityVerified("C02") ? "Bà Lành" :
-                    State.PatientConfirmed("C02") ? "Đã ghi nhận người bệnh, còn thiếu danh tính" : "Cần đối chiếu sổ bàn giao") +
-                    "\nC12 · " + (State.PatientConfirmed("C12") ? "Chưa xác định danh tính" : "Chưa đọc dòng C/12") +
-                    (State.Happened("FS10") ? "\nĐã thấy bản nhận niêm phong trong hành lang phòng trực." : "");
-            if (State.chapter == "CH04")
-                status += $"\n\nBảng tải B1 · {ChapterFour.TotalLoad(State.servicePower)}/4" +
-                    (GateService.H05(State) ? "\nĐã đối chiếu hồ sơ tiếp nhận với thẻ Lan và phiếu thu hồi." : "");
-
-            var choices = new List<ActionChoice>
-            {
-                new($"Quan sát & Nguồn chứng cứ ({obsCount})", ObservationsPage),
-                new($"So sánh hai tài liệu ({docCount})", () =>
-                {
-                    var docs = CollectObservedDocuments();
-                    string left = docs.Count > 0 ? docs[0].Id : ObservationRegistry.F101Sheet;
-                    string right = docs.Count > 1 ? docs[1].Id : left;
-                    CompareDocumentsPage(left, right, Journal);
-                }, docCount >= 2),
-                new($"Lịch sử quyết định & lập luận F101 ({r.revision})", F101HistoryPage),
-                new("Đọc thư và tin nhắn của Bảy (E10a)", Letter)
-            };
-            bool has0317Clue = State.Observed(ObservationRegistry.StoppedClock0317) ||
-                State.Observed(ObservationRegistry.Bed4Card) ||
-                CorroborationService.HasShiftContext(State) ||
-                CorroborationService.IsCorroborated(State);
-            if (State.chapter is ("CH01" or "CH02") && has0317Clue)
-                choices.Add(new ActionChoice(
-                    CorroborationService.IsCorroborated(State) ? "✓ Ghi chú ngoại lệ · Mốc 03:17" : "Ghi chú ngoại lệ · Đối chiếu mốc 03:17",
-                    () => Exception0317Page(Journal)));
-            if (State.Happened("CH01-T04")) choices.Add(new ActionChoice("Bản ghi ở bàn trực với Lan", LanTranscript));
-            choices.Add(new ActionChoice("Bản ghi hội thoại (" + (voice != null ? voice.Transcript.Count : 0) + ")", TranscriptPage));
-            if (casework.CanRevise) choices.Add(new ActionChoice("Mở phiếu F101", Form));
-            if (State.chapter == "CH02") choices.Add(new ActionChoice("Xem hồ sơ trong kho", Identify));
-            choices.Add(new ActionChoice("Khép sổ", CloseModal));
-            ui.Show("SỔ ĐIỀU TRA & ĐỐI CHIẾU CHỨNG CỨ", State.chapter switch
-            {
-                "CH01" => "Người trở về",
-                "CH03" => "Những cái tên bị xóa",
-                "CH04" => "Người dẫn đường",
-                _ => "Phòng bệnh trống"
-            }, status,
-                choices.ToArray(), CloseModal);
-        }
-
-        private void Exception0317Page(Action back)
-        {
-            bool hasClock = CorroborationService.HasClock(State);
-            bool hasCard = CorroborationService.HasCardTimestamp(State);
-            bool hasShift = CorroborationService.HasShiftContext(State);
-            bool hasRaking = CorroborationService.HasRakingIndent(State);
             bool done = CorroborationService.IsCorroborated(State);
-            bool canDo = CorroborationService.CanCorroborate0317(State);
-
-            var sb = new StringBuilder();
-            sb.AppendLine("NHÁNH GIẢI MÃ TÙY CHỌN  ·  KHÔNG CẦN ĐỂ QUA CỬA CHƯƠNG 1");
-            sb.AppendLine();
-            sb.AppendLine((hasClock ? "[✓]  " : "[ ]  ") + "Đồng hồ treo sau quầy lễ tân đứng kim đúng 03:17");
-            sb.AppendLine((hasCard ? "[✓]  " : "[ ]  ") + "Thẻ đầu giường 4 (AS-05B) có dòng ghi lề «Kiểm cuối ca: 03g17»");
-            sb.AppendLine((hasShift ? "[✓]  " : "[ ]  ") + "Sổ phân ca / quy chế bàn giao / thông báo trực tối 17/11–18/11");
-            if (hasRaking)
-                sb.AppendLine("[✓]  Vết hằn bút bi mặt sau (soi nghiêng ánh sáng) cũng nhắc đúng mốc 03g17");
-            sb.AppendLine();
+            var choices = new List<ActionChoice>();
+            string copy;
             if (done)
             {
-                sb.Append("Đã khóa ghi chú ngoại lệ 03:17. Thời điểm mất liên lạc của ca trực trùng khít giờ dừng kim đồng hồ sảnh — không phải con số ghi vội.");
+                copy = "Vết hằn sau thẻ AS-05B ghi 03g17, đúng giờ chiếc đồng hồ quầy dừng lại. " +
+                    "Ghi chép ca trực đặt dấu giờ này vào đêm 17–18/11/2005.";
             }
-            else if (canDo)
+            else if (CorroborationService.CanCorroborate0317(State))
             {
-                sb.Append("Cả ba nguồn đã khớp cùng một mốc 03:17 (thời điểm mất liên lạc tầng trên, chưa kết luận giờ mất). Bạn có thể ghép chúng thành ghi chú ngoại lệ trong sổ trực.");
+                copy = "Mốc giờ nào xuất hiện cả trên đồng hồ ngoài quầy lẫn trong vết hằn sau thẻ?";
+                if (mismatch)
+                    copy = "Giờ đó chưa khớp với cả hai dấu. Có thể mở lại các quan sát trong sổ để kiểm tra.\n\n" + copy;
+
+                void MatchTime(int time)
+                {
+                    if (time != CorroborationService.MatchingTime)
+                    {
+                        Exception0317Page(back, mismatch: true);
+                        return;
+                    }
+
+                    SaveCheckpoint(() => casework.CrossCheck0317ExceptionAsync(time), () =>
+                    {
+                        scene.atmosphere?.From("clockTick", new Vector3(1.2f, 2.0f, -5.8f), 0.65f);
+                        Exception0317Page(back);
+                    });
+                }
+
+                choices.Add(new ActionChoice("10:15", () => MatchTime(1015)));
+                choices.Add(new ActionChoice("03:17", () => MatchTime(317)));
+                choices.Add(new ActionChoice("19:20", () => MatchTime(1920)));
             }
             else
             {
-                sb.Append("Minh (tự vấn) — Mốc 03:17 xuất hiện rời rạc ở sảnh và trong phòng bệnh. Cần gom đủ đồng hồ sảnh, thẻ đầu giường AS-05B và một sổ trực/quy chế mới khớp được.");
-            }
-
-            var choices = new List<ActionChoice>();
-            if (!done)
-            {
-                choices.Add(new ActionChoice("Đối chiếu mốc 03:17 vào ghi chú ngoại lệ", () =>
-                    SaveCheckpoint(casework.CrossCheck0317ExceptionAsync, () =>
-                    {
-                        scene.atmosphere?.From("clockTick", new Vector3(1.2f, 2.0f, -5.8f), 0.65f);
-                        ui.Toast("GHI CHÚ NGOẠI LỆ · MỐC 03:17",
-                            "Đã nối mốc 03:17 giữa đồng hồ sảnh, thẻ AS-05B và sổ trực đêm 17–18/11/2005.", 6.0f);
-                        Exception0317Page(back);
-                    }), canDo));
+                copy = "Hai dấu giờ có thể liên quan. Mình cần thêm ghi chép của ca trực để biết chúng thuộc đêm nào.";
             }
             choices.Add(new ActionChoice("Quay lại Sổ điều tra", back));
-            ui.Show("GHI CHÚ NGOẠI LỆ  /  MỐC 03:17", "Đối chiếu thời điểm mất liên lạc", sb.ToString(),
+            ui.Show("GHI CHÚ NGOẠI LỆ", done ? "Mốc 03:17" : "So khớp giờ ghi chép", copy,
                 choices.ToArray(), back);
         }
 
@@ -1088,41 +1026,9 @@ namespace CTCC
             var docs = new List<ObservationSpec>();
             var all = ObservationRegistry.All;
             for (int i = 0; i < all.Count; i++)
-                if (all[i].IsDocument && State.Observed(all[i].Id))
+                if (all[i].IsDocument && JournalNote.HasSource(State, all[i].Id))
                     docs.Add(all[i]);
             return docs;
-        }
-
-        private void ObservationsPage()
-        {
-            var sb = new StringBuilder();
-            var choices = new List<ActionChoice>();
-            var all = ObservationRegistry.All;
-            int count = 0;
-            for (int i = 0; i < all.Count; i++)
-            {
-                var spec = all[i];
-                if (!State.Observed(spec.Id)) continue;
-                count++;
-                var rec = State.FindObservation(spec.Id);
-                string st = rec != null ? ObservationRegistry.StageLabel(rec.stage) : "Đã kiểm tra";
-                string loc = rec != null ? $"Lớp {rec.layer} · {rec.location}" : spec.ProvenanceLabel;
-                sb.Append("• ").Append(spec.Title).Append("  [").Append(st).Append(" | ").Append(loc).Append("]\n  ")
-                  .Append(spec.FactSummary);
-                AppendObservationNotes(sb, spec, rec);
-                sb.Append("\n\n");
-                if (spec.IsDocument)
-                {
-                    var captured = spec;
-                    choices.Add(new ActionChoice($"Soi lại: {captured.Title}", () => OpenObservationInspector(captured, ObservationsPage)));
-                }
-            }
-            if (count == 0)
-                sb.Append("Chưa ghi nhận quan sát hiện trường nào. Hãy kiểm tra tài liệu và dấu vết xung quanh.");
-
-            choices.Add(new ActionChoice("Quay lại Sổ điều tra", Journal));
-            ui.Show("NGUỒN CHỨNG CỨ & TRẠNG THÁI", $"Quan sát đã ghi nhận ({count})", sb.ToString().TrimEnd(),
-                choices.ToArray(), Journal);
         }
 
         private void CompareDocumentsPage(string leftId, string rightId, Action back)
@@ -1180,47 +1086,6 @@ namespace CTCC
                 BuildNote(right),
                 buttons,
                 back);
-        }
-
-        private void F101HistoryPage()
-        {
-            var r = State.f101;
-            var sb = new StringBuilder();
-            sb.Append($"• Lần quyết định đầu tiên: {Status(r.firstDecision)}\n");
-            sb.Append($"• Quyết định hiện tại: {Status(r.current)}  (Tổng số lần ký: {r.revision})\n");
-            int failed = PuzzleService.FailedAttempts(State, HypothesisService.F101PuzzleId);
-            if (failed > 0) sb.Append($"• Số lần lập luận chưa đạt căn cứ: {failed}\n");
-
-            if (State.f101History == null || State.f101History.Count == 0)
-            {
-                sb.Append("\nChưa có bản ghi ký phiếu F101 nào.");
-            }
-            else
-            {
-                sb.Append("\nLỊCH SỬ CHỈNH SỬA PHIẾU:");
-                for (int i = 0; i < State.f101History.Count; i++)
-                {
-                    var h = State.f101History[i];
-                    sb.Append($"\n\nLần #{h.revision}  [{h.chapter} · Lớp {h.layer}]  →  {Status(h.decision)}");
-                    if (!string.IsNullOrEmpty(h.claimId))
-                    {
-                        var claim = HypothesisService.GetClaim(h.claimId);
-                        if (claim != null) sb.Append("\n  Kết luận: ").Append(claim.Label);
-                    }
-                    if (h.evidenceIds != null && h.evidenceIds.Count > 0)
-                    {
-                        sb.Append("\n  Chứng cứ: ");
-                        for (int j = 0; j < h.evidenceIds.Count; j++)
-                        {
-                            var sp = ObservationRegistry.Get(h.evidenceIds[j]);
-                            if (j > 0) sb.Append(", ");
-                            sb.Append(sp != null ? sp.ShortCode : h.evidenceIds[j]);
-                        }
-                    }
-                }
-            }
-            ui.Show("HỒ SƠ PHIẾU F101", "Lịch sử quyết định & lập luận", sb.ToString(),
-                new[] { new ActionChoice("Quay lại Sổ điều tra", Journal) }, Journal);
         }
 
         private void TranscriptPage()

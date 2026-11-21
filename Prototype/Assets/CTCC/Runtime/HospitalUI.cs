@@ -35,7 +35,7 @@ namespace CTCC
         }
     }
 
-    public sealed class HospitalUI : MonoBehaviour
+    public sealed partial class HospitalUI : MonoBehaviour
     {
         private static readonly Color Ink = new(0.91f, 0.91f, 0.84f);
         private static readonly Color Secondary = new(0.70f, 0.77f, 0.72f);
@@ -251,6 +251,7 @@ namespace CTCC
             ActionChoice[] buttons,
             Action close)
         {
+            ResetNotebookInput();
             for (int i = panel.childCount - 1; i >= 0; i--)
             {
                 panel.GetChild(i).gameObject.SetActive(false);
@@ -316,6 +317,7 @@ namespace CTCC
             Texture splitImage, bool sideInspectMode, Action onClose, string inspectHint, int initialFocus = 0,
             DocumentHotspot[] hotspots = null, bool largePrint = false, float paperAspect = 0f)
         {
+            ResetNotebookInput();
             for (int i = panel.childCount - 1; i >= 0; i--)
             {
                 panel.GetChild(i).gameObject.SetActive(false);
@@ -410,6 +412,7 @@ namespace CTCC
                     {
                         var region = Rect("Document hotspot", frame, hotspot.Uv.min, hotspot.Uv.max);
                         var hitArea = Graphic(region, Color.white, true);
+                        hitArea.canvasRenderer.cullTransparentMesh = false;
                         var button = region.gameObject.AddComponent<Button>();
                         button.targetGraphic = hitArea;
                         button.navigation = new Navigation { mode = Navigation.Mode.None };
@@ -477,6 +480,7 @@ namespace CTCC
             var extra = onCloseExtra;
             onCloseExtra = null;
             extra?.Invoke();
+            ResetNotebookInput();
             modal.gameObject.SetActive(false);
             hud.gameObject.SetActive(true);
             if (EventSystem.current != null)
@@ -504,6 +508,7 @@ namespace CTCC
         internal void HandleNavigation(Keyboard k)
         {
             if (k == null) return;
+            if (HandleNotebookInput(k)) return;
             if (k.escapeKey.wasPressedThisFrame)
             {
                 dismiss?.Invoke();
@@ -525,6 +530,7 @@ namespace CTCC
             selected = (selected + offset + focus.Count) % focus.Count;
             if (EventSystem.current != null)
                 EventSystem.current.SetSelectedGameObject(focus[selected].gameObject);
+            RevealNotebookEntry(focus[selected].transform);
         }
 
         private int Scaled(int size) => Mathf.RoundToInt(size * scale);

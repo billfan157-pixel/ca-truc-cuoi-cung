@@ -6,5 +6,9 @@ namespace CTCC
     {
         public string id;
         public string title;
+        public int focusPriority;
+        public Collider visibilitySurface;
+        internal Ch01FieldObject fieldObject;
+        internal GameObject inspectModel;
     }
 }

@@ -34,6 +34,8 @@ namespace CTCC
             public Transform transform;
             public Vector3 closedLocalPos;
             public Vector3 openLocalOffset;
+            public Quaternion restRotation;
+            public float openYaw;
             public float currentOpen;
             public float targetOpen;
             public bool moving;
@@ -75,7 +77,7 @@ namespace CTCC
                 dr.currentOpen = 0f;
                 dr.targetOpen = 0f;
                 dr.moving = false;
-                dr.transform.localPosition = dr.closedLocalPos;
+                PlaceSlide(dr, 0f);
             }
             if (doors.TryGetValue("DOOR-STAFF", out var staff) && staff.pivot != null)
             {
@@ -132,7 +134,7 @@ namespace CTCC
             pivot.localRotation = Quaternion.Euler(0f, initialAngle, 0f);
         }
 
-        public void ConfigureDrawer(string id, Transform drawer, Vector3 closedLocalPos, Vector3 openLocalOffset)
+        public void ConfigureDrawer(string id, Transform drawer, Vector3 closedLocalPos, Vector3 openLocalOffset, float openYaw = 0f)
         {
             if (string.IsNullOrEmpty(id)) return;
             if (drawer == null) { drawers.Remove(id); return; }
@@ -141,6 +143,8 @@ namespace CTCC
                 transform = drawer,
                 closedLocalPos = closedLocalPos,
                 openLocalOffset = openLocalOffset,
+                restRotation = drawer.localRotation,
+                openYaw = openYaw,
                 currentOpen = 0f,
                 targetOpen = 0f,
                 moving = false
@@ -149,7 +153,8 @@ namespace CTCC
         }
 
         public bool IsDrawerOpen(string id) =>
-            !string.IsNullOrEmpty(id) && drawers.TryGetValue(id, out var ch) && ch.targetOpen > 0.5f;
+            !string.IsNullOrEmpty(id) && drawers.TryGetValue(id, out var ch) &&
+                ch.targetOpen > 0.5f && ch.currentOpen > 0.54f;
 
         public bool IsDoorOpen(string id) =>
             !string.IsNullOrEmpty(id) && doors.TryGetValue(id, out var ch) && Mathf.Abs(ch.targetAngle) > 12f;
@@ -162,7 +167,7 @@ namespace CTCC
             if (instant || reducedMotion)
             {
                 ch.currentOpen = ch.targetOpen;
-                ch.transform.localPosition = ch.closedLocalPos + ch.openLocalOffset * ch.currentOpen;
+                PlaceSlide(ch, ch.currentOpen);
                 ch.moving = false;
                 Physics.SyncTransforms();
             }
@@ -170,7 +175,8 @@ namespace CTCC
             {
                 ch.moving = true;
             }
-            audioBus?.From("drawerSlide", ch.transform.position, ch.targetOpen > 0.5f ? 0.92f : 0.78f);
+            audioBus?.From(id == "CHAIR-STAFF" ? "chairScrape" : "drawerSlide", ch.transform.position,
+                ch.targetOpen > 0.5f ? 0.82f : 0.64f);
             return ch.targetOpen > 0.5f;
         }
 
@@ -296,6 +302,59 @@ namespace CTCC
             return 0f;
         }
 
+        internal float IntendedOpenness(string id)
+        {
+            if (id == "CURTAIN-101") return curtainTargetBlend;
+            if (drawers.TryGetValue(id, out var drawer)) return drawer.targetOpen;
+            if (doors.TryGetValue(id, out var door))
+                return Mathf.Clamp01(Mathf.Abs(door.targetAngle) / Mathf.Max(1f, Mathf.Abs(door.maxOpenAngle)));
+            return 0f;
+        }
+
+        internal void RestorePose(string id, float openness)
+        {
+            if (id == "CURTAIN-101")
+            {
+                curtainTargetBlend = curtainBlend = openness;
+                curtainPulled = openness > 0.5f;
+                curtainDragVelocity = curtainDraftImpulse = 0f;
+                ApplyCurtainPose();
+            }
+            else if (drawers.TryGetValue(id, out var drawer) && drawer.transform != null)
+            {
+                drawer.targetOpen = drawer.currentOpen = openness;
+                drawer.moving = false;
+                PlaceSlide(drawer, openness);
+            }
+            else if (doors.TryGetValue(id, out var door))
+            {
+                MoveDoor(id, door.pivot, door.maxOpenAngle * openness, true, null);
+            }
+            Physics.SyncTransforms();
+        }
+
+        internal List<(string Id, float Openness)> CapturePoses()
+        {
+            var poses = new List<(string, float)>(doors.Count + drawers.Count + 1);
+            foreach (var item in doors)
+                if (item.Value.pivot != null) poses.Add((item.Key, GetDragOpenness01(item.Key)));
+            foreach (var item in drawers)
+                if (item.Value.transform != null) poses.Add((item.Key, item.Value.currentOpen));
+            if (curtainCloth != null) poses.Add(("CURTAIN-101", curtainBlend));
+            return poses;
+        }
+
+        internal void RestorePoses(List<(string Id, float Openness)> poses)
+        {
+            foreach (var pose in poses) RestorePose(pose.Id, pose.Openness);
+        }
+
+        private static void PlaceSlide(DrawerChannel drawer, float openness)
+        {
+            drawer.transform.localPosition = drawer.closedLocalPos + drawer.openLocalOffset * openness;
+            drawer.transform.localRotation = drawer.restRotation * Quaternion.Euler(0f, drawer.openYaw * openness, 0f);
+        }
+
         /// <summary>
         /// Tactile analog hold-and-drag entry for doors (DOOR-101, DOOR-STAFF), drawers, and CURTAIN-101 (Upgrade #8).
         /// Click/tap (E/K) remains instant & fully accessible; dragging adjusts openness continuously with damped
@@ -358,12 +417,12 @@ namespace CTCC
                 dr.currentOpen = Mathf.Clamp01(dr.currentOpen + impulse * 1.18f);
                 dr.targetOpen = dr.currentOpen;
                 dr.moving = false;
-                dr.transform.localPosition = dr.closedLocalPos + dr.openLocalOffset * dr.currentOpen;
+                PlaceSlide(dr, dr.currentOpen);
                 Physics.SyncTransforms();
                 dragTravelAccum += Mathf.Abs(dr.currentOpen - prev);
                 if (dragAudioCooldown <= 0f && dragTravelAccum > 0.05f)
                 {
-                    audioBus?.From("drawerSlide", dr.transform.position, speedGain);
+                    audioBus?.From(draggingId == "CHAIR-STAFF" ? "chairScrape" : "drawerSlide", dr.transform.position, speedGain);
                     dragAudioCooldown = 0.40f;
                     dragTravelAccum = 0f;
                 }
@@ -510,11 +569,11 @@ namespace CTCC
                 if (!dr.moving || dr.transform == null || draggingId == kv.Key) continue;
                 dr.currentOpen = Mathf.MoveTowards(dr.currentOpen, dr.targetOpen, dt * (reducedMotion ? 10f : 2.8f));
                 float ease = dr.currentOpen * dr.currentOpen * (3f - 2f * dr.currentOpen);
-                dr.transform.localPosition = dr.closedLocalPos + dr.openLocalOffset * ease;
+                PlaceSlide(dr, ease);
                 if (Mathf.Abs(dr.currentOpen - dr.targetOpen) < 0.002f)
                 {
                     dr.currentOpen = dr.targetOpen;
-                    dr.transform.localPosition = dr.closedLocalPos + dr.openLocalOffset * dr.targetOpen;
+                    PlaceSlide(dr, dr.targetOpen);
                     dr.moving = false;
                 }
                 syncPhysics = true;

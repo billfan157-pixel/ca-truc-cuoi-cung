@@ -24,9 +24,9 @@
 | Hạng mục cần thẩm định | Hiện vật kiểm tra trên build | Trạng thái | Ghi chú chuyên gia |
 | --- | --- | --- | --- |
 | Độ thuyết phục & tôn trọng nạn nhân vụ cháy 18/11/2005 (13 nạn nhân, `CAN02`/`CAN03`, mốc `03:17` chỉ là mất liên lạc `CAN05`, không suy diễn nguyên nhân cực đoan) | `E10a` (`Doc_BayLetter.png`), `CH01-D19`, `OBS_CLOCK_0317` | **MỞ** | |
-| Trì hoãn cú twist Lan ở `E10a` (gỡ câu tường thuật thẳng đám tang trên mẩu báo rách) & 7 nhịp thoại mở rộng `CH01-D03b..D07b` | `Dialogue.json`, phiên gặp Lan tại Quầy tiếp nhận (`AP02`) | **MỞ** | |
+| Nhịp sáu câu mở rộng của cuộc gặp Lan, độ rõ của VO và chuyển ý sang đồng hồ đứng kim sau lời Minh về đám tang | `Dialogue.json`, phiên gặp Lan tại Quầy tiếp nhận (`AP02`) | **MỞ** | |
 | Giọng điệu nội tâm tự vấn của Minh trong phản hồi `F101` (`DeductionFramework.cs` / `OpenF101Notes`) — tự nhiên, không mang giọng kiểm toán máy móc | `F101` bước đối chiếu & thử chọn kết luận sai | **MỞ** | |
-| Khóa canon tiết lộ (`V22-Q03`): `CH01-D16b` và `CH04-D06` không rò rỉ trong CH01–CH03; `OBS101B` + vết hằn bút bi mặt sau (`03g17 · CHUYỂN TẠM — C01?`) không lộ tên Bé An hay Khu C (`DEC-CH02`, `LOCK-LOG06`) | `ch01r-raking-obscard-back.png`, `Dialogue.json` | **MỞ** | |
+| Khóa canon tiết lộ (`V22-Q03`): `CH01-D16b` và `CH04-D06` chỉ xuất hiện khi đủ điều kiện CH04. Thẻ `OBS101B` và vết hằn `03g17 · CHƯA CHỐT SỔ` giữ mã C01, tên Bé An và Khu C cho các cảnh tiết lộ sau (`DEC-CH02`, `LOCK-LOG06`). | Thẻ AS-05B trong soi 3D và bản chữ lớn, `Dialogue.json` | **MỞ** | |
 
 - **Người duyệt (`TASK027`):** *(Chờ chuyên gia PCCC / biên kịch thoại tiếng Việt)* · **Kết quả:** **PENDING**
 

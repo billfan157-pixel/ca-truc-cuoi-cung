@@ -11,7 +11,7 @@
 flowchart TD
     B01["B01 · LOC01 Exterior (R)\nInspect E10a Envelope & SMS"] --> GATE["Unlock GATE-CONG\n(CH01-T02)"]
     GATE --> B02["B02 · Courtyard Approach (R)\nLan Silhouette (DREAD_B02)"]
-    B02 --> HUB1["B03 · AP02 Reception Hub\nAtomic R → B Swap (CH01-T03/T04)"]
+    B02 --> HUB1["B03 · Giở sổ trực tại quầy\nR → B tại chỗ (CH01-T03/T04, mốc lưu AP02)"]
     HUB1 --> LAN["Live In-World Lan Encounter\n(Free Look + Optional LAN_TALK)"]
     LAN --> BOARD["Accept Clipboard BOARD\n(CH01-T05 · Unlocks Room 101 & Records OBS101_F101)"]
 
@@ -30,8 +30,10 @@ flowchart TD
     R101 --> B["Core Fact 2 · OBS101B\nBed-4 Incomplete Card AS-05B\n(Dual-Sided Flip + Detail Hotspots)"]
 
     %% Journal Comparison & Authoritative F101 Deduction
-    C & D & B & STAFF -.->|"Optional Side-by-Side Comparison\n(Zero Auto-Spoilers)"| JOURNAL["Evidence Journal (Tab)\nProvenance · Stage · Compare · History"]
-    R101 --> F101["B05 · F101 Handover Form at AP04\n(Claims: 0 Outstanding Patients)"]
+    C & D & B & STAFF -.->|"Tự chọn, kéo hai nguồn vào sổ"| JOURNAL["Sổ trực (Tab)\nHiện trường · Tài liệu · Suy luận · Dòng thời gian · Quyết định"]
+    B -.->|"Reveal reverse-side impression\n(tilt / large print)"| AS05TIME["AS-05B: 03g17"]
+    AS05TIME & RECDRAW & STAFF -.->|"Clock and shift context; choose matching time"| EX01["Optional CH01-EX01\nUnlocks CH01-D19 after signing in B"]
+    R101 --> F101["B05 · Nhấc phiếu F101 khỏi bảng kẹp\nSoi, đánh dấu và đặt lại để ký"]
     A & B -.-> F101
 
     F101 -->|"Path A · Affirmed\n(Certify 0)"| OUT_A["Reality.B: Solid Partition (deniedBay)\nF101_SignedA · Sterile Fan · PA01\nDistortion(LOC03) = 1"]
@@ -44,9 +46,9 @@ flowchart TD
     %% All 3 decisions open G01 and advance CH01 canonically
     OUT_A & OUT_B & OUT_C --> G01["CH01-T07 · G01 opens on durable signature\nPen, stamp, quiet, then audible room/PA changes"]
     G01 -.-> SLIP["Corridor slip reflects the signed report in B"]
-    G01 --> HUB2["B06 · AP02 Reception Hub\nAtomic B → R Collapse (CH01-T08)\nLan Calmly Absent"]
+    G01 --> HUB2["B06 · Bàn giao phiếu tại sổ trực\nB → R tại chỗ (CH01-T08)\nLan vắng mặt"]
     HUB2 --> SEAM["B07 · Outer Gate Seam Loop Once\n(CH01-T09)"]
-    SEAM --> HUB3["B08 · AP02 CH02 Handoff\n(CH01-T10 · CP04 · Reality.R Intact)"]
+    SEAM --> HUB3["B08 · Giở sổ để sang CH02\n(CH01-T10 · CP04 · lớp R)"]
     HUB3 --> CH02["CH02 · Independent Reality.R Crime Scene\nLIST + SOCKETS + WHEELS → PZ01 (E12) → E11 → G02"]
 ```
 
@@ -80,6 +82,8 @@ Save schema `v5` loads `v1–v4` and stores F101's draft marks and link. Each ne
 2. **`Examined` (`1`)**: Directly inspected in-world or via `PhysicalInspector` / Large Print in valid layer & location.
 3. **`Interpreted` (`2`)**: Reverse side inspected (`Space`/`R` flip) OR key detail callout (`1–3`) / Large-Print full transcript reviewed.
 4. **`Corroborated` (`3`)**: Successfully cited inside an accepted `Refuted` F101 deduction submission.
+
+`CH01-EX01` requires the clock, one source of shift context, and `RAKING_INDENT` specifically on `OBS101B`. Ordinary card inspection, flipping the card, and opening Large Print leave the optional note locked. The player can reveal the impression by tilting the card or selecting **Đọc vết hằn mặt sau** in Large Print. The journal then accepts the matching time. Saves that already contain `CH01-EX01` retain their completed note.
 
 **Canon Preservation Guardrails:**
 - `Reality.B` observations NEVER enter `state.evidence` (`CH01 state.evidence.Count == 1`, strictly `"E10a"`).

@@ -329,14 +329,19 @@ namespace CTCC
 
             registeredZones.Add(region);
             zonesById[region.zoneId] = region;
+            if (Application.isPlaying) RegisterChapterOneFieldObjects(region);
 
             // Bind zone-owned doors, dynamic rigs, characters, audio anchors and motion
             if (region.outerGate != null && region.outerGate.pivot != null) outerGate = region.outerGate;
-            if (region.roomDoor != null && region.roomDoor.pivot != null) roomDoor = region.roomDoor;
+            if (region.roomDoor != null && region.roomDoor.pivot != null)
+            {
+                roomDoor = region.roomDoor;
+                ConfigureInteractiveDoor("DOOR-101", roomDoor);
+            }
             if (region.staffCrossDoor != null && region.staffCrossDoor.pivot != null)
             {
                 staffCrossDoor = region.staffCrossDoor;
-                interactables?.ConfigureDoor("DOOR-STAFF", staffCrossDoor.pivot, staffCrossDoor.isOpen ? staffCrossDoor.openAngle : 0f, staffCrossDoor.openAngle);
+                ConfigureInteractiveDoor("DOOR-STAFF", staffCrossDoor);
             }
             if (region.emergencyDoorA != null && region.emergencyDoorA.pivot != null) emergencyDoorA = region.emergencyDoorA;
             if (region.emergencyDoorB != null && region.emergencyDoorB.pivot != null) emergencyDoorB = region.emergencyDoorB;
@@ -546,6 +551,66 @@ namespace CTCC
             }
         }
 
+        private void ConfigureInteractiveDoor(string id, DoorPose door)
+        {
+            interactables?.ConfigureDoor(id, door.pivot, door.isOpen ? door.openAngle : 0f, door.openAngle);
+            if (!Application.isPlaying) return;
+            var target = door.pivot.GetComponentInChildren<SceneTarget>();
+            if (target == null || target.id != id) return;
+            foreach (var collider in door.pivot.GetComponentsInChildren<Collider>())
+            {
+                if (collider.gameObject.layer != SolidLayer || collider.isTrigger) continue;
+                target.visibilitySurface = collider;
+                break;
+            }
+        }
+
+        private void RegisterChapterOneFieldObjects(ZoneRegion region)
+        {
+            foreach (var item in Ch01FieldObjects.All)
+            {
+                if (item.Zone != region.zoneId) continue;
+                var target = AddTarget(region.transform, item.Observation.Id, item.Prompt, item.Position, item.Size);
+                target.fieldObject = item;
+                target.focusPriority = -1;
+                if (item.ViewModel != null)
+                {
+                    foreach (var model in region.GetComponentsInChildren<Transform>(true))
+                        if (model.name == item.ViewModel)
+                        {
+                            target.inspectModel = model.gameObject;
+                            var bounds = model.GetComponentInChildren<Renderer>()?.bounds;
+                            if (bounds.HasValue)
+                            {
+                                target.transform.position = bounds.Value.center;
+                                target.GetComponent<BoxCollider>().size = bounds.Value.size + Vector3.one * .10f;
+                            }
+                            break;
+                        }
+                }
+            }
+            if (region.staffChair == null) return;
+            var chair = region.staffChair;
+            var seat = AddTarget(chair, "CHAIR-STAFF", Ch01FieldObjects.StaffSeat, chair.position + new Vector3(0, .52f, 0),
+                new Vector3(.46f, .48f, .44f));
+            seat.visibilitySurface = chair.GetComponentInChildren<Collider>();
+            interactables?.ConfigureDrawer("CHAIR-STAFF", chair, chair.localPosition, new Vector3(-.14f, 0f, -.17f), -17f);
+        }
+
+        private static SceneTarget AddTarget(Transform parent, string id, string title, Vector3 position, Vector3 size)
+        {
+            var target = new GameObject(id) { layer = InteractLayer };
+            target.transform.SetParent(parent, false);
+            target.transform.position = position;
+            var area = target.AddComponent<BoxCollider>();
+            area.size = size;
+            area.isTrigger = true;
+            var component = target.AddComponent<SceneTarget>();
+            component.id = id;
+            component.title = title;
+            return component;
+        }
+
         public Transform Pad(string id)
         {
             if (TryPad(id, out var pad)) return pad;
@@ -602,7 +667,8 @@ namespace CTCC
         }
 
         public void Present(bool layerB, int form, bool entered, bool acceptedBoard, bool closetOpen, bool secondGate,
-            bool layerM = false, bool thirdGate = false, bool serviceGate = false, bool deferF101Visuals = false)
+            bool layerM = false, bool thirdGate = false, bool serviceGate = false, bool deferF101Visuals = false,
+            float? roomDoorOpenness = null)
         {
             lastLayerB = layerB;
             lastLayerM = layerM;
@@ -677,13 +743,19 @@ namespace CTCC
             {
                 if (smoothPresentation && interactables != null && Application.isPlaying && roomDoor.pivot != null)
                 {
-                    roomDoor.isOpen = wantRoomOpen;
-                    interactables.MoveDoor(roomDoor.pivot, wantRoomOpen ? roomDoor.openAngle : 0f, false, atmosphere);
+                    roomDoor.isOpen = wantRoomOpen && (roomDoorOpenness ?? 1f) > 0.15f;
+                    float angle = wantRoomOpen ? roomDoor.openAngle * (roomDoorOpenness ?? 1f) : 0f;
+                    interactables.MoveDoor(roomDoor.pivot, angle, false, atmosphere);
                 }
                 else
                 {
                     roomDoor.Set(wantRoomOpen);
-                    interactables?.ConfigureDoor(roomDoor.pivot, wantRoomOpen ? roomDoor.openAngle : 0f);
+                    interactables?.ConfigureDoor("DOOR-101", roomDoor.pivot, wantRoomOpen ? roomDoor.openAngle : 0f, roomDoor.openAngle);
+                    if (wantRoomOpen && roomDoorOpenness.HasValue)
+                    {
+                        roomDoor.isOpen = roomDoorOpenness.Value > 0.15f;
+                        interactables?.RestorePose("DOOR-101", roomDoorOpenness.Value);
+                    }
                 }
             }
             emergencyDoorA?.Set(secondGate);
