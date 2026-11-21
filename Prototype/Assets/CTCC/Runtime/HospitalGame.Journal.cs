@@ -32,6 +32,9 @@ namespace CTCC
             noteDraft = null;
             chooseNoteSource = 0;
             selectedDecisionRevision = 0;
+            timelineDraft = default;
+            timelineFeedback = timelineSource = null;
+            if (scene.PedalBin != null) scene.PedalBin.SetOpen(false, immediate: true);
         }
 
         private void DrawJournal(JournalTab tab, bool pageTurn = false)
@@ -88,7 +91,8 @@ namespace CTCC
             if (selected != null && ObservationRegistry.Get(selected.id) is ObservationSpec observation)
             {
                 var body = new StringBuilder(PlaceName(selected.location)).Append(" · Lớp ").Append(selected.layer)
-                    .Append("\n\n").Append(observation.FactSummary);
+                    .Append("\n\n").Append(selected.id == ObservationRegistry.Bed4Traces
+                        ? ObservationSynopsis(observation, selected) : observation.FactSummary);
                 AppendAuthoredNotes(body, selected.id);
                 ui.NotebookPage(observation.Title, body.ToString(),
                     new ActionChoice("Ghi bên lề", () => EditJournalNote(-1, JournalNoteKind.Annotation, selected.id)),
@@ -292,6 +296,14 @@ namespace CTCC
         private static string ObservationSynopsis(ObservationSpec spec, ObservationRecord record)
         {
             string facts = spec.FactSummary;
+            if (spec.Id == ObservationRegistry.Bed4Traces && record != null)
+            {
+                var found = new List<string>(3);
+                if (record.HasDetail(WheelTrace)) found.Add(TraceDescription(WheelTrace));
+                if (record.HasDetail(BlanketTrace)) found.Add(TraceDescription(BlanketTrace));
+                if (record.HasDetail(SlipperTrace)) found.Add(TraceDescription(SlipperTrace));
+                if (found.Count > 0) facts = string.Join("\n", found);
+            }
             if (record?.flippedBack == true)
             {
                 string back = ObservationBackText(spec.Id);
@@ -497,44 +509,6 @@ namespace CTCC
                 ui.Show("NGUỒN CỦA GHI CHÚ", SourceTitle(id),
                     source?.FactSummary ?? "Tờ hẹn lúc 23 giờ, thư cũ, mẩu báo và tin nhắn báo hoãn của Bảy.",
                     new[] { new ActionChoice("Về ghi chú", back) }, back);
-        }
-
-        private void DrawTimeline()
-        {
-            var body = new StringBuilder();
-            if (JournalNote.HasSource(State, ObservationRegistry.Bed3Meds))
-                body.AppendLine("17.11.2005 · 10:15  /  Phiếu thuốc giường 03").AppendLine("Giờ ghi khóa phiếu sau khi xuất viện.").AppendLine();
-            if (JournalNote.HasSource(State, ObservationRegistry.Bed2Transfer))
-                body.AppendLine("17.11.2005 · 19:20  /  Phiếu chuyển giường 02").AppendLine("Có hai chữ ký và nơi tiếp nhận.").AppendLine();
-            if (JournalNote.HasSource(State, ObservationRegistry.ReceptionDrawerLog))
-                body.AppendLine("Đêm 17–18.11.2005  /  Sổ phân ca").AppendLine("Lời ghi ca trực đông bệnh nhân.").AppendLine();
-            bool matchedTime = CorroborationService.IsCorroborated(State);
-            if (matchedTime)
-                body.AppendLine("03:17  /  Mốc giờ đã đối chiếu")
-                    .AppendLine("Đồng hồ và vết hằn trên thẻ cùng ghi giờ này. Sự kiện cụ thể vẫn để ngỏ.").AppendLine();
-            if (State.Happened("E10a.SMSRead"))
-            {
-                body.AppendLine("18.11.2005 · Rạng sáng  /  Mẩu báo").AppendLine("Tin công khai về vụ cháy và 13 người tử vong.").AppendLine();
-                body.AppendLine("17.11.2012 · 23:00  /  Tờ hẹn của Bảy").AppendLine("Tin nhắn sau đó báo hoãn cuộc gặp.");
-            }
-            if (State.Happened("CH01-T04") && voice.Transcript.Count > 0)
-            {
-                foreach (var line in voice.Transcript)
-                {
-                    if (line.LineId != "CH01-D04c") continue;
-                    body.AppendLine().AppendLine("Lời Lan tại quầy").AppendLine(line.Text);
-                    break;
-                }
-            }
-            if (!matchedTime && (CorroborationService.HasClock(State) || CorroborationService.HasCardTimestamp(State)))
-                body.AppendLine().AppendLine("03:17  /  Chưa xác định ngày").AppendLine("Còn cần đối chiếu nguồn ghi giờ.");
-            if (body.Length == 0) body.Append("Chưa đọc được nguồn nào có mốc giờ.");
-            var actions = new List<ActionChoice>();
-            if (matchedTime || State.chapter == "CH01" && State.layer == Reality.B &&
-                CorroborationService.HasClock(State) && CorroborationService.HasCardTimestamp(State))
-                actions.Add(new ActionChoice(matchedTime ? "Đọc ghi chú về 03:17" : "So khớp giờ ghi chép", () => Exception0317Page(Journal)));
-            ui.NotebookIndex(Array.Empty<NotebookEntry>(), "Mốc giờ theo những gì Minh đã đọc và quan sát.");
-            ui.NotebookPage("Dòng thời gian", body.ToString(), actions.ToArray());
         }
 
         private void DrawDecisions()

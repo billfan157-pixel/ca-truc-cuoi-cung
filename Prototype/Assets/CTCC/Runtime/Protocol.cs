@@ -105,6 +105,7 @@ namespace CTCC
         public DeductionSubmission f101Argument = new();
         public F101Annotations f101Annotations = new();
         public List<JournalNote> journalNotes = new();
+        public TimelineConnection exception0317Link;
         public List<ScenePropPose> sceneProps = new();
         public List<string> dreadEventsSeen = new();
         public int dreadSeed = 20051118;

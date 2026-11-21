@@ -1236,7 +1236,7 @@ namespace CTCC
                     State.FindObservation(ObservationRegistry.Bed4Card).flippedBack, "OBS101B advances to Interpreted on flip");
 
             Require(!CorroborationService.HasCardTimestamp(State) && !CorroborationService.CanCorroborate0317(State) &&
-                    casework.CrossCheck0317Exception(player.Feet, CorroborationService.MatchingTime) != CommitResult.Applied,
+                    casework.CrossCheck0317Exception(player.Feet, Observed0317Link()) != CommitResult.Applied,
                 "03:17 remains locked after a normal inspection and flip, despite having the clock and shift context");
             foreach (string id in LanDirector.EncounterLineIds())
                 Require(!string.IsNullOrEmpty(Line(id)) && voice.HasClip(id), "Lan encounter has dialogue and an imported clip: " + id);
@@ -1521,10 +1521,11 @@ namespace CTCC
             Require(CorroborationService.CanCorroborate0317(State) && !CorroborationService.IsCorroborated(State),
                 "Upgrade #5 03:17 corroboration eligible once clock, AS-05B, and shift context observed");
             long beforeWrongTime = State.sequence;
-            Require(casework.CrossCheck0317Exception(player.Feet, 1920) != CommitResult.Applied &&
+            Require(casework.CrossCheck0317Exception(player.Feet, new TimelineConnection
+                    { left = ObservationRegistry.Bed2Transfer, right = ObservationRegistry.Bed4Card, context = ObservationRegistry.ShiftGuide }) != CommitResult.Applied &&
                     State.sequence == beforeWrongTime && !CorroborationService.IsCorroborated(State),
                 "Wrong time leaves CH01-EX01 locked and does not write a save");
-            Apply(casework.CrossCheck0317Exception(player.Feet, CorroborationService.MatchingTime), "Upgrade #5 commit CH01-EX01");
+            Apply(casework.CrossCheck0317Exception(player.Feet, Observed0317Link()), "Upgrade #5 commit CH01-EX01");
             Require(CorroborationService.IsCorroborated(State) && State.Happened(CorroborationService.Exception0317Event) &&
                     State.FindObservation(ObservationRegistry.StoppedClock0317).stage == ObservationStage.Corroborated &&
                     State.evidence.Count == 1 && voice.HasClip("CH01-D19", "B05") && !string.IsNullOrEmpty(LineAtBeat("CH01-D19", 1, "B05")),
@@ -1631,6 +1632,13 @@ namespace CTCC
                     if (collider.enabled) colliders.Add(collider, collider.bounds);
             return colliders;
         }
+
+        private static TimelineConnection Observed0317Link() => new()
+        {
+            left = ObservationRegistry.StoppedClock0317,
+            right = ObservationRegistry.Bed4Card,
+            context = ObservationRegistry.ShiftGuide
+        };
 
         private void RequireF101Presentation(FormStatus decision, bool layerB)
         {

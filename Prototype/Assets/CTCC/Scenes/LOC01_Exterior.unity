@@ -332,6 +332,8 @@ MonoBehaviour:
   drawerDeskOpenOffset: {x: 0, y: 0, z: 0}
   drawerNurse: {fileID: 0}
   staffChair: {fileID: 0}
+  receptionHandset: {fileID: 0}
+  pedalBin: {fileID: 0}
   drawerNurseClosedPos: {x: 0, y: 0, z: 0}
   drawerNurseOpenOffset: {x: 0, y: 0, z: 0}
   curtainClosedPos: {x: 0, y: 0, z: 0}
@@ -360,7 +362,7 @@ MonoBehaviour:
   - {fileID: 1819244652}
   roomLoops:
   - source: {fileID: 31981811}
-    level: 0.62
+    level: 0.7
     report: 0
     exteriorOccluded: 1
   - source: {fileID: 2113399705}
@@ -396,6 +398,7 @@ Transform:
   - {fileID: 1582438270}
   - {fileID: 1716458111}
   - {fileID: 1550910682}
+  - {fileID: 1408739952}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &31981808
@@ -425,7 +428,7 @@ Transform:
   m_GameObject: {fileID: 31981808}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 4, y: 1.2, z: -12.2}
+  m_LocalPosition: {x: 3.2, y: 1.7, z: -14.1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -477,7 +480,7 @@ AudioSource:
   SpatializePostEffects: 0
   Priority: 128
   DopplerLevel: 0
-  MinDistance: 1.5
+  MinDistance: 3
   MaxDistance: 24
   Pan2D: 0
   rolloffMode: 1
@@ -2393,6 +2396,8 @@ MonoBehaviour:
   title: "C\u1ED5ng ph\u1EE5"
   focusPriority: 0
   visibilitySurface: {fileID: 0}
+  handhold: {fileID: 0}
+  frontOnly: 0
 --- !u!65 &450037983
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3224,7 +3229,7 @@ Light:
   serializedVersion: 12
   m_Type: 0
   m_Color: {r: 0.95, g: 0.72, b: 0.44, a: 1}
-  m_Intensity: 5.2
+  m_Intensity: 6.1
   m_Range: 12
   m_SpotAngle: 124
   m_InnerSpotAngle: 68
@@ -3542,6 +3547,8 @@ MonoBehaviour:
   title: "B\xEC th\u01B0 c\u1EE7a B\u1EA3y"
   focusPriority: 0
   visibilitySurface: {fileID: 0}
+  handhold: {fileID: 0}
+  frontOnly: 0
 --- !u!65 &672528283
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3699,7 +3706,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 7d7c96bcf3297494fa111adb0ec44861, type: 2}
+  - {fileID: 2100000, guid: 4710ec898f499e14f8af88a05608f124, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -4388,7 +4395,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 0.62, g: 0.78, b: 0.88, a: 0.36}
+      maxColor: {r: 0.63, g: 0.78, b: 0.9, a: 0.46}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -4452,7 +4459,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.012
+      scalar: 0.0095
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -11052,7 +11059,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.DecalProjector
   m_Material: {fileID: 2100000, guid: 90ae60eefbf944743a865479f421291e, type: 2}
-  m_DrawDistance: 30
+  m_DrawDistance: 13
   m_FadeScale: 0.9
   m_StartAngleFade: 150
   m_EndAngleFade: 180
@@ -11064,7 +11071,7 @@ MonoBehaviour:
   m_ScaleMode: 0
   m_Offset: {x: 0, y: 0, z: 0.5}
   m_Size: {x: 3.6, y: 4.2, z: 0.25}
-  m_FadeFactor: 0.86
+  m_FadeFactor: 0.92
   version: 1
   m_DecalLayerMask: 1
 --- !u!1 &1180091300
@@ -11432,7 +11439,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.DecalProjector
   m_Material: {fileID: 2100000, guid: 90ae60eefbf944743a865479f421291e, type: 2}
-  m_DrawDistance: 30
+  m_DrawDistance: 13
   m_FadeScale: 0.9
   m_StartAngleFade: 150
   m_EndAngleFade: 180
@@ -11444,7 +11451,7 @@ MonoBehaviour:
   m_ScaleMode: 0
   m_Offset: {x: 0, y: 0, z: 0.5}
   m_Size: {x: 3.2, y: 3.4, z: 0.25}
-  m_FadeFactor: 0.82
+  m_FadeFactor: 0.88
   version: 1
   m_DecalLayerMask: 1
 --- !u!1 &1384903933
@@ -11731,6 +11738,103 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 0650df774e4d8a744817388eacda22fb, type: 3}
   m_PrefabInstance: {fileID: 1397717751}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1408739951
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1408739952}
+  - component: {fileID: 1408739953}
+  m_Layer: 0
+  m_Name: Canopy bounce on rain-wet columns
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1408739952
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1408739951}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 5.5, y: 1.44, z: -10.85}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4006147}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!108 &1408739953
+Light:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1408739951}
+  m_Enabled: 1
+  serializedVersion: 12
+  m_Type: 2
+  m_Color: {r: 0.65, g: 0.76, b: 0.89, a: 1}
+  m_Intensity: 1.65
+  m_Range: 7.5
+  m_SpotAngle: 30
+  m_InnerSpotAngle: 21.80208
+  m_CookieSize2D: {x: 0.5, y: 0.5}
+  m_Shadows:
+    m_Type: 0
+    m_Resolution: -1
+    m_CustomResolution: -1
+    m_Strength: 1
+    m_Bias: 0.05
+    m_NormalBias: 0.4
+    m_NearPlane: 0.2
+    m_CullingMatrixOverride:
+      e00: 1
+      e01: 0
+      e02: 0
+      e03: 0
+      e10: 0
+      e11: 1
+      e12: 0
+      e13: 0
+      e20: 0
+      e21: 0
+      e22: 1
+      e23: 0
+      e30: 0
+      e31: 0
+      e32: 0
+      e33: 1
+    m_UseCullingMatrixOverride: 0
+  m_Cookie: {fileID: 0}
+  m_DrawHalo: 0
+  m_Flare: {fileID: 0}
+  m_RenderMode: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingLayerMask: 1
+  m_Lightmapping: 4
+  m_LightShadowCasterMode: 0
+  m_AreaSize: {x: 1, y: 1}
+  m_BounceIntensity: 1
+  m_ColorTemperature: 6570
+  m_UseColorTemperature: 0
+  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_UseBoundingSphereOverride: 0
+  m_UseViewFrustumForShadowCasterCull: 1
+  m_ForceVisible: 0
+  m_ShadowRadius: 0
+  m_ShadowAngle: 0
+  m_LightUnit: 1
+  m_LuxAtDistance: 1
+  m_EnableSpotReflector: 1
 --- !u!1001 &1413054976
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12037,7 +12141,7 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 0.98, g: 0.72, b: 0.4, a: 1}
-  m_Intensity: 2.4
+  m_Intensity: 2.7
   m_Range: 8.5
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -13166,6 +13270,8 @@ MonoBehaviour:
   title: "Th\u1EED ra c\u1ED5ng"
   focusPriority: 0
   visibilitySurface: {fileID: 0}
+  handhold: {fileID: 0}
+  frontOnly: 0
 --- !u!65 &1758791145
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -13427,7 +13533,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 0.62, g: 0.78, b: 0.86, a: 0.24}
+      maxColor: {r: 0.62, g: 0.78, b: 0.86, a: 0.21}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -13491,8 +13597,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 4.8
-      minScalar: 2.8
+      scalar: 3.6
+      minScalar: 2.2
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -13876,7 +13982,7 @@ ParticleSystem:
     donutRadius: 0.2
     m_Position: {x: 0, y: 0, z: 0}
     m_Rotation: {x: 0, y: 0, z: 0}
-    m_Scale: {x: 14.5, y: 0.85, z: 12.6}
+    m_Scale: {x: 13.2, y: 0.32, z: 12.6}
     placementMode: 0
     m_MeshMaterialIndex: 0
     m_MeshNormalOffset: 0
@@ -18049,7 +18155,7 @@ Transform:
   m_GameObject: {fileID: 1819244651}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 4, y: 0.72, z: -15.6}
+  m_LocalPosition: {x: 4, y: 0.37, z: -15.6}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -18285,7 +18391,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: d55f746e38117894e927367c9a0c9cfb, type: 2}
+  - {fileID: 2100000, guid: 263ba6b5ddaea6743b2f7c0f01fc3399, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -18361,8 +18467,8 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 0.76, g: 0.78, b: 0.7, a: 1}
-  m_Intensity: 3.35
-  m_Range: 13
+  m_Intensity: 3.9
+  m_Range: 14.2
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -18915,7 +19021,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.DecalProjector
   m_Material: {fileID: 2100000, guid: 90ae60eefbf944743a865479f421291e, type: 2}
-  m_DrawDistance: 30
+  m_DrawDistance: 11
   m_FadeScale: 0.9
   m_StartAngleFade: 150
   m_EndAngleFade: 180
@@ -18927,7 +19033,7 @@ MonoBehaviour:
   m_ScaleMode: 0
   m_Offset: {x: 0, y: 0, z: 0.5}
   m_Size: {x: 3.4, y: 2.8, z: 0.25}
-  m_FadeFactor: 0.85
+  m_FadeFactor: 0.94
   version: 1
   m_DecalLayerMask: 1
 --- !u!1001 &1966843865

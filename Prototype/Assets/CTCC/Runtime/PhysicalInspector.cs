@@ -65,7 +65,8 @@ namespace CTCC
         private bool active;
         private bool reducedMotion;
         private bool cameraAssist = true;
-        private float openBlend;
+        private float openBlend, liftDuration;
+        private bool returning;
         private Vector3 openFrom;
         private float paperWidth, paperHeight;
         private Mesh inkMesh;
@@ -168,11 +169,13 @@ namespace CTCC
             string markedField = null,
             Action<string> onMark = null,
             bool liftModel = false,
-            Renderer liftSheet = null)
+            Renderer liftSheet = null,
+            float pickupSeconds = .22f)
         {
             Close();
             active = true;
             currentObservationId = observationId ?? "";
+            liftDuration = Mathf.Max(.08f, pickupSeconds);
             openBlend = reducedMotion || !cameraAssist ? 1f : 0f;
             openFrom = new Vector3(-0.095f, -0.20f, 0.41f);
             if (source.HasValue && cameraAssist && !reducedMotion)
@@ -385,6 +388,7 @@ namespace CTCC
 
         public void Close()
         {
+            returning = false;
             bool wasActive = active;
             string closedObsId = currentObservationId;
             if (currentModel != null)
@@ -438,6 +442,25 @@ namespace CTCC
                 InspectClosed?.Invoke(closedObsId);
         }
 
+        internal System.Collections.IEnumerator PutBack()
+        {
+            if (active && !reducedMotion && cameraAssist)
+            {
+                returning = true;
+                Vector3 from = stage.localPosition;
+                Quaternion rotation = holder.localRotation;
+                const float duration = .19f;
+                for (float t = 0; active && t < duration; t += Time.unscaledDeltaTime)
+                {
+                    float ease = Mathf.SmoothStep(0, 1, t / duration);
+                    stage.localPosition = Vector3.Lerp(from, openFrom, ease);
+                    holder.localRotation = Quaternion.Slerp(rotation, Quaternion.identity, ease);
+                    yield return null;
+                }
+            }
+            Close();
+        }
+
         private void OnDestroy()
         {
             Close();
@@ -448,10 +471,10 @@ namespace CTCC
 
         private void Update()
         {
-            if (!active || currentModel == null) return;
+            if (!active || currentModel == null || returning) return;
 
             float dt = Time.unscaledDeltaTime;
-            openBlend = Mathf.MoveTowards(openBlend, 1f, dt / 0.22f);
+            openBlend = Mathf.MoveTowards(openBlend, 1f, dt / liftDuration);
             flipAngle = Mathf.MoveTowards(flipAngle, flipTarget, dt * (reducedMotion ? 1400f : 540f));
             panOffset = Vector2.MoveTowards(panOffset, panTarget, dt * (reducedMotion ? 5f : 0.65f));
             zoom = Mathf.MoveTowards(zoom, zoomTarget, dt * (reducedMotion ? 5f : 0.85f));
@@ -628,7 +651,7 @@ namespace CTCC
             {
                 float s = targetSpan / maxDim;
                 root.transform.localScale = Vector3.one * s;
-                root.transform.localPosition = -combined.center * s;
+                root.transform.localPosition = -(root.transform.localRotation * (combined.center * s));
             }
         }
 

@@ -68,6 +68,8 @@ namespace CTCC
         public const int SolidMask = 1 << SolidLayer;
         public const int InteractLayer = 8;
         public const int InteractMask = 1 << InteractLayer;
+        public const int SightOccluderLayer = 10;
+        public const int SightMask = SolidMask | 1 << SightOccluderLayer;
         public const float Radius = 0.35f;
         public const float Height = 1.75f;
 
@@ -471,6 +473,9 @@ namespace CTCC
                 interactables.ConfigureDoor(null, 0f);
             if (interactables != null && interactables.curtainCloth == region.curtainCloth)
                 interactables.curtainCloth = null;
+            if (region.zoneId == "LOC02") receptionLedgerTarget = null;
+            if (region.zoneId == "LOC03") clipboardTarget = null;
+            if (PedalBin == region.pedalBin) PedalBin = null;
             if (SpareBatteryProp == region.spareBatteryProp) SpareBatteryProp = null;
             if (ReceptionGlassSilhouette == region.receptionGlassSilhouette) ReceptionGlassSilhouette = null;
             if (ReceptionBoard == region.receptionBoard) ReceptionBoard = null;
@@ -567,15 +572,31 @@ namespace CTCC
 
         private void RegisterChapterOneFieldObjects(ZoneRegion region)
         {
+            if (region.zoneId is "LOC02" or "LOC03")
+                foreach (var point in region.GetComponentsInChildren<SceneTarget>(true))
+                {
+                    if (point.id == "AN01") receptionLedgerTarget = point;
+                    if (point.id == "F101") clipboardTarget = point;
+                }
+            var models = region.GetComponentsInChildren<Transform>(true);
             foreach (var item in Ch01FieldObjects.All)
             {
                 if (item.Zone != region.zoneId) continue;
+                if (item.Observation.Id == Ch01FieldObjects.BinInterior && region.pedalBin == null) continue;
                 var target = AddTarget(region.transform, item.Observation.Id, item.Prompt, item.Position, item.Size);
                 target.fieldObject = item;
                 target.focusPriority = -1;
+                if (item.Observation.Id == Ch01FieldObjects.BinPedal && region.pedalBin?.pedal != null)
+                {
+                    PedalBin = region.pedalBin;
+                    var pedal = PedalBin.pedal.GetComponentInChildren<Renderer>();
+                    target.transform.position = pedal.bounds.center + Vector3.up * .13f;
+                    target.GetComponent<BoxCollider>().size = new Vector3(.26f, .33f, .24f);
+                    target.handhold = target.transform;
+                }
                 if (item.ViewModel != null)
                 {
-                    foreach (var model in region.GetComponentsInChildren<Transform>(true))
+                    foreach (var model in models)
                         if (model.name == item.ViewModel)
                         {
                             target.inspectModel = model.gameObject;
@@ -583,10 +604,15 @@ namespace CTCC
                             if (bounds.HasValue)
                             {
                                 target.transform.position = bounds.Value.center;
-                                target.GetComponent<BoxCollider>().size = bounds.Value.size + Vector3.one * .10f;
+                                float allowance = item.Drawer == null ? .10f : .035f;
+                                target.GetComponent<BoxCollider>().size = bounds.Value.size + Vector3.one * allowance;
                             }
+                            if (item.Drawer != null) target.focusPriority = 0;
+                            target.transform.SetParent(model.parent, true);
+                            target.handhold = target.transform;
                             break;
                         }
+                    if (item.Drawer != null && target.inspectModel == null) target.gameObject.SetActive(false);
                 }
             }
             if (region.staffChair == null) return;
@@ -595,6 +621,64 @@ namespace CTCC
                 new Vector3(.46f, .48f, .44f));
             seat.visibilitySurface = chair.GetComponentInChildren<Collider>();
             interactables?.ConfigureDrawer("CHAIR-STAFF", chair, chair.localPosition, new Vector3(-.14f, 0f, -.17f), -17f);
+        }
+
+        private SceneTarget receptionLedgerTarget, clipboardTarget;
+        internal Ch01PedalBin PedalBin { get; private set; }
+
+        internal bool CanReachWorkSurface(Vector3 feet, string id)
+        {
+            bool clipboard = id == RealityTransaction.WardClipboard;
+            var target = clipboard ? clipboardTarget : receptionLedgerTarget;
+            if (target == null)
+            {
+                var sceneId = clipboard ? "F101" : "AN01";
+                foreach (var point in GetComponentsInChildren<SceneTarget>(true))
+                    if (point.id == sceneId) { target = point; break; }
+                if (clipboard) clipboardTarget = target;
+                else receptionLedgerTarget = target;
+            }
+            if (target == null || !target.isActiveAndEnabled) return false;
+            Vector3 pointOnPaper = target.Contact;
+            Vector3 hand = feet + Vector3.up * 1.24f;
+            Vector3 eye = feet + Vector3.up * 1.58f;
+            return (hand - pointOnPaper).sqrMagnitude <= SceneTarget.Reach * SceneTarget.Reach &&
+                target.VisibleFrom(eye, pointOnPaper);
+        }
+
+        internal bool CanSeeWardChange(FormStatus decision, Transform eye)
+        {
+            if (decision == FormStatus.Affirmed && deniedBay != null && deniedBay.activeInHierarchy)
+            {
+                var front = deniedBay.transform.Find("Denied bay front");
+                var side = deniedBay.transform.Find("Denied bay return");
+                return SeePanel(front) || SeePanel(side);
+            }
+            if (decision == FormStatus.Unverified && interactables?.curtainCloth != null)
+            {
+                var fabric = interactables.curtainCloth;
+                var renderer = fabric.GetComponent<Renderer>();
+                return renderer != null && fabric.gameObject.activeInHierarchy && See(renderer.bounds.center, fabric);
+            }
+            if (decision != FormStatus.Refuted || refutedBay == null || !refutedBay.activeInHierarchy) return false;
+            var track = refutedBay.transform.Find("RefutedBed4SharpWheels");
+            return track != null && See(track.position + Vector3.up * .045f, track);
+
+            bool SeePanel(Transform panel)
+            {
+                if (panel == null || !panel.TryGetComponent<Collider>(out var surface)) return false;
+                return See(surface.ClosestPoint(eye.position), panel);
+            }
+
+            bool See(Vector3 position, Transform ownSurface)
+            {
+                Vector3 offset = position - eye.position;
+                if (offset.sqrMagnitude > 15f || offset.sqrMagnitude < .025f ||
+                    Vector3.Dot(eye.forward, offset.normalized) < .77f)
+                    return false;
+                return !Physics.Raycast(eye.position, offset.normalized, out var hit, offset.magnitude - .025f,
+                           SightMask, QueryTriggerInteraction.Collide) || hit.transform.IsChildOf(ownSurface);
+            }
         }
 
         private static SceneTarget AddTarget(Transform parent, string id, string title, Vector3 position, Vector3 size)

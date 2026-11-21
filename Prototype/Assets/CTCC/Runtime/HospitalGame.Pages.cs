@@ -400,7 +400,9 @@ namespace CTCC
                 bool back = inspector.ShowingBack;
                 var choices = new List<ActionChoice>();
                 if (backTex != null)
-                    choices.Add(new ActionChoice(back ? "[Space] Lật về mặt trước" : "[Space] Lật sang mặt sau", inspector.Flip));
+                    choices.Add(new ActionChoice(spec.Id == Ch01FieldObjects.Calendar
+                        ? (back ? "[Space] Lật lại tờ 18" : "[Space] Lật sang tờ 17")
+                        : (back ? "[Space] Lật về mặt trước" : "[Space] Lật sang mặt sau"), inspector.Flip));
                 if (back && inspector.HasRakingIndent)
                     choices.Add(new ActionChoice("[T] Nghiêng đón sáng (soi vết hằn bút bi)", () => inspector.TiltForRakingLight()));
                 for (int i = 0; i < details.Length; i++)
@@ -437,11 +439,16 @@ namespace CTCC
             ObservationRegistry.Bed4Card => "Một tấm thẻ giấy treo ở đầu giường.",
             ObservationRegistry.WardOverflowNotice => "Một tờ thông báo dán trên bảng tin nhân viên.",
             ObservationRegistry.ShiftGuide => "Một bản trích quy chế lưu ở bàn điều dưỡng.",
+            Ch01FieldObjects.Calendar => "Hai lá lịch vẫn chung một ghim sắt.",
             _ => null
         };
 
         private static InspectDetailTarget[] BuildDetailTargetsFor(string obsId) => obsId switch
         {
+            Ch01FieldObjects.Calendar => new[]
+            {
+                new InspectDetailTarget("CALENDAR_MARGIN", "Mép tờ 17", new Vector2(0f, -.05f), .275f, true)
+            },
             ObservationRegistry.F101Sheet => new[]
             {
                 new InspectDetailTarget(F101Annotations.Table, "Bảng kê", new Vector2(0.01f, 0.02f), 0.27f, false),
@@ -549,6 +556,8 @@ namespace CTCC
                 "Bệnh nhân xuất viện lúc 10g15 ngày 17/11/2005. Chăn và ga đã nộp lại tủ đồ vải tầng trệt. Tủ đầu giường trống.",
             ObservationRegistry.ShiftGuide =>
                 "Giấy kẹp của Lan gửi Minh: Bảng tổng hợp phòng 101 ghi 0, nhưng sau rèm còn một mục tối 17/11 thiếu chữ ký. Lan nhắc Minh xem cả hai mặt thẻ trước khi ký.",
+            Ch01FieldObjects.Calendar =>
+                "Thứ Năm, 17/11/2005. Hai dòng bút bi ở lề: Rửa cốc sau khi chốt ca. Treo lại chìa tủ ở móc cũ.",
             _ => null
         };
 
@@ -789,50 +798,6 @@ namespace CTCC
             ui.Show("HỒ SƠ TRONG KHO 101", "Bức tranh của An", missing ??
                 "Tranh ghi lại một cánh cửa có khóa. Vòng cũ ghi C01. Phiếu chuyển ghi An, khám sốt tạm ở 101/4 ngày 17/11/2005, rồi trở lại C01.",
                 choices.ToArray(), Anchor, State.Has(EvidenceRegistry.Drawing) ? Image("Drawing") : null);
-        }
-
-        private void Exception0317Page(Action back, bool mismatch = false)
-        {
-            bool done = CorroborationService.IsCorroborated(State);
-            var choices = new List<ActionChoice>();
-            string copy;
-            if (done)
-            {
-                copy = "Vết hằn sau thẻ AS-05B ghi 03g17, đúng giờ chiếc đồng hồ quầy dừng lại. " +
-                    "Ghi chép ca trực đặt dấu giờ này vào đêm 17–18/11/2005.";
-            }
-            else if (CorroborationService.CanCorroborate0317(State))
-            {
-                copy = "Mốc giờ nào xuất hiện cả trên đồng hồ ngoài quầy lẫn trong vết hằn sau thẻ?";
-                if (mismatch)
-                    copy = "Giờ đó chưa khớp với cả hai dấu. Có thể mở lại các quan sát trong sổ để kiểm tra.\n\n" + copy;
-
-                void MatchTime(int time)
-                {
-                    if (time != CorroborationService.MatchingTime)
-                    {
-                        Exception0317Page(back, mismatch: true);
-                        return;
-                    }
-
-                    SaveCheckpoint(() => casework.CrossCheck0317ExceptionAsync(time), () =>
-                    {
-                        scene.atmosphere?.From("clockTick", new Vector3(1.2f, 2.0f, -5.8f), 0.65f);
-                        Exception0317Page(back);
-                    });
-                }
-
-                choices.Add(new ActionChoice("10:15", () => MatchTime(1015)));
-                choices.Add(new ActionChoice("03:17", () => MatchTime(317)));
-                choices.Add(new ActionChoice("19:20", () => MatchTime(1920)));
-            }
-            else
-            {
-                copy = "Hai dấu giờ có thể liên quan. Mình cần thêm ghi chép của ca trực để biết chúng thuộc đêm nào.";
-            }
-            choices.Add(new ActionChoice("Quay lại Sổ điều tra", back));
-            ui.Show("GHI CHÚ NGOẠI LỆ", done ? "Mốc 03:17" : "So khớp giờ ghi chép", copy,
-                choices.ToArray(), back);
         }
 
         private List<ObservationSpec> CollectObservedDocuments()

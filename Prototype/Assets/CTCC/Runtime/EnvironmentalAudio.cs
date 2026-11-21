@@ -58,6 +58,8 @@ namespace CTCC
         private float signatureQuietUntil;
         private float signatureGain = 1f;
         private AudioClip signaturePen;
+        private AudioClip cradleClick, enamelPedal, ceramicContact;
+        private AudioSource handset;
         internal Transform Listener => listener;
 
         public string DirectionTo(Vector3 position)
@@ -269,6 +271,9 @@ namespace CTCC
                 "keyJingle" => keyJingle,
                 "trolleyRoll" => trolleyRoll,
                 "phoneBuzz" => phoneBuzz,
+                "handsetCradle" => cradleClick != null ? cradleClick : cradleClick = Resources.Load<AudioClip>("CTCC/CH01_Plastic_Cradle"),
+                "enamelPedal" => enamelPedal != null ? enamelPedal : enamelPedal = Resources.Load<AudioClip>("CTCC/CH01_Enamel_Pedal"),
+                "ceramicContact" => ceramicContact != null ? ceramicContact : ceramicContact = Resources.Load<AudioClip>("CTCC/CH01_Ceramic_Contact"),
                 "paStatic" => paStatic,
                 "breakerCut" => breakerCut,
                 "emergencyHum" => emergencyHum,
@@ -330,6 +335,22 @@ namespace CTCC
             UpdateCueMix(voice);
             voice.source.Play();
         }
+
+        internal void ListenToHandset()
+        {
+            if (handset == null)
+            {
+                handset = gameObject.AddComponent<AudioSource>();
+                handset.playOnAwake = false;
+                handset.spatialBlend = 0;
+                handset.priority = 98;
+                handset.clip = Resources.Load<AudioClip>("CTCC/CH01_Handset_Line");
+            }
+            handset.volume = .62f * sfxScale;
+            handset.PlayDelayed(.15f);
+        }
+
+        internal void PutHandsetDown() => handset?.Stop();
 
         public void Step(AudioSource source, bool running, bool crouched, Vector3 worldPos, bool reportLayer)
         {

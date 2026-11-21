@@ -6,6 +6,16 @@ namespace CTCC
     public enum JournalNoteKind { Annotation, Hypothesis, Contradiction, Question }
 
     [Serializable]
+    public struct TimelineConnection
+    {
+        public string left;
+        public string right;
+        public string context;
+
+        internal bool HasValue => !string.IsNullOrEmpty(left) || !string.IsNullOrEmpty(right) || !string.IsNullOrEmpty(context);
+    }
+
+    [Serializable]
     public struct JournalPaperMark
     {
         public bool placed;

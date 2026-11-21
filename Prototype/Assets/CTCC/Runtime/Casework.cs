@@ -166,10 +166,15 @@ namespace CTCC
             return next == null ? result : reality.Commit(next, feet);
         }
 
-        public Task<CommitResult> ObserveAsync(string id, string location = null, ObservationStage stage = ObservationStage.Examined)
+        public Task<CommitResult> ObserveAsync(string id, string location = null, ObservationStage stage = ObservationStage.Examined,
+            string detail = null)
         {
             var result = PrepareObservation(id, location, stage, out var next);
-            return next == null ? Task.FromResult(result) : reality.CommitEvidenceAsync(next);
+            if (next == null)
+                return result == CommitResult.Applied && detail != null
+                    ? MarkObservationDetailAsync(id, detail) : Task.FromResult(result);
+            if (detail != null) next.MarkObservationDetail(id, detail, false);
+            return reality.CommitEvidenceAsync(next);
         }
 
         public Task<CommitResult> MarkObservationDetailAsync(string id, string detailId, bool flippedBack = false)
@@ -374,37 +379,29 @@ namespace CTCC
             return reality.Commit(next, feet);
         }
 
-        public CommitResult CrossCheck0317Exception(Vector3 feet, int selectedTime)
+        public CommitResult CrossCheck0317Exception(Vector3 feet, TimelineConnection link)
         {
-            var result = PrepareCrossCheck0317(selectedTime, out var next);
+            var result = PrepareCrossCheck0317(link, out var next);
             return next == null ? result : reality.Commit(next, feet);
         }
 
-        public Task<CommitResult> CrossCheck0317ExceptionAsync(int selectedTime)
+        public Task<CommitResult> CrossCheck0317ExceptionAsync(TimelineConnection link)
         {
-            var result = PrepareCrossCheck0317(selectedTime, out var next);
+            var result = PrepareCrossCheck0317(link, out var next);
             return next == null ? Task.FromResult(result) : reality.CommitEvidenceAsync(next);
         }
 
-        private CommitResult PrepareCrossCheck0317(int selectedTime, out Investigation next)
+        private CommitResult PrepareCrossCheck0317(TimelineConnection link, out Investigation next)
         {
             next = null;
-            if (selectedTime != CorroborationService.MatchingTime)
-                return CommitResult.PadRequired;
             if (CorroborationService.IsCorroborated(State))
                 return CommitResult.Applied;
-            if (!CorroborationService.CanCorroborate0317(State))
+            if (!CorroborationService.CanCorroborate0317(State) || !CorroborationService.Supported0317(State, link))
                 return CommitResult.PadRequired;
             next = State.Copy();
             next.Remember(CorroborationService.Exception0317Event);
-            foreach (string ctxId in new[]
-            {
-                ObservationRegistry.StoppedClock0317,
-                ObservationRegistry.Bed4Card,
-                ObservationRegistry.ReceptionDrawerLog,
-                ObservationRegistry.ShiftGuide,
-                ObservationRegistry.WardOverflowNotice
-            })
+            next.exception0317Link = link;
+            foreach (string ctxId in new[] { link.left, link.right, link.context })
             {
                 var rec = next.FindObservation(ctxId);
                 if (rec != null && rec.stage < ObservationStage.Corroborated)

@@ -237,11 +237,37 @@ namespace CTCC
 
         public bool ToggleCurtain(EnvironmentalAudio audioBus)
         {
-            curtainPulled = !curtainPulled;
-            curtainTargetBlend = curtainPulled ? 1f : 0f;
+            SetCurtainAmount(curtainPulled ? 0f : 1f, audioBus);
+            return curtainPulled;
+        }
+
+        internal void SetCurtainAmount(float amount, EnvironmentalAudio audioBus)
+        {
+            curtainTargetBlend = Mathf.Clamp01(amount);
+            curtainPulled = curtainTargetBlend > .5f;
             if (curtainCloth != null)
                 audioBus?.From("curtainSlide", curtainCloth.position);
-            return curtainPulled;
+            if (reducedMotion)
+            {
+                curtainBlend = curtainTargetBlend;
+                ApplyCurtainPose();
+            }
+        }
+
+        private readonly Collider[] chairObstacles = new Collider[16];
+
+        internal bool StaffChairClear()
+        {
+            if (!drawers.TryGetValue("CHAIR-STAFF", out var chair) || chair.transform == null) return true;
+            var body = chair.transform.GetComponentInChildren<BoxCollider>();
+            if (body == null) return true;
+            var geometry = body.transform;
+            Vector3 half = Vector3.Scale(body.size * .5f, geometry.lossyScale) - Vector3.one * .012f;
+            int count = Physics.OverlapBoxNonAlloc(geometry.TransformPoint(body.center), half, chairObstacles,
+                geometry.rotation, HospitalScene.SolidMask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+                if (!chairObstacles[i].transform.IsChildOf(chair.transform)) return false;
+            return true;
         }
 
         public void SetCurtainPulled(bool pulled, bool instant = false)
@@ -514,6 +540,7 @@ namespace CTCC
             {
                 curtainCloth.localRotation = curtainBaseRot;
             }
+            Physics.SyncTransforms();
         }
 
         private void Update()

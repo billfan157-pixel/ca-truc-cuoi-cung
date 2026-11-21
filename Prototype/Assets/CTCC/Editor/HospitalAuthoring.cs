@@ -182,7 +182,11 @@ namespace CTCC.Editor
         public static void Greybox() => new HospitalAuthoring(false, multiScene: false).Generate(true);
 
         [MenuItem("Ca Trực Cuối Cùng/2 — Dựng cảnh M2 Vertical Slice (5 Additive Scenes)")]
-        public static void ReferenceScene() => new HospitalAuthoring(true, multiScene: true).Generate(true);
+        public static void ReferenceScene()
+        {
+            new HospitalAuthoring(true, multiScene: true).Generate(true);
+            UpdateRebirthTwo();
+        }
 
         public static void PrepareAndTest()
         {

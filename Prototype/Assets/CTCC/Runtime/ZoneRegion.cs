@@ -57,6 +57,8 @@ namespace CTCC
         public Vector3 drawerDeskOpenOffset;
         public Transform drawerNurse;
         public Transform staffChair;
+        public Transform receptionHandset;
+        public Ch01PedalBin pedalBin;
         public Vector3 drawerNurseClosedPos;
         public Vector3 drawerNurseOpenOffset;
         public Vector3 curtainClosedPos;

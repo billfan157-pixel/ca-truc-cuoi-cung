@@ -226,6 +226,7 @@ namespace CTCC
             inspector?.SetReducedMotion(current.settings.reduceMotion);
             inspector?.SetCameraAssist(!current.settings.disableCameraAssist);
             scene.interactables?.SetReducedMotion(current.settings.reduceMotion);
+            if (scene.PedalBin != null) scene.PedalBin.ReducedMotion = current.settings.reduceMotion;
             scene.ApplyAtmosphereSettings(current.settings.reduceMotion);
             if (scene.motion != null)
             {
@@ -279,6 +280,16 @@ namespace CTCC
             if (keys == null) return;
             if (keys.escapeKey.wasPressedThisFrame)
             {
+                if (scene.interactables?.IsDragging == true)
+                {
+                    CancelWorldDrag();
+                    return;
+                }
+                if (scene.PedalBin?.HeldOpen == true)
+                {
+                    SetPedalBin(false);
+                    return;
+                }
                 if (firstEscape) firstEscape = false;
                 else Pause();
                 return;
@@ -291,6 +302,8 @@ namespace CTCC
             }
 
             Vector3 feet = player.Feet;
+            if (scene.PedalBin?.HeldOpen == true && (scene.PedalBin.transform.position - feet).sqrMagnitude > 7f)
+                SetPedalBin(false);
             if (!streaming && Time.unscaledTime >= reconcileRegionsAt)
                 StartCoroutine(UpdateRegions());
             if (State.chapter == "CH02" && GateService.G02(State) && transaction.OnPad(feet, "AP06"))
@@ -430,6 +443,13 @@ namespace CTCC
             }
             var target = player.Focus(availableTarget);
             var mouse = Mouse.current;
+            if (target?.id == "CURTAIN-101" && anchorPressed && scene.interactables?.IsDragging != true)
+            {
+                float before = scene.interactables.IntendedOpenness(target.id);
+                scene.interactables.SetCurtainAmount(before < .28f || before > .78f ? .5f : 1f, scene.atmosphere);
+                SaveWorldPose(target.id, before);
+                return;
+            }
             if (target?.id == "F101" && State.chapter == "CH02" && anchorPressed)
             {
                 SwitchAtClipboard();
@@ -452,7 +472,8 @@ namespace CTCC
                     {
                         float before = scene.interactables.GetDragOpenness01(dragId);
                         scene.interactables.UpdateDrag(mouse.delta.ReadValue(), scene.atmosphere);
-                        if (HospitalScene.Occupied(feet)) scene.interactables.RestorePose(dragId, before);
+                        if (HospitalScene.Occupied(feet) || dragId == "CHAIR-STAFF" && !scene.interactables.StaffChairClear())
+                            scene.interactables.RestorePose(dragId, before);
                         ui.Prompt("Thả để giữ vị trí   ·   Esc để hủy");
                         return;
                     }
@@ -473,7 +494,7 @@ namespace CTCC
                 }
             }
 
-            ui.Prompt(WorldPrompt(target));
+            ui.Prompt(target != null ? WorldPrompt(target) : player.BeyondReach != null ? "Tiến lại gần hơn" : null);
             if (use && target != null)
             {
                 dreadDirector?.NotifyInteraction(0.32f);
@@ -616,18 +637,17 @@ namespace CTCC
             "CHAIR-STAFF" => State.chapter == "CH01",
             "GATE-CONG" => !State.Happened("CH01-T02"),
             "SEAM" => State.Happened("CH01-T08"),
-            "AN01" => transaction.AtRequiredPlace(player.Feet, RealityTransaction.ReceptionDesk) &&
-                State.Happened("CH01-T02") && !(F101SignaturePlaying && NeedsHub()),
-            "BOARD" => State.layer == Reality.B && State.chapter == "CH01" && !State.Happened("CH01-T05") &&
-                transaction.AtRequiredPlace(player.Feet, RealityTransaction.ReceptionDesk),
+            "AN01" => State.Happened("CH01-T02") && !(F101SignaturePlaying && NeedsHub()),
+            "BOARD" => State.layer == Reality.B && State.chapter == "CH01" && !State.Happened("CH01-T05"),
             "LAN_TALK" => State.layer == Reality.B && State.chapter == "CH01" && State.Happened("CH01-T03") &&
                 !State.Happened("CH01-T08") && scene.LanActor != null && scene.LanActor.gameObject.activeInHierarchy &&
                 NextLanReflection() != null,
             "BATTERY" => !State.Happened("CH01-BATTERY") && State.Happened("CH01-T02"),
-            "F101" => casework.CanRevise && !F101SignaturePlaying && gatekeeperCameo?.IsActive != true &&
-                transaction.AtRequiredPlace(player.Feet, RealityTransaction.WardClipboard),
+            "F101" => casework.CanRevise && !F101SignaturePlaying && gatekeeperCameo?.IsActive != true,
             "AN02" => false,
-            "OBS101A" or "OBS101B" or "OBS101C" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02"),
+            "OBS101A" or "OBS101A_BLANKET" or "OBS101A_SLIPPERS" =>
+                State.layer == Reality.B && State.chapter is ("CH01" or "CH02") && State.f101.current != FormStatus.Affirmed,
+            "OBS101B" or "OBS101C" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02"),
             "OBS101D" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02") && (scene.interactables == null || scene.interactables.IsDrawerOpen("DRAWER-BED3")),
             "OBS_SHIFT_LOG" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02") && (scene.interactables == null || scene.interactables.IsDrawerOpen("DRAWER-NURSE")),
             "OBS_CORRIDOR_NOTICE" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02"),
@@ -645,8 +665,10 @@ namespace CTCC
             "E03" or "C02_NOTE" or "AN03" or "C02_BAG" or "C02_LETTER" or "C12_BOX" or "FS10_LOCK" or "RADIO_LOC07" or "G03" => State.chapter is "CH03" or "CH04",
             "CH03_EXIT" => State.chapter == "CH03" && GateService.G03(State),
             "AN04" or "CH04_POWER" or "E04_E07" => State.chapter == "CH04",
+            Ch01FieldObjects.BinInterior => State.chapter == "CH01" && scene.PedalBin?.CanSeeInside == true,
             _ when target.fieldObject != null => target.fieldObject.Observation.AllowsChapter(State.chapter) &&
-                target.fieldObject.Observation.AllowsLayer(State.layer),
+                target.fieldObject.Observation.AllowsLayer(State.layer) &&
+                (target.fieldObject.Drawer == null || scene.interactables?.IsDrawerOpen(target.fieldObject.Drawer) == true),
             _ => true
         };
 
@@ -713,9 +735,13 @@ namespace CTCC
                     else Anchor();
                     break;
                 case "OBS101A":
-                    DiegeticObservation(id, "Dấu sử dụng tại vị trí giường 4",
-                        "Vết bánh giường trên nền gạch. Một tấm chăn gấp vội và đôi dép nhựa đặt lệch bên mép sàn.",
-                        "LOC03");
+                    ObserveBed4Trace(WheelTrace, "Vệt bánh trên nền gạch");
+                    break;
+                case "OBS101A_BLANKET":
+                    ObserveBed4Trace(BlanketTrace, "Chăn bông gấp vội");
+                    break;
+                case "OBS101A_SLIPPERS":
+                    ObserveBed4Trace(SlipperTrace, "Đôi dép lệch");
                     break;
                 case "OBS101B":
                     InspectRegisteredObservation(ObservationRegistry.Bed4Card, "LOC03", source: source);
@@ -857,6 +883,11 @@ namespace CTCC
             bool startingCh02 = State.Happened("CH01-T09") && !State.Happened("CH01-T10");
 
             if (collapsingR && F101SignaturePlaying) return;
+            if (!transaction.AtRequiredPlace(player.Feet, RealityTransaction.ReceptionDesk))
+            {
+                ui.Caption("Lại gần sổ trực trên quầy.", 2.7f, true);
+                return;
+            }
             if (source != null) scene.atmosphere?.From("paperFlip", source.position, 0.6f);
             if (collapsingR)
                 scene.atmosphere?.From("breakerCut", new Vector3(1.5f, 2.2f, -3.2f));
@@ -1009,7 +1040,7 @@ namespace CTCC
             for (float t = 0f; t < seconds; t += Time.unscaledDeltaTime)
             {
                 float k = Mathf.Clamp01(t / seconds);
-                float ease = k * k;
+                float ease = keepView ? Mathf.SmoothStep(0f, 1f, k) : k * k;
                 ui.Fade(ease);
                 if (!reduced && !keepView)
                 {
@@ -1048,7 +1079,7 @@ namespace CTCC
             for (float t = 0f; t < seconds; t += Time.unscaledDeltaTime)
             {
                 float k = 1f - Mathf.Clamp01(t / seconds);
-                float ease = k * k;
+                float ease = keepView ? Mathf.SmoothStep(0f, 1f, k) : k * k;
                 ui.Fade(ease);
                 if (!reduced && !keepView)
                 {
@@ -1122,6 +1153,7 @@ namespace CTCC
         private Texture Image(string id)
         {
             if (string.IsNullOrEmpty(id)) return null;
+            if (id == "Calendar2005_Previous") return Resources.Load<Texture2D>("CTCC/Calendar2005_Previous");
             foreach (var entry in scene.inspectImages)
                 if (entry.id == id) return entry.image;
             return null;

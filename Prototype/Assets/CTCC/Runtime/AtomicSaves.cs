@@ -288,6 +288,9 @@ namespace CTCC
             if (s.journalNotes == null || s.journalNotes.Count > JournalNote.MaxNotes ||
                 s.journalNotes.Exists(n => n == null || !n.ValidFor(s)) || !ScenePropPose.ValidList(s.sceneProps))
                 return false;
+            if (s.exception0317Link.HasValue && (!CorroborationService.IsCorroborated(s) ||
+                !CorroborationService.Supported0317(s, s.exception0317Link)))
+                return false;
             if (s.dreadEventsSeen != null)
             {
                 var seenDread = new HashSet<string>(StringComparer.Ordinal);

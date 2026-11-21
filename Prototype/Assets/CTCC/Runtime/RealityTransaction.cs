@@ -218,20 +218,13 @@ namespace CTCC
             return Mathf.Abs(offset.y) < .22f && new Vector2(offset.x, offset.z).sqrMagnitude < .58f * .58f;
         }
 
-        // AP02/AP04 remain the checkpoint positions. The counter and clipboard
-        // can be used from several stances on the same side of the furniture.
         internal const string ReceptionDesk = "AN01";
         internal const string WardClipboard = "AN02";
 
         internal bool AtRequiredPlace(Vector3 feet, string id)
         {
             if (id is not (ReceptionDesk or WardClipboard)) return OnPad(feet, id);
-            if (!scene.TryPad(id == ReceptionDesk ? "AP02" : "AP04", out var pad)) return false;
-            Vector3 offset = feet - pad.position;
-            if (Mathf.Abs(offset.y) >= 0.22f) return false;
-            if (id == ReceptionDesk)
-                return offset.x >= -1.08f && offset.x <= 0.94f && Mathf.Abs(offset.z) <= 1.45f;
-            return offset.x >= -0.25f && offset.x <= 1.34f && Mathf.Abs(offset.z) <= 1.26f;
+            return scene.CanReachWorkSurface(feet, id);
         }
 
         private static bool CheckpointClear(string workArea, Vector3 position) =>

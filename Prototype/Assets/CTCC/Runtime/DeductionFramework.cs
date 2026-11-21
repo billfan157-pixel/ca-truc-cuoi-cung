@@ -851,23 +851,25 @@ namespace CTCC
         public const string Exception0317Event = "CH01-EX01";
         public const string Exception0317Dialogue = "CH01-D19";
         public const string RakingDetailId = "RAKING_INDENT";
-        public const int MatchingTime = 317;
-
-        public static bool HasShiftContext(Investigation state) =>
-            state != null && (state.Observed(ObservationRegistry.ReceptionDrawerLog) ||
-                              state.Observed(ObservationRegistry.ShiftGuide) ||
-                              state.Observed(ObservationRegistry.WardOverflowNotice));
+        public static bool IsShiftContext(string id) =>
+            id is ObservationRegistry.ReceptionDrawerLog or ObservationRegistry.ShiftGuide or ObservationRegistry.WardOverflowNotice;
 
         public static bool HasClock(Investigation state) =>
-            state != null && state.Observed(ObservationRegistry.StoppedClock0317);
+            HypothesisService.HasExaminedInLayerB(state, ObservationRegistry.StoppedClock0317);
 
         public static bool HasCardTimestamp(Investigation state) =>
             state != null && HypothesisService.HasExaminedInLayerB(state, ObservationRegistry.Bed4Card) &&
-            state.FindObservation(ObservationRegistry.Bed4Card).HasDetail(RakingDetailId);
+            state.FindObservation(ObservationRegistry.Bed4Card)?.HasDetail(RakingDetailId) == true;
 
         public static bool CanCorroborate0317(Investigation state) =>
             state != null && state.chapter == "CH01" && state.layer == Reality.B &&
-            !state.Happened("CH01-T08") && HasClock(state) && HasCardTimestamp(state) && HasShiftContext(state);
+            !state.Happened("CH01-T08") && HasClock(state) && HasCardTimestamp(state) &&
+            state.observationRecords.Exists(r => IsShiftContext(r.id) && r.stage >= ObservationStage.Examined);
+
+        internal static bool Supported0317(Investigation state, TimelineConnection link) =>
+            ((link.left == ObservationRegistry.StoppedClock0317 && link.right == ObservationRegistry.Bed4Card) ||
+             (link.right == ObservationRegistry.StoppedClock0317 && link.left == ObservationRegistry.Bed4Card)) &&
+            HasClock(state) && HasCardTimestamp(state) && IsShiftContext(link.context) && JournalNote.HasSource(state, link.context);
 
         public static bool IsCorroborated(Investigation state) =>
             state != null && state.Happened(Exception0317Event);

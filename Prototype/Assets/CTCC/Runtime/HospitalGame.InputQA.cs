@@ -33,8 +33,14 @@ namespace CTCC
             {
                 yield return null;
                 yield return null;
-                foreach (var choice in new[] { FormStatus.Affirmed, FormStatus.Unverified, FormStatus.Refuted })
-                    yield return InputVisit(choice);
+                string branchFilter = Argument("-ctcc-input-branch");
+                var branches = new[] { FormStatus.Affirmed, FormStatus.Unverified, FormStatus.Refuted };
+                bool Selected(FormStatus branch) =>
+                    branchFilter == null || string.Equals(branch.ToString(), branchFilter, StringComparison.OrdinalIgnoreCase);
+                Require(Array.Exists(branches, Selected), "input QA branch must be Affirmed, Unverified or Refuted");
+                foreach (var choice in branches)
+                    if (Selected(choice))
+                        yield return InputVisit(choice);
                 yield return InspectLifetimeStress();
             }
             finally
@@ -50,8 +56,9 @@ namespace CTCC
 
         private IEnumerator InputVisit(FormStatus branch)
         {
+            bool restart = transaction.Inspect(SaveSlot.Auto) is SaveRead.Valid or SaveRead.Backup;
             yield return Choose("Ca trực mới");
-            if (branch != FormStatus.Affirmed) yield return Choose("Bắt đầu");
+            if (restart) yield return Choose("Bắt đầu");
             yield return Until(() => !ui.IsModal && !busy, "free view at the gate");
             Require(!State.Happened("E10a.SMSRead"), "the envelope starts unread");
             yield return AimAndUseHere("E10a");
@@ -91,6 +98,19 @@ namespace CTCC
                     yield return WalkWithInput(new Vector3(4f, 0f, -3.30f));
                     Require(State.layer == Reality.R && !ui.IsModal, "walking across AP02 leaves the view and layer free");
                     yield return WalkWithInput(new Vector3(3.28f, 0f, -3.54f));
+                    yield return AimAndUseHere(Ch01FieldObjects.Handset);
+                    yield return Until(() => !busy && inspector.IsInspecting, "handset lifts from the physical cradle");
+                    var handset = FindObjectsByType<SceneTarget>(FindObjectsSortMode.None).Single(t => t.id == Ch01FieldObjects.Handset).inspectModel;
+                    Require(!handset.activeSelf, "the world handset leaves the cradle while held");
+                    yield return new WaitForSecondsRealtime(.45f);
+                    var held = player.Eye.transform.Find("Physical Inspector Stage/Inspect Holder").GetComponentInChildren<MeshRenderer>();
+                    Vector3 screen = player.Eye.WorldToViewportPoint(held.bounds.center);
+                    Require(held.isVisible && screen.x is > .10f and < .61f && screen.y is > .14f and < .86f && screen.z > .15f,
+                        "the lifted handset stays visible on the inspection side of the screen");
+                    CaptureInvestigation("handset-raised");
+                    yield return new WaitForEndOfFrame();
+                    yield return Tap(Key.Escape);
+                    yield return Until(() => !busy && !inspector.IsInspecting && handset.activeSelf, "cancel returns the physical handset to the cradle");
                     Vector3 entryFeet = player.Feet;
                     yield return AimAndUseHere("AN01");
                     yield return Until(() => !busy && State.layer == Reality.B && State.Happened("CH01-T03"), "reading the ledger changes reception in place");
@@ -136,6 +156,9 @@ namespace CTCC
                     yield return AimAndUseHere("DRAWER-NURSE");
                     yield return Until(() => scene.interactables.IsDrawerOpen("DRAWER-NURSE"), "STAFF nurse drawer slides open");
                     yield return new WaitForSecondsRealtime(0.45f);
+                    yield return AimAndUseHere("CH01_DRAWER_CLIP");
+                    yield return Until(() => !busy && inspector.IsInspecting, "a separate mesh inside the open STAFF drawer can be lifted");
+                    yield return Tap(Key.Escape);
                     yield return AimAndUseHere("OBS_SHIFT_LOG");
                     yield return Until(() => !busy && inspector.IsInspecting, "AS-05 shift guide inspected");
                     yield return Tap(Key.Digit3);
@@ -217,13 +240,31 @@ namespace CTCC
                     yield return Tap(Key.Tab);
                     yield return Until(() => ui.IsModal, "Journal opened via Tab");
                     yield return Choose("Dòng thời gian");
-                    yield return Choose("So khớp giờ ghi chép");
-                    yield return Choose("19:20");
-                    Require(!CorroborationService.IsCorroborated(State) && ActivePageContains("Giờ đó chưa khớp"),
-                        "wrong time stays open for another deduction");
-                    yield return Choose("03:17");
-                    yield return Until(() => !busy && CorroborationService.IsCorroborated(State), "correct time records CH01-EX01");
-                    yield return Choose("Quay lại Sổ điều tra");
+                    yield return Choose("Phiếu chuyển giường 02");
+                    yield return Choose("Ghim mốc trái");
+                    yield return Choose("Vết hằn trên AS-05B");
+                    yield return Choose("Ghim mốc phải");
+                    yield return Choose("Nối hai mốc");
+                    Require(!CorroborationService.IsCorroborated(State) && ActivePageContains("ca trực"),
+                        "two pins never commit without a selected context");
+                    yield return Choose("Quy chế AS-05");
+                    yield return Choose("Kẹp ghi chú ca trực");
+                    yield return Choose("Nối hai mốc");
+                    Require(!CorroborationService.IsCorroborated(State) && ActivePageContains("chưa đủ để ghi cùng"),
+                        "the wrong pair leaves the timeline open and the save unsigned");
+                    var clockCard = ButtonMatching("Đồng hồ ở quầy");
+                    var timelinePin = ui.GetComponentsInChildren<RectTransform>().Single(rect => rect.name == "Timeline left pin");
+                    Canvas.ForceUpdateCanvases();
+                    SendPaperDrag(clockCard.gameObject, RectTransformUtility.WorldToScreenPoint(null, clockCard.transform.position),
+                        RectTransformUtility.WorldToScreenPoint(null, timelinePin.TransformPoint(timelinePin.rect.center)));
+                    Require(timelineDraft.left == ObservationRegistry.StoppedClock0317,
+                        "dragging the clock card replaces the left pin without changing its context");
+                    CaptureInvestigation("timeline-0317-pins");
+                    yield return Choose("Nối hai mốc");
+                    yield return Until(() => !busy && CorroborationService.IsCorroborated(State), "explicit observed pair and context record CH01-EX01");
+                    Require(State.exception0317Link.context == ObservationRegistry.ShiftGuide &&
+                        ActivePageContains("chưa xác định sự kiện"), "timeline records source IDs and limits the result");
+                    CaptureInvestigation("timeline-0317-saved");
                     yield return VerifyNotebookInput();
                     yield return NotebookLifetimeStress();
 
@@ -347,6 +388,7 @@ namespace CTCC
                         State.f101History[0].annotations.SupportsRefutation(State) &&
                         scene.refutedBay != null && scene.refutedBay.activeInHierarchy, "Refuted visual and signed annotations verified");
                     verification.Add("REBIRTH II F101 PASS: missing sources, wrong hotspot/link, unrelated evidence, overclaim, mouse signature, cancel, double-stamp guard and before/after publication.");
+                    yield return LookForWardConsequence(branch);
                     if (captureExpansion) yield return new WaitForSecondsRealtime(0.75f);
 
                     // Walk back out of Room 101 to Reception (B->R collapse), outer gate seam, and Reception (CH02 handoff) — ZERO TELEPORTS!
@@ -409,12 +451,27 @@ namespace CTCC
                     var cloth = scene.interactables.curtainCloth;
                     var scale = cloth.localScale;
                     yield return WalkWithInput(new Vector3(11.68f, 0.02f, 4.92f));
+                    var curtain = FindObjectsByType<SceneTarget>(FindObjectsSortMode.None).Single(t => t.id == "CURTAIN-101");
+                    var sightSurface = curtain.visibilitySurface;
+                    Require(sightSurface != null && sightSurface.isTrigger, "cloth carries a dedicated sight collider");
+                    float closedWidth = sightSurface.bounds.size.x;
+                    player.Eye.transform.LookAt(curtain.transform.position);
+                    player.CanPlay = false;
+                    yield return Tap(Key.Q);
+                    RefreshControls();
+                    yield return Until(() => !busy && Mathf.Abs((State.FindPropPose("CURTAIN-101", Reality.B)?.openness ?? -1f) - .5f) < .01f,
+                        "keyboard half-open curtain pose is saved");
                     yield return AimAndUseHere("CURTAIN-101");
                     yield return Until(() => scene.interactables.curtainPulled && (cloth.localScale - scale).sqrMagnitude > 0.05f,
                         "curtain opens through use input");
+                    Require(sightSurface.bounds.size.x < .88f * closedWidth,
+                        "curtain shrinks its sight collider along the rail");
                     yield return AimAndUseHere("CURTAIN-101");
                     yield return Until(() => !scene.interactables.curtainPulled && (cloth.localScale - scale).sqrMagnitude < 0.001f,
                         "curtain closes through use input");
+                    yield return AimAndUseHere("CURTAIN-101");
+                    yield return Until(() => scene.interactables.curtainPulled, "curtain opens again for field inspection");
+                    yield return new WaitForSecondsRealtime(.5f);
                     yield return WalkWithInput(new Vector3(10.75f, 0f, 4.56f));
                     yield return AimAndUseHere("OBS101A");
                     yield return Until(() => State.Observed(ObservationRegistry.Bed4Traces), "site-first route records physical traces");
@@ -469,6 +526,7 @@ namespace CTCC
                         "Unchanged F101 UI submission issues no PA, stamp, transition cue, save or revision");
                     verification.Add("TASK03 INPUT PASS: unchanged F101 submission through the keyboard UI is silent and preserves the revision.");
                 }
+                yield return LookForWardConsequence(branch);
                 yield return WalkWithInput(new Vector3(4f, 0f, 4.75f));
                 yield return WalkWithInput(new Vector3(4f, 0f, -3.30f));
                 yield return Until(() => !F101SignaturePlaying, "the signature response finishes before the return");
@@ -648,6 +706,31 @@ namespace CTCC
                 $"Input route to {destination} ended at {player.Feet}; blocker={blocker}, controls={player.CanPlay}, modal={ui.IsModal}");
         }
 
+        private IEnumerator LookForWardConsequence(FormStatus branch)
+        {
+            yield return Until(() => !busy && !ui.IsModal, "the signed sheet returns before inspecting the ward");
+            player.SetViewRotation(Quaternion.LookRotation(Vector3.left));
+            yield return new WaitForSecondsRealtime(.28f);
+            Require(!State.f101History[0].consequenceObserved, "filing alone does not mark the room as observed");
+            yield return WalkWithInput(new Vector3(9.82f, 0f, 4.93f));
+            Vector3 cue = branch switch
+            {
+                FormStatus.Affirmed => scene.deniedBay.transform.Find("Denied bay front").GetComponent<Collider>()
+                    .ClosestPoint(player.Eye.transform.position),
+                FormStatus.Unverified => scene.interactables.curtainCloth.GetComponent<Renderer>().bounds.center,
+                _ => scene.refutedBay.transform.Find("RefutedBed4SharpWheels").position
+            };
+            player.SetViewRotation(Quaternion.LookRotation(cue - player.Eye.transform.position));
+            yield return Until(() => State.f101History[0].consequenceObserved && !busy, $"{branch} follows the player's renewed sightline");
+            yield return null;
+            CaptureInvestigation("room-101-after-" + branch);
+            yield return new WaitForEndOfFrame();
+            Require(saves.Read(SaveSlot.Auto, out var reviewed) == SaveRead.Valid && reviewed.f101History[0].consequenceObserved,
+                "the room consequence stays observed in the save");
+            verification.Add($"WARD AFTERMATH PASS {branch}: looking away defers the observation, returning to the ward records it durably.");
+            yield return WalkWithInput(new Vector3(7.24f, 0f, 4.93f));
+        }
+
         private IEnumerator CaptureExpansionFrames(string directory)
         {
             Directory.CreateDirectory(directory);
@@ -722,16 +805,16 @@ namespace CTCC
         {
             var target = FindObjectsByType<SceneTarget>(FindObjectsSortMode.None).Single(t => t.id == id);
             yield return Until(() => !busy && !savingDialogue, "ready to aim at " + id);
-            Vector3 look = target.transform.position - player.Eye.transform.position;
+            Vector3 look = target.Contact - player.Eye.transform.position;
             Vector3 planar = new(look.x, 0f, look.z);
             if (planar.sqrMagnitude > 0.0001f)
                 player.transform.rotation = Quaternion.LookRotation(planar);
-            player.Eye.transform.LookAt(target.transform.position);
+            player.Eye.transform.LookAt(target.Contact);
             var focus = player.Focus(Available);
             if (focus != target)
             {
                 Physics.Raycast(player.Eye.transform.position, look.normalized, out var occlusion, look.magnitude - .04f,
-                    HospitalScene.SolidMask, QueryTriggerInteraction.Ignore);
+                    HospitalScene.SightMask, QueryTriggerInteraction.Collide);
                 Require(false, $"No sightline to {id} from {player.Feet}; target={target.transform.position}, " +
                     $"available={Available(target)}, focus={focus?.id}, obstruction={occlusion.collider?.name}");
             }

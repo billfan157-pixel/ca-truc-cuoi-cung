@@ -28,10 +28,9 @@ namespace CTCC
         public bool IsCrouching => capsule != null && capsule.height < 1.35f;
         public bool IsRunning => currentVelocity.sqrMagnitude > 9.0f;
         public bool IsMoving => currentVelocity.sqrMagnitude > 0.05f;
-        private const float Reach = 2.60f;
-        private const float SurfaceTolerance = 0.085f;
         private readonly Collider[] nearby = new Collider[64];
         private SceneTarget focusedTarget;
+        internal SceneTarget BeyondReach { get; private set; }
 
         public void Initialize(Camera camera, EnvironmentalAudio bus)
         {
@@ -118,6 +117,9 @@ namespace CTCC
             if (LookSuppressed)
             {
                 currentVelocity = Vector3.zero;
+                Vector3 rest = Vector3.up * (capsule.height - .16f);
+                eye.transform.localPosition = Vector3.Lerp(eye.transform.localPosition, rest,
+                    1f - Mathf.Exp(-9f * Time.unscaledDeltaTime));
                 return;
             }
 
@@ -224,10 +226,12 @@ namespace CTCC
             var camera = eye.transform;
             Vector3 origin = camera.position;
             Vector3 forward = camera.forward;
-            int count = Physics.OverlapSphereNonAlloc(origin + forward * 1.25f, 1.58f, nearby,
+            int count = Physics.OverlapSphereNonAlloc(origin + forward * 1.55f, 1.78f, nearby,
                 HospitalScene.InteractMask, QueryTriggerInteraction.Collide);
             var aim = new Ray(origin, forward);
             SceneTarget best = null;
+            BeyondReach = null;
+            float farDistance = 3.15f;
             float bestWeight = float.NegativeInfinity;
             float heldWeight = float.NegativeInfinity;
             for (int i = 0; i < count; i++)
@@ -235,21 +239,27 @@ namespace CTCC
                 var candidate = nearby[i];
                 var target = candidate.GetComponent<SceneTarget>();
                 if (target == null || !allowed(target)) continue;
-                Vector3 center = candidate.bounds.center;
+                Vector3 center = target.handhold != null ? target.Contact : candidate.bounds.center;
                 Vector3 offset = center - origin;
                 float distance = offset.magnitude;
-                if (distance < 0.01f || distance > Reach + 0.30f) continue;
+                if (distance < 0.01f || distance > 3.4f) continue;
                 float alignment = Vector3.Dot(forward, offset / distance);
-                bool direct = candidate.Raycast(aim, out var hit, Reach);
-                if (!direct && (alignment < (target == focusedTarget ? 0.945f : 0.965f) || distance > Reach))
+                bool direct = candidate.Raycast(aim, out var hit, 3.15f);
+                bool reachable = target.handhold != null ? distance <= SceneTarget.Reach :
+                    direct ? hit.distance <= SceneTarget.Reach && distance <= SceneTarget.Reach + .30f : distance <= SceneTarget.Reach;
+                if (!reachable)
+                {
+                    if (direct && hit.distance < farDistance && target.VisibleFrom(origin, center))
+                    {
+                        farDistance = hit.distance;
+                        BeyondReach = target;
+                    }
+                    continue;
+                }
+                if (!direct && alignment < (target == focusedTarget ? 0.945f : 0.965f))
                     continue;
 
-                // The trigger can extend in front of a handle or sheet. Its
-                // centre must still be visible so it cannot be used through a wall.
-                if (Physics.Raycast(origin, offset / distance, out var blocker, distance - SurfaceTolerance,
-                    HospitalScene.SolidMask, QueryTriggerInteraction.Ignore) &&
-                    (target.visibilitySurface == null || blocker.collider != target.visibilitySurface))
-                    continue;
+                if (!target.VisibleFrom(origin, center)) continue;
                 float weight = alignment - (direct ? hit.distance : distance) * 0.028f +
                     (direct ? 0.08f : 0f) + target.focusPriority * 0.025f;
                 if (target == focusedTarget) heldWeight = weight;
@@ -263,7 +273,19 @@ namespace CTCC
             return focusedTarget = best;
         }
 
-        public void ClearFocus() => focusedTarget = null;
+        public void ClearFocus()
+        {
+            focusedTarget = null;
+            BeyondReach = null;
+        }
+
+        internal void SetViewRotation(Quaternion rotation)
+        {
+            var angles = rotation.eulerAngles;
+            transform.rotation = Quaternion.Euler(0f, angles.y, 0f);
+            pitch = Mathf.Clamp(Mathf.DeltaAngle(0f, angles.x), -86f, 86f);
+            eye.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+        }
 
         public delegate bool FuncTarget(SceneTarget target);
     }

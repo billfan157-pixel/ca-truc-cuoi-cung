@@ -17,8 +17,8 @@ namespace CTCC
             ("CH01-D03b", 0.55f, 0.36f, 0.16f, 0.02f, 11.0f, 4.0f, false, false),
             ("CH01-D03c", 0.48f, 0.38f, 0.20f, 0.02f, 14.0f, 5.0f, false, true),
             ("CH01-D04", 0.72f, 0.24f, 0.28f, 0.06f, 16.5f, 6.5f, false, true),
-            ("CH01-D04c", 0.58f, 0.26f, 0.26f, 0.07f, 19.0f, 7.0f, false, true),
-            ("CH01-D05", 0.76f, 0.34f, 0.22f, 0.05f,  6.0f, 4.0f, true,  true),
+            ("CH01-D04c", 0.83f, 0.11f, 0.30f, 0.08f, 13.0f, 4.2f, false, true),
+            ("CH01-D05", 0.88f, 0.26f, 0.20f, 0.06f,  5.0f, 2.0f, false, false),
             ("CH01-D05b", 0.54f, 0.28f, 0.24f, 0.08f, 10.5f, 5.5f, true,  false),
             ("CH01-D05c", 0.46f, 0.35f, 0.20f, 0.05f,  4.0f, 6.0f, true,  true),
             ("CH01-D07", 0.34f, 0.38f, 0.19f, 0.04f,  8.5f, 2.5f, false, true),
@@ -144,7 +144,9 @@ namespace CTCC
             if (lan == null || !lan.gameObject.activeInHierarchy) return;
 
             // F101 was already on the counter. Lan acknowledges Minh taking it.
-            lan.SetExpression(0.25f, 0.22f, 0.06f);
+            lan.TriggerMicroBlink();
+            lan.SetExpression(0.20f, 0.19f, 0.045f);
+            lan.PlayAction("Lan_Listen", 0.32f);
         }
 
         public void PlayOptionalLine(string lineId, string speaker, string text, float warm, float concern, float sorrow)
@@ -194,7 +196,10 @@ namespace CTCC
                 lan.GazePitchBias = beat.pitchBias;
                 lan.LookTarget = beat.lookAtBoard && scene.ReceptionBoard != null ? scene.ReceptionBoard.transform : MinhEye;
                 if (beat.microBlink) lan.TriggerMicroBlink();
-                lan.PlayAction(beat.id is "CH01-D04" or "CH01-D05" or "CH01-D05b" ? "Lan_Listen" : "Lan_IdleDesk", 0.34f);
+                string action = speaker != "Lan" || beat.id is "CH01-D04" or "CH01-D04c" or "CH01-D05b"
+                    ? "Lan_Listen"
+                    : beat.id == "CH01-D05" && !lan.ReducedMotion ? "Lan_TalkGesture" : "Lan_IdleDesk";
+                lan.PlayAction(action, 0.35f);
 
                 for (float pause = beat.pause; pause > 0f;)
                 {
@@ -211,7 +216,6 @@ namespace CTCC
 
                 if (beat.id == "CH01-D04") voice.SetLanMotif(true, 0.13f);
 
-                // Subtle mid-line gaze shifts keep Lan feeling grounded & alive without intense frontal staring.
                 float elapsed = 0f;
                 while (!finished)
                 {
@@ -220,6 +224,13 @@ namespace CTCC
                     elapsed += Time.unscaledDeltaTime;
                     if (beat.id == "CH01-D05" && elapsed >= 0.82f && scene.ReceptionBoard != null)
                         lan.LookTarget = scene.ReceptionBoard.transform;
+                    if (beat.id == "CH01-D05b" && elapsed >= 0.64f)
+                    {
+                        lan.LookTarget = MinhEye;
+                        lan.GazeYawBias = 5.5f;
+                        lan.GazePitchBias = 1.8f;
+                        lan.SetExpression(.27f, .18f, .04f);
+                    }
                     if (beat.id == "CH01-D07" && elapsed >= 0.76f)
                         lan.LookTarget = MinhEye;
                 }
