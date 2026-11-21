@@ -661,6 +661,9 @@ namespace CTCC
             player.Teleport(new Vector3(3.65f, 0.02f, 4.05f), Quaternion.Euler(0, 73, 0));
             camera.transform.localRotation = Quaternion.identity;
             SaveFrame(camera, target, "corridor-B");
+            player.Teleport(new Vector3(3.85f, 0.02f, 1.85f), Quaternion.Euler(0, 16, 0));
+            camera.transform.localRotation = Quaternion.Euler(2, 0, 0);
+            SaveFrame(camera, target, "corridor-long-B");
 
             // M2-C CHAR002 Trần Ngọc Lan Multi-Distance In-Game + Neutral Studio Lighting Validation (B 2005!)
             if (scene.LanActor != null)
@@ -976,6 +979,7 @@ namespace CTCC
             VerifyLegacySave(1);
             VerifyLegacySave(2);
             VerifyLegacySave(3);
+            VerifyLegacySave(4);
 
             var multi = State.Copy();
             multi.f101.current = FormStatus.Affirmed;
@@ -1126,6 +1130,12 @@ namespace CTCC
                 seed.dreadSeed = 0;
             }
             string payload = JsonUtility.ToJson(seed);
+            if (schema == 4)
+            {
+                string draftField = ",\"f101Annotations\":" + JsonUtility.ToJson(seed.f101Annotations);
+                Require(payload.Contains(draftField), "V4 fixture has a draft field to strip");
+                payload = payload.Replace(draftField, "");
+            }
             string checksum;
             using (var sha = System.Security.Cryptography.SHA256.Create())
                 checksum = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(payload)));
@@ -1135,6 +1145,8 @@ namespace CTCC
             Require(isolated.Read(SaveSlot.Auto, out var upgraded) == SaveRead.Valid &&
                 upgraded.schemaVersion == Investigation.Schema && upgraded.PatientIdentityVerified("C01") &&
                 upgraded.f101History.Count == upgraded.f101.revision &&
+                upgraded.f101.current == seed.f101.current && upgraded.f101.firstDecision == seed.f101.firstDecision &&
+                upgraded.f101Annotations.marks.Count == 0 &&
                 upgraded.observationRecords.Count >= upgraded.observed.Count,
                 "Upgrade legacy schema " + schema);
         }
@@ -1219,12 +1231,29 @@ namespace CTCC
             Require(State.FindObservation(ObservationRegistry.Bed4Card).stage == ObservationStage.Interpreted &&
                     State.FindObservation(ObservationRegistry.Bed4Card).flippedBack, "OBS101B advances to Interpreted on flip");
 
-            // Dual-sided 3D PhysicalInspector flip + detail focus + interrupted close recovery!
+            // Upgrade #1 & #4: Verify CH01-D15 SMS + expanded Lan hesitation/denial beats + CH01-D19 guard before corroboration!
+            foreach (string reqLine in new[] { "CH01-D15", "CH01-D03b", "CH01-D03c", "CH01-D04b", "CH01-D04c", "CH01-D05b", "CH01-D05c", "CH01-D07b" })
+                Require(!string.IsNullOrEmpty(Line(reqLine)), "CH01 upgrade dialogue line present: " + reqLine);
+            Require(!MayDeliver("CH01-D19", "B05"), "CH01-D19 strictly locked before CH01-EX01 corroboration & G01");
+
+            // Dual-sided 3D PhysicalInspector flip + Upgrade #6 raking-light ballpoint indentation reveal + interrupted close recovery!
             if (inspector != null && Image("ObsCard") != null && Image("ObsCard_Back") != null)
             {
                 inspector.SetReducedMotion(true);
-                inspector.Open(null, Image("ObsCard"), 1024f / 1360f, ActiveVolume(), Image("ObsCard_Back"), BuildDetailTargetsFor(ObservationRegistry.Bed4Card));
-                Require(inspector.IsInspecting && inspector.HasBackSide && !inspector.ShowingBack, "Inspector opens dual-sided front");
+                bool rakingCallbackFired = false;
+                inspector.Open(
+                    null,
+                    Image("ObsCard"),
+                    1024f / 1360f,
+                    ActiveVolume(),
+                    Image("ObsCard_Back"),
+                    BuildDetailTargetsFor(ObservationRegistry.Bed4Card),
+                    observationId: ObservationRegistry.Bed4Card,
+                    backIndentNormal: Image("ObsCard_Back_Indent_Normal"),
+                    backIndentMask: Image("ObsCard_Back_Indent_Mask"),
+                    onRakingReveal: () => rakingCallbackFired = true);
+                Require(inspector.IsInspecting && inspector.HasBackSide && inspector.HasRakingIndent && !inspector.ShowingBack,
+                    "Inspector opens dual-sided front with raking indentation maps");
                 if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
                 {
                     yield return null;
@@ -1237,6 +1266,20 @@ namespace CTCC
                     yield return null;
                     yield return CaptureHospitalFrame("ch01r-inspector-obscard-back", player.transform, 0f);
                 }
+                // Tilt paper 25-40 deg into grazing keyLight to reveal hidden C01? / 03g17 ballpoint indentation!
+                inspector.TiltForRakingLight();
+                float waitRaking = Time.realtimeSinceStartup + 0.35f;
+                while (!inspector.RakingRevealed && Time.realtimeSinceStartup < waitRaking)
+                    yield return null;
+                Require(inspector.RakingRevealed && rakingCallbackFired && inspector.RakingRevealFactor >= 0.72f,
+                    $"Upgrade #6 raking-light reveal failed: revealed={inspector.RakingRevealed} cb={rakingCallbackFired} factor={inspector.RakingRevealFactor:F2}");
+                if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
+                {
+                    yield return null;
+                    yield return CaptureHospitalFrame("ch01r-raking-obscard-back", player.transform, 0f);
+                }
+                yield return WaitForApplied(casework.MarkObservationDetailAsync(ObservationRegistry.Bed4Card, CorroborationService.RakingDetailId, flippedBack: true), "Persist RAKING_INDENT");
+                Require(CorroborationService.HasRakingIndent(State), "RAKING_INDENT detail persisted to observation record");
                 inspector.FocusDetail(0);
                 Require(inspector.ActiveDetailIndex == -1 && inspector.ShowingBack, "Front detail cannot flip back");
                 inspector.Flip();
@@ -1244,6 +1287,7 @@ namespace CTCC
                 Require(inspector.ActiveDetailIndex == 0 && !inspector.ShowingBack, "Detail focus snaps cleanly to front hotspot");
                 inspector.Close(); // Interrupted mid-inspection close!
                 Require(!inspector.IsInspecting, "Interrupted inspection closes cleanly");
+                dreadDirector?.ResetSeed(State.dreadSeed); // Keep deferred shift isolated for dedicated section-6 test
             }
 
             // Incomplete evidence test: OBS101B + OBS101C without OBS101A MUST fail with InsufficientEvidence
@@ -1260,6 +1304,29 @@ namespace CTCC
 
             // Now observe OBS101A (physical trace) to complete the complementary Bed-4 pair
             Apply(casework.Observe(ObservationRegistry.Bed4Traces, player.Feet, "LOC03"), "OBS101A observed second");
+
+            var withoutComparison = State.Copy();
+            withoutComparison.observed.Remove(ObservationRegistry.Bed2Transfer);
+            withoutComparison.observationRecords.RemoveAll(record => record.id == ObservationRegistry.Bed2Transfer);
+            var cardMark = new EvidenceAnnotation(ObservationRegistry.Bed4Card, F101Annotations.Receiver);
+            var annotations = new F101Annotations
+            {
+                marks = new List<EvidenceAnnotation> { new(ObservationRegistry.F101Sheet, F101Annotations.Zero), cardMark },
+                linkFrom = cardMark,
+                linkTo = new EvidenceAnnotation(ObservationRegistry.Bed4Traces, F101Annotations.TraceGroup)
+            };
+            var annotatedRefutation = new DeductionSubmission
+            {
+                selectedEvidenceIds = new List<string> { ObservationRegistry.F101Sheet, ObservationRegistry.Bed4Card, ObservationRegistry.Bed4Traces },
+                claimId = HypothesisService.ClaimUnreliableZero,
+                annotationVersion = F101Annotations.Version,
+                annotations = annotations
+            };
+            Require(HypothesisService.EvaluateF101(withoutComparison, FormStatus.Refuted, annotatedRefutation).Accepted,
+                "Annotated refutation does not require the Bed-2 comparison");
+            annotatedRefutation.annotations.linkTo = new EvidenceAnnotation(ObservationRegistry.Bed4Traces, "unknown");
+            Require(!HypothesisService.EvaluateF101(withoutComparison, FormStatus.Refuted, annotatedRefutation).Accepted,
+                "Unknown linked field is rejected by the hypothesis service");
 
             // Test Unexamined stage rejection directly on copied state
             var unexaminedState = State.Copy();
@@ -1384,17 +1451,69 @@ namespace CTCC
 
             yield return VerifyF101Revisions();
 
-            // 6) Persistent one-time AmbientDreadDirector event + modal suppression + save reload survival!
+            // 6) Persistent one-time AmbientDreadDirector event + Upgrade #2 DeferredMicroShift + modal suppression + save reload survival!
             Require(dreadDirector != null, "AmbientDreadDirector active");
+            dreadDirector.ResetSeed(State.dreadSeed);
+            dreadDirector.NotifyInspectorOpened(ObservationRegistry.Bed4Card);
+            Require(dreadDirector.HasPendingMicroShift, "Upgrade #2 NotifyInspectorOpened queues a DeferredMicroShift");
             ui.Show("QA", "Modal suppression", "Testing dread suppression while modal open.", new[] { new ActionChoice("OK", () => ui.Close()) }, () => ui.Close());
+            dreadDirector.NotifyInspectorClosed(ObservationRegistry.Bed4Card);
+            Require(dreadDirector.HasPendingMicroShift, "Upgrade #2 NotifyInspectorClosed arms DeferredMicroShift");
             Require(!dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B06ClockTick), "Dread strictly suppressed while modal is open");
+            float modalHold = Time.realtimeSinceStartup + 0.50f;
+            while (Time.realtimeSinceStartup < modalHold) yield return null;
+            Require(dreadDirector.HasPendingMicroShift && !State.HasDreadEvent(DreadCatalog.ShiftTubeBlackout),
+                "DeferredMicroShift remains suppressed while modal is open");
             ui.Close();
-            yield return null;
+            yield return Until(() => !busy && (State.HasDreadEvent(DreadCatalog.ShiftTubeBlackout) ||
+                State.HasDreadEvent(DreadCatalog.ShiftCurtainCreep) || State.HasDreadEvent(DreadCatalog.ShiftHallChair)),
+                "Upgrade #2 armed DeferredMicroShift executes automatically after modal/inspector closes");
+            scene.motion?.ClearTubeBlackout();
             Require(dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B06ClockTick), "Dread triggers cleanly when unsuppressed");
             yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.B06ClockTick), "Dread event persisted to state");
-            Require(transaction.Restore(SaveSlot.Auto, out _) == SaveRead.Valid && State.HasDreadEvent(DreadCatalog.B06ClockTick),
-                "Persisted dread event survives save/reload");
+            Require(dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.F101AffirmedSuffocation), "Upgrade #2 F101AffirmedSuffocation triggers cleanly");
+            yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.F101AffirmedSuffocation), "F101AffirmedSuffocation persisted to state");
+            Require(transaction.Restore(SaveSlot.Auto, out _) == SaveRead.Valid && State.HasDreadEvent(DreadCatalog.B06ClockTick) &&
+                    State.HasDreadEvent(DreadCatalog.F101AffirmedSuffocation) &&
+                    (State.HasDreadEvent(DreadCatalog.ShiftTubeBlackout) || State.HasDreadEvent(DreadCatalog.ShiftCurtainCreep) || State.HasDreadEvent(DreadCatalog.ShiftHallChair)),
+                "Persisted dread & micro-shift events survive save/reload");
             Require(!dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B06ClockTick), "One-time dread event never replays after reload");
+
+            // 6b) Upgrade #5: Optional 03:17 Corroboration Branch (OBS_CLOCK_0317 + OBS101B + shift context -> CH01-EX01 -> CH01-D19!)
+            Require(CorroborationService.CanCorroborate0317(State) && !CorroborationService.IsCorroborated(State),
+                "Upgrade #5 03:17 corroboration eligible once clock, AS-05B, and shift context observed");
+            Apply(casework.CrossCheck0317Exception(player.Feet), "Upgrade #5 commit CH01-EX01");
+            Require(CorroborationService.IsCorroborated(State) && State.Happened(CorroborationService.Exception0317Event) &&
+                    State.FindObservation(ObservationRegistry.StoppedClock0317).stage == ObservationStage.Corroborated &&
+                    State.evidence.Count == 1 && MayDeliver("CH01-D19", "B05") && !string.IsNullOrEmpty(LineAtBeat("CH01-D19", 1, "B05")),
+                "Upgrade #5 CH01-EX01 persists cleanly, unlocks CH01-D19 at B05, and keeps CH01 evidence.Count == 1");
+            Require(transaction.Restore(SaveSlot.Auto, out _) == SaveRead.Valid && CorroborationService.IsCorroborated(State),
+                "Upgrade #5 CH01-EX01 survives save/reload");
+
+            // 6c) Upgrade #8: True analog hold-and-drag on CURTAIN-101 and DOOR-101 without snap-back!
+            if (scene.interactables != null)
+            {
+                scene.interactables.ResetCurtainPose();
+                Require(scene.interactables.BeginDrag("CURTAIN-101"), "Analog curtain drag begins");
+                for (int i = 0; i < 6; i++) scene.interactables.UpdateDrag(new Vector2(28f, 0f), scene.atmosphere);
+                scene.interactables.EndDrag(scene.atmosphere);
+                for (int i = 0; i < 6; i++) yield return null;
+                float curtainMid = scene.interactables.CurtainOpenness;
+                Require(curtainMid > 0.15f && curtainMid < 0.85f, $"Upgrade #8 analog curtain holds intermediate openness without snap-back: {curtainMid:F2}");
+                scene.interactables.ResetCurtainPose();
+
+                if (scene.roomDoor?.pivot != null)
+                {
+                    scene.interactables.MoveDoor("DOOR-101", scene.roomDoor.pivot, 0f, true, scene.atmosphere);
+                    Require(scene.interactables.BeginDrag("DOOR-101"), "Analog door drag begins");
+                    for (int i = 0; i < 6; i++) scene.interactables.UpdateDrag(new Vector2(22f, 0f), scene.atmosphere);
+                    scene.interactables.EndDrag(scene.atmosphere);
+                    for (int i = 0; i < 6; i++) yield return null;
+                    float doorMid = scene.interactables.GetDragOpenness01("DOOR-101");
+                    Require(doorMid > 0.12f && doorMid < 0.85f, $"Upgrade #8 analog Door-101 holds cracked peek angle without snap-back: {doorMid:F2}");
+                    scene.interactables.MoveDoor("DOOR-101", scene.roomDoor.pivot, scene.roomDoor.openAngle, true, scene.atmosphere);
+                }
+            }
 
             // 7) Reality.R independence: collapse back to R and verify deniedBay/refutedBay are strictly inactive and CH02 clues untouched!
             player.Teleport(scene.Pad("AP02"));
@@ -1406,7 +1525,7 @@ namespace CTCC
             // Restore pre-test CH02 snapshot so VerifyRender + VerifyScalableM3AndCh03 continue seamlessly!
             Apply(transaction.Commit(savedBefore, scene.Pad("AP05").position, warp: false, geometryChanges: true), "Restore post-CH02 snapshot");
             player.Teleport(scene.Pad("AP05"));
-            verification.Add("CH01-R ADVERSARIAL PASS: F101 deduction validation (true observation alone, unsupported whereabouts/intent/completed handover, irrelevant Bed-3 log, incomplete/unexamined/unknown/tampered provenance), revisions, dual-sided inspector, STAFF nonlinear loop + drawers, persistent dread + modal suppression, and Reality.R independence.");
+            verification.Add("CH01-R + 8-UPGRADE ADVERSARIAL PASS: delayed Lan beats + CH01-D15, DeferredMicroShift + Affirmed knock, introspective F101 validation, 03:17 corroboration CH01-EX01 -> CH01-D19, 3D raking-light ballpoint indentation reveal, analog curtain/door hold-drag, weathering/volumetric pass, and Reality.R independence.");
         }
 
         private IEnumerator VerifyStaffReactionOrder()
@@ -1485,8 +1604,19 @@ namespace CTCC
                 scene.deniedBay.activeInHierarchy == (visible == FormStatus.Affirmed) &&
                 scene.pendingBay.activeInHierarchy == (layerB && visible is (FormStatus.Pending or FormStatus.Unverified)) &&
                 scene.refutedBay.activeInHierarchy == (visible == FormStatus.Refuted) &&
-                Mathf.Approximately(scene.motion.fanSpeedScale, fan),
+                Mathf.Approximately(scene.motion.fanSpeedScale, fan) &&
+                scene.atmosphere.F101Report == visible,
                 "F101 material, bay and fan baseline agree with " + decision + " in " + State.layer);
+            string slipText = visible switch
+            {
+                FormStatus.Affirmed => "ĐÃ BÀN GIAO · 0",
+                FormStatus.Unverified => "CHỜ XÁC NHẬN",
+                FormStatus.Refuted => "KIỂM TRA LẠI",
+                _ => null
+            };
+            var slip = Array.Find(scene.GetComponentsInChildren<UnityEngine.UI.Text>(), label => label.name == "Dòng bàn giao");
+            Require(slipText == null ? slip == null : slip != null && slip.text.EndsWith(slipText),
+                "F101 corridor slip follows the committed report and stays out of R");
         }
 
         private IEnumerator VerifyF101Revisions()

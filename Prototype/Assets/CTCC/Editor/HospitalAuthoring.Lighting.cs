@@ -148,10 +148,24 @@ namespace CTCC.Editor
             Fan(new Vector3(11.35f, 3.58f, 5.05f));
             Fan(new Vector3(4.30f, 3.58f, -3.94f));
 
-            // --- Weather & Atmosphere: Monsoon Rain + Floating Dust Motes ---
+            // --- Weather & Atmosphere: Monsoon Rain, Exterior Courtyard Mist, Dust Motes & Volumetric Cones (Upgrade #7) ---
             Rain(new Vector3(9.72f, 4.1f, 9.2f), new Vector3(9.2f, 0.18f, 2.2f), 380);
             Rain(new Vector3(4, 4.6f, -13.6f), new Vector3(15, 0.21f, 13.5f), 460);
-            DustMotes(new Vector3(9.35f, 1.65f, 5.85f), new Vector3(5.6f, 2.1f, 3.4f));
+            DustMotes("Room 101 floating dust motes R", new Vector3(9.35f, 1.65f, 5.85f), new Vector3(5.6f, 2.1f, 3.4f), real,
+                new Color(0.70f, 0.84f, 0.88f, 0.22f), maxParticles: 110, rate: 16f);
+            DustMotes("Corridor floating dust motes B", new Vector3(4.00f, 2.15f, 7.60f), new Vector3(2.4f, 2.2f, 10.5f), report,
+                new Color(0.78f, 0.90f, 0.80f, 0.19f), maxParticles: 65, rate: 10f);
+            DustMotes("Corridor floating dust motes R", new Vector3(4.00f, 2.00f, 7.60f), new Vector3(2.4f, 2.0f, 10.5f), real,
+                new Color(0.62f, 0.78f, 0.86f, 0.17f), maxParticles: 55, rate: 8f);
+            DustMotes("Reception floating dust motes B", new Vector3(4.10f, 2.05f, -3.80f), new Vector3(5.4f, 2.0f, 4.4f), report,
+                new Color(0.84f, 0.90f, 0.82f, 0.17f), maxParticles: 48, rate: 7.5f);
+            CourtyardMist(new Vector3(4.0f, 0.72f, -15.6f), new Vector3(14.5f, 0.85f, 12.6f), real);
+
+            // Volumetric downward light cones under corridor fluorescent tubes & exterior canopy
+            VolumetricCone("Corridor tube cone S B", new Vector3(4.00f, 3.54f, 4.75f), new Vector3(4.00f, 0.45f, 4.75f), 0.42f, 1.48f, "BeamFluorescent", report);
+            VolumetricCone("Corridor tube cone N B", new Vector3(4.00f, 3.54f, 10.60f), new Vector3(4.00f, 0.55f, 10.60f), 0.42f, 1.42f, "BeamFluorescent", report);
+            VolumetricCone("Reception counter cone B", new Vector3(2.15f, 3.54f, -3.20f), new Vector3(2.35f, 0.85f, -3.20f), 0.36f, 1.32f, "BeamFluorescent", report);
+            VolumetricCone("Canopy sodium cone", new Vector3(4.00f, 2.66f, -8.65f), new Vector3(4.00f, 0.10f, -9.20f), 0.34f, 1.95f, "BeamWarm", permanent);
 
             // --- Cinematic Horror URP Post-Processing Profiles (Calibrated R 2012 vs B 2005!) ---
             world.realGrade = Grade("2012", exposure: 0.42f, saturation: -12f, contrast: 12f,
@@ -524,27 +538,62 @@ namespace CTCC.Editor
             renderer.shadowCastingMode = ShadowCastingMode.Off;
         }
 
-        private void DustMotes(Vector3 center, Vector3 boxSize)
+        private void VolumetricCone(string name, Vector3 top, Vector3 bottom, float topRadius, float bottomRadius, string matKey, Transform parent)
         {
-            var p = Group("Room 101 floating dust motes", ResolveParent(real, center), center).gameObject.AddComponent<ParticleSystem>();
+            var node = Group(name, ResolveParent(parent, top));
+            const int segs = 12;
+            var verts = new Vector3[(segs + 1) * 2];
+            var uvs = new Vector2[(segs + 1) * 2];
+            var tris = new int[segs * 12]; // Double-sided open frustum — smooth from EVERY camera angle, zero crossed-plane seam!
+            int ti = 0;
+            for (int i = 0; i <= segs; i++)
+            {
+                float a = (i / (float)segs) * Mathf.PI * 2f;
+                float u = i / (float)segs;
+                var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                verts[i * 2] = top + dir * topRadius;
+                verts[i * 2 + 1] = bottom + dir * bottomRadius;
+                uvs[i * 2] = new Vector2(u, 0f);
+                uvs[i * 2 + 1] = new Vector2(u, 1f);
+                if (i < segs)
+                {
+                    int a0 = i * 2, a1 = a0 + 1, b0 = a0 + 2, b1 = a0 + 3;
+                    tris[ti++] = a0; tris[ti++] = b0; tris[ti++] = a1;
+                    tris[ti++] = b0; tris[ti++] = b1; tris[ti++] = a1;
+                    tris[ti++] = a0; tris[ti++] = a1; tris[ti++] = b0;
+                    tris[ti++] = b0; tris[ti++] = a1; tris[ti++] = b1;
+                }
+            }
+            var mesh = new Mesh { name = name, vertices = verts, uv = uvs, triangles = tris };
+            mesh.RecalculateBounds();
+            StoreMesh(mesh);
+            node.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = node.gameObject.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = Mat(matKey);
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+        }
+
+        private void DustMotes(string name, Vector3 center, Vector3 boxSize, Transform layerRoot, Color tint, int maxParticles = 85, float rate = 12f)
+        {
+            var p = Group(name, ResolveParent(layerRoot, center), center).gameObject.AddComponent<ParticleSystem>();
             var main = p.main;
             main.loop = true;
             main.startLifetime = 6.5f;
-            main.startSpeed = 0.025f;
+            main.startSpeed = 0.024f;
             main.startSize = new ParticleSystem.MinMaxCurve(0.005f, 0.011f);
-            main.startColor = new Color(0.70f, 0.84f, 0.88f, 0.22f);
-            main.maxParticles = 110;
+            main.startColor = tint;
+            main.maxParticles = maxParticles;
             main.prewarm = true;
             var shape = p.shape;
             shape.shapeType = ParticleSystemShapeType.Box;
             shape.scale = boxSize;
             var emission = p.emission;
-            emission.rateOverTime = 16f;
+            emission.rateOverTime = rate;
             var vel = p.velocityOverLifetime;
             vel.enabled = true;
-            vel.x = new ParticleSystem.MinMaxCurve(-0.035f, 0.035f);
-            vel.y = new ParticleSystem.MinMaxCurve(-0.02f, 0.018f);
-            vel.z = new ParticleSystem.MinMaxCurve(-0.035f, 0.035f);
+            vel.x = new ParticleSystem.MinMaxCurve(-0.032f, 0.032f);
+            vel.y = new ParticleSystem.MinMaxCurve(-0.018f, 0.016f);
+            vel.z = new ParticleSystem.MinMaxCurve(-0.032f, 0.032f);
 
             const string path = Root + "/Generated/Materials/DustMote.mat";
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -554,10 +603,60 @@ namespace CTCC.Editor
                 AssetDatabase.CreateAsset(mat, path);
             }
             mat.SetTexture("_BaseMap", Tex("SoftParticle"));
-            Transparent(mat, new Color(0.78f, 0.90f, 0.94f, 0.24f));
+            Transparent(mat, new Color(0.84f, 0.92f, 0.94f, 0.24f));
             var renderer = p.GetComponent<ParticleSystemRenderer>();
             renderer.sharedMaterial = mat;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
+
+            if (multiScene) ZoneAt(center.z).atmosphericParticles.Add(p);
+            else atmosphericParticles.Add(p);
+        }
+
+        private void CourtyardMist(Vector3 center, Vector3 boxSize, Transform layerRoot)
+        {
+            var p = Group("LOC01 exterior courtyard mist", ResolveParent(layerRoot, center), center).gameObject.AddComponent<ParticleSystem>();
+            var main = p.main;
+            main.loop = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(10f, 15f);
+            main.startSpeed = 0.06f;
+            main.startSize = new ParticleSystem.MinMaxCurve(2.8f, 4.8f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startColor = new Color(0.62f, 0.78f, 0.86f, 0.24f);
+            main.maxParticles = 48;
+            main.prewarm = true;
+            var shape = p.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = boxSize;
+            var emission = p.emission;
+            emission.rateOverTime = 4.6f;
+            var vel = p.velocityOverLifetime;
+            vel.enabled = true;
+            vel.x = new ParticleSystem.MinMaxCurve(0.10f, 0.22f);
+            vel.y = new ParticleSystem.MinMaxCurve(-0.01f, 0.02f);
+            vel.z = new ParticleSystem.MinMaxCurve(-0.08f, 0.08f);
+            var colLife = p.colorOverLifetime;
+            colLife.enabled = true;
+            var grad = new Gradient();
+            grad.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.88f, 0.28f), new GradientAlphaKey(0.82f, 0.72f), new GradientAlphaKey(0f, 1f) });
+            colLife.color = new ParticleSystem.MinMaxGradient(grad);
+
+            const string path = Root + "/Generated/Materials/CourtyardMist.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            mat.SetTexture("_BaseMap", Tex("CourtyardMistTex"));
+            Transparent(mat, new Color(0.72f, 0.84f, 0.90f, 0.28f));
+            var renderer = p.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = mat;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+
+            if (multiScene) ZoneAt(center.z).atmosphericParticles.Add(p);
+            else atmosphericParticles.Add(p);
         }
 
         private void Rain(Vector3 position, Vector3 footprint, float rate)
@@ -671,6 +770,8 @@ namespace CTCC.Editor
             bus.paperFlip = Clip("PaperFlip");
             bus.clockTick = Clip("ClockTick");
             bus.distantSteps = Clip("DistantSteps");
+            bus.chairScrape = Clip("ChairScrape");
+            bus.partitionKnock = Clip("PartitionKnock");
             bus.lanMotif = Clip("MUS_LanMotif");
 
             // Load canonical Vietnamese Temp VO clips (TASK009-B) with hard LOCK-V22-02 filter

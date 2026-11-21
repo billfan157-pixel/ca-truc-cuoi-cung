@@ -43,6 +43,7 @@ namespace CTCC.Editor
             public readonly List<Transform> fans = new();
             public readonly List<Light> tubes = new();
             public readonly List<MeshFilter> cloth = new();
+            public readonly List<ParticleSystem> atmosphericParticles = new();
             public readonly List<RoomLoop> loops = new();
             public readonly List<Light> emergencyRedLights = new();
         }
@@ -79,6 +80,7 @@ namespace CTCC.Editor
         private readonly List<Light> livingTubes = new();
         private readonly List<MeshFilter> movingCloth = new();
         private readonly List<Transform> movingFans = new();
+        private readonly List<ParticleSystem> atmosphericParticles = new();
         private readonly List<GameObject> staticArchitecture = new();
         private readonly Scene bootstrapScene;
         private readonly HospitalScene world;
@@ -316,6 +318,8 @@ namespace CTCC.Editor
             LightAndStage();
             if (multiScene)
                 FinalizeZoneRegions();
+            else
+                world.atmosphericParticles = atmosphericParticles.ToArray();
 
             if (art)
             {
@@ -360,6 +364,7 @@ namespace CTCC.Editor
                 slot.region.movingFans = slot.fans.ToArray();
                 slot.region.livingTubes = slot.tubes.ToArray();
                 slot.region.movingCloth = slot.cloth.ToArray();
+                slot.region.atmosphericParticles = slot.atmosphericParticles.ToArray();
                 slot.region.roomLoops = slot.loops.ToArray();
                 slot.region.emergencyRedLights = slot.emergencyRedLights.ToArray();
             }

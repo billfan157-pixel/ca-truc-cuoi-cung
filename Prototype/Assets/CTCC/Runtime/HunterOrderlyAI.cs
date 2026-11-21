@@ -53,7 +53,7 @@ namespace CTCC
         private Vector3 stimulusPosition;
         private bool activeInChapter;
         private bool spokeCh03Warning;
-        private readonly NavMeshPath navPath = new();
+        private NavMeshPath navPath;
         private Vector3[] corners = Array.Empty<Vector3>();
         private Vector3 pathDestination;
         private float repathAt;
@@ -83,6 +83,7 @@ namespace CTCC
         public void Initialize(HospitalScene world, VoiceDirector voiceDirector, FirstPerson fps,
             HospitalUI hospitalUi, PhysicalInspector physicalInspector)
         {
+            navPath ??= new NavMeshPath();
             scene = world;
             voice = voiceDirector;
             player = fps;

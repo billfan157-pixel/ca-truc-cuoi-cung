@@ -154,6 +154,8 @@ namespace CTCC
         {
             int fromVersion = s.schemaVersion;
             s.schemaVersion = Investigation.Schema;
+            s.f101Annotations ??= new();
+            if (fromVersion >= 4) return;
             if (fromVersion <= 2)
             {
                 s.forms?.Clear(); // Earlier releases only expose F101, stored separately.

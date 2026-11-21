@@ -145,9 +145,41 @@ Phần cứng tham chiếu: **Intel Core Ultra 7 155H**, **Intel Arc Graphics** 
 ## 6. Nhịp chơi (Pacing) & Các cổng còn mở
 
 - **Nhịp chơi & Mục tiêu ~25 phút:** Toàn bộ 8 beat chuẩn của CH01 được bảo toàn; tuyến không teleport trong Input QA tự động (không dừng đọc kỹ chữ tài liệu) chạy trong ~67 giây kỹ thuật, trong khi cấu trúc điều tra 6–8 nguồn thông tin 2 mặt + hốc `STAFF` + đối chiếu Sổ trực + diễn xuất Lan trực tiếp tạo độ sâu đọc/suy luận thực tế cho khung chơi 20–25 phút của người chơi mới (cần số liệu đo thực tế từ `TASK010`).
-- **Bộ tài liệu playtest mù đã cập nhật cho CH01-R:** [docs/m2/playtest-kit-task010.md](../m2/playtest-kit-task010.md) — bổ sung chỉ số đối chiếu tài liệu 2 mặt, phân biệt `Unverified` không bao giờ chấm trượt, theo dõi `AmbientDreadDirector` và đo thời lượng thực tế (`0/6` người chơi — **MỞ**).
+- **Bộ tài liệu playtest mù đã cập nhật cho CH01-R & 8 nâng cấp:** [docs/m2/playtest-kit-task010.md](../m2/playtest-kit-task010.md) — bổ sung cờ telemetry tự chọn `-ctcc-playtest-log`, chỉ số soi vết hằn bút bi nghiêng đón sáng, đối chiếu mốc `03:17`, thao tác kéo analog, phân biệt `Unverified` không bao giờ chấm trượt và đo thời lượng thực tế (`0/6` người chơi — **MỞ**).
+- **Phiếu kiểm duyệt chuyên gia con người (`TASK026`–`TASK028`):** [docs/ch01r/human-review-checklist.md](human-review-checklist.md) (**0/3 đã duyệt — MỞ**).
 - **Các cổng con người/chuyên gia giữ nguyên trạng thái MỞ:**
   - `TASK010`: Playtest mù 6 người chơi mới (0/6).
   - `TASK026`: Review chuyên gia y tế/kiến trúc bệnh viện An Sinh & tính chân thực hình ảnh.
   - `TASK027`: Review chuyên gia PCCC lịch sử & chất lượng thoại/diễn xuất tiếng Việt.
   - `TASK028`: Review chuyên gia y tế về provenance, phiếu chuyển, ghi nhận nạn nhân & cân bằng âm thanh/mix cuối.
+
+---
+
+## 7. Đợt Nâng cấp Chương 1 — 8 Hạng mục Chất lượng Indie Hàng đầu
+
+Bản cập nhật tiếp theo trên nền CH01-R triển khai trọn vẹn **Lộ trình 8 nâng cấp Chương 1**, giữ nguyên mọi khóa canon (`CAN01–07`, `LOCK-V22-01..03`, `DEC-CH02`, `LOCK-LOG06`, `CH01 evidence.Count == 1`) và mọi cam kết trợ năng:
+
+1. **Trì hoãn cú twist Lan & mở rộng đối thoại cảm xúc (`Dialogue.json`, `07_Production_Database.xlsx`, `HospitalGame.Pages.cs`, `LanDirector.cs`):** Gỡ bỏ câu tường thuật thẳng *"Minh đã đến đám tang Lan"* khỏi mẩu báo ở `E10a` (chỉ lộ vụ cháy 18/11/2005 khiến 13 người mất và góc danh sách nạn nhân bị rách nhòe nước mưa); bổ sung 7 nhịp ngập ngừng/phủ nhận/chi tiết bất thường (`CH01-D03b..D07b`: Lan không in bóng rõ trên kính, nhắc ngày 17/11/2005 như hiện tại) dàn dựng kèm đảo mắt và chớp mắt tinh tế.
+2. **Hiệu ứng "xê dịch sau tờ giấy" & biến thể Dread theo F101 (`AmbientDreadDirector.cs`, `PhysicalInspector.cs`, `EnvironmentMotion.cs`, `EnvironmentalAudio.cs`):** Thay vì bỏ qua toàn bộ dread khi soi tài liệu 3D, hệ thống xếp hàng `DeferredMicroShift` (`DREAD_SHIFT_CURTAIN_CREEP`, `DREAD_SHIFT_TUBE_BLACKOUT` 0,6s an toàn dưới `reduceMotion`, `DREAD_SHIFT_HALL_CHAIR` với `ChairScrape.wav`) để kích hoạt ngay sau khi hạ tờ giấy; bổ sung biến thể dread theo nhánh F101 (`DREAD_F101_AFFIRMED_SUFFOCATION` với 2 tiếng gõ trầm nghẹt `PartitionKnock.wav` sau vách `deniedBay`, `DREAD_F101_UNVERIFIED_STILLNESS`, `DREAD_F101_REFUTED_CRACK`).
+3. **Giọng điệu phản hồi F101 chuyển sang nội tâm tự vấn (`DeductionFramework.cs`, `HospitalGame.Pages.cs`):** Giữ nguyên tầng kiểm chứng logic chặt chẽ của `HypothesisService.EvaluateF101`, viết lại toàn bộ chuỗi phản hồi khi lập luận chưa đủ căn cứ hoặc vượt chứng cứ theo giọng tự vấn căng thẳng của Minh và hiển thị trực tiếp trong giao diện `Đối chiếu F101`.
+4. **Dữ liệu `CH01-D15` & chuẩn bị cổng duyệt con người (`Dialogue.json`, `HospitalGame.Pages.cs`, `HospitalGame.cs`):** Khẳng định khóa `CH01-D15` hiện diện đầy đủ trong `07/Dialogue` & `Dialogue.json`, ghi tự động vào Nhật ký thoại khi đọc bì thư Bảy, thêm bài test QA tự động, bổ sung cờ telemetry tự chọn `-ctcc-playtest-log <path>` cho phiên test mù `TASK010`, và lập phiếu kiểm duyệt chuyên gia [human-review-checklist.md](human-review-checklist.md) (giữ trung thực trạng thái **MỞ** cho 4 cổng con người `TASK010`, `TASK026–TASK028`).
+5. **Nhánh giải mã ẩn mốc `03:17` (`DeductionFramework.cs`, `Casework.cs`, `HospitalGame.Pages.cs`, `HospitalGame.cs`):** Gắn dòng ghi lề `Kiểm cuối ca: 03g17` trên thẻ `AS-05B`, nối chéo với đồng hồ đứng kim `OBS_CLOCK_0317` và sổ trực/quy chế đêm 17–18/11 trong trang `Ghi chú ngoại lệ · Mốc 03:17` (`CH01-EX01`), mở khóa câu độc thoại lạnh gáy `CH01-D19` trước khi sụp lớp `B → R` (tuân thủ `CAN05`, hoàn toàn tùy chọn, không chặn `G01`).
+6. **Khai thác góc nghiêng ánh sáng trong 3D Physical Inspector (`InspectPaperRaking.shader`, `PhysicalInspector.cs`, `tools/bake_ch01r_documents.py`):** Tạo cặp normal map & groove mask vết hằn bút bi mặt sau cho `ObsCard_Back` (`03g17 · CHUYỂN TẠM — C01?`, không lộ tên Bé An hay Khu C theo `DEC-CH02`) và `F101_Back`; nghiêng giấy `25°–40°` đón `keyLight` (hoặc nhấn phím trợ năng `[T] Nghiêng đón sáng`, có tương đương đầy đủ trong Bản chữ lớn) để làm nổi vết hằn bút bi và lưu `RAKING_INDENT`.
+7. **Pass Weathering, Decal hữu cơ & Ánh sáng thể tích (`tools/bake_ch01_weathering_decals.py`, `HospitalAuthoring.Art.cs`, `HospitalAuthoring.Lighting.cs`, `HospitalScene.cs`):** Bổ sung pass URP DBuffer Decal cho cả lớp R và lớp B (vệt ố vàng quanh 7 máng đèn tuýp `TubeYellowStain`, vết kéo cáng trên sàn gạch bông `StretcherDragTrack`, vệt thấm nước mưa chân tường terrazzo `TerrazzoRainSeep`), hạt bụi lơ lửng tại hành lang & lễ tân, chùm sáng thể tích hình nón 12 mặt mượt dưới đèn tuýp/mái hiên, và lớp sương thấp `CourtyardMist` ngoài sân cổng phụ `LOC01` (tự động giảm tốc theo `reduceMotion`).
+8. **Tương tác vật lý analog & micro-animation nhân vật Lan (`InteractableRig.cs`, `HospitalGame.cs`, `CharacterActor.cs`, `LanDirector.cs`, `HospitalAuthoring.Zones.cs`):** Nâng cấp kéo rèm `CURTAIN-101` và hé cửa `DOOR-101`/`DOOR-STAFF` sang chế độ giữ-kéo analog liên tục (giữ nguyên mọi độ mở trung gian khi thả chuột, hiển thị % kéo trực tiếp trên HUD, giữ nguyên nhấn `E`/`K` cho trợ năng); dàn dựng Lan tại `AtCounter` theo góc bán diện 3/4 với đèn bàn hắt ngược ấm sau vai, giảm đèn key chính diện, tự động né ánh nhìn trực diện ở cự ly gần `< 1,35 m`, cùng micro-blink & micro-saccade (0 byte managed/frame).
+
+### Bằng chứng Xác minh Build Windows x64 Release (Đợt 8 Nâng cấp)
+
+- **Danh tính build:** [evidence/build-identity-ch01-upgrades.txt](evidence/build-identity-ch01-upgrades.txt) — Unity `6000.3.28f1`, `development=False`, `CaTrucCuoiCung.exe` (`720.234.155 bytes`), `Assembly-CSharp.dll` SHA-256 `013d3538e493ef14484d02e3dfe83d2a5bff3e447e92ec702005b48d5d3e35b4`, 7/7 scene additive đã bake GI (`R=261`, `B=261`) và Occlusion.
+- **Module + Adversarial + 8-Upgrade QA (D3D12, Medium 1080p) — `RESULT=PASS`:** [evidence/qa-module-ch01-upgrades.txt](evidence/qa-module-ch01-upgrades.txt) (`CH01-R + 8-UPGRADE ADVERSARIAL PASS`, `CHAR-Q05/Q06/Q08 PASS` ở 0 managed bytes/frame, bảo toàn toàn bộ hồi quy CH01–CH04).
+- **Fault Injection (D3D11) — Đều chặn đúng Exit Code `1` (`RESULT=FAIL`):** [evidence/probe-invalid-ch01-upgrades.txt](evidence/probe-invalid-ch01-upgrades.txt) (`invalid-reasoning`) và [evidence/probe-broken-ch01-upgrades.txt](evidence/probe-broken-ch01-upgrades.txt) (`broken-progression`).
+- **Input QA bàn phím + chuột đầy đủ không teleport (D3D12, Medium 1080p) — `RESULT=PASS`:** [evidence/qa-input-ch01-upgrades.txt](evidence/qa-input-ch01-upgrades.txt) — vượt qua cả 3 nhánh F101, tuyến CH01-R không teleport, 3 tầng CH03–04, và **stress 100 chu kỳ soi 2 mặt + nghiêng đón sáng**: `0` live paper meshes, `0` live paper materials (`291.836.218 → 291.899.011` bytes).
+- **Kiểm cấu trúc tài liệu (`project_docs.py check`):** `PASS` (7 file Core, 21 sheet, DAG 90 task).
+
+| Mặt sau `ObsCard` nhìn thẳng | Mặt sau `ObsCard` nghiêng 30° đón sáng (vết hằn bút bi) |
+| :---: | :---: |
+| ![Mặt sau nhìn thẳng](evidence/ch01r-inspector-obscard-back.png) | ![Vết hằn bút bi nghiêng sáng](evidence/ch01r-raking-obscard-back.png) |
+
+| Hành lang lớp B (weathering decal + chùm sáng thể tích) | Lan bán diện + đèn bàn hắt ngược ấm (`AtCounter`) | Sân cổng phụ `LOC01` (sương thấp + chùm đèn mái hiên) |
+| :---: | :---: | :---: |
+| ![Hành lang lớp B](evidence/corridor-long-B.png) | ![Lan bán diện](evidence/loc02-lan-B.png) | ![Sân cổng phụ](evidence/loc01-exterior-R.png) |

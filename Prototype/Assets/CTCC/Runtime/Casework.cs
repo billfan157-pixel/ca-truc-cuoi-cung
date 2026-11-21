@@ -194,6 +194,37 @@ namespace CTCC
             return CommitResult.Applied;
         }
 
+        internal Task<CommitResult> ToggleF101MarkAsync(string id, string hotspot)
+        {
+            if (!CanRevise || !F101Annotations.IsHotspot(id, hotspot) || !HypothesisService.HasExaminedInLayerB(State, id))
+                return Task.FromResult(CommitResult.PadRequired);
+            var next = State.Copy();
+            var notes = next.f101Annotations;
+            bool removing = notes.MarkedHotspot(id) == hotspot;
+            notes.marks.RemoveAll(mark => mark.observationId == id);
+            if (!removing) notes.marks.Add(new EvidenceAnnotation(id, hotspot));
+            if (notes.linkFrom.observationId == id)
+            {
+                notes.linkFrom = default;
+                notes.linkTo = default;
+            }
+            return reality.CommitEvidenceAsync(next, publishGameplay: false);
+        }
+
+        internal Task<CommitResult> ToggleF101TraceLinkAsync()
+        {
+            string hotspot = State.f101Annotations.MarkedHotspot(ObservationRegistry.Bed4Card);
+            if (!CanRevise || string.IsNullOrEmpty(hotspot) ||
+                !HypothesisService.HasExaminedInLayerB(State, ObservationRegistry.Bed4Traces))
+                return Task.FromResult(CommitResult.PadRequired);
+            var next = State.Copy();
+            var notes = next.f101Annotations;
+            bool removing = notes.HasLink;
+            notes.linkFrom = removing ? default : new EvidenceAnnotation(ObservationRegistry.Bed4Card, hotspot);
+            notes.linkTo = removing ? default : new EvidenceAnnotation(ObservationRegistry.Bed4Traces, F101Annotations.TraceGroup);
+            return reality.CommitEvidenceAsync(next, publishGameplay: false);
+        }
+
         public CommitResult SubmitF101(FormStatus decision, DeductionSubmission submission, Vector3 feet, out HypothesisEvaluation evaluation)
         {
             var status = PrepareSubmitF101(decision, submission, feet, out var next, out evaluation, out bool geometryChanged);
@@ -289,6 +320,44 @@ namespace CTCC
             if (!next.MarkDreadEvent(dreadId))
                 return CommitResult.Applied;
             return reality.Commit(next, feet);
+        }
+
+        public CommitResult CrossCheck0317Exception(Vector3 feet)
+        {
+            var result = PrepareCrossCheck0317(out var next);
+            return next == null ? result : reality.Commit(next, feet);
+        }
+
+        public Task<CommitResult> CrossCheck0317ExceptionAsync()
+        {
+            var result = PrepareCrossCheck0317(out var next);
+            return next == null ? Task.FromResult(result) : reality.CommitEvidenceAsync(next);
+        }
+
+        private CommitResult PrepareCrossCheck0317(out Investigation next)
+        {
+            next = null;
+            if (CorroborationService.IsCorroborated(State))
+                return CommitResult.Applied;
+            if (!CorroborationService.CanCorroborate0317(State))
+                return CommitResult.PadRequired;
+            next = State.Copy();
+            next.Remember(CorroborationService.Exception0317Event);
+            var clockRec = next.FindObservation(ObservationRegistry.StoppedClock0317);
+            if (clockRec != null && clockRec.stage < ObservationStage.Corroborated)
+                clockRec.stage = ObservationStage.Corroborated;
+            foreach (string ctxId in new[]
+            {
+                ObservationRegistry.ReceptionDrawerLog,
+                ObservationRegistry.ShiftGuide,
+                ObservationRegistry.WardOverflowNotice
+            })
+            {
+                var rec = next.FindObservation(ctxId);
+                if (rec != null && rec.stage < ObservationStage.Corroborated)
+                    rec.stage = ObservationStage.Corroborated;
+            }
+            return CommitResult.Applied;
         }
 
         public string MissingPhysicalObservations()

@@ -164,14 +164,18 @@ namespace CTCC.Editor
             var lanSilPt = Group("LanSilhouettePoint", perm, new Vector3(0.34f, 0f, -2.69f));
             var lanDeskPt = Group("LanDeskPoint", perm, new Vector3(0.32f, 0f, -3.24f));
             lanDeskPt.localRotation = Quaternion.Euler(0f, 92f, 0f);
-            // A three-quarter pose beside the counter keeps both Lan and F101 in view from AP02.
+            // Upgrade #8: Semi-profile three-quarter staging + warm desk rim/backlight eliminates uncanny valley!
             var lanStepPt = Group("LanStepOutPoint", perm, new Vector3(2.55f, 0f, -3.68f));
-            lanStepPt.localRotation = Quaternion.Euler(0f, 50f, 0f);
+            lanStepPt.localRotation = Quaternion.Euler(0f, 36f, 0f);
 
             var lanActor = PlaceCharacterActor("CTCC_CHR_Lan", perm, lanDeskPt.position, 92f, "CHAR002_Lan",
                 isApparition: false, enableBlink: true, enableLipSync: true);
-            Lamp("Lan face soft key B", LightType.Point, new Vector3(3.16f, 1.96f, -3.40f), 1.05f, 2.5f,
-                new Color(0.96f, 0.94f, 0.86f), repRoot);
+            Lamp("Lan face soft key B", LightType.Point, new Vector3(3.42f, 1.98f, -2.92f), 0.48f, 2.5f,
+                new Color(0.92f, 0.94f, 0.88f), repRoot);
+            Lamp("Lan warm desk rim backlight B", LightType.Point, new Vector3(1.88f, 1.62f, -3.62f), 1.48f, 3.0f,
+                new Color(1.0f, 0.78f, 0.48f), repRoot);
+            Lamp("Lan glass cool rim fill B", LightType.Point, new Vector3(2.58f, 2.15f, -4.35f), 0.16f, 2.2f,
+                new Color(0.68f, 0.86f, 0.90f), repRoot);
 
             var lanVoice = CreateVoiceAnchor("LanVoiceAnchor", lanActor.transform, new Vector3(0f, 1.48f, 0f), 14f);
             var phoneVoice = CreateVoiceAnchor("PhoneAnchor", perm, new Vector3(1.65f, 1.25f, -3.55f), 12f);

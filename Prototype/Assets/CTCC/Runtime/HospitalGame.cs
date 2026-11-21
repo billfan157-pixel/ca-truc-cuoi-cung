@@ -48,6 +48,8 @@ namespace CTCC
         private bool heardLobbySilhouette;
         private bool playedHe01Trolley;
         private bool playedHe04CorridorCut;
+        private bool playedCh01Ex01Monologue;
+        private float ch01StartUnscaledTime;
         private float f101PaperRevealUntil;
         private string lastObjectiveKey = "";
         private float objectiveStagnantSeconds;
@@ -113,7 +115,9 @@ namespace CTCC
             player.Teleport(scene.Pad("AP00"));
 
             inspector = gameObject.AddComponent<PhysicalInspector>();
-            inspector.Initialize(player.Eye, scene.atmosphere);
+            inspector.Initialize(player.Eye, scene.atmosphere, scene.rakingPaperShader);
+            inspector.InspectOpened += id => dreadDirector?.NotifyInspectorOpened(id);
+            inspector.InspectClosed += id => dreadDirector?.NotifyInspectorClosed(id);
 
             ui = gameObject.AddComponent<HospitalUI>();
             ui.Initialize();
@@ -217,11 +221,15 @@ namespace CTCC
             voice?.Apply(current.settings);
             inspector?.SetReducedMotion(current.settings.reduceMotion);
             scene.interactables?.SetReducedMotion(current.settings.reduceMotion);
+            scene.ApplyAtmosphereSettings(current.settings.reduceMotion);
             if (scene.motion != null)
             {
                 scene.motion.reducedMotion = current.settings.reduceMotion;
                 if (current.layer != Reality.B)
+                {
                     scene.motion.ClearFanSlowdown();
+                    scene.motion.ClearTubeBlackout();
+                }
             }
             if (scene.realGrade != null && scene.realGrade.sharedProfile.TryGet<ColorAdjustments>(out var real))
                 real.postExposure.value = 0.42f + current.settings.visibility * 0.58f;
@@ -320,12 +328,26 @@ namespace CTCC
                 StartCoroutine(PlayHe01TrolleyShadow());
             }
 
+            // Upgrade #5 (CH01-EX01): Corroborating 03:17 wall clock + AS-05B 03g17 timestamp unlocks Minh's chilling pre-collapse monologue!
+            if (!playedCh01Ex01Monologue && State.chapter == "CH01" && State.layer == Reality.B && GateService.G01(State) &&
+                !State.Happened("CH01-T08") && CorroborationService.IsCorroborated(State) &&
+                Time.unscaledTime > f101PaperRevealUntil && voice?.IsSpeaking != true &&
+                feet.x < 5.5f && feet.z < 6.0f && feet.z > -0.5f)
+            {
+                playedCh01Ex01Monologue = true;
+                scene.atmosphere?.From("clockTick", new Vector3(1.2f, 2.0f, -5.8f), 0.70f);
+                voice?.Speak("CH01-D19", "Minh", LineAtBeat("CH01-D19", 1, "B05"),
+                    directionalPrefix: "[Đồng hồ sảnh · 03:17 · trước khi sụp lớp B]", beat: "B05");
+            }
+
             // HE04: After handling F101 in B, walking back down corridor slows ceiling fans & cuts PA04 mid-sentence!
             if (!playedHe04CorridorCut && State.chapter == "CH01" && State.layer == Reality.B && GateService.G01(State) &&
-                !State.Happened("CH01-T08") && feet.x < 5.2f && feet.z < 3.6f && feet.z > -0.8f)
+                !State.Happened("CH01-T08") && Time.unscaledTime > f101PaperRevealUntil && voice?.IsSpeaking != true &&
+                feet.x < 5.2f && feet.z < 3.6f && feet.z > -0.8f)
             {
                 playedHe04CorridorCut = true;
-                scene.motion?.SlowFans(7.5f);
+                if (State.f101.current == FormStatus.Unverified)
+                    scene.motion?.SlowFans(3.5f);
                 scene.atmosphere?.From("paStatic", scene.PaSpeakerAnchor != null ? scene.PaSpeakerAnchor.transform.position : new Vector3(5.5f, 2.6f, 3.35f));
                 voice?.Speak("CH01-PA04", "Loa hành lang", Line("CH01-PA04"), scene.PaSpeakerAnchor,
                     directionalPrefix: "[Loa hành lang · rè và ngắt đột ngột]");
@@ -420,13 +442,25 @@ namespace CTCC
             {
                 if (scene.interactables.IsDragging)
                 {
+                    string dragId = scene.interactables.DraggingId;
                     if (mouse.leftButton.isPressed)
                     {
                         scene.interactables.UpdateDrag(mouse.delta.ReadValue(), scene.atmosphere);
-                        ui.Prompt("[Giữ & kéo chuột]  Điều chỉnh · Thả để dừng");
+                        int pct = Mathf.RoundToInt(scene.interactables.GetDragOpenness01(dragId) * 100f);
+                        string dragLabel = dragId switch
+                        {
+                            "CURTAIN-101" => "Kéo rèm Giường 4",
+                            "DOOR-101" => "Hé cửa Phòng 101",
+                            "DOOR-STAFF" => "Hé cửa lối nhân viên",
+                            _ => "Kéo ngăn tủ"
+                        };
+                        ui.Prompt($"[Giữ & kéo chuột]  {dragLabel}: {pct}%  ·  Thả để giữ nguyên");
                         return;
                     }
+                    float finalOpen = scene.interactables.GetDragOpenness01(dragId);
                     scene.interactables.EndDrag(scene.atmosphere);
+                    if (dragId == "DOOR-101" && scene.roomDoor != null) scene.roomDoor.isOpen = finalOpen > 0.30f;
+                    else if (dragId == "DOOR-STAFF" && scene.staffCrossDoor != null) scene.staffCrossDoor.isOpen = finalOpen > 0.30f;
                     player.LookSuppressed = false;
                 }
                 else if (target != null && IsDraggablePhysicalRig(target.id) && mouse.leftButton.wasPressedThisFrame)
@@ -717,7 +751,7 @@ namespace CTCC
                 case "F101": Form(); break;
                 case "OBS101A":
                     DiegeticObservation(id, "Dấu sử dụng tại vị trí giường 4",
-                        "Sau rèm có vết kéo bánh giường in ngang nền, tấm chăn bông gấp vội và đôi dép nhỏ để lệch. Vị trí thứ tư vừa có người dùng gần đây — nhưng dấu vết tự nó chưa cho biết bệnh nhân đi đâu hay danh tính của họ.",
+                        "Vết bánh giường trên nền gạch. Một tấm chăn gấp vội và đôi dép nhựa đặt lệch bên mép sàn.",
                         "LOC03", () =>
                         {
                             scene.atmosphere?.From("curtainSlide", new Vector3(11.4f, 1.8f, 4.3f), 0.45f);
@@ -887,11 +921,65 @@ namespace CTCC
                 }
                 else if (startingCh02)
                 {
+                    WritePlaytestTelemetryIfEnabled();
                     ui.ShowChapterCard("CHƯƠNG 02  ·  LỚP R / B", "PHÒNG BỆNH TRỐNG", 4.6f);
                     scene.atmosphere?.From("phoneBuzz", scene.PhoneAnchor != null ? scene.PhoneAnchor.transform.position : new Vector3(1.8f, 1.2f, -3.2f));
                     voice?.Speak("CH02-D01", "Minh", Line("CH02-D01"));
                 }
             });
+        }
+
+        [Serializable]
+        private sealed class Ch01PlaytestTelemetry
+        {
+            public string timestampUtc;
+            public float durationSeconds;
+            public string firstF101Decision;
+            public string currentF101Decision;
+            public int f101Revisions;
+            public int f101FailedAttempts;
+            public bool visitedStaffAlcove;
+            public int observedCount;
+            public bool corroborated0317;
+            public bool rakingIndentRevealed;
+            public int dreadEventsCount;
+            public bool hintsEnabled;
+            public bool storyMode;
+            public bool reduceMotion;
+        }
+
+        private void WritePlaytestTelemetryIfEnabled()
+        {
+            string logPath = Argument("-ctcc-playtest-log");
+            if (string.IsNullOrWhiteSpace(logPath) || State == null) return;
+            try
+            {
+                string full = Path.GetFullPath(logPath);
+                string dir = Path.GetDirectoryName(full);
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                var payload = new Ch01PlaytestTelemetry
+                {
+                    timestampUtc = DateTime.UtcNow.ToString("O"),
+                    durationSeconds = Mathf.Max(0f, Time.unscaledTime - ch01StartUnscaledTime),
+                    firstF101Decision = State.f101.firstDecision.ToString(),
+                    currentF101Decision = State.f101.current.ToString(),
+                    f101Revisions = State.f101.revision,
+                    f101FailedAttempts = PuzzleService.FailedAttempts(State, HypothesisService.F101PuzzleId),
+                    visitedStaffAlcove = dreadDirector != null && dreadDirector.VisitedStaffAlcove,
+                    observedCount = State.observed != null ? State.observed.Count : 0,
+                    corroborated0317 = CorroborationService.IsCorroborated(State),
+                    rakingIndentRevealed = CorroborationService.HasRakingIndent(State),
+                    dreadEventsCount = State.dreadEventsSeen != null ? State.dreadEventsSeen.Count : 0,
+                    hintsEnabled = Options.hintsEnabled,
+                    storyMode = Options.storyMode,
+                    reduceMotion = Options.reduceMotion
+                };
+                File.WriteAllText(full, JsonUtility.ToJson(payload, true), System.Text.Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("CTCC playtest telemetry write skipped: " + ex.Message);
+            }
         }
 
         private void Anchor()

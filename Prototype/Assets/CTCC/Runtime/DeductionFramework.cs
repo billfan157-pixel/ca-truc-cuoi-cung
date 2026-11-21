@@ -56,11 +56,81 @@ namespace CTCC
     }
 
     [Serializable]
+    public struct EvidenceAnnotation
+    {
+        public string observationId;
+        public string hotspotId;
+
+        public EvidenceAnnotation(string observationId, string hotspotId)
+        {
+            this.observationId = observationId;
+            this.hotspotId = hotspotId;
+        }
+    }
+
+    [Serializable]
+    public sealed class F101Annotations
+    {
+        public const int Version = 1;
+        public const string Table = "F101_TABLE";
+        public const string Zero = "F101_ZERO";
+        public const string CardStatus = "OBS101B_STATUS";
+        public const string Receiver = "OBS101B_SIGN";
+        public const string TraceGroup = "OBS101A_TRACES";
+
+        public List<EvidenceAnnotation> marks = new();
+        public EvidenceAnnotation linkFrom;
+        public EvidenceAnnotation linkTo;
+
+        public bool HasLink => !string.IsNullOrEmpty(linkFrom.observationId);
+        public string MarkedHotspot(string id) => marks?.Find(mark => mark.observationId == id).hotspotId;
+
+        public static bool IsHotspot(string id, string hotspot) => id switch
+        {
+            ObservationRegistry.F101Sheet => hotspot is Table or Zero,
+            ObservationRegistry.Bed4Card => hotspot is CardStatus or Receiver,
+            _ => false
+        };
+
+        public F101Annotations Clone() => new()
+        {
+            marks = new List<EvidenceAnnotation>(marks),
+            linkFrom = linkFrom,
+            linkTo = linkTo
+        };
+
+        internal bool ValidFor(Investigation state)
+        {
+            if (marks == null || marks.Count > 2) return false;
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var mark in marks)
+                if (!ids.Add(mark.observationId) || !IsHotspot(mark.observationId, mark.hotspotId) ||
+                    !HypothesisService.HasExaminedInLayerB(state, mark.observationId))
+                    return false;
+
+            if (!HasLink)
+                return string.IsNullOrEmpty(linkFrom.hotspotId) && string.IsNullOrEmpty(linkTo.observationId) &&
+                       string.IsNullOrEmpty(linkTo.hotspotId);
+            return linkFrom.observationId == ObservationRegistry.Bed4Card &&
+                   IsHotspot(linkFrom.observationId, linkFrom.hotspotId) &&
+                   linkFrom.hotspotId == MarkedHotspot(linkFrom.observationId) &&
+                   linkTo.observationId == ObservationRegistry.Bed4Traces && linkTo.hotspotId == TraceGroup &&
+                   HypothesisService.HasExaminedInLayerB(state, linkTo.observationId);
+        }
+
+        internal bool SupportsRefutation(Investigation state) =>
+            ValidFor(state) && MarkedHotspot(ObservationRegistry.F101Sheet) == Zero &&
+            HasLink && linkFrom.hotspotId == Receiver;
+    }
+
+    [Serializable]
     public sealed class DeductionSubmission
     {
         public string formId = "F101";
         public List<string> selectedEvidenceIds = new();
         public string claimId = "";
+        public int annotationVersion;
+        public F101Annotations annotations;
 
         public DeductionSubmission Clone()
         {
@@ -68,7 +138,9 @@ namespace CTCC
             {
                 formId = formId ?? "F101",
                 claimId = claimId ?? "",
-                selectedEvidenceIds = new List<string>()
+                selectedEvidenceIds = new List<string>(),
+                annotationVersion = annotationVersion,
+                annotations = annotationVersion == F101Annotations.Version ? annotations?.Clone() : null
             };
             if (selectedEvidenceIds != null)
             {
@@ -88,6 +160,8 @@ namespace CTCC
         public List<string> evidenceIds = new();
         public string chapter = "CH01";
         public Reality layer = Reality.B;
+        public int annotationVersion;
+        public F101Annotations annotations;
     }
 
     public sealed class HypothesisEvaluation
@@ -261,8 +335,8 @@ namespace CTCC
                 }),
             new(
                 Bed4Card, "OBS101B", "Thẻ bàn giao giường số 4 (AS-05B)",
-                "Thẻ ghi ngày 17/11/2005, 'Khám sốt tạm', khoanh tròn 'CHƯA BÀN GIAO', trống ô chữ ký người nhận và nhòe dấu mực xanh; không ghi tên hay mã bệnh nhân.",
-                "Thẻ vẫn ghi tình trạng lúc lập. Ô ký nhận còn trống nên chưa rõ sau đó ca trực đã làm gì.",
+                "Thẻ ghi ngày 17/11/2005, 'Khám sốt tạm', khoanh tròn 'CHƯA BÀN GIAO', ghi lề 'Kiểm cuối ca: 03g17', trống ô chữ ký người nhận và nhòe dấu mực xanh.",
+                "Thẻ vẫn giữ tình trạng dở dang từ đêm 17–18/11 với mốc giờ cuối 03g17. Ô ký nhận còn trống nên chưa rõ sau đó ca trực đã làm gì.",
                 "Lớp B · Giá treo đầu giường 4, Phòng 101",
                 ObservationCategory.Fact,
                 new[] { Reality.B },
@@ -276,8 +350,8 @@ namespace CTCC
                 detailLabels: new[]
                 {
                     "Mục tình trạng khoanh tròn 'CHƯA BÀN GIAO' bằng bút bi xanh.",
-                    "Ô người giao chỉ ký tắt nhòe mực; ô người nhận để trống hoàn toàn.",
-                    "Mặt sau: ghi chú bút chì hỏi ca trực xác nhận lại giường tạm đã chuyển đi hay chưa."
+                    "Ô người giao chỉ ký tắt nhòe mực kèm mốc 'Kiểm cuối ca: 03g17'; ô người nhận để trống hoàn toàn.",
+                    "Mặt sau: ghi chú bút chì nhòe nước — nghiêng mặt giấy đón sáng lộ vết hằn bút bi bị gạch xóa."
                 }),
             new(
                 Bed2Transfer, "OBS101C", "Phiếu chuyển giường 02 (Đã hoàn tất)",
@@ -477,25 +551,25 @@ namespace CTCC
                 ClaimBlankSignature,
                 "Thẻ giường tạm còn trống ô chữ ký người nhận.",
                 HypothesisOutcome.UnsupportedConclusion,
-                "Ô ký nhận đúng là còn trống. Lập luận vẫn cần giải thích chi tiết đó có ý nghĩa gì đối với số tổng hợp."),
+                "Ô ký nhận đúng là còn trống… nhưng nếu chỉ chép lại chi tiết đó thì mình vẫn chưa nói rõ nó ảnh hưởng gì đến con số tổng hợp trên phiếu."),
             new(
                 ClaimPatientPresent,
                 "Lúc chốt ca, người bệnh ở giường tạm vẫn còn trong phòng 101.",
                 HypothesisOutcome.UnsupportedConclusion,
-                "Dấu vết có thể còn lại sau khi người bệnh rời đi. Chưa có dữ kiện xác định họ ở đâu vào lúc chốt ca."),
+                "Mình đang đoán vì sợ — chăn gấp vội và đôi dép chỉ nói giường này từng có người nằm, chứ không chứng minh được họ đang ở đâu vào lúc chốt ca. Trên giấy chỉ mới chứng minh được con số 0 này có vấn đề."),
             new(
                 ClaimClericalOk,
                 "Giường tạm đã bàn giao xong, chỉ còn thiếu chữ ký.",
                 HypothesisOutcome.ContradictsDecision,
-                "Ô ký nhận bỏ trống cũng có thể là do chưa bàn giao. Cần có căn cứ cho thấy ca bàn giao đã hoàn tất."),
+                "Nếu mình tự trấn an rằng ca bàn giao đã hoàn tất chỉ thiếu mỗi chữ ký, thì khác gì mình lại nhắm mắt ký bừa như hồi đó — đâu có căn cứ nào cho thấy họ đã chuyển đi xong."),
             new(
                 ClaimUnreliableZero,
-                "Số 0 bỏ sót hồ sơ bàn giao còn để ngỏ của giường tạm."),
+                "Đối chiếu với dấu vết ở giường 4 và ô ký nhận còn trống, chưa đủ căn cứ xác nhận số 0."),
             new(
                 ClaimFalsification,
                 "Người lập phiếu cố ý bỏ qua giường tạm để chốt ca.",
                 HypothesisOutcome.UnsupportedConclusion,
-                "Mẫu in và chữ ký cho thấy hồ sơ được ghi thế nào. Chưa có dữ kiện về việc người lập phiếu đã biết gì khi chốt ca.")
+                "Mình muốn tin có ai đó đã cố tình xóa dấu… nhưng giấy tờ chỉ cho thấy hồ sơ bỏ dở, chưa có gì chứng minh người lập phiếu đã biết gì đêm đó. Trên giấy chỉ mới chứng minh được con số 0 này có vấn đề.")
         };
 
         private static readonly Dictionary<string, DeductionClaimSpec> ClaimsById;
@@ -551,8 +625,8 @@ namespace CTCC
             {
                 return HypothesisEvaluation.Reject(
                     HypothesisOutcome.ContradictsDecision,
-                    "Quyết định không hợp lệ",
-                    "Hãy chọn một trong ba phương án hợp lệ trên phiếu F101.");
+                    "Mình chưa đặt bút chọn phương án nào",
+                    "Trên phiếu F101 vẫn phải chọn rõ một trong ba cách xử lý trước khi đóng dấu.");
             }
 
             // Affirmed and Unverified are ALWAYS allowed without blocking CH01 progression.
@@ -576,8 +650,8 @@ namespace CTCC
             {
                 return HypothesisEvaluation.Reject(
                     HypothesisOutcome.InsufficientEvidence,
-                    "Chưa có lập luận",
-                    "Hãy chọn các ghi nhận làm căn cứ cho nhận định về F101.");
+                    "Mình chưa gắn căn cứ nào vào phiếu",
+                    "Nếu gạch bác con số 0 mà không ghi rõ mình đã nhìn thấy gì, tờ phiếu này cũng vô nghĩa như hồi đó.");
             }
 
             var selected = submission.selectedEvidenceIds ?? new List<string>();
@@ -585,9 +659,9 @@ namespace CTCC
             {
                 return HypothesisEvaluation.Reject(
                     HypothesisOutcome.InsufficientEvidence,
-                    "Chưa chọn bằng chứng",
-                    "Cần đối chiếu điều ghi trong hồ sơ bàn giao với những gì quan sát được trong phòng.",
-                    "Hãy tìm hai nguồn độc lập cho biết chỗ nào từng được dùng và ca trực ghi nhận việc bàn giao ra sao.");
+                    "Mình đang phản bác bằng tay không",
+                    "Mình phải đối chiếu giữa dòng chữ trên hồ sơ với những dấu vết thật mắt mình vừa thấy trong phòng.",
+                    "Tìm hai thứ khớp nhau: một dấu vết cho thấy chỗ giường 4 từng có người nằm, và một tờ giấy ghi nhận bàn giao còn bỏ dở.");
             }
 
             var unique = new HashSet<string>(StringComparer.Ordinal);
@@ -601,8 +675,8 @@ namespace CTCC
                 {
                     return HypothesisEvaluation.Reject(
                         HypothesisOutcome.UnknownEvidenceId,
-                        "Mã chứng cứ không hợp lệ",
-                        $"Không nhận diện được mã chứng cứ '{id ?? ""}' trong hồ sơ điều tra.");
+                        "Ghi nhận này không có trong hồ sơ",
+                        $"Mình không tìm thấy mục '{id ?? ""}' nào trong sổ ghi chép ca trực này.");
                 }
                 if (!unique.Add(id))
                     continue;
@@ -612,16 +686,16 @@ namespace CTCC
                 {
                     return HypothesisEvaluation.Reject(
                         HypothesisOutcome.InvalidProvenance,
-                        "Nguồn chứng cứ không thuộc phạm vi F101",
-                        $"Ghi nhận '{spec.Title}' thuộc lớp hiện thực hoặc phạm vi điều tra khác, không dùng để lập luận cho F101.");
+                        "Mình đang trộn lẫn hai thời điểm",
+                        $"'{spec.Title}' thuộc một hiện trường khác — không thể lấy nó để bác bỏ tờ phiếu của đêm 2005 này.");
                 }
 
                 if (!state.Observed(id))
                 {
                     return HypothesisEvaluation.Reject(
                         HypothesisOutcome.InvalidProvenance,
-                        "Chứng cứ chưa được quan sát thực địa",
-                        $"Chưa thể đưa '{spec.Title}' vào lập luận khi Minh chưa trực tiếp quan sát ở hiện trường lớp B.");
+                        "Mình chưa tận mắt kiểm tra chỗ đó",
+                        $"Mình không thể viện dẫn '{spec.Title}' khi chính mắt mình còn chưa kiểm tra ở phòng bệnh.");
                 }
 
                 var rec = state.FindObservation(id);
@@ -631,15 +705,15 @@ namespace CTCC
                     {
                         return HypothesisEvaluation.Reject(
                             HypothesisOutcome.InvalidProvenance,
-                            "Sai nguồn lớp hiện thực",
-                            $"'{spec.Title}' không có nguồn gốc hợp lệ tại lớp B cho đối chiếu F101.");
+                            "Nguồn đối chiếu không thuộc ca trực này",
+                            $"'{spec.Title}' không xuất phát từ ca trực năm 2005 nên không đứng vững trước phiếu F101.");
                     }
                     if (rec.stage < ObservationStage.Examined)
                     {
                         return HypothesisEvaluation.Reject(
                             HypothesisOutcome.UnexaminedEvidence,
-                            "Chứng cứ mới chỉ thoáng thấy",
-                            $"Hãy kiểm tra kỹ '{spec.Title}' trước khi đưa vào lập luận phản bác chính thức.");
+                            "Mình mới chỉ lướt qua thôi",
+                            $"Phải cầm lên xem kỹ '{spec.Title}' đã — ký bác một tờ phiếu không thể dựa vào cái nhìn thoáng qua.");
                     }
                 }
 
@@ -647,13 +721,13 @@ namespace CTCC
                 {
                     string reason = id switch
                     {
-                        ObservationRegistry.Bed3Meds => "Phiếu thuốc xác nhận giờ xuất viện của giường 03, vốn đã khớp với bản kê. Nó chỉ giúp kiểm tra dòng đó.",
-                        ObservationRegistry.StoppedClock0317 => "Đồng hồ cho thấy kim dừng ở 03:17. Chi tiết này không cho biết ca bàn giao nào còn để ngỏ.",
-                        _ => "Sổ phân ca cho thấy ca trực thiếu người. Nó không ghi tình trạng bàn giao của từng giường."
+                        ObservationRegistry.Bed3Meds => "Phiếu thuốc giường 03 chỉ xác nhận ca xuất viện đã khớp với bản kê. Mình đang bám nhầm tờ giấy rồi.",
+                        ObservationRegistry.StoppedClock0317 => "Chiếc đồng hồ dừng ở 03:17 khiến mình lạnh sống lưng, nhưng tự nó không chứng minh giường nào bị sót trên F101 — phải ghi vào nhánh ngoại lệ riêng.",
+                        _ => "Sổ phân ca chỉ nói đêm đó thiếu người chạy buồng, không ghi giường nào còn dở bàn giao."
                     };
                     return HypothesisEvaluation.Reject(
                         HypothesisOutcome.IrrelevantEvidence,
-                        "Chi tiết chưa giúp đối chiếu số tổng hợp",
+                        "Chi tiết này không trả lời con số 0 trên F101",
                         reason);
                 }
 
@@ -663,25 +737,36 @@ namespace CTCC
                 {
                     return HypothesisEvaluation.Reject(
                         HypothesisOutcome.IrrelevantEvidence,
-                        "Chứng cứ ngoài phạm vi",
-                        $"'{spec.Title}' không đủ liên hệ trực tiếp để bác bỏ con số 0 trên phiếu F101.");
+                        "Mình đang kéo chi tiết ngoài lề vào phiếu",
+                        $"'{spec.Title}' chưa đụng tới chỗ mâu thuẫn thật sự của con số 0 trên F101.");
                 }
             }
 
             if (!hasA || !hasB)
             {
                 string missingMsg = !hasA && !hasB
-                    ? "Tài liệu đối chiếu giúp hiểu cách ghi sổ. Cần thêm căn cứ về việc sử dụng chỗ kê và tình trạng bàn giao tại đó."
+                    ? "Mấy tờ quy chế chỉ cho mình thấy cách ghi sổ đúng. Mình vẫn cần dấu vết thật ở chỗ giường 4 và tờ thẻ bàn giao đi kèm."
                     : !hasA
-                        ? "Một thẻ thiếu chữ ký có thể là giấy còn sót lại. Điều gì cho thấy chỗ kê ghi trên thẻ từng được dùng?"
-                        : "Dấu vết cho thấy chỗ kê từng được dùng. Hồ sơ ca trực ghi gì về việc bàn giao tại đó?";
+                        ? "Chỉ mỗi tấm thẻ trống chữ ký thì ai cũng có thể bảo là giấy thừa bỏ quên. Có gì sau tấm rèm chứng minh chỗ giường đó từng được dùng không?"
+                        : "Vết bánh giường với đôi dép cho thấy góc phòng từng được dùng… nhưng trên giấy tờ ca trực có phiếu nào ghi nhận tình trạng bàn giao ở đó không?";
                 return HypothesisEvaluation.Reject(
                     HypothesisOutcome.InsufficientEvidence,
-                    "Còn thiếu căn cứ đối chiếu",
+                    "Vẫn còn hụt một nửa câu chuyện",
                     missingMsg,
                     !hasA
-                        ? "Ngoài giấy tờ, hãy xem tại chỗ kê còn dấu vết gì."
-                        : "Khi đối chiếu các phiếu, hãy xem một ca bàn giao hoàn tất thường ghi gì về người nhận.");
+                        ? "Kéo rèm góc cuối phòng 101 xem dưới nền còn dấu vết thật nào không."
+                        : "Kiểm lại giá treo đầu giường 4 xem có thẻ theo dõi nào còn trống chữ ký người nhận không.");
+            }
+
+            if (submission.annotationVersion != 0 &&
+                (submission.annotationVersion != F101Annotations.Version ||
+                 submission.annotations?.SupportsRefutation(state) != true ||
+                 !unique.Contains(ObservationRegistry.F101Sheet)))
+            {
+                return HypothesisEvaluation.Reject(
+                    HypothesisOutcome.InsufficientEvidence,
+                    "Mình chưa nối đúng chỗ vênh giữa giấy và phòng",
+                    "Trên F101 phải khoanh đúng con số 0, trên thẻ AS-05B phải đánh dấu ô ký nhận trống rồi nối thẳng sang dấu vết giường 4.");
             }
 
             var claim = GetClaim(submission.claimId);
@@ -689,27 +774,30 @@ namespace CTCC
             {
                 return HypothesisEvaluation.Reject(
                     HypothesisOutcome.UnsupportedConclusion,
-                    "Chưa chọn kết luận đối chiếu",
-                    "Từ những gì đã chọn, hãy ghi nhận điều có thể suy ra về số tổng hợp.");
+                    "Mình chưa chốt được lời ghi chú cho phiếu",
+                    "Mình phải viết rõ điều giấy tờ và phòng bệnh thực sự chứng minh được về con số 0 — không nhiều hơn, không ít hơn.");
             }
 
             if (claim.FailureOutcome != HypothesisOutcome.Valid)
             {
                 return HypothesisEvaluation.Reject(
                     claim.FailureOutcome,
-                    "Cần xem lại nhận định",
+                    claim.FailureOutcome == HypothesisOutcome.ContradictsDecision
+                        ? "Mình đang tự biện hộ cho con số 0"
+                        : "Mình đang suy diễn vượt quá giấy tờ",
                     claim.FailureDiagnostic,
-                    "Hãy thử chỉ ra chi tiết nào dẫn từ điều đã quan sát đến nhận định này.");
+                    "Bỏ nỗi sợ sang một bên — nhìn lại đúng những gì trên giấy và dưới nền gạch chứng minh được thôi.");
             }
 
             return HypothesisEvaluation.Pass(
-                "Lập luận bất nhất được xác lập",
-                "Đối chiếu dấu sử dụng tại giường 4 cùng thẻ bàn giao bỏ dở cho thấy con số 0 trên F101 không đủ tin cậy để xác nhận.");
+                "Đủ căn cứ giữ lại con số này",
+                "Dấu vết sau rèm giường 4 cộng với ô ký nhận bỏ trống trên thẻ AS-05B đã quá rõ — con số 0 trên phiếu F101 không thể ký xác nhận được.");
         }
 
         public static bool ValidPersistedF101(Investigation state)
         {
             if (state == null || state.f101 == null) return false;
+            if (state.f101Annotations?.ValidFor(state) != true) return false;
             if (state.f101.revision == 0)
             {
                 return (state.f101History == null || state.f101History.Count == 0) &&
@@ -717,8 +805,8 @@ namespace CTCC
             }
             if (state.f101History == null || state.f101History.Count != state.f101.revision)
                 return false;
-            if (state.f101History[0].decision != state.f101.firstDecision ||
-                state.f101History[state.f101History.Count - 1].decision != state.f101.current)
+            var latest = state.f101History[state.f101History.Count - 1];
+            if (state.f101History[0]?.decision != state.f101.firstDecision || latest?.decision != state.f101.current)
                 return false;
             for (int i = 0; i < state.f101History.Count; i++)
             {
@@ -730,13 +818,79 @@ namespace CTCC
                     return false;
                 if (!string.IsNullOrEmpty(h.claimId) && !KnownClaim(h.claimId))
                     return false;
+                if (h.annotationVersion != 0 &&
+                    (h.decision != FormStatus.Refuted || !EvaluateF101(state, h.decision, new DeductionSubmission
+                    {
+                        claimId = h.claimId,
+                        selectedEvidenceIds = h.evidenceIds,
+                        annotationVersion = h.annotationVersion,
+                        annotations = h.annotations
+                    }).Accepted))
+                    return false;
             }
             if (state.f101.current == FormStatus.Refuted)
             {
                 var eval = EvaluateF101(state, FormStatus.Refuted, state.f101Argument);
-                if (!eval.Accepted) return false;
+                if (!eval.Accepted || state.f101Argument.annotationVersion != latest.annotationVersion) return false;
             }
             return true;
+        }
+    }
+
+    /// <summary>
+    /// Optional hidden-layer corroboration bonus (Upgrade #5 — "Ghi chú ngoại lệ · Mốc 03:17").
+    /// Connects the stopped 03:17 wall clock (OBS_CLOCK_0317), shift-context paperwork (OBS_RECEPTION_DRAWER /
+    /// OBS_SHIFT_LOG / OBS_CORRIDOR_NOTICE), and Bed-4's 03g17 timestamp on AS-05B (OBS101B) to unlock
+    /// Minh's chilling pre-collapse realization (CH01-D19) without altering CAN05 or blocking G01.
+    /// </summary>
+    public static class CorroborationService
+    {
+        public const string Exception0317Event = "CH01-EX01";
+        public const string Exception0317Dialogue = "CH01-D19";
+        public const string RakingDetailId = "RAKING_INDENT";
+
+        public static bool HasShiftContext(Investigation state) =>
+            state != null && (state.Observed(ObservationRegistry.ReceptionDrawerLog) ||
+                              state.Observed(ObservationRegistry.ShiftGuide) ||
+                              state.Observed(ObservationRegistry.WardOverflowNotice));
+
+        public static bool HasClock(Investigation state) =>
+            state != null && state.Observed(ObservationRegistry.StoppedClock0317);
+
+        public static bool HasCardTimestamp(Investigation state) =>
+            state != null && HypothesisService.HasExaminedInLayerB(state, ObservationRegistry.Bed4Card);
+
+        public static bool HasAnyPiece(Investigation state) =>
+            HasClock(state) || HasShiftContext(state);
+
+        public static bool CanCorroborate0317(Investigation state) =>
+            state != null && state.chapter == "CH01" && state.layer == Reality.B &&
+            !state.Happened("CH01-T08") && HasClock(state) && HasCardTimestamp(state) && HasShiftContext(state);
+
+        public static bool IsCorroborated(Investigation state) =>
+            state != null && state.Happened(Exception0317Event);
+
+        public static bool HasRakingIndent(Investigation state)
+        {
+            if (state == null) return false;
+            var card = state.FindObservation(ObservationRegistry.Bed4Card);
+            if (card != null && card.HasDetail(RakingDetailId)) return true;
+            var f101 = state.FindObservation(ObservationRegistry.F101Sheet);
+            return f101 != null && f101.HasDetail(RakingDetailId);
+        }
+
+        public static string BuildStatusSummary(Investigation state)
+        {
+            if (state == null) return "";
+            if (IsCorroborated(state))
+                return "Đã ghi chú ngoại lệ 03:17: mốc giờ ghi dở cuối ca trên thẻ AS-05B (03g17) trùng khít với chiếc đồng hồ chết sau quầy và sổ trực đêm 17–18/11/2005.";
+            if (CanCorroborate0317(state))
+                return "Cả đồng hồ quầy (03:17), sổ/quy chế trực và mốc 'Kiểm cuối ca: 03g17' trên thẻ AS-05B đều đã nằm trong sổ. Có thể đối chiếu nhánh ngoại lệ 03:17.";
+            if (HasClock(state) && !HasCardTimestamp(state))
+                return "Kim đồng hồ quầy dừng ở 03:17. Mình cần xem trên các phiếu hoặc thẻ ở phòng 101 có mốc giờ nào trùng với khoảnh khắc đó không.";
+            if (HasClock(state) && !HasShiftContext(state))
+                return "Thẻ AS-05B có ghi lề 03g17 trùng với đồng hồ chết ngoài quầy — nhưng mình cần kiểm tra thêm sổ phân ca hoặc quy chế/thông báo ở lối nhân viên để xác nhận ca trực đêm 17–18/11.";
+            return "Chưa đủ móc nối giữa đồng hồ 03:17, sổ trực và thẻ giường 4 AS-05B.";
         }
     }
 }

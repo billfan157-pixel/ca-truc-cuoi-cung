@@ -24,11 +24,12 @@ namespace CTCC
         public AudioClip paper, stamp, slippers, step, stepWet, stepCorridor, switchLayer;
         public AudioClip switchToB, switchToR, doorCreak, doorLatch, curtainSlide, cabinetRoll;
         public AudioClip keyJingle, trolleyRoll, phoneBuzz, paStatic, breakerCut, emergencyHum, distantThunder;
-        public AudioClip drawerSlide, paperFlip, clockTick, distantSteps;
+        public AudioClip drawerSlide, paperFlip, clockTick, distantSteps, chairScrape, partitionKnock;
         public VoiceClipEntry[] voiceClips = Array.Empty<VoiceClipEntry>();
         public AudioClip lanMotif;
 
         public bool ReportLayer { get; set; }
+        internal FormStatus F101Report { get; set; }
 
         private sealed class CueVoice
         {
@@ -54,6 +55,9 @@ namespace CTCC
         private float duckTarget = 1.0f;
         private Transform listener;
         private float nextWallCheck;
+        private float signatureQuietUntil;
+        private float signatureGain = 1f;
+        private AudioClip signaturePen;
         internal Transform Listener => listener;
 
         public string DirectionTo(Vector3 position)
@@ -121,6 +125,8 @@ namespace CTCC
             duckTarget = ducking ? 0.56f : 1.0f;
         }
 
+        internal void LeaveSilenceAfterStamp(float seconds) => signatureQuietUntil = Time.unscaledTime + seconds;
+
         internal static float DistanceGain(AudioSource source, Transform ear)
         {
             if (ear == null) return 1f;
@@ -142,6 +148,8 @@ namespace CTCC
             if (listener == null && Camera.main != null) listener = Camera.main.transform;
             float dt = Time.unscaledDeltaTime;
             duckGain = Mathf.MoveTowards(duckGain, duckTarget, dt * (duckTarget < duckGain ? 4f : 0.95f));
+            float signatureTarget = Time.unscaledTime < signatureQuietUntil ? 0.08f : 1f;
+            signatureGain = Mathf.MoveTowards(signatureGain, signatureTarget, dt * (signatureTarget < signatureGain ? 9f : 1.8f));
             bool checkOcclusion = Time.unscaledTime >= nextWallCheck;
             if (checkOcclusion) nextWallCheck = Time.unscaledTime + 0.1f;
 
@@ -166,7 +174,18 @@ namespace CTCC
 
                 float distance = mono ? DistanceGain(source, listener) : 1f;
                 float envelope = Mathf.Sin(loop.mixLevel * Mathf.PI * 0.5f);
-                source.volume = loop.level * envelope * ambienceScale * duckGain * distance * (1f - 0.36f * loop.obstruction);
+                if (source.clip != null && source.clip.name == "Fan" && source.transform.position.x > 6f)
+                {
+                    float pitch = F101Report switch
+                    {
+                        FormStatus.Affirmed => 1.10f,
+                        FormStatus.Unverified => 0.69f,
+                        FormStatus.Refuted => 0.85f,
+                        _ => 1f
+                    };
+                    source.pitch = Mathf.MoveTowards(source.pitch, pitch, dt * 0.6f);
+                }
+                source.volume = loop.level * envelope * ambienceScale * duckGain * signatureGain * distance * (1f - 0.36f * loop.obstruction);
             }
 
             double now = AudioSettings.dspTime;
@@ -237,6 +256,7 @@ namespace CTCC
             var sound = cue switch
             {
                 "paper" => paper,
+                "signaturePen" => signaturePen != null ? signaturePen : signaturePen = Resources.Load<AudioClip>("CTCC/F101Pen"),
                 "stamp" => stamp,
                 "slippers" => slippers,
                 "switch" => switchLayer,
@@ -257,10 +277,12 @@ namespace CTCC
                 "paperFlip" => paperFlip != null ? paperFlip : paper,
                 "clockTick" => clockTick != null ? clockTick : doorLatch,
                 "distantSteps" => distantSteps != null ? distantSteps : stepCorridor,
+                "chairScrape" => chairScrape != null ? chairScrape : cabinetRoll,
+                "partitionKnock" => partitionKnock != null ? partitionKnock : doorLatch,
                 _ => null
             };
             if (sound == null || propCue == null) return;
-            bool directionCue = cue is "keyJingle" or "slippers" or "trolleyRoll" or "distantSteps";
+            bool directionCue = cue is "keyJingle" or "slippers" or "trolleyRoll" or "distantSteps" or "chairScrape" or "partitionKnock";
             bool transition = cue is "switch" or "switchToB" or "switchToR";
             double now = AudioSettings.dspTime;
             var voice = AcquireCue(directionCue ? 2 : transition ? 1 : 0, now);
@@ -272,6 +294,7 @@ namespace CTCC
             {
                 "distantThunder" => 36f,
                 "trolleyRoll" or "keyJingle" or "distantSteps" => 23f,
+                "chairScrape" or "partitionKnock" => 15f,
                 "slippers" or "clockTick" => 11f,
                 _ => propCue.maxDistance
             };
@@ -290,6 +313,8 @@ namespace CTCC
                 "paperFlip" => 0.48f,
                 "clockTick" => 0.60f,
                 "distantSteps" => 0.50f,
+                "chairScrape" => 0.54f,
+                "partitionKnock" => 0.66f,
                 "curtainSlide" => 0.52f,
                 "keyJingle" => 0.72f,
                 "trolleyRoll" => 0.62f,

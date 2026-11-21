@@ -84,6 +84,7 @@ namespace CTCC
         public GameObject statusA, statusB, statusC, paperAfter, storeClues;
         public Renderer f101WallRenderer;
         public Material f101MatPending, f101MatA, f101MatB, f101MatC;
+        private UnityEngine.UI.Text f101CorridorSlip;
         public Light bed4TubeLight;
         private float bed4TubeBaseIntensity;
         public GameObject clockHandsR, clockHandsB;
@@ -96,6 +97,8 @@ namespace CTCC
         public EnvironmentMotion motion;
         public EnvironmentalAudio atmosphere;
         public InteractableRig interactables;
+        public Shader rakingPaperShader;
+        public ParticleSystem[] atmosphericParticles = Array.Empty<ParticleSystem>();
         public bool referenceArt;
 
         // M2 Dual-Scenario Indirect GI Evaluation Assets (R 2012 vs B 2005)
@@ -133,6 +136,8 @@ namespace CTCC
         private readonly Dictionary<string, Transform> padsById = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<ReflectionProbe> allProbes = new();
         private readonly List<Light> allEmergencyLights = new();
+        private readonly List<ParticleSystem> allAtmosphericParticles = new();
+        private bool reducedMotionAtmosphere;
 
         private bool themeReady;
         private bool showedReport;
@@ -506,8 +511,12 @@ namespace CTCC
         {
             allProbes.Clear();
             allEmergencyLights.Clear();
+            allAtmosphericParticles.Clear();
             if (localReflection != null) allProbes.Add(localReflection);
             if (corridorReflection != null) allProbes.Add(corridorReflection);
+            if (atmosphericParticles != null)
+                foreach (var ps in atmosphericParticles)
+                    if (ps != null && !allAtmosphericParticles.Contains(ps)) allAtmosphericParticles.Add(ps);
             foreach (var z in registeredZones)
             {
                 if (z == null) continue;
@@ -517,8 +526,24 @@ namespace CTCC
                 if (z.emergencyRedLights != null)
                     foreach (var el in z.emergencyRedLights)
                         if (el != null && !allEmergencyLights.Contains(el)) allEmergencyLights.Add(el);
+                if (z.atmosphericParticles != null)
+                    foreach (var ps in z.atmosphericParticles)
+                        if (ps != null && !allAtmosphericParticles.Contains(ps)) allAtmosphericParticles.Add(ps);
             }
             EmergencyRedLights = allEmergencyLights.ToArray();
+            ApplyAtmosphereSettings(reducedMotionAtmosphere);
+        }
+
+        public void ApplyAtmosphereSettings(bool reducedMotion)
+        {
+            reducedMotionAtmosphere = reducedMotion;
+            for (int i = 0; i < allAtmosphericParticles.Count; i++)
+            {
+                var ps = allAtmosphericParticles[i];
+                if (ps == null) continue;
+                var main = ps.main;
+                main.simulationSpeed = reducedMotion ? 0.14f : 1f;
+            }
         }
 
         public Transform Pad(string id)
@@ -697,6 +722,9 @@ namespace CTCC
                     _ => 1f
                 };
 
+            if (atmosphere != null) atmosphere.F101Report = form;
+            PresentF101CorridorSlip(form);
+
             if (bed4TubeLight != null && bed4TubeBaseIntensity > 0f)
             {
                 float intensity = bed4TubeBaseIntensity * (form switch
@@ -710,6 +738,49 @@ namespace CTCC
                 else
                     bed4TubeLight.intensity = intensity;
             }
+        }
+
+        private void PresentF101CorridorSlip(FormStatus form)
+        {
+            if (!Application.isPlaying) return;
+            if (f101CorridorSlip == null)
+            {
+                if (form == FormStatus.Pending) return;
+                var slip = new GameObject("Phòng 101 · Phiếu ngoài cửa", typeof(RectTransform), typeof(Canvas),
+                    typeof(UnityEngine.UI.Image));
+                slip.transform.SetParent(transform, false);
+                slip.transform.SetPositionAndRotation(new Vector3(5.46f, 1.66f, 3.78f), Quaternion.LookRotation(Vector3.right));
+                slip.transform.localScale = Vector3.one * 0.00078f;
+                ((RectTransform)slip.transform).sizeDelta = new Vector2(480f, 144f);
+                slip.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+                var paper = slip.GetComponent<UnityEngine.UI.Image>();
+                paper.color = new Color(0.61f, 0.59f, 0.51f);
+                paper.raycastTarget = false;
+
+                var label = new GameObject("Dòng bàn giao", typeof(RectTransform));
+                label.transform.SetParent(slip.transform, false);
+                var rect = (RectTransform)label.transform;
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = new Vector2(19f, 9f);
+                rect.offsetMax = new Vector2(-19f, -9f);
+                f101CorridorSlip = label.AddComponent<UnityEngine.UI.Text>();
+                f101CorridorSlip.font = Resources.Load<Font>("CTCC/BeVietnamPro-SemiBold");
+                f101CorridorSlip.fontSize = 38;
+                f101CorridorSlip.lineSpacing = 0.86f;
+                f101CorridorSlip.alignment = TextAnchor.MiddleLeft;
+                f101CorridorSlip.raycastTarget = false;
+            }
+
+            f101CorridorSlip.transform.parent.gameObject.SetActive(form != FormStatus.Pending);
+            f101CorridorSlip.color = form == FormStatus.Refuted ? new Color(0.30f, 0.11f, 0.085f) : new Color(0.105f, 0.14f, 0.14f);
+            f101CorridorSlip.text = "PHÒNG 101\n" + (form switch
+            {
+                FormStatus.Affirmed => "ĐÃ BÀN GIAO · 0",
+                FormStatus.Unverified => "CHỜ XÁC NHẬN",
+                FormStatus.Refuted => "KIỂM TRA LẠI",
+                _ => ""
+            });
         }
 
         private void ApplyIndirectLighting(bool layerB, bool layerM = false)

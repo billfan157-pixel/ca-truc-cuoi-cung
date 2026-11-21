@@ -34,5 +34,23 @@
     "rms_dbfs": -27.5,
     "true_peak_dbtp": -6.22,
     "sha256": "3f193ac1744810c4"
+  },
+  "ChairScrape": {
+    "file": "ChairScrape.wav",
+    "sample_rate_hz": 48000,
+    "channels": 1,
+    "duration_sec": 0.88,
+    "rms_dbfs": -25.5,
+    "true_peak_dbtp": -11.61,
+    "sha256": "07db338d34ee22bc"
+  },
+  "PartitionKnock": {
+    "file": "PartitionKnock.wav",
+    "sample_rate_hz": 48000,
+    "channels": 1,
+    "duration_sec": 1.45,
+    "rms_dbfs": -24.85,
+    "true_peak_dbtp": -4.0,
+    "sha256": "1cab1de5f5e73074"
   }
 }

@@ -36,11 +36,14 @@ flowchart TD
 
     F101 -->|"Path A · Affirmed\n(Certify 0)"| OUT_A["Reality.B: Solid Partition (deniedBay)\nF101_SignedA · Sterile Fan · PA01\nDistortion(LOC03) = 1"]
     F101 -->|"Path B · Unverified\n(Withhold Confirmation)"| OUT_B["Reality.B: Lingering Curtain (pendingBay)\nF101_SignedB · Slowed Fan · PA02\nDistortion(LOC03) = 0"]
-    F101 -->|"Path C · Refuted\nRequires Core Pair (OBS101A + OBS101B)\nNo Irrelevant Docs + Valid Claim"| BUILD["Authoritative HypothesisService.EvaluateF101\nRejects Missing/Irrelevant/Overclaims\n(Recoverable · Hint after 2 Failures)"]
-    BUILD -->|"Valid:\nF101_CLAIM_UNRELIABLE_ZERO"| OUT_C["Reality.B: Parted Curtain + refutedBay\nDamp Wall · Sharp Wheels · CH01-PR01 Corner\nDimmed Tube · F101_SignedC · PA03"]
+    F101 -->|"Path C · Mark two fields and link the scene"| MARKS["Mark the printed zero and blank receiving signature\nLink the card mark to wheel marks, blanket and slippers"]
+    C -.->|"Optional comparison"| MARKS
+    MARKS --> BUILD["HypothesisService validates marks, link and provenance"]
+    BUILD -->|"Sign: Chưa đủ căn cứ xác nhận số 0"| OUT_C["Reality.B: Parted Curtain + refutedBay\nDamp Wall · Sharp Wheels · CH01-PR01 Corner\nDimmed Tube · F101_SignedC · PA03"]
 
     %% All 3 decisions open G01 and advance CH01 canonically
-    OUT_A & OUT_B & OUT_C --> G01["Gate G01 Open (CH01-T07)\nF101 Revisions Allowed at AP04"]
+    OUT_A & OUT_B & OUT_C --> G01["CH01-T07 · G01 opens on durable signature\nPen, stamp, quiet, then audible room/PA changes"]
+    G01 -.-> SLIP["Corridor slip reflects the signed report in B"]
     G01 --> HUB2["B06 · AP02 Reception Hub\nAtomic B → R Collapse (CH01-T08)\nLan Calmly Absent"]
     HUB2 --> SEAM["B07 · Outer Gate Seam Loop Once\n(CH01-T09)"]
     SEAM --> HUB3["B08 · AP02 CH02 Handoff\n(CH01-T10 · CP04 · Reality.R Intact)"]
@@ -55,8 +58,9 @@ flowchart TD
 | --- | --- | --- | --- |
 | Any observed state (including 0 clues) | `Affirmed` | **`Valid`** | Player may always certify the printed zero; sets `Distortion(LOC03) = 1` and conceals Bed 4 in Layer B. |
 | Any observed state (including 0 clues) | `Unverified` | **`Valid`** | Responsible epistemic restraint — never penalized and never blocks `G01` or CH01 completion. |
-| `OBS101A` + `OBS101B` + `F101_CLAIM_UNRELIABLE_ZERO` | `Refuted` | **`Valid`** | Complementary physical trace + incomplete record establish that reported `0` cannot be reliably certified. |
-| `OBS101A` + `OBS101B` + `{OBS101C / OBS_SHIFT_LOG / OBS_CORRIDOR_NOTICE / OBS101_F101}` + `F101_CLAIM_UNRELIABLE_ZERO` | `Refuted` | **`Valid`** | Valid core pair corroborated by relevant comparison standard or administrative overflow context. |
+| `F101_ZERO` + `OBS101B_SIGN`, with `OBS101B_SIGN → OBS101A_TRACES` and `F101_CLAIM_UNRELIABLE_ZERO` | `Refuted` | **`Valid`** | The observed scene and incomplete card support withholding certification of the reported zero. The Bed 2 transfer is optional. |
+| Core pair and supported claim from an existing save | `Refuted` | **`Valid`** | Legacy revisions retain their original evidence and claim. |
+| Both source documents and the scene, with an incorrect mark or missing link | `Refuted` | **`InsufficientEvidence`** | The player's notes do not yet support signing the discrepancy. |
 | Missing `OBS101A` OR missing `OBS101B` (even with `OBS101C` or `OBS_SHIFT_LOG`) | `Refuted` | **`InsufficientEvidence`** | Single card alone could be leftover stationery; physical trace alone does not prove incomplete handover. |
 | Core pair + `OBS101D` (Bed-3 closed medication log) | `Refuted` | **`IrrelevantEvidence`** | Bed 3's closed medication record matches F101 and does not bear on Bed 4's discrepancy. |
 | Core pair + `OBS_CLOCK_0317` or `OBS_RECEPTION_DRAWER` | `Refuted` | **`IrrelevantEvidence`** | Atmospheric/institutional context, not direct grounds to refute Room 101's bed count. |
@@ -70,7 +74,7 @@ flowchart TD
 
 ## 3. Observation Lifecycle & Provenance Contract
 
-Every CH01 & CH02 observation is tracked via `ObservationRecord` inside `Investigation` (Save Schema `v4`, backward-compatible with `v1/v2/v3`):
+Save schema `v5` loads `v1–v4` and stores F101's draft marks and link. Each new annotated `Refuted` revision records a separate copy of the signed marks, link and claim. The `ObservationRecord` stages for CH01 and CH02 are:
 
 1. **`Discovered` (`0`)**: Registered but not yet inspected (insufficient for formal refutation).
 2. **`Examined` (`1`)**: Directly inspected in-world or via `PhysicalInspector` / Large Print in valid layer & location.

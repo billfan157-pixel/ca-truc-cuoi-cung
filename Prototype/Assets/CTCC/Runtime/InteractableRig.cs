@@ -43,6 +43,8 @@ namespace CTCC
         private readonly Dictionary<string, DrawerChannel> drawers = new(System.StringComparer.OrdinalIgnoreCase);
 
         private float curtainBlend;
+        private float curtainTargetBlend;
+        private float curtainDragVelocity;
         private float curtainDraftImpulse;
         private Quaternion curtainBaseRot = Quaternion.identity;
         private bool curtainBaseRotCaptured;
@@ -54,9 +56,11 @@ namespace CTCC
         // Active hold-and-drag state
         private string draggingId;
         private float dragAudioCooldown;
+        private float dragTravelAccum;
 
         public bool IsDragging => !string.IsNullOrEmpty(draggingId);
         public string DraggingId => draggingId ?? "";
+        public float CurtainOpenness => curtainBlend;
 
         public void SetReducedMotion(bool reduced) => reducedMotion = reduced;
 
@@ -228,6 +232,7 @@ namespace CTCC
         public bool ToggleCurtain(EnvironmentalAudio audioBus)
         {
             curtainPulled = !curtainPulled;
+            curtainTargetBlend = curtainPulled ? 1f : 0f;
             if (curtainCloth != null)
                 audioBus?.From("curtainSlide", curtainCloth.position);
             return curtainPulled;
@@ -236,11 +241,37 @@ namespace CTCC
         public void SetCurtainPulled(bool pulled, bool instant = false)
         {
             curtainPulled = pulled;
+            curtainTargetBlend = pulled ? 1f : 0f;
+            curtainDragVelocity = 0f;
             if (instant || reducedMotion)
             {
-                curtainBlend = pulled ? 1f : 0f;
+                curtainBlend = curtainTargetBlend;
                 ApplyCurtainPose();
             }
+        }
+
+        /// <summary>
+        /// Deferred dread micro-shift (Upgrade #2): subtly draws an opened Bed-4 curtain partially shut
+        /// right as the player lowers an inspected document.
+        /// </summary>
+        public bool NudgeCurtainClosed(float delta, EnvironmentalAudio audioBus)
+        {
+            if (curtainCloth == null || draggingId == "CURTAIN-101") return false;
+            float next = Mathf.Clamp01(curtainTargetBlend - Mathf.Clamp(delta, 0.12f, 0.50f));
+            if (Mathf.Abs(next - curtainTargetBlend) < 0.04f) return false;
+            curtainTargetBlend = next;
+            curtainPulled = curtainTargetBlend > 0.5f;
+            if (reducedMotion)
+            {
+                curtainBlend = curtainTargetBlend;
+                ApplyCurtainPose();
+            }
+            else
+            {
+                curtainDraftImpulse = Mathf.Max(curtainDraftImpulse, 0.65f);
+            }
+            audioBus?.From("curtainSlide", curtainCloth.position, 0.42f);
+            return true;
         }
 
         public void PulseCurtainDraft()
@@ -249,50 +280,92 @@ namespace CTCC
             curtainDraftImpulse = 1f;
         }
 
+        public float GetDoorAngle(string id) =>
+            !string.IsNullOrEmpty(id) && doors.TryGetValue(id, out var ch) ? ch.currentAngle : 0f;
+
+        public float GetDragOpenness01(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return 0f;
+            if (id == "CURTAIN-101") return Mathf.Clamp01(curtainBlend);
+            if (drawers.TryGetValue(id, out var dr)) return Mathf.Clamp01(dr.currentOpen);
+            if (doors.TryGetValue(id, out var door))
+            {
+                float maxMag = Mathf.Max(1f, Mathf.Abs(door.maxOpenAngle));
+                return Mathf.Clamp01(Mathf.Abs(door.currentAngle) / maxMag);
+            }
+            return 0f;
+        }
+
         /// <summary>
-        /// Optional tactile hold-and-drag entry for doors, drawers, and privacy curtains.
-        /// Click/tap remains instant & fully accessible; dragging adjusts openness continuously with damped resistance.
+        /// Tactile analog hold-and-drag entry for doors (DOOR-101, DOOR-STAFF), drawers, and CURTAIN-101 (Upgrade #8).
+        /// Click/tap (E/K) remains instant & fully accessible; dragging adjusts openness continuously with damped
+        /// resistance and preserves ANY intermediate cracked-open peek position upon release!
         /// </summary>
         public bool BeginDrag(string id)
         {
             if (string.IsNullOrEmpty(id)) return false;
-            if (id == "CURTAIN-101" && curtainCloth != null) { draggingId = id; return true; }
-            if (drawers.ContainsKey(id) || doors.ContainsKey(id)) { draggingId = id; return true; }
+            dragTravelAccum = 0f;
+            curtainDragVelocity = 0f;
+            if (id == "CURTAIN-101" && curtainCloth != null)
+            {
+                draggingId = id;
+                curtainTargetBlend = curtainBlend;
+                return true;
+            }
+            if (drawers.ContainsKey(id) || doors.ContainsKey(id))
+            {
+                draggingId = id;
+                return true;
+            }
             return false;
         }
 
         public void UpdateDrag(Vector2 mouseDelta, EnvironmentalAudio audioBus)
         {
             if (string.IsNullOrEmpty(draggingId)) return;
-            float impulse = (mouseDelta.x - mouseDelta.y * 0.55f) * 0.0045f;
-            if (Mathf.Abs(impulse) < 0.0005f) return;
+            float rawImpulse = (mouseDelta.x - mouseDelta.y * 0.55f) * 0.0040f;
+            if (Mathf.Abs(rawImpulse) < 0.0003f) return;
 
+            // Clamp burst deltas so heavy doors and cloth curtains feel weighted rather than twitchy.
+            float impulse = Mathf.Clamp(rawImpulse, -0.055f, 0.055f);
+            float speedGain = Mathf.Lerp(0.24f, 0.68f, Mathf.Clamp01(Mathf.Abs(impulse) / 0.032f));
             if (dragAudioCooldown > 0f) dragAudioCooldown -= Time.deltaTime;
 
             if (draggingId == "CURTAIN-101" && curtainCloth != null)
             {
-                curtainBlend = Mathf.Clamp01(curtainBlend + impulse * 1.15f);
+                float prev = curtainBlend;
+                curtainBlend = Mathf.Clamp01(curtainBlend + impulse * 1.10f);
+                curtainTargetBlend = curtainBlend;
                 curtainPulled = curtainBlend > 0.5f;
+                float moved = curtainBlend - prev;
+                curtainDragVelocity = Mathf.Lerp(curtainDragVelocity, moved * 42f, 0.45f);
+                dragTravelAccum += Mathf.Abs(moved);
+                if (!reducedMotion && Mathf.Abs(moved) > 0.002f)
+                    curtainDraftImpulse = Mathf.Clamp01(curtainDraftImpulse + Mathf.Abs(moved) * 2.4f);
                 ApplyCurtainPose();
-                if (dragAudioCooldown <= 0f)
+                if (dragAudioCooldown <= 0f && dragTravelAccum > 0.04f)
                 {
-                    audioBus?.From("curtainSlide", curtainCloth.position, 0.35f);
-                    dragAudioCooldown = 0.42f;
+                    audioBus?.From("curtainSlide", curtainCloth.position, speedGain);
+                    dragAudioCooldown = 0.36f;
+                    dragTravelAccum = 0f;
                 }
                 return;
             }
 
             if (drawers.TryGetValue(draggingId, out var dr) && dr.transform != null)
             {
-                dr.currentOpen = Mathf.Clamp01(dr.currentOpen + impulse * 1.25f);
-                dr.targetOpen = dr.currentOpen > 0.5f ? 1f : 0f;
+                float prev = dr.currentOpen;
+                dr.currentOpen = Mathf.Clamp01(dr.currentOpen + impulse * 1.18f);
+                dr.targetOpen = dr.currentOpen;
                 dr.moving = false;
                 dr.transform.localPosition = dr.closedLocalPos + dr.openLocalOffset * dr.currentOpen;
                 Physics.SyncTransforms();
-                if (dragAudioCooldown <= 0f)
+                dragTravelAccum += Mathf.Abs(dr.currentOpen - prev);
+                if (dragAudioCooldown <= 0f && dragTravelAccum > 0.05f)
                 {
-                    audioBus?.From("drawerSlide", dr.transform.position, 0.42f);
-                    dragAudioCooldown = 0.45f;
+                    audioBus?.From("drawerSlide", dr.transform.position, speedGain);
+                    dragAudioCooldown = 0.40f;
+                    dragTravelAccum = 0f;
                 }
                 return;
             }
@@ -301,16 +374,23 @@ namespace CTCC
             {
                 float sign = Mathf.Sign(door.maxOpenAngle != 0f ? door.maxOpenAngle : 1f);
                 float maxMag = Mathf.Abs(door.maxOpenAngle != 0f ? door.maxOpenAngle : 96f);
-                float curMag = Mathf.Clamp(Mathf.Abs(door.currentAngle) + impulse * 95f, 0f, maxMag);
+                float prevMag = Mathf.Abs(door.currentAngle);
+                // Mild hinge resistance near closed latch so cracking DOOR-101 open feels deliberate & tense
+                float resist = prevMag < 8f ? 0.72f : 1.0f;
+                float curMag = Mathf.Clamp(prevMag + impulse * 88f * resist, 0f, maxMag);
                 door.currentAngle = curMag * sign;
-                door.targetAngle = curMag > maxMag * 0.35f ? door.maxOpenAngle : 0f;
+                door.targetAngle = door.currentAngle;
                 door.moving = false;
                 door.pivot.localRotation = Quaternion.Euler(0f, door.currentAngle, 0f);
                 Physics.SyncTransforms();
-                if (dragAudioCooldown <= 0f)
+                dragTravelAccum += Mathf.Abs(curMag - prevMag);
+                if (prevMag < 2f && curMag >= 2f)
+                    audioBus?.From("doorLatch", door.pivot.position + Vector3.up * 1.1f, 0.52f);
+                else if (dragAudioCooldown <= 0f && dragTravelAccum > 4.5f)
                 {
-                    audioBus?.From("doorCreak", door.pivot.position + Vector3.up * 1.1f, 0.38f);
-                    dragAudioCooldown = 0.55f;
+                    audioBus?.From("doorCreak", door.pivot.position + Vector3.up * 1.1f, speedGain);
+                    dragAudioCooldown = 0.48f;
+                    dragTravelAccum = 0f;
                 }
             }
         }
@@ -318,14 +398,40 @@ namespace CTCC
         public void EndDrag(EnvironmentalAudio audioBus)
         {
             if (string.IsNullOrEmpty(draggingId)) return;
-            if (drawers.TryGetValue(draggingId, out var dr)) dr.moving = true;
+            if (draggingId == "CURTAIN-101")
+            {
+                // Preserve intermediate analog curtain position; only snap inside tiny 5% end-stops
+                if (curtainBlend < 0.05f) curtainTargetBlend = 0f;
+                else if (curtainBlend > 0.95f) curtainTargetBlend = 1f;
+                else curtainTargetBlend = curtainBlend;
+                curtainPulled = curtainTargetBlend > 0.5f;
+                curtainDragVelocity = 0f;
+            }
+            if (drawers.TryGetValue(draggingId, out var dr))
+            {
+                if (dr.currentOpen < 0.06f) { dr.targetOpen = 0f; dr.moving = true; }
+                else if (dr.currentOpen > 0.94f) { dr.targetOpen = 1f; dr.moving = true; }
+                else { dr.targetOpen = dr.currentOpen; dr.moving = false; }
+            }
             if (doors.TryGetValue(draggingId, out var door))
             {
-                door.moving = true;
-                if (Mathf.Abs(door.targetAngle) < 2f && door.pivot != null)
-                    audioBus?.From("doorLatch", door.pivot.position + Vector3.up * 1.1f, 0.65f);
+                float mag = Mathf.Abs(door.currentAngle);
+                if (mag < 4.5f)
+                {
+                    door.targetAngle = 0f;
+                    door.moving = true;
+                    if (door.pivot != null)
+                        audioBus?.From("doorLatch", door.pivot.position + Vector3.up * 1.1f, 0.65f);
+                }
+                else
+                {
+                    // Hold the exact cracked-open angle so players control how far they peek into Room 101!
+                    door.targetAngle = door.currentAngle;
+                    door.moving = false;
+                }
             }
             draggingId = null;
+            dragTravelAccum = 0f;
         }
 
         private void ApplyCurtainPose()
@@ -361,7 +467,7 @@ namespace CTCC
 
             if (curtainCloth != null && draggingId != "CURTAIN-101")
             {
-                float target = curtainPulled ? 1f : 0f;
+                float target = curtainTargetBlend;
                 if (Mathf.Abs(curtainBlend - target) > 0.001f || curtainDraftImpulse > 0.001f)
                 {
                     curtainBlend = Mathf.MoveTowards(curtainBlend, target, dt * (reducedMotion ? 8f : 1.85f));

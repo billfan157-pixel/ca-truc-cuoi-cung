@@ -8,6 +8,20 @@ using UnityEngine.UI;
 
 namespace CTCC
 {
+    internal readonly struct DocumentHotspot
+    {
+        public readonly Rect Uv;
+        public readonly bool Marked;
+        public readonly Action Press;
+
+        public DocumentHotspot(Rect uv, bool marked, Action press)
+        {
+            Uv = uv;
+            Marked = marked;
+            Press = press;
+        }
+    }
+
     public readonly struct ActionChoice
     {
         public readonly string Label;
@@ -173,9 +187,12 @@ namespace CTCC
             }
         }
 
-        public void Caption(string text, float seconds = 4f, bool essential = false)
+        public void Caption(string text, float seconds = 4f, bool essential = false, bool aboveModal = false)
         {
             if (!captions && !essential) return;
+            var parent = aboveModal ? canvas : hud;
+            if (cueBacking.transform.parent != parent)
+                cueBacking.transform.SetParent(parent, false);
             cue.text = text;
             cueUntil = Time.unscaledTime + seconds;
             cueBacking.gameObject.SetActive(true);
@@ -208,6 +225,13 @@ namespace CTCC
         {
             ShowLayout(section, title, body, buttons, close, splitImage, sideInspectMode: false, onClose: null, inspectHint: null,
                 initialFocus: initialFocus);
+        }
+
+        internal void ShowAnnotatedDocument(string section, string title, string body, ActionChoice[] buttons, Action close,
+            Texture image, float paperAspect, DocumentHotspot[] hotspots, bool largePrint, int initialFocus)
+        {
+            ShowLayout(section, title, body, buttons, close, image, sideInspectMode: false, onClose: null,
+                inspectHint: null, initialFocus: initialFocus, hotspots: hotspots, largePrint: largePrint, paperAspect: paperAspect);
         }
 
         public void ShowInspectSidebar(string section, string title, string body, ActionChoice[] buttons, Action close, Action onClose = null, string inspectHint = null)
@@ -289,7 +313,8 @@ namespace CTCC
         }
 
         private void ShowLayout(string section, string title, string body, ActionChoice[] buttons, Action close,
-            Texture splitImage, bool sideInspectMode, Action onClose, string inspectHint, int initialFocus = 0)
+            Texture splitImage, bool sideInspectMode, Action onClose, string inspectHint, int initialFocus = 0,
+            DocumentHotspot[] hotspots = null, bool largePrint = false, float paperAspect = 0f)
         {
             for (int i = panel.childCount - 1; i >= 0; i--)
             {
@@ -352,7 +377,8 @@ namespace CTCC
             layout.childControlHeight = true;
             var fit = bodyRect.gameObject.AddComponent<ContentSizeFitter>();
             fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            var article = FillText("Readable copy", bodyRect, sideInspectMode ? 20 : 22, Ink, TextAnchor.UpperLeft);
+            int readingSize = largePrint ? 29 : (sideInspectMode ? 20 : 22);
+            var article = FillText("Readable copy", bodyRect, readingSize, Ink, TextAnchor.UpperLeft);
             string footerHint = sideInspectMode
                 ? "\n\n<color=#a6b6a8>" + (string.IsNullOrEmpty(inspectHint)
                     ? "Kéo chuột hoặc WASD để xoay vật · Lăn chuột / Q-Z để thu phóng"
@@ -377,10 +403,32 @@ namespace CTCC
                 image.raycastTarget = false;
                 var keep = frame.gameObject.AddComponent<AspectRatioFitter>();
                 keep.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-                keep.aspectRatio = (float)splitImage.width / splitImage.height;
+                keep.aspectRatio = paperAspect > 0f ? paperAspect : (float)splitImage.width / splitImage.height;
+                if (hotspots != null)
+                {
+                    foreach (var hotspot in hotspots)
+                    {
+                        var region = Rect("Document hotspot", frame, hotspot.Uv.min, hotspot.Uv.max);
+                        var hitArea = Graphic(region, Color.white, true);
+                        var button = region.gameObject.AddComponent<Button>();
+                        button.targetGraphic = hitArea;
+                        button.navigation = new Navigation { mode = Navigation.Mode.None };
+                        var colors = button.colors;
+                        colors.normalColor = new Color(0.14f, 0.30f, 0.38f, hotspot.Marked ? 0.24f : 0f);
+                        colors.highlightedColor = new Color(0.14f, 0.30f, 0.38f, 0.35f);
+                        colors.pressedColor = colors.highlightedColor;
+                        colors.selectedColor = colors.normalColor;
+                        button.colors = colors;
+                        hitArea.canvasRenderer.SetColor(colors.normalColor);
+                        button.onClick.AddListener(() => { if (!ModalInputBlocked) hotspot.Press(); });
+                        if (hotspot.Marked)
+                            Graphic(Rect("Ink underline", region, Vector2.zero, Vector2.right, Vector2.zero, new Vector2(0, 2)),
+                                new Color(0.11f, 0.24f, 0.34f, 0.88f), false);
+                    }
+                }
             }
 
-            BuildActionShelf(buttons, padX, shelf, sideInspectMode);
+            BuildActionShelf(buttons, padX, shelf, sideInspectMode, largePrint);
 
             modal.gameObject.SetActive(true);
             modalOpenedFrame = Time.frameCount;
@@ -389,10 +437,10 @@ namespace CTCC
             MoveFocus(initialFocus + 1);
         }
 
-        private void BuildActionShelf(ActionChoice[] buttons, int padX, float shelf, bool sideInspectMode)
+        private void BuildActionShelf(ActionChoice[] buttons, int padX, float shelf, bool sideInspectMode, bool largePrint = false)
         {
             var footer = Rect("Actions", panel, new Vector2(0, 0), new Vector2(1, shelf), new Vector2(padX, 18), new Vector2(-padX, -4));
-            int fontSz = buttons.Length > 8 ? 18 : (sideInspectMode ? 19 : 21);
+            int fontSz = largePrint ? 25 : (buttons.Length > 8 ? 18 : (sideInspectMode ? 19 : 21));
             for (int i = 0; i < buttons.Length; i++)
             {
                 float h0 = 1f - (i + 1f) / buttons.Length;

@@ -382,7 +382,6 @@ def build_f101_suite() -> None:
         lines=[
             "— Kiểm đủ 3 giường cố định theo bản kê phòng 101.",
             "— Mục giường tạm cuối phòng chưa thấy phiếu chốt ở quầy.",
-            "— Đề nghị đối chiếu lại hốc sau rèm trước khi xác nhận số 0.",
         ],
     )
     back.save(DEST / "F101_Back.png")
@@ -442,6 +441,7 @@ def build_obs101b_bed4_card() -> None:
     d.text((316, sy + 26), "NGƯỜI GIAO CA", font=font(20, True), fill=INK_PRINT, anchor="mm")
     d.text((744, sy + 26), "NGƯỜI NHẬN BÀN GIAO", font=font(20, True), fill=INK_PRINT, anchor="mm")
     draw_handwritten(img, (154, sy + 88), "T. N. L. (chưa ký đủ)", size=22, color=INK_PEN, alpha=175)
+    draw_handwritten(img, (154, sy + 138), "Kiểm cuối ca: 03g17", size=20, color=INK_PENCIL, alpha=205)
     draw_handwritten(img, (578, sy + 96), "(Chưa có chữ ký nhận)", size=22, color=INK_PENCIL, alpha=185)
     # Ink thumb smudge across lower receiver/sender divider (Core 04 OBS101B: dấu tay mực nhòe)
     draw_ink_smudge(img, (515, sy + 162), radius=52, color=INK_PEN, seed=7205)
@@ -457,9 +457,6 @@ def build_obs101b_bed4_card() -> None:
         title_note="Ghi nhanh mặt sau thẻ giường 4 (bút chì):",
         lines=[
             "— Giường 4 mới kê tạm tối 17/11 cho ca khám sốt.",
-            "— Lúc chuyển ca không thấy chữ ký nhận lại ở bàn trực.",
-            "— Thiếu chữ ký CHƯA chứng minh bệnh nhân còn ở phòng,",
-            "   nhưng KHÔNG THỂ tự ký 0 khi chưa kiểm tra rõ.",
             "— (Đoạn dưới bị nước làm nhòe, không đọc được nơi chuyển.)",
         ],
         extra_fn=lambda b_img, _: draw_ink_smudge(b_img, (690, 580), radius=64, color=(92, 86, 68), seed=7209),
@@ -711,10 +708,12 @@ def build_bay_envelope_and_letter() -> None:
     dl.text((84, 916), "TIN NHẮN SMS MỚI NHẬN (22g54 · TỪ CHÚ BẢY):", font=font(21, True), fill=INK_STAMP_RED)
     dl.text((96, 962), "“Tôi đang ở viện. Hoãn nhé, cậu đừng vào trong.”", font=font(29, True), fill=INK_PRINT)
     dl.line((84, 1036, W - 84, 1036), fill=INK_RULE_FAINT, width=1)
-    dl.text((84, 1062), "MẨU BÁO CŨ KẸP KÈM (11/2005):", font=font(20, True), fill=INK_SUB)
+    dl.text((84, 1062), "MẨU BÁO CŨ KẸP KÈM (11/2005 — GÓC DƯỚI RÁCH ẨM):", font=font(20, True), fill=INK_SUB)
     dl.text((96, 1104), "Vụ cháy cục bộ ngày 18/11/2005 tại Bệnh viện Đa khoa An Sinh", font=font(22, False), fill=INK_SUB)
-    dl.text((96, 1142), "khiến 13 người tử vong (12 bệnh nhân và 01 điều dưỡng). Công trình", font=font(22, False), fill=INK_SUB)
-    dl.text((96, 1180), "ngừng hoạt động và dự kiến tháo dỡ từ sáng 18/11/2012.", font=font(22, False), fill=INK_SUB)
+    dl.text((96, 1142), "khiến 13 người tử vong. Cơ sở ngừng hoạt động và dự kiến", font=font(22, False), fill=INK_SUB)
+    dl.text((96, 1180), "tháo dỡ từ sáng 18/11/2012. Danh sách nạn nhân: [mép giấy rách…]", font=font(21, False), fill=INK_SUB)
+    # Visual torn/water-stained smudge obscuring the bottom-right victim list corner
+    draw_ink_smudge(lt, (780, 1205), radius=76, color=(94, 82, 62), seed=7619)
     lt.save(DEST / "Doc_BayLetter.png")
 
     back = make_back_sheet(
@@ -766,6 +765,92 @@ def build_signs_and_pr01() -> None:
     pr.save(DEST / "CH01_PR01_Corner.png")
 
 
+def normal_from_height_doc(height: np.ndarray, strength: float = 6.5) -> Image.Image:
+    """Sobel tangent-space OpenGL normal map (Y-up for Unity) from a normalized 0..1 height field."""
+    h = height.astype(np.float32)
+    l = np.roll(h, 1, axis=1)
+    r = np.roll(h, -1, axis=1)
+    u = np.roll(h, 1, axis=0)
+    d = np.roll(h, -1, axis=0)
+    ul = np.roll(u, 1, axis=1)
+    ur = np.roll(u, -1, axis=1)
+    dl = np.roll(d, 1, axis=1)
+    dr = np.roll(d, -1, axis=1)
+    dx = ((ul + 2.0 * l + dl) - (ur + 2.0 * r + dr)) * (strength * 0.25)
+    dy = ((dl + 2.0 * d + dr) - (ul + 2.0 * u + ur)) * (strength * 0.25)
+    v = np.stack((dx, dy, np.ones_like(dx)), axis=-1)
+    v /= np.maximum(1e-5, np.linalg.norm(v, axis=-1, keepdims=True))
+    return Image.fromarray(np.uint8(np.clip(v * 0.5 + 0.5, 0.0, 1.0) * 255.0), mode="RGB")
+
+
+def build_raking_indentation_maps() -> None:
+    """Generate tangent-space ballpoint indentation normal maps & reveal masks for raking-light 3D inspection.
+
+    When viewed straight-on in PhysicalInspector, these impressions stay barely perceptible on paper fibers.
+    Tilting the reverse page 25-40 deg into keyLight catches raking specular highlights along the pen grooves:
+    - ObsCard_Back (AS-05B): erased/impressed marginal code '03g17 · CHUYỂN TẠM — C01?' (no patient name or Area C!)
+    - F101_Back: erased ballpoint line 'GIƯỜNG 04 — CHƯA CHỐT [GẠCH BỎ] → 0'
+    """
+    specs = (
+        (
+            "ObsCard_Back",
+            7811,
+            (
+                (140, 680, "03g17 · CHUYỂN TẠM — C01?", 42, -0.16, -1.2),
+                (148, 764, "CHƯA CÓ NGƯỜI NHẬN — ĐỂ LẠI THẺ", 31, -0.14, -0.6),
+                (152, 838, "[Vết gạch xóa bút bi hằn sâu sang mặt sau]", 25, -0.12, 0.4),
+            ),
+            # Strike-through scratch lines over the first row to simulate frantic erasure
+            ((135, 704, 835, 696), (140, 718, 820, 710)),
+        ),
+        (
+            "F101_Back",
+            7821,
+            (
+                (128, 660, "GIƯỜNG 04 — CHƯA CHỐT SỔ", 40, -0.15, -1.0),
+                (136, 744, "GẠCH BỎ MỤC TẠM → GHI TRÒN: 0", 33, -0.16, -0.5),
+                (142, 822, "03g17 · MẤT LIÊN LẠC TẦNG TRÊN", 28, -0.12, 0.3),
+            ),
+            ((120, 684, 820, 678), (128, 766, 840, 756)),
+        ),
+    )
+
+    for prefix, seed, lines, scratches in specs:
+        fiber = fbm_2d(W, H, (24, 64, 160), seed=seed) * 0.08
+        indent_img = Image.new("L", (W, H), 0)
+        d = ImageDraw.Draw(indent_img)
+
+        for x, y, txt, sz, slant, ang in lines:
+            f = font(sz, bold=True)
+            tmp = Image.new("L", (W, int(sz * 2.4)), 0)
+            dt = ImageDraw.Draw(tmp)
+            dt.text((24, int(sz * 0.45)), txt, font=f, fill=240)
+            sheared = tmp.transform(
+                tmp.size,
+                Image.Transform.AFFINE,
+                (1.0, slant, -slant * sz, 0.0, 1.0, 0.0),
+                resample=Image.Resampling.BICUBIC,
+            )
+            if abs(ang) > 0.05:
+                sheared = sheared.rotate(ang, resample=Image.Resampling.BICUBIC, expand=False)
+            indent_img.paste(sheared, (x - 24, y - int(sz * 0.45)), sheared)
+
+        for x0, y0, x1, y1 in scratches:
+            d.line([(x0, y0), (x1, y1)], fill=165, width=4)
+
+        # Soft bevel profile around ballpoint pressure grooves so raking light catches crisp ridge + trough
+        groove_sharp = np.asarray(indent_img.filter(ImageFilter.GaussianBlur(1.1)), dtype=np.float32) / 255.0
+        groove_wide = np.asarray(indent_img.filter(ImageFilter.GaussianBlur(3.4)), dtype=np.float32) / 255.0
+        ridge = np.clip(groove_wide - groove_sharp * 0.55, 0.0, 1.0)
+        height = np.clip(0.55 + fiber - groove_sharp * 0.42 + ridge * 0.24, 0.0, 1.0)
+
+        normal_img = normal_from_height_doc(height, strength=9.5)
+        normal_img.save(DEST / f"{prefix}_Indent_Normal.png")
+
+        mask_arr = np.clip(groove_sharp * 1.15 + ridge * 0.45, 0.0, 1.0)
+        Image.fromarray(np.uint8(mask_arr * 255.0), mode="L").save(DEST / f"{prefix}_Indent_Mask.png")
+
+
 def main() -> None:
     DEST.mkdir(parents=True, exist_ok=True)
     build_f101_suite()
@@ -775,7 +860,8 @@ def main() -> None:
     build_nursing_alcove_and_reception_docs()
     build_bay_envelope_and_letter()
     build_signs_and_pr01()
-    print(f"CH01-R documents generated cleanly in {DEST}")
+    build_raking_indentation_maps()
+    print(f"CH01-R documents + raking indentation maps generated cleanly in {DEST}")
 
 
 if __name__ == "__main__":

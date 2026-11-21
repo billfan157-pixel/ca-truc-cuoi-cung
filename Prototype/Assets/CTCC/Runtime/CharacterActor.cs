@@ -45,6 +45,9 @@ namespace CTCC
 
         [NonSerialized] public Transform LookTarget;
         [NonSerialized] public bool ReducedMotion;
+        [NonSerialized] public float GazeYawBias;
+        [NonSerialized] public float GazePitchBias;
+        [NonSerialized] public bool EnableCloseUpAversion;
 
         private PlayableGraph graph;
         private AnimationMixerPlayable mixer;
@@ -403,6 +406,12 @@ namespace CTCC
             ApplyFaceWeights();
         }
 
+        public void TriggerMicroBlink()
+        {
+            if (enableBlink && blinkPhase < 0f)
+                blinkPhase = 0f;
+        }
+
         public void PlayAction(string actionName, float crossfade = 0.28f, bool restart = false)
         {
             if (!graph.IsValid() || string.IsNullOrEmpty(actionName)) return;
@@ -710,20 +719,29 @@ namespace CTCC
 
                 if (hasValidTarget)
                 {
-                    goalYaw = Mathf.Clamp(Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg, -36f, 36f);
-                    goalPitch = Mathf.Clamp(-Mathf.Asin(Mathf.Clamp(localDir.y, -0.95f, 0.95f)) * Mathf.Rad2Deg, -14f, 16f);
+                    goalYaw = Mathf.Clamp(Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg + GazeYawBias, -36f, 36f);
+                    goalPitch = Mathf.Clamp(-Mathf.Asin(Mathf.Clamp(localDir.y, -0.95f, 0.95f)) * Mathf.Rad2Deg + GazePitchBias, -14f, 16f);
 
-                    // Subtle living human micro-saccades between left eye / right eye / bridge of player's gaze
+                    // Anti-uncanny close-up guard (Upgrade #8): at very close range (<1.35 m), gently soften into
+                    // a natural three-quarter downward glance instead of locking an intense frontal mannequin stare.
+                    if (EnableCloseUpAversion && toTarget.sqrMagnitude < 1.35f * 1.35f)
+                    {
+                        float proximity = 1f - Mathf.InverseLerp(0.65f, 1.35f, toTarget.magnitude);
+                        goalYaw = Mathf.Clamp(goalYaw + proximity * 12f, -36f, 36f);
+                        goalPitch = Mathf.Clamp(goalPitch + proximity * 7.5f, -14f, 16f);
+                    }
+
+                    // Subtle living human micro-saccades between left eye / right eye / desk edge
                     saccadeTimer -= dt;
                     if (saccadeTimer <= 0f)
                     {
                         float seed = Time.unscaledTime * 3.17f + transform.position.x;
-                        saccadeYaw = ReducedMotion ? 0f : Mathf.Sin(seed * 2.3f) * 1.4f;
-                        saccadePitch = ReducedMotion ? 0f : Mathf.Cos(seed * 1.9f) * 0.9f;
-                        saccadeTimer = 0.85f + (Mathf.Sin(seed * 1.13f) * 0.5f + 0.5f) * 1.45f;
+                        saccadeYaw = ReducedMotion ? 0f : Mathf.Sin(seed * 2.3f) * 2.1f + Mathf.Cos(seed * 0.71f) * 0.9f;
+                        saccadePitch = ReducedMotion ? 0f : Mathf.Cos(seed * 1.9f) * 1.35f;
+                        saccadeTimer = 0.72f + (Mathf.Sin(seed * 1.13f) * 0.5f + 0.5f) * 1.55f;
                     }
-                    // Natural blink triggered when making a large sudden gaze shift (>18 deg)
-                    if (Mathf.Abs(goalYaw - headYaw) > 18f && blinkPhase < 0f && enableBlink)
+                    // Natural blink triggered when making a large sudden gaze shift (>15 deg)
+                    if (Mathf.Abs(goalYaw - headYaw) > 15f && blinkPhase < 0f && enableBlink)
                         blinkPhase = 0f;
                 }
                 else

@@ -12,13 +12,20 @@ namespace CTCC
         public bool reportLayer;
         public float fanSpeedScale = 1f;
         private float fanSlowUntil;
+        private float tubeBlackoutUntil;
 
         internal float EffectiveFanSpeed => reportLayer && Time.unscaledTime < fanSlowUntil ? 0.22f : fanSpeedScale;
+        internal bool TubesBlackedOut => Time.unscaledTime < tubeBlackoutUntil;
 
         internal void SlowFans(float seconds) =>
             fanSlowUntil = Mathf.Max(fanSlowUntil, Time.unscaledTime + seconds);
 
         internal void ClearFanSlowdown() => fanSlowUntil = 0f;
+
+        internal void BlackoutTubes(float seconds) =>
+            tubeBlackoutUntil = Mathf.Max(tubeBlackoutUntil, Time.unscaledTime + Mathf.Clamp(seconds, 0.1f, 1.5f));
+
+        internal void ClearTubeBlackout() => tubeBlackoutUntil = 0f;
 
         private readonly List<Transform> dynamicBlades = new();
         private readonly List<(Light light, float power)> dynamicTubes = new();
@@ -109,10 +116,17 @@ namespace CTCC
                     blade.Rotate(0, Time.unscaledDeltaTime * (119 + i * 11) * fanSpeed, 0, Space.Self);
             }
 
+            bool blackout = Time.unscaledTime < tubeBlackoutUntil;
             for (int i = dynamicTubes.Count - 1; i >= 0; i--)
             {
                 var entry = dynamicTubes[i];
                 if (entry.light == null) { dynamicTubes.RemoveAt(i); continue; }
+                if (blackout)
+                {
+                    // Under Reduced Motion, gently dim tubes instead of hard flashing off/on for visual comfort.
+                    entry.light.intensity = reducedMotion ? entry.power * 0.72f : 0f;
+                    continue;
+                }
                 float pulse = Mathf.PerlinNoise(t * .38f, i * .86f);
                 entry.light.intensity = entry.power * (reducedMotion ? 1f : .90f + pulse * .19f);
             }

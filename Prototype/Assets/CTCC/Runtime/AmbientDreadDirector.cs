@@ -15,6 +15,14 @@ namespace CTCC
         public const string B06ClockTick = "DREAD_B06_CLOCK_TICK";
         public const string B07GateRainHush = "DREAD_B07_GATE_RAIN_HUSH";
 
+        // Upgrade #2: "Shift Behind the Paper" DeferredMicroShift events & F101-branch dread variants
+        public const string ShiftCurtainCreep = "DREAD_SHIFT_CURTAIN_CREEP";
+        public const string ShiftTubeBlackout = "DREAD_SHIFT_TUBE_BLACKOUT";
+        public const string ShiftHallChair = "DREAD_SHIFT_HALL_CHAIR";
+        public const string F101AffirmedSuffocation = "DREAD_F101_AFFIRMED_SUFFOCATION";
+        public const string F101UnverifiedStillness = "DREAD_F101_UNVERIFIED_STILLNESS";
+        public const string F101RefutedCrack = "DREAD_F101_REFUTED_CRACK";
+
         private static readonly HashSet<string> AllIds = new(StringComparer.Ordinal)
         {
             B02GlassShadow,
@@ -24,11 +32,31 @@ namespace CTCC
             B05DistantSteps,
             B06PaInterference,
             B06ClockTick,
-            B07GateRainHush
+            B07GateRainHush,
+            ShiftCurtainCreep,
+            ShiftTubeBlackout,
+            ShiftHallChair,
+            F101AffirmedSuffocation,
+            F101UnverifiedStillness,
+            F101RefutedCrack
         };
 
         public static bool IsRegistered(string id) =>
             !string.IsNullOrEmpty(id) && AllIds.Contains(id);
+    }
+
+    public readonly struct DeferredMicroShift
+    {
+        public readonly string DreadId;
+        public readonly string SourceObservationId;
+        public readonly float DelaySeconds;
+
+        public DeferredMicroShift(string dreadId, string sourceObservationId, float delaySeconds = 0.34f)
+        {
+            DreadId = dreadId;
+            SourceObservationId = sourceObservationId;
+            DelaySeconds = delaySeconds;
+        }
     }
 
     /// <summary>
@@ -63,10 +91,15 @@ namespace CTCC
         private bool hasLastPos;
         private string lastZone = "";
         private float trolleyFlashTimer;
+        private readonly Queue<DeferredMicroShift> deferredShifts = new();
+        private DeferredMicroShift? armedShift;
+        private float armedShiftTimer;
 
-        private const float DefaultGlobalCooldown = 18f;
-        private const float DefaultQuietWindow = 9f;
-        private const int MaxSessionBudget = 5;
+        private const float DefaultGlobalCooldown = 16f;
+        private const float DefaultQuietWindow = 8f;
+        private const int MaxSessionBudget = 7;
+
+        public bool HasPendingMicroShift => deferredShifts.Count > 0 || armedShift.HasValue;
 
         public void Initialize(
             HospitalScene world,
@@ -103,6 +136,10 @@ namespace CTCC
             BacktrackCount = 0;
             lastZone = "";
             scene?.motion?.ClearFanSlowdown();
+            scene?.motion?.ClearTubeBlackout();
+            deferredShifts.Clear();
+            armedShift = null;
+            armedShiftTimer = 0f;
             trolleyFlashTimer = 0f;
             hasLastPos = false;
         }
@@ -116,6 +153,57 @@ namespace CTCC
         public void NotifyMajorBeatQuietWindow(float seconds = DefaultQuietWindow)
         {
             quietTimer = Mathf.Max(quietTimer, seconds);
+        }
+
+        /// <summary>
+        /// Upgrade #2: Instead of discarding dread while the 3D PhysicalInspector is open,
+        /// queue a contextual DeferredMicroShift that triggers right after lowering the document.
+        /// </summary>
+        public void NotifyInspectorOpened(string observationId)
+        {
+            var state = stateGetter?.Invoke();
+            if (state == null || state.chapter != "CH01" || state.layer != Reality.B ||
+                !state.Happened("CH01-T05") || state.Happened("CH01-T08"))
+                return;
+            if (deferredShifts.Count >= 1 || armedShift.HasValue) return;
+            string zone = player != null ? ClassifyZone(player.Feet) : "";
+            string shiftId = PickDeferredShiftFor(state, zone, observationId);
+            if (!string.IsNullOrEmpty(shiftId))
+                deferredShifts.Enqueue(new DeferredMicroShift(shiftId, observationId ?? ""));
+        }
+
+        public void NotifyInspectorClosed(string observationId)
+        {
+            if (deferredShifts.Count == 0) return;
+            var shift = deferredShifts.Dequeue();
+            var state = stateGetter?.Invoke();
+            if (state == null || state.chapter != "CH01" || state.layer != Reality.B || state.Happened("CH01-T08"))
+                return;
+            if (!CanFire(state, shift.DreadId)) return;
+            armedShift = shift;
+            armedShiftTimer = 0.42f;
+        }
+
+        private string PickDeferredShiftFor(Investigation state, string zone, string observationId)
+        {
+            // Inside Room 101: prioritize Bed-4 curtain creeping closed behind the paper, then tube blackout.
+            if (zone == "LOC03" || observationId == "OBS101B" || observationId == "OBS_F101" || observationId == "OBS_BED4_SHEET")
+            {
+                bool curtainOpenEnough = scene?.interactables != null && scene.interactables.CurtainOpenness > 0.35f;
+                if (curtainOpenEnough && CanFire(state, DreadCatalog.ShiftCurtainCreep))
+                    return DreadCatalog.ShiftCurtainCreep;
+                if (CanFire(state, DreadCatalog.ShiftTubeBlackout))
+                    return DreadCatalog.ShiftTubeBlackout;
+                if (CanFire(state, DreadCatalog.ShiftHallChair))
+                    return DreadCatalog.ShiftHallChair;
+                return "";
+            }
+            // In HALL / STAFF / LOC02: prioritize distant hallway chair scrape, then tube blackout.
+            if (CanFire(state, DreadCatalog.ShiftHallChair))
+                return DreadCatalog.ShiftHallChair;
+            if (CanFire(state, DreadCatalog.ShiftTubeBlackout))
+                return DreadCatalog.ShiftTubeBlackout;
+            return "";
         }
 
         private void Update()
@@ -149,6 +237,22 @@ namespace CTCC
             {
                 quietTimer = Mathf.Max(quietTimer, 2.2f);
                 return;
+            }
+
+            // Fire any armed "shift behind the paper" micro-shift right as the player returns to live 3D view!
+            if (armedShift.HasValue)
+            {
+                armedShiftTimer -= dt;
+                if (armedShiftTimer <= 0f)
+                {
+                    var shift = armedShift.Value;
+                    armedShift = null;
+                    if (state.layer == Reality.B && EventsFiredThisSession < MaxSessionBudget && CanFire(state, shift.DreadId))
+                    {
+                        ExecuteDeferredShift(state, shift.DreadId, state.settings.reduceMotion);
+                        return;
+                    }
+                }
             }
 
             if (globalCooldown > 0f) globalCooldown -= dt;
@@ -275,7 +379,44 @@ namespace CTCC
                 return;
             }
 
-            // 6. B06: PA static crackle right after submitting F101 as player moves back through corridor
+            // 6. B06: F101-branch psychological dread variants right after signing F101 (before B->R collapse!)
+            if (layerB && g01Done && !collapsedToR && (zone == "LOC03" || zone == "HALL"))
+            {
+                if (state.f101.current == FormStatus.Affirmed &&
+                    CanFire(state, DreadCatalog.F101AffirmedSuffocation))
+                {
+                    Fire(state, DreadCatalog.F101AffirmedSuffocation, persistent: true, () =>
+                    {
+                        audioBus?.From("partitionKnock", new Vector3(12.14f, 1.25f, 4.32f), 0.90f);
+                        onCaption?.Invoke("[Phía sau vách ngăn vừa dựng kín Giường 4 vang lên hai tiếng gõ trầm, nghẹt hẳn lại.]");
+                    });
+                    return;
+                }
+                if (state.f101.current == FormStatus.Unverified && zone == "HALL" &&
+                    CanFire(state, DreadCatalog.F101UnverifiedStillness))
+                {
+                    Fire(state, DreadCatalog.F101UnverifiedStillness, persistent: true, () =>
+                    {
+                        scene.motion?.SlowFans(4.5f);
+                        audioBus?.From("clockTick", new Vector3(1.2f, 2.0f, -5.8f), 0.62f);
+                        onCaption?.Invoke("[Hành lang chùng xuống; cánh quạt quay chậm lại như đang chờ người ký dứt khoát.]");
+                    });
+                    return;
+                }
+                if (state.f101.current == FormStatus.Refuted &&
+                    CanFire(state, DreadCatalog.F101RefutedCrack))
+                {
+                    Fire(state, DreadCatalog.F101RefutedCrack, persistent: true, () =>
+                    {
+                        scene.motion?.BlackoutTubes(0.35f);
+                        audioBus?.From("distantThunder", new Vector3(9.8f, 3.2f, 10.5f), 0.34f);
+                        onCaption?.Invoke("[Đèn đầu Giường 4 chớp sâu một nhịp; thoảng nghe tiếng mưa lạnh lọt qua lớp hành lang 2005.]");
+                    });
+                    return;
+                }
+            }
+
+            // 6b. B06: PA static crackle right after submitting F101 as player moves back through corridor
             if (layerB && g01Done && !collapsedToR && zone == "HALL" && feet.z < 6.5f &&
                 CanFire(state, DreadCatalog.B06PaInterference))
             {
@@ -331,6 +472,31 @@ namespace CTCC
                 onOneTimeTriggered?.Invoke(id);
         }
 
+        private void ExecuteDeferredShift(Investigation state, string dreadId, bool reducedMotion)
+        {
+            Fire(state, dreadId, persistent: true, () =>
+            {
+                if (dreadId == DreadCatalog.ShiftCurtainCreep)
+                {
+                    scene.interactables?.NudgeCurtainClosed(0.32f, audioBus);
+                    onCaption?.Invoke("[Tấm rèm Giường 4 vừa tự khép lại một đoạn ngay sau khi hạ tờ giấy xuống.]");
+                }
+                else if (dreadId == DreadCatalog.ShiftTubeBlackout)
+                {
+                    scene.motion?.BlackoutTubes(0.60f);
+                    audioBus?.From("paStatic", new Vector3(9.2f, 3.4f, 5.0f), 0.42f);
+                    onCaption?.Invoke(reducedMotion
+                        ? "[Ánh đèn tuýp trên trần dịu sẫm xuống một nhịp kèm tiếng chấn lưu rè nhẹ.]"
+                        : "[Đèn tuýp trên trần phụt tắt 0,6 giây rồi bật lại kèm tiếng chấn lưu rè nhẹ.]");
+                }
+                else if (dreadId == DreadCatalog.ShiftHallChair)
+                {
+                    audioBus?.From("chairScrape", new Vector3(4.0f, 0.45f, 5.6f), 0.78f);
+                    onCaption?.Invoke("[Ngoài hành lang vang lên tiếng chân ghế kéo khẽ trên nền gạch bông… rồi im bặt.]");
+                }
+            });
+        }
+
         /// <summary>
         /// Deterministic QA probe: forces evaluation of a specific dread event if eligible and unsuppressed.
         /// Returns true if triggered cleanly, false if already persisted or suppressed.
@@ -340,12 +506,19 @@ namespace CTCC
             var state = stateGetter?.Invoke();
             if (state == null || !CanFire(state, dreadId)) return false;
             if (suppressionCheck != null && suppressionCheck()) return false;
+            if (dreadId is DreadCatalog.ShiftCurtainCreep or DreadCatalog.ShiftTubeBlackout or DreadCatalog.ShiftHallChair)
+            {
+                ExecuteDeferredShift(state, dreadId, state.settings.reduceMotion);
+                return true;
+            }
             Fire(state, dreadId, persistent: true, () =>
             {
                 if (dreadId == DreadCatalog.B06ClockTick)
                     audioBus?.From("clockTick", new Vector3(1.2f, 2.0f, -5.8f), 0.55f);
                 else if (dreadId == DreadCatalog.B05DistantSteps)
                     audioBus?.From("distantSteps", new Vector3(4.0f, 1.0f, 13.5f), 0.50f);
+                else if (dreadId == DreadCatalog.F101AffirmedSuffocation)
+                    audioBus?.From("partitionKnock", new Vector3(12.14f, 1.25f, 4.32f), 0.85f);
             });
             return true;
         }

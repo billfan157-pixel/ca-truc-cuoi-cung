@@ -59,19 +59,37 @@ namespace CTCC
         private int activeDetailIndex = -1;
         private Action<bool> onFlipped;
         private Action<string> onDetailFocused;
+        private Action onRakingRevealed;
         private EnvironmentalAudio audioBus;
+        private Shader rakingPaperShader;
+        private string currentObservationId = "";
+        private bool hasRakingIndent;
+        private float rakingRevealFactor;
+        private float rakingHoldSeconds;
+        private bool rakingRevealed;
+        private static readonly int RakingRevealId = Shader.PropertyToID("_RakingReveal");
+        private static readonly int LightDirWsId = Shader.PropertyToID("_LightDirWS");
+        private static readonly int RimDirWsId = Shader.PropertyToID("_RimDirWS");
 
         public bool IsInspecting => active;
         public bool HasBackSide => hasBackSide;
         public bool ShowingBack => showingBack;
+        public bool HasRakingIndent => hasRakingIndent;
+        public float RakingRevealFactor => rakingRevealFactor;
+        public bool RakingRevealed => rakingRevealed;
+        public string CurrentObservationId => currentObservationId;
         public int ActiveDetailIndex => activeDetailIndex;
         public InspectDetailTarget[] Details => details;
         public bool InputBlocked { get; set; }
 
-        public void Initialize(Camera camera, EnvironmentalAudio audio = null)
+        public event Action<string> InspectOpened;
+        public event Action<string> InspectClosed;
+
+        public void Initialize(Camera camera, EnvironmentalAudio audio = null, Shader rakingShader = null)
         {
             eye = camera;
             audioBus = audio;
+            rakingPaperShader = rakingShader;
             stage = new GameObject("Physical Inspector Stage").transform;
             stage.SetParent(eye.transform, false);
             stage.localPosition = new Vector3(-0.085f, -0.01f, 0.41f);
@@ -114,10 +132,15 @@ namespace CTCC
             Texture backTexture = null,
             InspectDetailTarget[] detailTargets = null,
             Action<bool> onFlip = null,
-            Action<string> onDetail = null)
+            Action<string> onDetail = null,
+            string observationId = null,
+            Texture backIndentNormal = null,
+            Texture backIndentMask = null,
+            Action onRakingReveal = null)
         {
             Close();
             active = true;
+            currentObservationId = observationId ?? "";
             openBlend = reducedMotion ? 1f : 0f;
             rotX = 0f;
             rotY = 0f;
@@ -129,10 +152,15 @@ namespace CTCC
             panOffset = Vector2.zero;
             panTarget = Vector2.zero;
             hasBackSide = prefabOrTemplate == null && backTexture != null;
+            hasRakingIndent = hasBackSide && backIndentNormal != null;
+            rakingRevealFactor = 0f;
+            rakingHoldSeconds = 0f;
+            rakingRevealed = false;
             details = detailTargets ?? Array.Empty<InspectDetailTarget>();
             activeDetailIndex = -1;
             onFlipped = onFlip;
             onDetailFocused = onDetail;
+            onRakingRevealed = onRakingReveal;
 
             if (prefabOrTemplate != null)
             {
@@ -156,7 +184,7 @@ namespace CTCC
             }
             else if (documentTexture != null)
             {
-                currentModel = BuildDualSidedPaperSheet(documentTexture, backTexture, aspect);
+                currentModel = BuildDualSidedPaperSheet(documentTexture, backTexture, aspect, backIndentNormal, backIndentMask);
                 currentModel.transform.SetParent(holder, false);
                 keyLight.intensity = 0.40f;
             }
@@ -175,6 +203,29 @@ namespace CTCC
             keyLight.enabled = true;
             rimLight.enabled = true;
             UpdateTransform();
+            InspectOpened?.Invoke(currentObservationId);
+        }
+
+        /// <summary>
+        /// Accessible keyboard/button shortcut that tilts the flipped sheet directly into the 25-40 deg
+        /// keyLight grazing sweet spot so hidden ballpoint indentations catch light cleanly without fine mouse work.
+        /// </summary>
+        public void TiltForRakingLight()
+        {
+            if (!active || !hasBackSide || !hasRakingIndent || InputBlocked) return;
+            if (!showingBack) Flip();
+            rotX = 30f;
+            rotY = -32f;
+            panTarget = new Vector2(0f, -0.02f);
+            zoomTarget = 0.30f;
+            activeDetailIndex = -1;
+            if (reducedMotion)
+            {
+                panOffset = panTarget;
+                zoom = zoomTarget;
+            }
+            UpdateTransform();
+            EvaluateRakingReveal(0.60f);
         }
 
         public void Flip()
@@ -230,6 +281,8 @@ namespace CTCC
 
         public void Close()
         {
+            bool wasActive = active;
+            string closedObsId = currentObservationId;
             if (currentModel != null)
             {
                 currentModel.SetActive(false);
@@ -251,15 +304,23 @@ namespace CTCC
                 activeDof = null;
             }
             active = false;
+            currentObservationId = "";
             hasBackSide = false;
+            hasRakingIndent = false;
+            rakingRevealFactor = 0f;
+            rakingHoldSeconds = 0f;
+            rakingRevealed = false;
             showingBack = false;
             details = Array.Empty<InspectDetailTarget>();
             activeDetailIndex = -1;
             onFlipped = null;
             onDetailFocused = null;
+            onRakingRevealed = null;
             if (stage != null) stage.gameObject.SetActive(false);
             if (keyLight != null) keyLight.enabled = false;
             if (rimLight != null) rimLight.enabled = false;
+            if (wasActive)
+                InspectClosed?.Invoke(closedObsId);
         }
 
         private void OnDestroy()
@@ -316,6 +377,8 @@ namespace CTCC
                 if (keys.zKey.isPressed) { zoomTarget = Mathf.Clamp(zoomTarget + 0.34f * dt, 0.24f, 0.60f); zoom = zoomTarget; }
                 if (hasBackSide && (keys.spaceKey.wasPressedThisFrame || keys.rKey.wasPressedThisFrame))
                     Flip();
+                if (hasRakingIndent && showingBack && keys.tKey.wasPressedThisFrame)
+                    TiltForRakingLight();
                 if (keys.digit1Key.wasPressedThisFrame && details.Length >= 1) FocusDetail(0);
                 if (keys.digit2Key.wasPressedThisFrame && details.Length >= 2) FocusDetail(1);
                 if (keys.digit3Key.wasPressedThisFrame && details.Length >= 3) FocusDetail(2);
@@ -323,6 +386,52 @@ namespace CTCC
             }
 
             UpdateTransform();
+            EvaluateRakingReveal(dt);
+        }
+
+        private void EvaluateRakingReveal(float dt)
+        {
+            if (!hasRakingIndent || backMaterial == null)
+            {
+                rakingRevealFactor = 0f;
+                return;
+            }
+            if (!showingBack)
+            {
+                rakingRevealFactor = Mathf.MoveTowards(rakingRevealFactor, 0f, dt * 4f);
+                backMaterial.SetFloat(RakingRevealId, rakingRevealFactor);
+                return;
+            }
+
+            // Sweet spot: tilting rotX or rotY into 25..40 degrees toward keyLight catches grazing specular light!
+            float maxTilt = Mathf.Max(Mathf.Abs(rotX), Mathf.Abs(rotY));
+            float rise = Mathf.InverseLerp(16f, 26f, maxTilt);
+            float fall = 1f - Mathf.InverseLerp(41f, 52f, maxTilt);
+            float target = Mathf.Clamp01(rise * fall);
+            if (keyLight != null && holder != null)
+            {
+                Vector3 toKey = (keyLight.transform.position - holder.position).normalized;
+                Vector3 toRim = rimLight != null ? (rimLight.transform.position - holder.position).normalized : -toKey;
+                backMaterial.SetVector(LightDirWsId, new Vector4(toKey.x, toKey.y, toKey.z, 0f));
+                backMaterial.SetVector(RimDirWsId, new Vector4(toRim.x, toRim.y, toRim.z, 0f));
+            }
+            rakingRevealFactor = Mathf.MoveTowards(rakingRevealFactor, target, dt * 5.2f);
+            backMaterial.SetFloat(RakingRevealId, rakingRevealFactor);
+
+            if (!rakingRevealed && rakingRevealFactor >= 0.72f)
+            {
+                rakingHoldSeconds += dt;
+                if (rakingHoldSeconds >= 0.35f)
+                {
+                    rakingRevealed = true;
+                    if (eye != null) audioBus?.From("paper", eye.transform.position + eye.transform.forward * 0.35f, 0.52f);
+                    onRakingRevealed?.Invoke();
+                }
+            }
+            else if (rakingRevealFactor < 0.50f)
+            {
+                rakingHoldSeconds = Mathf.Max(0f, rakingHoldSeconds - dt * 1.5f);
+            }
         }
 
         private void UpdateTransform()
@@ -371,7 +480,8 @@ namespace CTCC
             }
         }
 
-        private GameObject BuildDualSidedPaperSheet(Texture frontTex, Texture backTex, float aspect)
+        private GameObject BuildDualSidedPaperSheet(Texture frontTex, Texture backTex, float aspect,
+            Texture backIndentNormal = null, Texture backIndentMask = null)
         {
             float h = 0.285f;
             float w = h * Mathf.Clamp(aspect, 0.45f, 1.85f);
@@ -389,7 +499,9 @@ namespace CTCC
             if (backTex != null)
             {
                 backMesh = BuildCurvedSheetMesh("InspectPaperBack", w, h, zOffset: 0.0004f, reverseFace: true);
-                backMaterial = MakePaperMaterial("InspectPaperBackMat", backTex, doubleSided: false);
+                backMaterial = backIndentNormal != null
+                    ? MakeRakingPaperMaterial("InspectPaperBackMat", backTex, backIndentNormal, backIndentMask)
+                    : MakePaperMaterial("InspectPaperBackMat", backTex, doubleSided: false);
                 var backGo = new GameObject("BackFace");
                 backGo.transform.SetParent(root.transform, false);
                 backGo.AddComponent<MeshFilter>().sharedMesh = backMesh;
@@ -399,6 +511,22 @@ namespace CTCC
             }
 
             return root;
+        }
+
+        private Material MakeRakingPaperMaterial(string name, Texture tex, Texture indentNormal, Texture indentMask)
+        {
+            var rakingShader = rakingPaperShader != null ? rakingPaperShader : Shader.Find("CTCC/InspectPaperRaking");
+            if (rakingShader == null)
+                return MakePaperMaterial(name, tex, doubleSided: false);
+            var mat = new Material(rakingShader) { name = name };
+            mat.SetTexture("_BaseMap", tex);
+            mat.SetColor("_BaseColor", new Color(0.84f, 0.83f, 0.80f, 1f));
+            mat.SetTexture("_IndentNormalMap", indentNormal);
+            if (indentMask != null) mat.SetTexture("_IndentMaskMap", indentMask);
+            mat.SetFloat("_IndentScale", 1.85f);
+            mat.SetFloat("_RakingReveal", 0f);
+            mat.SetFloat("_Cull", 2f);
+            return mat;
         }
 
         private static Material MakePaperMaterial(string name, Texture tex, bool doubleSided)
@@ -451,6 +579,7 @@ namespace CTCC
             }
             var mesh = new Mesh { name = name, vertices = verts, uv = uvs, triangles = tris };
             mesh.RecalculateNormals();
+            mesh.RecalculateTangents();
             mesh.UploadMeshData(true);
             return mesh;
         }

@@ -403,6 +403,31 @@ namespace CTCC.Editor
                 beam.SetColor("_Tint", new Color(0.42f, 0.58f, 0.68f, 0.125f));
                 beam.SetFloat("_MoteStrength", 0.48f);
                 EditorUtility.SetDirty(beam);
+
+                var beamFluorescent = MaterialAsset("BeamFluorescent", beamShader);
+                beamFluorescent.SetColor("_Tint", new Color(0.64f, 0.80f, 0.68f, 0.044f));
+                beamFluorescent.SetFloat("_MoteStrength", 0.32f);
+                EditorUtility.SetDirty(beamFluorescent);
+
+                var beamWarm = MaterialAsset("BeamWarm", beamShader);
+                beamWarm.SetColor("_Tint", new Color(0.95f, 0.72f, 0.42f, 0.068f));
+                beamWarm.SetFloat("_MoteStrength", 0.38f);
+                EditorUtility.SetDirty(beamWarm);
+
+                // Upgrade #6: Retain CTCC/InspectPaperRaking shader + reference material in standalone builds!
+                var rakingShader = Shader.Find("CTCC/InspectPaperRaking");
+                if (rakingShader != null)
+                {
+                    world.rakingPaperShader = rakingShader;
+                    var rakingRef = MaterialAsset("InspectPaperRaking", rakingShader);
+                    rakingRef.SetTexture("_BaseMap", Tex("ObsCard_Back"));
+                    rakingRef.SetTexture("_IndentNormalMap", Tex("ObsCard_Back_Indent_Normal"));
+                    rakingRef.SetTexture("_IndentMaskMap", Tex("ObsCard_Back_Indent_Mask"));
+                    rakingRef.SetColor("_BaseColor", new Color(0.84f, 0.83f, 0.80f, 1f));
+                    rakingRef.SetFloat("_IndentScale", 1.85f);
+                    rakingRef.SetFloat("_RakingReveal", 0f);
+                    EditorUtility.SetDirty(rakingRef);
+                }
             }
         }
 
@@ -428,8 +453,9 @@ namespace CTCC.Editor
                 string family = Path.GetFileNameWithoutExtension(path).Split('_')[0];
                 bool clampedAtlas = leafOrHairAlpha || family is "LanSkin" or "AnSkin" or "GatekeeperSkin"
                     or "LanEye" or "LanTeeth" or "LanTongue" or "LanBadge" or "LanHair" or "AnHair"
-                    or "GatekeeperHair" or "HairCards" or "LanEyebrow" or "LanEyelash" or "ObscuredFace";
-                bool stream = repeat && !clampedAtlas && family is not ("WaterRun" or "PaintLoss" or "DampFloor" or "RustRun" or "WallBaseGrime" or "SkinMicroPore");
+                    or "GatekeeperHair" or "HairCards" or "LanEyebrow" or "LanEyelash" or "ObscuredFace"
+                    or "ObsCard" or "F101";
+                bool stream = repeat && !clampedAtlas && family is not ("WaterRun" or "PaintLoss" or "DampFloor" or "RustRun" or "WallBaseGrime" or "SkinMicroPore" or "TubeYellowStain" or "StretcherDragTrack" or "TerrazzoRainSeep");
                 var wantedType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
                 var wrap = repeat && !clampedAtlas ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
                 bool wantAlpha = !repeat || leafOrHairAlpha;
@@ -515,6 +541,9 @@ namespace CTCC.Editor
                 ("DampFloor", "DampFloor_Normal", 0.45f),
                 ("RustRun", "RustRun_Normal", 0.78f),
                 ("WallBaseGrime", "WallBaseGrime_Normal", 0.70f),
+                ("TubeYellowStain", "TubeYellowStain_Normal", 0.52f),
+                ("StretcherDragTrack", "StretcherDragTrack_Normal", 0.60f),
+                ("TerrazzoRainSeep", "TerrazzoRainSeep_Normal", 0.76f),
                 ("WheelMarks", null, 0f),
                 ("BedContact", null, 0f),
             })
@@ -1305,6 +1334,59 @@ namespace CTCC.Editor
             // 6. Core Gameplay Clue: Crisp rubber caster indentation & drag trails from Bed 4 leading straight to MedicalCabinet!
             Decal("FourthBedWheelMarks_R", "WheelMarks", new Vector3(11.66f, 0.01f, 3.25f), Vector3.up, 1.32f, 2.48f, 0.25f, real, 0.95f);
             Decal("FourthBedReportTrace_B", "WheelMarks", new Vector3(10.87f, 0.01f, 4.44f), Vector3.up, 0.82f, 0.42f, 0.25f, report, 0.85f);
+
+            // 7. Upgrade #7 Dedicated Organic Weathering Decal Pass (BOTH Layer R 2012 & lived-in Layer B 1987-2005!)
+            // 7a. Ceiling T8 fluorescent ballast heat halos around all 7 fixtures
+            var tubeSpots = new (string tag, Vector3 pos, float roll)[]
+            {
+                ("HallS", new Vector3(4.00f, 3.595f, 4.75f), 0f),
+                ("HallN", new Vector3(4.00f, 3.595f, 10.60f), 0f),
+                ("RecW", new Vector3(2.15f, 3.595f, -3.20f), 0f),
+                ("RecE", new Vector3(6.32f, 3.595f, -4.58f), 0f),
+                ("R101W", new Vector3(7.80f, 3.595f, 5.00f), 90f),
+                ("R101E", new Vector3(11.55f, 3.595f, 5.20f), 90f),
+                ("Staff", new Vector3(0.05f, 3.595f, 3.85f), 0f),
+            };
+            foreach (var ts in tubeSpots)
+            {
+                Decal("TubeHalo_B_" + ts.tag, "TubeYellowStain", ts.pos, Vector3.down, 1.85f, 0.86f, 0.22f, report, 0.42f, ts.roll);
+                Decal("TubeHalo_R_" + ts.tag, "TubeYellowStain", ts.pos, Vector3.down, 2.00f, 0.96f, 0.22f, real, 0.82f, ts.roll);
+            }
+
+            // 7b. Hospital stretcher rubber wheel drag tracks down terrazzo corridors & reception threshold
+            var dragSpots = new (string tag, Vector3 pos, float w, float h, float roll)[]
+            {
+                ("RecEntry", new Vector3(4.00f, 0.01f, -1.85f), 1.45f, 3.20f, 2f),
+                ("HallS", new Vector3(4.00f, 0.01f, 2.55f), 1.45f, 4.10f, 0f),
+                ("HallMid", new Vector3(4.02f, 0.01f, 7.65f), 1.45f, 4.40f, -2f),
+                ("HallN", new Vector3(3.98f, 0.01f, 12.60f), 1.45f, 4.10f, 1f),
+                ("StaffLane", new Vector3(0.05f, 0.01f, 5.45f), 1.25f, 4.00f, 0f),
+            };
+            foreach (var ds in dragSpots)
+            {
+                Decal("StretcherTrack_B_" + ds.tag, "StretcherDragTrack", ds.pos, Vector3.up, ds.w, ds.h, 0.20f, report, 0.44f, ds.roll);
+                Decal("StretcherTrack_R_" + ds.tag, "StretcherDragTrack", ds.pos, Vector3.up, ds.w, ds.h, 0.20f, real, 0.82f, ds.roll);
+            }
+
+            // 7c. Terrazzo wall-base rain seepage & tropical limewash damp (subtle lived-in B + heavy decayed R)
+            var seepSpots = new (string tag, Vector3 pos, Vector3 n, float w, float bAlpha, float rAlpha)[]
+            {
+                ("RecEast", new Vector3(8.48f, 0.36f, -5.20f), Vector3.left, 4.60f, 0.34f, 0.84f),
+                ("RecWest", new Vector3(-0.98f, 0.36f, -6.20f), Vector3.right, 3.40f, 0.32f, 0.82f),
+                ("HallWestS", new Vector3(2.50f, 0.36f, 3.60f), Vector3.right, 4.40f, 0.36f, 0.88f),
+                ("HallWestN", new Vector3(2.50f, 0.36f, 9.60f), Vector3.right, 5.20f, 0.36f, 0.88f),
+                ("HallEastN", new Vector3(5.50f, 0.36f, 10.60f), Vector3.left, 4.80f, 0.34f, 0.86f),
+                ("StaffWest", new Vector3(-0.98f, 0.36f, 5.20f), Vector3.right, 5.60f, 0.34f, 0.85f),
+                ("R101South", new Vector3(9.75f, 0.36f, 2.00f), Vector3.forward, 6.20f, 0.32f, 0.86f),
+                ("R101NorthB", new Vector3(9.75f, 0.36f, 8.00f), Vector3.back, 6.80f, 0.34f, 0f),
+            };
+            foreach (var sp in seepSpots)
+            {
+                if (sp.bAlpha > 0f)
+                    Decal("TerrazzoSeep_B_" + sp.tag, "TerrazzoRainSeep", sp.pos, sp.n, sp.w, 0.72f, 0.24f, report, sp.bAlpha);
+                if (sp.rAlpha > 0f)
+                    Decal("TerrazzoSeep_R_" + sp.tag, "TerrazzoRainSeep", sp.pos, sp.n, sp.w, 0.76f, 0.24f, real, sp.rAlpha);
+            }
         }
 
         private void PropDetails()
@@ -1390,7 +1472,9 @@ namespace CTCC.Editor
             world.inspectImages = Array.ConvertAll(new[]
             {
                 "F101", "F101_Back", "F101_SignedA", "F101_SignedB", "F101_SignedC",
+                "F101_Back_Indent_Normal", "F101_Back_Indent_Mask",
                 "ObsCard", "ObsCard_Back",
+                "ObsCard_Back_Indent_Normal", "ObsCard_Back_Indent_Mask",
                 "Doc_Bed2Transfer", "Doc_Bed2Transfer_Back",
                 "Doc_Bed3Meds", "Doc_Bed3Meds_Back",
                 "Doc_ShiftGuide", "Doc_ShiftGuide_Back",

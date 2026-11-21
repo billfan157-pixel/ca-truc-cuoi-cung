@@ -82,6 +82,7 @@ namespace CTCC
         public Transform[] movingFans = Array.Empty<Transform>();
         public Light[] livingTubes = Array.Empty<Light>();
         public MeshFilter[] movingCloth = Array.Empty<MeshFilter>();
+        public ParticleSystem[] atmosphericParticles = Array.Empty<ParticleSystem>();
         public RoomLoop[] roomLoops = Array.Empty<RoomLoop>();
 
         public CharacterActor lanActor;

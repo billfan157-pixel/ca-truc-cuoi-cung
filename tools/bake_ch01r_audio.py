@@ -183,6 +183,42 @@ def make_distant_steps() -> np.ndarray:
     return add_room_tail(out, decay=5.2, wet=0.38)
 
 
+def make_chair_scrape() -> np.ndarray:
+    """Short muted wooden/steel hospital chair leg dragging across terrazzo outside the ward doorway."""
+    dur = 0.88
+    t = t_arr(dur)
+    env = np.clip(t / 0.06, 0.0, 1.0) * np.exp(-np.maximum(0.0, t - 0.42) * 7.5)
+    # Stick-slip resonant wood/metal leg shudder on tile grout
+    shudder = 0.55 + 0.45 * np.sin(2 * np.pi * 16.5 * t + 1.4 * np.sin(2 * np.pi * 3.2 * t))
+    scrape = (
+        band_noise(dur, 280, 1650) * 0.48
+        + 0.24 * np.sin(2 * np.pi * (312 * t + 6.5 * np.sin(2 * np.pi * 14 * t)))
+        + 0.14 * np.sin(2 * np.pi * 645 * t)
+    ) * env * shudder
+    settle_t = np.maximum(0.0, t - 0.62)
+    settle = (0.45 * np.sin(2 * np.pi * 96 * settle_t) + 0.25 * band_noise(dur, 70, 380)) * np.exp(-settle_t * 32.0) * (t >= 0.62)
+    sig = fft_lowpass(scrape + settle, 1850.0, order=2)
+    return add_room_tail(sig, decay=5.8, wet=0.34)
+
+
+def make_partition_knock() -> np.ndarray:
+    """Two hollow, heavily muffled thumps from behind the sealed Bed-4 Affirmed partition wall."""
+    dur = 1.45
+    t = t_arr(dur)
+    out = np.zeros_like(t)
+    for onset, gain, freq in ((0.14, 0.92, 86.0), (0.64, 0.76, 82.0)):
+        lt = np.maximum(0.0, t - onset)
+        active = t >= onset
+        thud = (
+            0.80 * np.sin(2 * np.pi * freq * lt) * np.exp(-lt * 19.0)
+            + 0.42 * np.sin(2 * np.pi * (freq * 1.92) * lt) * np.exp(-lt * 29.0)
+            + 0.35 * band_noise(dur, 60, 420) * np.exp(-lt * 34.0)
+        ) * active * np.minimum(lt / 0.006, 1.0)
+        out += thud * gain
+    out = fft_lowpass(out, 620.0, order=3)
+    return add_room_tail(out, decay=6.0, wet=0.30)
+
+
 def main() -> None:
     report = {}
     clips = (
@@ -190,6 +226,8 @@ def main() -> None:
         ("PaperFlip", make_paper_flip(), -23.5),
         ("ClockTick", make_clock_tick(), -24.5),
         ("DistantSteps", make_distant_steps(), -27.5),
+        ("ChairScrape", make_chair_scrape(), -25.5),
+        ("PartitionKnock", make_partition_knock(), -23.0),
     )
     for name, sig, target_rms in clips:
         report[name] = write_master(AUDIO_DIR / f"{name}.wav", sig, target_rms)

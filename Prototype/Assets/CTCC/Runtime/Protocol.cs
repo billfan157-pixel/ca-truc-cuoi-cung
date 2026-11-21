@@ -79,7 +79,7 @@ namespace CTCC
     [Serializable]
     public sealed class Investigation
     {
-        public const int Schema = 4;
+        public const int Schema = 5;
         public const int MinSupportedSchema = 1;
         public int schemaVersion = Schema;
         public long sequence;
@@ -102,6 +102,7 @@ namespace CTCC
         public List<ObservationRecord> observationRecords = new();
         public List<FormRevisionEntry> f101History = new();
         public DeductionSubmission f101Argument = new();
+        public F101Annotations f101Annotations = new();
         public List<string> dreadEventsSeen = new();
         public int dreadSeed = 20051118;
         public List<TranscriptEntry> transcript = new();
@@ -347,7 +348,9 @@ namespace CTCC
                 {
                     formId = "F101",
                     selectedEvidenceIds = new List<string>(normalizedIds),
-                    claimId = claimId
+                    claimId = claimId,
+                    annotationVersion = submission.annotationVersion,
+                    annotations = submission.annotationVersion == F101Annotations.Version ? submission.annotations.Clone() : null
                 };
                 PuzzleService.RecordAttempt(candidate, HypothesisService.F101PuzzleId, true);
             }
@@ -363,7 +366,9 @@ namespace CTCC
                 claimId = claimId,
                 evidenceIds = normalizedIds,
                 chapter = candidate.chapter ?? "CH01",
-                layer = candidate.layer
+                layer = candidate.layer,
+                annotationVersion = candidate.f101Argument.annotationVersion,
+                annotations = candidate.f101Argument.annotations?.Clone()
             });
             return true;
         }

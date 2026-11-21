@@ -16,6 +16,7 @@ def run():
     known = set()
     locked = {"CH01-D16b", "CH04-D06"}
     staff_reactions = {"CH01-D17": "OBS_CORRIDOR_NOTICE", "CH01-D18": "OBS_SHIFT_LOG"}
+    exception_monologues = {"CH01-D19": "CH01-EX01"}
     for number, row in sheet.items():
         if number == 1:
             continue
@@ -32,6 +33,12 @@ def run():
                 raise ValueError(f"Core 07 conditions changed for {identity}: {chapter} / {context}")
             conditions.append({"id": identity, "chapter": chapter, "beat": "STAFF",
                                "requiredEvents": ["CH01-T03"]})
+        if identity in exception_monologues:
+            chapter, context = row["B"], row["D"]
+            if chapter != "CH01" or any(marker not in context for marker in ("B05", "03:17", exception_monologues[identity])):
+                raise ValueError(f"Core 07 conditions changed for {identity}: {chapter} / {context}")
+            conditions.append({"id": identity, "chapter": chapter, "beat": "B05",
+                               "requiredEvents": ["CH01-T07", "CH01-EX01"]})
         if row.get("B") not in ("CH01", "CH02", "CH03", "CH04"):
             continue
         if identity in known:
@@ -41,10 +48,11 @@ def run():
             "id": identity, "chapter": row["B"], "speaker": row.get("C", ""),
             "context": row.get("D", ""), "copy": row.get("E", ""),
         })
-    guarded = locked | staff_reactions.keys()
+    guarded = locked | staff_reactions.keys() | exception_monologues.keys()
     assert guarded <= known and {condition["id"] for condition in conditions} == guarded
     assert {
-        "CH01-D03", "CH01-D04", "CH01-D05", "CH01-D07", "CH01-D15", "CH01-D16",
+        "CH01-D03", "CH01-D03b", "CH01-D03c", "CH01-D04", "CH01-D04b", "CH01-D04c",
+        "CH01-D05", "CH01-D05b", "CH01-D05c", "CH01-D07", "CH01-D07b", "CH01-D15", "CH01-D16", "CH01-D19",
         "CH02-D04", "CH03-D01", "CH03-D02", "CH03-D03", "CH03-D04", "CH03-D05", "CH03-D06",
     } <= known
     dest = ROOT / "Prototype/Assets/CTCC/Art/Resources/CTCC/Dialogue.json"
