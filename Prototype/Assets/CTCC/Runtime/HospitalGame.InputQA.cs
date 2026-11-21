@@ -103,16 +103,37 @@ namespace CTCC
                     yield return WalkWithInput(new Vector3(-0.12f, 0f, 3.65f));
                     yield return AimAndUseHere("OBS_CORRIDOR_NOTICE");
                     yield return Until(() => !busy && inspector.IsInspecting, "STAFF overflow notice inspected");
+                    Require(StaffTranscriptCount("CH01-D17") == 0 && ActivePageContains("Một tờ thông báo") &&
+                            !ActivePageContains("Dữ kiện quan sát"), "notice opens neutrally and without a reaction");
                     yield return Tap(Key.Escape);
+                    yield return Until(() => StaffTranscriptCount("CH01-D17") == 1 && staffReactionCaption != null,
+                        "notice reacts after ordinary view and close");
+                    ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "task04-05-notice-reaction.png"));
                     yield return WalkWithInput(new Vector3(-0.15f, 0f, 3.92f));
                     yield return AimAndUseHere("DRAWER-NURSE");
                     yield return Until(() => scene.interactables.IsDrawerOpen("DRAWER-NURSE"), "STAFF nurse drawer slides open");
                     yield return new WaitForSecondsRealtime(0.45f);
                     yield return AimAndUseHere("OBS_SHIFT_LOG");
                     yield return Until(() => !busy && inspector.IsInspecting, "AS-05 shift guide inspected");
+                    yield return Tap(Key.Digit3);
+                    Require(!inspector.ShowingBack && inspector.ActiveDetailIndex == -1 && !ActivePageContains("[3] Soi"),
+                        "AS-05 does not reveal a back detail from the front");
+                    yield return Tap(Key.Escape);
+                    Require(staffReactions.Count == 0 && StaffTranscriptCount("CH01-D18") == 0,
+                        "AS-05 opening alone does not earn the reaction");
+                    yield return AimAndUseHere("OBS_SHIFT_LOG");
+                    yield return Until(() => !busy && inspector.IsInspecting, "AS-05 reopened for detail inspection");
                     yield return Tap(Key.Space); // Test live keyboard flip!
                     yield return Until(() => inspector.ShowingBack, "AS-05 flipped to back via Space");
+                    yield return Tap(Key.Digit3);
+                    yield return Until(() => !busy && ActivePageContains("Giấy kẹp của Lan"), "AS-05 side-specific detail readout");
+                    Require(inspector.ActiveDetailIndex == 2 && StaffTranscriptCount("CH01-D18") == 0,
+                        "AS-05 reaction stays quiet while reading the discovered detail");
+                    yield return new WaitForSecondsRealtime(0.35f);
+                    ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "task04-05-shift-back.png"));
                     yield return Tap(Key.Escape);
+                    yield return Until(() => StaffTranscriptCount("CH01-D18") == 1 && staffReactionCaption != null,
+                        "AS-05 reacts after inspection and close");
                     yield return WalkWithInput(new Vector3(0.15f, 0f, 7.50f));
                     yield return WalkWithInput(new Vector3(1.55f, 0f, 7.50f));
                     yield return AimAndUseHere("DOOR-STAFF");
@@ -145,10 +166,20 @@ namespace CTCC
                     yield return WalkWithInput(new Vector3(11.35f, 0f, 5.25f));
                     yield return AimAndUseHere("OBS101B");
                     yield return Until(() => !busy && inspector.IsInspecting, "OBS101B card inspected");
-                    yield return Tap(Key.Space);
-                    yield return Until(() => inspector.ShowingBack, "OBS101B flipped to back via Space");
+                    yield return Hold(Key.A, 2.1f);
+                    yield return Tap(Key.Digit3);
+                    Require(!inspector.ShowingBack && inspector.ActiveDetailIndex == -1 && !ActivePageContains("[3] Soi") &&
+                            !State.FindObservation(ObservationRegistry.Bed4Card).flippedBack &&
+                            ActivePageContains("Một tấm thẻ giấy"), "unseen Bed-4 back remains hidden after tilt and shortcut");
+                    ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "task04-05-card-front.png"));
                     yield return Choose("Mở bản chữ lớn");
-                    Require(!inspector.IsInspecting && ui.IsModal, "OBS101B large print fallback");
+                    yield return Until(() => !busy && !inspector.IsInspecting && ui.IsModal, "Bed-4 Large Print ready after save");
+                    Require(ActivePageContains("MẶT SAU") &&
+                            ActivePageContains("Phần ghi nơi chuyển bị nhòe") &&
+                            State.FindObservation(ObservationRegistry.Bed4Card).HasDetail("LARGE_PRINT") &&
+                            State.FindObservation(ObservationRegistry.Bed4Card).flippedBack,
+                        "Bed-4 Large Print grants both sides without explicit flip");
+                    ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "task04-05-card-large-print.png"));
                     yield return Tap(Key.Escape);
 
                     yield return WalkWithInput(new Vector3(10.75f, 0f, 4.35f));
@@ -158,29 +189,63 @@ namespace CTCC
                     // Open Evidence Journal (Tab) & test Side-by-Side Document Comparison!
                     yield return Tap(Key.Tab);
                     yield return Until(() => ui.IsModal, "Journal opened via Tab");
+                    yield return Choose("Quan sát & Nguồn chứng cứ");
+                    Require(ActivePageContains("Phần ghi nơi chuyển bị nhòe") && ActivePageContains("Nhận định"),
+                        "journal keeps interpretation and discovered back evidence");
+                    yield return Choose("Quay lại Sổ điều tra");
                     yield return Choose("So sánh hai tài liệu");
                     yield return Choose("Đổi tài liệu phải");
                     yield return Choose("Quay lại");
                     yield return Choose("Khép sổ");
 
-                    // Walk back to AP04 & complete F101 Deduction Builder (including live rejection of overclaim before valid conclusion!)
+                    // Recover from both evidence and conclusion feedback in the real F101 UI.
                     yield return WalkWithInput(new Vector3(6.52f, 0f, 4.93f));
                     yield return AimAndUseHere("F101");
+                    yield return Choose("Soi phiếu F101");
+                    Require(ActivePageContains("Một phiếu in sẵn") && !ActivePageContains("[3] Soi"), "F101 opens neutral");
+                    yield return Choose("Lật sang mặt sau");
+                    yield return Tap(Key.Digit3);
+                    yield return Until(() => !busy && ActivePageContains("Chưa thấy phiếu chốt"), "F101 back detail unlocks after explicit flip");
+                    yield return Tap(Key.Escape);
+                    Require(ui.IsModal && !inspector.IsInspecting, "return to F101 decision closes inspector");
                     yield return Choose("C    Lập luận");
                     yield return Choose("Dấu sử dụng tại vị trí giường 4");
                     yield return Choose("Thẻ bàn giao giường số 4");
-                    yield return Choose("Bước 2/2");
-                    // Test live UI rejection of unsupported overclaim -> stays recoverable in Deduction Builder!
-                    yield return Choose("Điều dưỡng trực đã cố tình làm giả");
+                    yield return Choose("Phiếu phát thuốc giường 03");
+                    yield return Choose("Chọn nhận định");
+                    const string supported = "Số 0 bỏ sót hồ sơ bàn giao còn để ngỏ";
+                    var supportedButton = ButtonMatching(supported);
+                    Require(EventSystem.current.currentSelectedGameObject != supportedButton.gameObject &&
+                        supportedButton.interactable &&
+                        supportedButton.GetComponentInChildren<Text>().text.StartsWith("○") &&
+                        !ButtonMatching("Kiểm tra lập luận").interactable,
+                        "Supported conclusion starts unselected and is not initially highlighted");
+                    yield return Choose(supported);
                     yield return Choose("Kiểm tra lập luận");
-                    yield return Until(() => !busy && ui.IsModal && !GateService.G01(State), "Overclaim rejected cleanly in UI");
-                    // Now select the valid defensible conclusion and sign!
-                    yield return Choose("Con số 0 trên F101 chưa đủ tin cậy");
+                    yield return Until(() => !busy && ui.GetComponentsInChildren<Text>().Any(t => t.text.Contains("Nó chỉ giúp kiểm tra dòng đó")),
+                        "Irrelevant evidence returns to the evidence list with a document-specific reason");
+                    Require(State.f101.current == FormStatus.Pending, "Rejected evidence leaves F101 pending");
+                    yield return Choose("[✓]  Phiếu phát thuốc giường 03");
+                    yield return Choose("Chọn nhận định");
+
+                    const string accusation = "Người lập phiếu cố ý bỏ qua giường tạm";
+                    yield return Choose(accusation);
+                    yield return Choose("Kiểm tra lập luận");
+                    yield return Until(() => !busy && ui.GetComponentsInChildren<Text>().Any(t => t.text.Contains("người lập phiếu đã biết gì")),
+                        "Overclaim feedback explains the missing link about intent");
+                    Require(!GateService.G01(State) && State.f101History.Count == 0 &&
+                        EventSystem.current.currentSelectedGameObject == ButtonMatching(accusation).gameObject &&
+                        !ui.GetComponentsInChildren<Text>().Single(t => t.name == "Readable copy").text.Contains(supported),
+                        "Rejected claim keeps its focus and the feedback does not state the supported conclusion");
+
+                    // Change only the conclusion. The selected pair must survive both retries.
+                    yield return Choose(supported);
                     yield return Choose("Kiểm tra lập luận");
                     yield return Choose("Xác nhận và đóng dấu phiếu");
                     yield return Until(() => !busy && GateService.G01(State), "F101 Refuted committed via real UI");
                     Require(State.f101.firstDecision == FormStatus.Refuted && State.f101.revision == 1 &&
                         scene.refutedBay != null && scene.refutedBay.activeInHierarchy, "Refuted visual & state verified");
+                    if (captureExpansion) yield return new WaitForSecondsRealtime(0.75f);
 
                     // Walk back out of Room 101 to Reception (B->R collapse), outer gate seam, and Reception (CH02 handoff) — ZERO TELEPORTS!
                     yield return WalkWithInput(new Vector3(4.00f, 0f, 4.75f));
@@ -232,6 +297,23 @@ namespace CTCC
                 yield return Until(() => !busy && GateService.G01(State), $"F101 {branch} confirmation");
                 Require(State.f101.firstDecision == branch && State.f101.revision == 1 &&
                     FormService.Distortion(State) == (branch == FormStatus.Affirmed ? 1 : 0), $"F101 {branch} state");
+                if (branch == FormStatus.Unverified)
+                {
+                    var audio = scene.atmosphere;
+                    bool SignatureCuePlaying() => audio.GetComponentsInChildren<AudioSource>().Any(source =>
+                        source.isPlaying && (source.clip == audio.stamp || source.clip == audio.switchLayer));
+                    yield return Until(() => !voice.IsSpeaking && !SignatureCuePlaying(), "first signature cue finished");
+                    long sequence = State.sequence;
+                    int historyCount = State.f101History.Count;
+                    yield return OpenFormInput();
+                    yield return Choose("B    Để ngỏ");
+                    yield return Choose("Xác nhận và đóng dấu phiếu");
+                    yield return Until(() => !busy && !ui.IsModal, "duplicate F101 submission closes");
+                    Require(!voice.IsSpeaking && !SignatureCuePlaying() && State.sequence == sequence &&
+                        State.f101.revision == 1 && State.f101History.Count == historyCount,
+                        "Unchanged F101 UI submission issues no PA, stamp, transition cue, save or revision");
+                    verification.Add("TASK03 INPUT PASS: unchanged F101 submission through the keyboard UI is silent and preserves the revision.");
+                }
                 player.Teleport(scene.Pad("AP02"));
                 yield return Until(() => !busy && State.layer == Reality.R, "reception B→R");
                 player.Teleport(new Vector3(4, 0.02f, -20.30f), Quaternion.identity);
@@ -261,8 +343,21 @@ namespace CTCC
             Require(!ui.IsModal && State.chapter == "CH02" && State.f101.firstDecision == branch &&
                 transaction.OnPad(player.Feet, SafeCheckpoints.Pad(State.checkpoint)), "manual load restores state and checkpoint");
             Require(voice.Transcript.Any(entry => entry.LineId == "CH01-D07"), "Skipped Lan transcript survives actual manual load");
+            Require(StaffTranscriptCount("CH01-D17") == (branch == FormStatus.Refuted ? 1 : 0) &&
+                    StaffTranscriptCount("CH01-D18") == (branch == FormStatus.Refuted ? 1 : 0),
+                "STAFF reactions survive reload once and remain absent on routes that skip STAFF");
             if (branch == FormStatus.Refuted)
             {
+                Require(State.f101.current == FormStatus.Refuted && State.f101History.Count == 1 &&
+                    State.f101History[0].claimId == HypothesisService.ClaimUnreliableZero &&
+                    State.f101Argument.claimId == HypothesisService.ClaimUnreliableZero &&
+                    State.f101Argument.selectedEvidenceIds.Count == 2 &&
+                    State.f101Argument.selectedEvidenceIds.Contains(ObservationRegistry.Bed4Traces) &&
+                    State.f101Argument.selectedEvidenceIds.Contains(ObservationRegistry.Bed4Card) &&
+                    State.FindObservation(ObservationRegistry.Bed4Card).HasDetail("LARGE_PRINT") &&
+                    State.FindObservation(ObservationRegistry.ShiftGuide).HasDetail("SHIFT_BACK") &&
+                    State.FindObservation(ObservationRegistry.F101Sheet).HasDetail("F101_BACK"),
+                    "Supported F101 argument and its single committed revision survive CH02 manual load");
                 Require(State.settings.alternateBindings && State.settings.textScale > 1.25f && AudioListener.volume == 0,
                     "accessibility survives manual load");
                 yield return Tap(Key.J);
@@ -270,7 +365,7 @@ namespace CTCC
                 yield return Tap(Key.Escape);
             }
             verification.Add($"INPUT PASS {branch}: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.");
-            if (branch == FormStatus.Unverified)
+            if (branch == FormStatus.Unverified && !Environment.GetCommandLineArgs().Contains("-ctcc-ch01-ch02-only"))
             {
                 string record = Argument("-ctcc-record");
                 captureExpansion = !string.IsNullOrEmpty(record);
@@ -500,6 +595,11 @@ namespace CTCC
         {
             return ui.GetComponentsInChildren<Button>().Single(b => b.GetComponentInChildren<Text>().text.Contains(label));
         }
+
+        private bool ActivePageContains(string copy) =>
+            ui.GetComponentsInChildren<Text>().Any(label => label.text.Contains(copy, StringComparison.Ordinal));
+
+        private int StaffTranscriptCount(string id) => voice.Transcript.Count(entry => entry.LineId == id);
 
         private IEnumerator Choose(string label)
         {

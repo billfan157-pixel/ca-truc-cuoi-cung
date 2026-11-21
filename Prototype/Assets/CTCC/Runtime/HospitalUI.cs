@@ -181,6 +181,11 @@ namespace CTCC
             cueBacking.gameObject.SetActive(true);
         }
 
+        internal void ClearCaption(string text)
+        {
+            if (cue.text == text) cueBacking.gameObject.SetActive(false);
+        }
+
         public void Toast(string title, string body, float seconds = 6f)
         {
             toastTitle.text = title;
@@ -198,9 +203,11 @@ namespace CTCC
             chapterBacking.gameObject.SetActive(true);
         }
 
-        public void Show(string section, string title, string body, ActionChoice[] buttons, Action close, Texture splitImage = null)
+        public void Show(string section, string title, string body, ActionChoice[] buttons, Action close,
+            Texture splitImage = null, int initialFocus = 0)
         {
-            ShowLayout(section, title, body, buttons, close, splitImage, sideInspectMode: false, onClose: null, inspectHint: null);
+            ShowLayout(section, title, body, buttons, close, splitImage, sideInspectMode: false, onClose: null, inspectHint: null,
+                initialFocus: initialFocus);
         }
 
         public void ShowInspectSidebar(string section, string title, string body, ActionChoice[] buttons, Action close, Action onClose = null, string inspectHint = null)
@@ -282,7 +289,7 @@ namespace CTCC
         }
 
         private void ShowLayout(string section, string title, string body, ActionChoice[] buttons, Action close,
-            Texture splitImage, bool sideInspectMode, Action onClose, string inspectHint)
+            Texture splitImage, bool sideInspectMode, Action onClose, string inspectHint, int initialFocus = 0)
         {
             for (int i = panel.childCount - 1; i >= 0; i--)
             {
@@ -379,7 +386,7 @@ namespace CTCC
             modalOpenedFrame = Time.frameCount;
             hud.gameObject.SetActive(false);
             OpenChanged?.Invoke();
-            MoveFocus(1);
+            MoveFocus(initialFocus + 1);
         }
 
         private void BuildActionShelf(ActionChoice[] buttons, int padX, float shelf, bool sideInspectMode)

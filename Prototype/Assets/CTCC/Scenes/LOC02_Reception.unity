@@ -1146,8 +1146,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 228628360}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.9612617, z: 0, w: 0.2756374}
-  m_LocalPosition: {x: 0.65, y: 0, z: -3.24}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.34, y: 0, z: -2.69}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1305,7 +1305,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 275730519}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.57357645, z: -0, w: 0.81915206}
+  m_LocalRotation: {x: 0, y: -0.656059, z: 0, w: 0.7547096}
   m_LocalPosition: {x: 4, y: 0.015, z: -3.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1797,6 +1797,8 @@ MonoBehaviour:
   clockHandsB: {fileID: 245868734}
   spareBatteryProp: {fileID: 2047250562}
   receptionGlassSilhouette: {fileID: 2144531663}
+  receptionBoard: {fileID: 1486215200}
+  receptionFan: {fileID: 1080985529}
   trolleyShadowProp: {fileID: 0}
   emergencyRedLights: []
   outerGate:
@@ -2776,7 +2778,7 @@ Transform:
   m_GameObject: {fileID: 626303804}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2.65, y: 1.48, z: -3.4}
+  m_LocalPosition: {x: 2.55, y: 1.48, z: -3.68}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3331,8 +3333,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 784400026}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 2.65, y: 0, z: -3.28}
+  m_LocalRotation: {x: 0, y: 0.4226183, z: 0, w: 0.9063078}
+  m_LocalPosition: {x: 2.55, y: 0, z: -3.68}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4176,7 +4178,7 @@ Transform:
   m_GameObject: {fileID: 989513113}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.1, y: 2.05, z: -3.45}
+  m_LocalPosition: {x: 3.16, y: 1.96, z: -3.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4193,8 +4195,8 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 0.96, g: 0.94, b: 0.86, a: 1}
-  m_Intensity: 1.45
-  m_Range: 4.2
+  m_Intensity: 1.05
+  m_Range: 2.5
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -6679,7 +6681,7 @@ GameObject:
   - component: {fileID: 1486215203}
   - component: {fileID: 1486215202}
   m_Layer: 0
-  m_Name: Spare signed board
+  m_Name: Reception F101 sheet
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10556,7 +10558,7 @@ Transform:
   m_GameObject: {fileID: 2144531663}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.35, y: 1.95, z: -3.24}
+  m_LocalPosition: {x: -0.28, y: 1.83, z: -2.38}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -10573,8 +10575,8 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 0.96, g: 0.8, b: 0.54, a: 1}
-  m_Intensity: 2.3
-  m_Range: 5.2
+  m_Intensity: 1.25
+  m_Range: 3.3
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}

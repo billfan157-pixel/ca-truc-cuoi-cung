@@ -120,7 +120,7 @@ namespace CTCC.Editor
             Transform repRoot = loc02 != null ? loc02.report : report;
 
             // Iconic Vietnamese Hospital Glazed Reception Partition mounted cleanly along east counter edge (x = 2.02, y = 1.125)
-            // Leaves open pass-through window + clear south end so Lan steps out smoothly in CH01 B03!
+            // The pass-through and south end frame Lan and the F101 sheet in CH01.
             var partition = PlaceBlenderModel("CTCC_ENV_ReceptionPartition", perm, new Vector3(2.02f, 1.125f, -3.24f), 0f, pairRB: true);
             staticArchitecture.Add(partition);
             Sign("Reception window plaque", "Sign_ReceptionWindow", new Vector3(2.09f, 2.34f, -3.24f), Vector3.right,
@@ -158,23 +158,19 @@ namespace CTCC.Editor
                 new Vector2(0.84f, 0.42f), perm, metalBacking: true);
             CapsuleTarget("STAIRWELL", "Lối lên Khu B (Đã rào chắn)", new Vector3(7.55f, 1.15f, -1.35f), new Vector3(1.8f, 1.4f, 0.45f), perm);
 
-            // Warm backlit glass silhouette accent behind Reception counter (draws Minh inside in CH01 B01-B02!)
-            var glassSil = Lamp("Reception glass silhouette backlight", LightType.Point, new Vector3(0.35f, 1.95f, -3.24f), 2.3f, 5.2f,
+            var glassSil = Lamp("Reception glass silhouette backlight", LightType.Point, new Vector3(-0.28f, 1.83f, -2.38f), 1.25f, 3.3f,
                 new Color(0.96f, 0.80f, 0.54f), perm);
 
-            // Rigged, BlendShaped, Animated CHAR002 Trần Ngọc Lan!
-            var lanSilPt = Group("LanSilhouettePoint", perm, new Vector3(0.65f, 0f, -3.24f));
-            lanSilPt.localRotation = Quaternion.Euler(0f, 148f, 0f);
+            var lanSilPt = Group("LanSilhouettePoint", perm, new Vector3(0.34f, 0f, -2.69f));
             var lanDeskPt = Group("LanDeskPoint", perm, new Vector3(0.32f, 0f, -3.24f));
             lanDeskPt.localRotation = Quaternion.Euler(0f, 92f, 0f);
-            // Step-out position clear of desk (x=2.08) and AP02 (x=3.78) so Lan stands face-to-face 1.15m from Minh!
-            var lanStepPt = Group("LanStepOutPoint", perm, new Vector3(2.65f, 0f, -3.28f));
-            lanStepPt.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            // A three-quarter pose beside the counter keeps both Lan and F101 in view from AP02.
+            var lanStepPt = Group("LanStepOutPoint", perm, new Vector3(2.55f, 0f, -3.68f));
+            lanStepPt.localRotation = Quaternion.Euler(0f, 50f, 0f);
 
             var lanActor = PlaceCharacterActor("CTCC_CHR_Lan", perm, lanDeskPt.position, 92f, "CHAR002_Lan",
                 isApparition: false, enableBlink: true, enableLipSync: true);
-            // Warm portrait key light attached subtly above Lan's encounter spot so her eyes & expression shine cleanly in B!
-            Lamp("Lan face soft key B", LightType.Point, new Vector3(3.10f, 2.05f, -3.45f), 1.45f, 4.2f,
+            Lamp("Lan face soft key B", LightType.Point, new Vector3(3.16f, 1.96f, -3.40f), 1.05f, 2.5f,
                 new Color(0.96f, 0.94f, 0.86f), repRoot);
 
             var lanVoice = CreateVoiceAnchor("LanVoiceAnchor", lanActor.transform, new Vector3(0f, 1.48f, 0f), 14f);

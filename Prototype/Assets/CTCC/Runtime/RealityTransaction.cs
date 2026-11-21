@@ -51,7 +51,8 @@ namespace CTCC
             proposed.sequence = Current.sequence + 1;
             if (!warp || proposed.checkpoint != "CH01-CP00")
                 proposed.torchSeconds = ReadCharge?.Invoke() ?? proposed.torchSeconds;
-            Present(proposed);
+            bool changedF101 = proposed.f101.current != Current.f101.current;
+            Present(proposed, deferF101Visuals: changedF101);
             if ((geometryChanges || warp) &&
                 (HospitalScene.Occupied(landing) || !scene.TryRefreshNavigation(landing)))
             {
@@ -68,6 +69,7 @@ namespace CTCC
             }
             Current = proposed;
             newDialogue.RemoveRange(0, included);
+            if (changedF101) scene.PresentF101(Current.layer == Reality.B, Current.f101.current);
             Committed?.Invoke(Current);
             return CommitResult.Applied;
         }
@@ -92,12 +94,13 @@ namespace CTCC
             savingAsync = true;
             try
             {
+                bool changedF101 = proposed.f101.current != Current.f101.current;
                 using (CommitMarker.Auto())
                 {
                     proposed.sequence = Current.sequence + 1;
                     if (!warp || proposed.checkpoint != "CH01-CP00")
                         proposed.torchSeconds = ReadCharge?.Invoke() ?? proposed.torchSeconds;
-                    Present(proposed);
+                    Present(proposed, deferF101Visuals: changedF101);
                 }
                 if ((geometryChanges || warp) &&
                     (HospitalScene.Occupied(landing) || !await scene.TryRefreshNavigationAsync(landing)))
@@ -117,6 +120,7 @@ namespace CTCC
 
                 Current = proposed;
                 newDialogue.RemoveRange(0, included);
+                if (changedF101) scene.PresentF101(Current.layer == Reality.B, Current.f101.current);
                 Committed?.Invoke(Current);
                 return CommitResult.Applied;
             }
@@ -178,6 +182,8 @@ namespace CTCC
             }
             Current = proposed;
             newDialogue.Clear();
+            scene.interactables?.ResetCurtainPose();
+            scene.motion?.ClearFanSlowdown();
             landing = checkpoint;
             Committed?.Invoke(Current);
             return result;
@@ -208,12 +214,14 @@ namespace CTCC
             return Mathf.Abs(offset.y) < .22f && new Vector2(offset.x, offset.z).sqrMagnitude < .58f * .58f;
         }
 
-        public void Present(Investigation snapshot)
+        public void Present(Investigation snapshot) => Present(snapshot, deferF101Visuals: false);
+
+        private void Present(Investigation snapshot, bool deferF101Visuals)
         {
             scene.Present(snapshot.layer == Reality.B, (int)snapshot.f101.current,
                 snapshot.Happened("CH01-T02"), snapshot.Happened("CH01-T05"),
                 snapshot.Has("E12"), GateService.G02(snapshot),
-                snapshot.layer == Reality.M, GateService.G03(snapshot), snapshot.chapter == "CH04");
+                snapshot.layer == Reality.M, GateService.G03(snapshot), snapshot.chapter == "CH04", deferF101Visuals);
             scene.PresentCasework(snapshot);
             scene.PresentCheckpointProps(snapshot.Happened("CH01-T09"), snapshot.Happened("CH01-BATTERY"));
         }

@@ -167,7 +167,7 @@ namespace CTCC.Editor
                 var slot = this.multiScene ? (p.y < 0f ? zones["LOC09"] : p.y > 0f ? zones["LOC05"] : ZoneAt(p.z)) : null;
                 Transform parent = slot?.permanent ?? permanent;
                 var point = Group(p.id, parent, pos);
-                point.rotation = Quaternion.Euler(0, p.yaw, 0);
+                point.rotation = Quaternion.Euler(0, art && multiScene && p.id == "AP02" ? -82f : p.yaw, 0);
                 var mp = new MarkerPose { id = p.id, point = point };
                 if (slot != null) slot.pads.Add(mp);
                 else bootstrapPads.Add(mp);

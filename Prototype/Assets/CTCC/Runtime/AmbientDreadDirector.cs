@@ -62,9 +62,7 @@ namespace CTCC
         private Vector3 lastPlayerPos;
         private bool hasLastPos;
         private string lastZone = "";
-        private float fanSlowTimer;
         private float trolleyFlashTimer;
-        private float silhouetteNudgeTimer;
 
         private const float DefaultGlobalCooldown = 18f;
         private const float DefaultQuietWindow = 9f;
@@ -104,9 +102,8 @@ namespace CTCC
             VisitedRoom101 = false;
             BacktrackCount = 0;
             lastZone = "";
-            fanSlowTimer = 0f;
+            scene?.motion?.ClearFanSlowdown();
             trolleyFlashTimer = 0f;
-            silhouetteNudgeTimer = 0f;
             hasLastPos = false;
         }
 
@@ -205,7 +202,7 @@ namespace CTCC
             bool collapsedToR = state.Happened("CH01-T08");
             string zone = ClassifyZone(feet);
 
-            // 1. B02: Subtle silhouette shift behind frosted reception glass while approaching in R
+            // 1. B02: A quiet exterior cue as Minh notices the reception glass.
             if (!layerB && enteredGate && !state.Happened("CH01-T03") &&
                 feet.z > -15.5f && feet.z < -7.5f &&
                 GazeAlignment(new Vector3(1.5f, 1.55f, -3.5f)) > 0.50f &&
@@ -213,9 +210,8 @@ namespace CTCC
             {
                 Fire(state, DreadCatalog.B02GlassShadow, persistent: true, () =>
                 {
-                    silhouetteNudgeTimer = reducedMotion ? 0f : 1.4f;
                     audioBus?.From("distantThunder", new Vector3(4f, 5f, -24f), 0.32f);
-                    onCaption?.Invoke("[Sau lớp kính mờ quầy tiếp nhận, một bóng người khẽ dịch vai rồi đứng yên.]");
+                    onCaption?.Invoke("[Sau ô kính quầy tiếp nhận có bóng người.]");
                 });
                 return;
             }
@@ -260,8 +256,7 @@ namespace CTCC
             {
                 Fire(state, DreadCatalog.B05FanDecelerate, persistent: true, () =>
                 {
-                    fanSlowTimer = 7.5f;
-                    if (scene.motion != null) scene.motion.fanSpeedScale = 0.22f;
+                    scene.motion?.SlowFans(7.5f);
                     onCaption?.Invoke("[Tiếng quạt trần chậm hẳn đi vài nhịp, ánh đèn tuýp rung nhẹ.]");
                 });
                 return;
@@ -357,27 +352,11 @@ namespace CTCC
 
         private void UpdateActiveEffects(float dt)
         {
-            if (fanSlowTimer > 0f)
-            {
-                fanSlowTimer -= dt;
-                if (fanSlowTimer <= 0f && scene.motion != null)
-                {
-                    var state = stateGetter?.Invoke();
-                    scene.motion.fanSpeedScale = state != null && state.f101.current == FormStatus.Unverified ? 0.55f : 1f;
-                }
-            }
             if (trolleyFlashTimer > 0f)
             {
                 trolleyFlashTimer -= dt;
                 if (trolleyFlashTimer <= 0f && scene.TrolleyShadowProp != null)
                     scene.TrolleyShadowProp.SetActive(false);
-            }
-            if (silhouetteNudgeTimer > 0f && scene.ReceptionGlassSilhouette != null)
-            {
-                silhouetteNudgeTimer -= dt;
-                float s = Mathf.Sin(Mathf.Clamp01(1f - silhouetteNudgeTimer / 1.4f) * Mathf.PI);
-                var p = scene.ReceptionGlassSilhouette.transform.localPosition;
-                scene.ReceptionGlassSilhouette.transform.localPosition = new Vector3(p.x, p.y, -3.55f + s * 0.14f);
             }
         }
     }

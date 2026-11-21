@@ -20,6 +20,8 @@ namespace CTCC
         }
         private readonly Dictionary<string, DialogueEntry> dialogue = new();
         private readonly Dictionary<string, DialogueCondition> revealConditions = new();
+        private readonly Queue<string> staffReactions = new();
+        private string staffReactionCaption;
         private HospitalScene scene;
         private FirstPerson player;
         private HospitalUI ui;
@@ -46,6 +48,7 @@ namespace CTCC
         private bool heardLobbySilhouette;
         private bool playedHe01Trolley;
         private bool playedHe04CorridorCut;
+        private float f101PaperRevealUntil;
         private string lastObjectiveKey = "";
         private float objectiveStagnantSeconds;
         private int hintTierShown;
@@ -217,8 +220,8 @@ namespace CTCC
             if (scene.motion != null)
             {
                 scene.motion.reducedMotion = current.settings.reduceMotion;
-                if (current.layer == Reality.R || !GateService.G01(current))
-                    scene.motion.fanSpeedScale = 1f;
+                if (current.layer != Reality.B)
+                    scene.motion.ClearFanSlowdown();
             }
             if (scene.realGrade != null && scene.realGrade.sharedProfile.TryGet<ColorAdjustments>(out var real))
                 real.postExposure.value = 0.42f + current.settings.visibility * 0.58f;
@@ -238,6 +241,7 @@ namespace CTCC
         private void RefreshControls()
         {
             bool play = live && !ui.IsModal && !busy && qaFolder == null;
+            if (inspector != null) inspector.InputBlocked = busy || ui.ModalInputBlocked;
             if (!play && scene?.interactables != null && scene.interactables.IsDragging)
                 scene.interactables.EndDrag(scene.atmosphere);
             player.LookSuppressed = false;
@@ -249,6 +253,12 @@ namespace CTCC
 
         private void Update()
         {
+            if (bootReady && (staffReactionCaption != null || staffReactions.Count > 0))
+            {
+                bool inContext = StaffReactionContext();
+                if (!inContext) staffReactions.Clear();
+                if (!inContext || ui.IsModal) CancelStaffReaction();
+            }
             if (!bootReady || !live || busy || ui.IsModal || qaFolder != null)
                 return;
             var keys = Keyboard.current;
@@ -315,7 +325,7 @@ namespace CTCC
                 !State.Happened("CH01-T08") && feet.x < 5.2f && feet.z < 3.6f && feet.z > -0.8f)
             {
                 playedHe04CorridorCut = true;
-                if (scene.motion != null) scene.motion.fanSpeedScale = 0.22f;
+                scene.motion?.SlowFans(7.5f);
                 scene.atmosphere?.From("paStatic", scene.PaSpeakerAnchor != null ? scene.PaSpeakerAnchor.transform.position : new Vector3(5.5f, 2.6f, 3.35f));
                 voice?.Speak("CH01-PA04", "Loa hành lang", Line("CH01-PA04"), scene.PaSpeakerAnchor,
                     directionalPrefix: "[Loa hành lang · rè và ngắt đột ngột]");
@@ -435,7 +445,7 @@ namespace CTCC
                 : IsDraggablePhysicalRig(target.id)
                     ? "[" + UseKey + "]   " + target.title + "   ·   Giữ chuột trái để kéo"
                     : "[" + UseKey + "]   " + target.title;
-            ui.Prompt(promptText);
+            ui.Prompt(target?.id == "F101" && Time.unscaledTime < f101PaperRevealUntil ? null : promptText);
             if (use && target != null)
             {
                 dreadDirector?.NotifyInteraction(0.32f);
@@ -443,10 +453,61 @@ namespace CTCC
             }
             else if (use && transaction.OnPad(feet, "AP04") && casework.CanRevise)
                 Anchor();
-            else if (!busy && !savingDialogue && !ui.IsModal &&
+            else if (!TryPlayStaffReaction() && !busy && !savingDialogue && !ui.IsModal &&
                 (gatekeeperCameo == null || !gatekeeperCameo.IsActive) &&
                 transaction.HasPendingDialogue && Time.unscaledTime >= dialogueSaveAt)
                 StartCoroutine(SaveDialogue());
+        }
+
+        private bool StaffReactionContext() =>
+            live && State.chapter == "CH01" && State.layer == Reality.B && !State.Happened("CH01-T08") &&
+            scene.staffCrossDoor?.pivot != null && Mathf.Abs(player.Feet.y) < 0.25f &&
+            AmbientDreadDirector.ClassifyZone(player.Feet) == "STAFF";
+
+        private void QueueStaffReaction(string observationId)
+        {
+            string lineId = observationId switch
+            {
+                ObservationRegistry.WardOverflowNotice => "CH01-D17",
+                ObservationRegistry.ShiftGuide => "CH01-D18",
+                _ => null
+            };
+            if (lineId != null && StaffReactionContext() && !staffReactions.Contains(lineId) &&
+                !State.transcript.Exists(entry => entry.LineId == lineId))
+                staffReactions.Enqueue(lineId);
+        }
+
+        private bool TryPlayStaffReaction()
+        {
+            if (staffReactions.Count == 0 || busy || savingDialogue || ui.IsModal || !StaffReactionContext() ||
+                voice.IsPaused || voice.IsSpeaking || lanDirector.IsEncounterRunning || inspector.IsInspecting)
+                return false;
+
+            string lineId = staffReactions.Dequeue();
+            string copy = LineAtBeat(lineId, 1, "STAFF");
+            if (string.IsNullOrEmpty(copy) || State.transcript.Exists(entry => entry.LineId == lineId))
+                return false;
+
+            // Save the transcript as the once-per-discovery record before offering the caption.
+            // Restoring it into the director also keeps Speak from recording a duplicate.
+            var next = State.Copy();
+            string speaker = dialogue[lineId].speaker;
+            next.transcript.Add(new TranscriptEntry(lineId, speaker, copy));
+            SaveCheckpoint(() => transaction.CommitEvidenceAsync(next, publishGameplay: false), () =>
+            {
+                RestoreJournal(State);
+                if (!StaffReactionContext() || ui.IsModal || voice.IsSpeaking || lanDirector.IsEncounterRunning) return;
+                staffReactionCaption = $"{speaker} · {copy}";
+                voice.Speak(lineId, speaker, copy, onComplete: _ => staffReactionCaption = null, beat: "STAFF");
+            });
+            return true;
+        }
+
+        private void CancelStaffReaction()
+        {
+            if (staffReactionCaption == null) return;
+            ui.ClearCaption(staffReactionCaption);
+            voice.StopCurrent();
         }
 
         private static bool IsDraggablePhysicalRig(string id) =>
@@ -528,7 +589,8 @@ namespace CTCC
             "GATE-CONG" => !State.Happened("CH01-T02"),
             "SEAM" => State.Happened("CH01-T08"),
             "BOARD" => State.layer == Reality.B && State.chapter == "CH01" && !State.Happened("CH01-T05"),
-            "LAN_TALK" => State.layer == Reality.B && State.chapter == "CH01" && State.Happened("CH01-T03") && !State.Happened("CH01-T08"),
+            "LAN_TALK" => State.layer == Reality.B && State.chapter == "CH01" && State.Happened("CH01-T03") &&
+                !State.Happened("CH01-T08") && scene.LanActor != null && scene.LanActor.gameObject.activeInHierarchy,
             "BATTERY" => !State.Happened("CH01-BATTERY") && State.Happened("CH01-T02"),
             "F101" or "AN02" => casework.CanRevise,
             "OBS101A" or "OBS101B" or "OBS101C" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02"),
@@ -638,8 +700,11 @@ namespace CTCC
                         return res;
                     }, () =>
                     {
-                        scene.atmosphere?.From("paper", player.Feet + Vector3.up);
-                        lanDirector?.PlayHandoverGesture();
+                        if (scene.ReceptionBoard != null)
+                            scene.atmosphere?.From("paper", scene.ReceptionBoard.transform.position, 0.65f);
+                        else
+                            scene.atmosphere?.From("paper", player.Feet + Vector3.up);
+                        lanDirector?.AcknowledgeBoard();
                         voice?.Speak("CH01-D06", "Minh", Line("CH01-D06"));
                         ui.Toast("PHIẾU BÀN GIAO F101", "Đã nhận bảng kẹp từ Lan. Cửa phòng 101 và lối bàn điều dưỡng đều đã thông.", 5.2f);
                     });
@@ -814,7 +879,6 @@ namespace CTCC
                     voice?.RecordTranscriptOnly("CH01-D05", "Lan", Line("CH01-D05"));
                     voice?.RecordTranscriptOnly("CH01-D07", "Lan", Line("CH01-D07"));
                     lanDirector?.StartEncounter(Line);
-                    ui.Toast("BÀN TRỰC LỄ TÂN · LỚP B", "Lan đang bước ra từ bàn trực. Có thể trò chuyện trực tiếp với Lan hoặc nhận bảng kẹp F101 trên quầy.", 6.0f);
                 }
                 else if (collapsingR)
                 {
@@ -962,6 +1026,7 @@ namespace CTCC
         private bool MayDeliver(string id, string beat)
         {
             if (string.IsNullOrEmpty(id) || !dialogue.ContainsKey(id)) return false;
+            if (beat == "STAFF" && !StaffReactionContext()) return false;
             return !revealConditions.TryGetValue(id, out var condition) || condition.Allows(State, beat);
         }
 

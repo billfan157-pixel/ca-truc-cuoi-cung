@@ -63,8 +63,7 @@ namespace CTCC
         public void ResetSessionProps()
         {
             draggingId = null;
-            curtainDraftImpulse = 0f;
-            SetCurtainPulled(false, instant: true);
+            ResetCurtainPose();
             foreach (var kv in drawers)
             {
                 var dr = kv.Value;
@@ -94,25 +93,21 @@ namespace CTCC
 
         public void ConfigureCurtain(Transform cloth, Vector3 closedScale, Vector3 openScale, Vector3 closedPos, Vector3 openPos, bool hasPosTrack = true)
         {
+            if (curtainCloth != cloth) curtainBaseRotCaptured = false;
             curtainCloth = cloth;
             curtainClosedScale = closedScale;
             curtainOpenScale = openScale;
             curtainClosedPos = closedPos;
             curtainOpenPos = openPos;
             curtainHasPosTrack = hasPosTrack;
-            curtainPulled = false;
-            curtainBlend = 0f;
-            if (curtainCloth != null)
-            {
-                if (!curtainBaseRotCaptured)
-                {
-                    curtainBaseRot = curtainCloth.localRotation;
-                    curtainBaseRotCaptured = true;
-                }
-                curtainCloth.localScale = closedScale;
-                curtainCloth.localRotation = curtainBaseRot;
-                if (hasPosTrack) curtainCloth.localPosition = closedPos;
-            }
+            ResetCurtainPose();
+        }
+
+        internal void ResetCurtainPose()
+        {
+            if (draggingId == "CURTAIN-101") draggingId = null;
+            curtainDraftImpulse = 0f;
+            SetCurtainPulled(false, instant: true);
         }
 
         public void ConfigureDoor(Transform pivot, float initialAngle) =>

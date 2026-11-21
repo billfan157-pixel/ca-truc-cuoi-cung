@@ -38,6 +38,8 @@ namespace CTCC
         public GameObject clockHandsB;
         public GameObject spareBatteryProp;
         public GameObject receptionGlassSilhouette;
+        public GameObject receptionBoard;
+        public AudioSource receptionFan;
         public GameObject trolleyShadowProp;
         public Light[] emergencyRedLights = Array.Empty<Light>();
 
@@ -146,6 +148,10 @@ namespace CTCC
 
         public void PresentCasework(Investigation state)
         {
+            Toggle(receptionBoard, state.chapter == "CH01" && state.layer == Reality.B &&
+                state.Happened("CH01-T03") && !state.Happened("CH01-T05"));
+            if (receptionFan != null)
+                receptionFan.pitch = state.chapter == "CH01" && state.layer == Reality.B && GateService.G01(state) ? 0.78f : 1f;
             bool hasMorgue = ChapterFour.MorguePower(state.servicePower);
             Toggle(morgueLock, !hasMorgue && !GateService.H05(state));
             foreach (var light in circuitLights)

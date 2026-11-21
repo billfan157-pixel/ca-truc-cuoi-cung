@@ -399,6 +399,7 @@ namespace CTCC
             Require(casework.OpenGate(player.Feet)!=CommitResult.Applied,"gate before SMS");
             Apply(casework.ReadLetter(player.Feet),"SMS");
             Apply(casework.OpenGate(player.Feet),"gate");
+            var realWardBefore = ActiveWardColliders();
             Walk(new Vector3(4,0,-17.9f));
             Walk(new Vector3(4,0,-3.3f));
             Apply(casework.AtHub(player.Feet,out _),"enter B");
@@ -408,6 +409,7 @@ namespace CTCC
             Walk(new Vector3(4,0,4.75f));
             Walk(new Vector3(6.51f,0,4.88f));
             Apply(casework.EnterRoom(player.Feet),"room CP02");
+            RequireF101Presentation(FormStatus.Pending, true);
             var validRefutation = new DeductionSubmission
             {
                 formId = "F101",
@@ -427,14 +429,18 @@ namespace CTCC
             Require(GateService.G01(State) && !GateService.G02(State) && State.f101.firstDecision==route &&
                 FormService.Distortion(State)==(route==FormStatus.Affirmed?1:0) && !State.Has("E12") && State.evidence.Count==1,
                 "form result before G02");
-            Require(scene.deniedBay.activeInHierarchy==(route==FormStatus.Affirmed),"branch A applied in B");
-            if (scene.refutedBay != null)
-                Require(scene.refutedBay.activeInHierarchy==(route==FormStatus.Refuted),"branch C refutedBay applied in B");
+            RequireF101Presentation(route, true);
             Walk(new Vector3(4,0,4.75f));
             Walk(new Vector3(4,0,-3.29f));
             Apply(casework.AtHub(player.Feet,out _),"collapse");
             player.Teleport(scene.Pad("AP02"));
             Require(State.layer==Reality.R,"collapse R");
+            RequireF101Presentation(route, false);
+            var realWardAfter = ActiveWardColliders();
+            Require(realWardBefore.Count == realWardAfter.Count, "F101 leaves R ward collider count unchanged");
+            foreach (var (collider, bounds) in realWardBefore)
+                Require(realWardAfter.TryGetValue(collider, out var after) && after == bounds,
+                    "F101 leaves R ward collider and bounds unchanged: " + collider.name);
             Walk(new Vector3(4,0,-20.30f));
             Apply(casework.OutsideAttempt(player.Feet),"seam");
             player.Teleport(scene.Pad("AP01"));
@@ -1163,9 +1169,8 @@ namespace CTCC
             Require(scene.staffCrossDoor != null && scene.staffCrossDoor.pivot != null, "CH01-R STAFF cross-door exists");
             Walk(new Vector3(0.05f, 0f, -1.2f));
             Walk(new Vector3(0.05f, 0f, 3.65f)); // Inside STAFF Nursing Alcove!
-            Apply(casework.Observe(ObservationRegistry.WardOverflowNotice, player.Feet, "STAFF"), "CH01-R observe overflow notice in STAFF");
             Require(scene.interactables != null && scene.interactables.ToggleDrawer("DRAWER-NURSE", scene.atmosphere, instant: true), "CH01-R nurse drawer opens");
-            Apply(casework.Observe(ObservationRegistry.ShiftGuide, player.Feet, "STAFF"), "CH01-R observe AS-05 shift guide in STAFF");
+            yield return VerifyStaffReactionOrder();
 
             // Capture STAFF Nursing Alcove 1080p still (framing desk, open drawer, overflow notice & cross-door!)
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
@@ -1233,6 +1238,9 @@ namespace CTCC
                     yield return CaptureHospitalFrame("ch01r-inspector-obscard-back", player.transform, 0f);
                 }
                 inspector.FocusDetail(0);
+                Require(inspector.ActiveDetailIndex == -1 && inspector.ShowingBack, "Front detail cannot flip back");
+                inspector.Flip();
+                inspector.FocusDetail(0);
                 Require(inspector.ActiveDetailIndex == 0 && !inspector.ShowingBack, "Detail focus snaps cleanly to front hotspot");
                 inspector.Close(); // Interrupted mid-inspection close!
                 Require(!inspector.IsInspecting, "Interrupted inspection closes cleanly");
@@ -1247,7 +1255,8 @@ namespace CTCC
                 claimId = HypothesisService.ClaimUnreliableZero
             };
             Require(casework.SubmitF101(FormStatus.Refuted, missingA, player.Feet, out var evalMissA) != CommitResult.Applied &&
-                    evalMissA.Outcome == HypothesisOutcome.InsufficientEvidence, "OBS101B+OBS101C without OBS101A denied");
+                    evalMissA.Outcome == HypothesisOutcome.InsufficientEvidence &&
+                    evalMissA.Message.Contains("từng được dùng"), "Card and comparison document cannot establish that the bed was used");
 
             // Now observe OBS101A (physical trace) to complete the complementary Bed-4 pair
             Apply(casework.Observe(ObservationRegistry.Bed4Traces, player.Feet, "LOC03"), "OBS101A observed second");
@@ -1290,7 +1299,15 @@ namespace CTCC
             Require(casework.SubmitF101(FormStatus.Refuted, irrelSub, player.Feet, out var evalIrr) != CommitResult.Applied &&
                     evalIrr.Outcome == HypothesisOutcome.IrrelevantEvidence, "Irrelevant Bed-3 medication record rejected");
 
-            // Test ALL 3 invalid conclusion statements (overclaims + contradiction)
+            var observationOnly = corePairValid.Clone();
+            observationOnly.claimId = HypothesisService.ClaimBlankSignature;
+            Require(casework.SubmitF101(FormStatus.Refuted, observationOnly, player.Feet, out var evalFact) != CommitResult.Applied &&
+                    evalFact.Outcome == HypothesisOutcome.UnsupportedConclusion &&
+                    evalFact.Message.Contains("đúng là còn trống") && evalFact.Message.Contains("số tổng hợp") &&
+                    State.f101.revision == 0 && State.f101History.Count == 0,
+                "A true observation alone does not explain the total or leave a committed revision");
+
+            // Distinguish the gaps about presence, intent and a completed handover.
             var overclaimPresent = new DeductionSubmission
             {
                 formId = "F101",
@@ -1298,7 +1315,8 @@ namespace CTCC
                 claimId = HypothesisService.ClaimPatientPresent
             };
             Require(casework.SubmitF101(FormStatus.Refuted, overclaimPresent, player.Feet, out var evalPres) != CommitResult.Applied &&
-                    evalPres.Outcome == HypothesisOutcome.UnsupportedConclusion, "Patient-present overclaim rejected");
+                    evalPres.Outcome == HypothesisOutcome.UnsupportedConclusion && evalPres.Message.Contains("ở đâu"),
+                "Patient-present overclaim requires evidence of whereabouts");
 
             var overclaimFalsify = new DeductionSubmission
             {
@@ -1307,7 +1325,8 @@ namespace CTCC
                 claimId = HypothesisService.ClaimFalsification
             };
             var falsifyEval = HypothesisService.EvaluateF101(State, FormStatus.Refuted, overclaimFalsify);
-            Require(probe != "invalid-reasoning" && !falsifyEval.Accepted && falsifyEval.Outcome == HypothesisOutcome.UnsupportedConclusion,
+            Require(probe != "invalid-reasoning" && !falsifyEval.Accepted &&
+                falsifyEval.Outcome == HypothesisOutcome.UnsupportedConclusion && falsifyEval.Message.Contains("đã biết gì"),
                 "CH01-R fault-injection guard: unsupported falsification overclaim must be rejected");
 
             var contraSub = new DeductionSubmission
@@ -1317,7 +1336,8 @@ namespace CTCC
                 claimId = HypothesisService.ClaimClericalOk
             };
             Require(casework.SubmitF101(FormStatus.Refuted, contraSub, player.Feet, out var evalContra) != CommitResult.Applied &&
-                    evalContra.Outcome == HypothesisOutcome.ContradictsDecision, "Contradictory conclusion rejected");
+                    evalContra.Outcome == HypothesisOutcome.ContradictsDecision && evalContra.Message.Contains("đã hoàn tất"),
+                "Clerical explanation requires evidence that the handover was actually completed");
 
             // Verify progressive hint unlocked cleanly after >= 2 failed attempts, while Unverified STILL permitted!
             Require(PuzzleService.ShouldShowFieldHint(State, HypothesisService.F101PuzzleId), "F101 progressive hint activates after failed attempts");
@@ -1362,6 +1382,8 @@ namespace CTCC
                 Destroy(bed4ShotPose.gameObject);
             }
 
+            yield return VerifyF101Revisions();
+
             // 6) Persistent one-time AmbientDreadDirector event + modal suppression + save reload survival!
             Require(dreadDirector != null, "AmbientDreadDirector active");
             ui.Show("QA", "Modal suppression", "Testing dread suppression while modal open.", new[] { new ActionChoice("OK", () => ui.Close()) }, () => ui.Close());
@@ -1384,7 +1406,168 @@ namespace CTCC
             // Restore pre-test CH02 snapshot so VerifyRender + VerifyScalableM3AndCh03 continue seamlessly!
             Apply(transaction.Commit(savedBefore, scene.Pad("AP05").position, warp: false, geometryChanges: true), "Restore post-CH02 snapshot");
             player.Teleport(scene.Pad("AP05"));
-            verification.Add("CH01-R ADVERSARIAL PASS: F101 deduction validation (all 3 invalid claims, irrelevant Bed-3 log, incomplete/unexamined/unknown/tampered provenance), revisions, dual-sided inspector, STAFF nonlinear loop + drawers, persistent dread + modal suppression, and Reality.R independence.");
+            verification.Add("CH01-R ADVERSARIAL PASS: F101 deduction validation (true observation alone, unsupported whereabouts/intent/completed handover, irrelevant Bed-3 log, incomplete/unexamined/unknown/tampered provenance), revisions, dual-sided inspector, STAFF nonlinear loop + drawers, persistent dread + modal suppression, and Reality.R independence.");
+        }
+
+        private IEnumerator VerifyStaffReactionOrder()
+        {
+            voice.StopCurrent();
+            RestoreJournal(State);
+            Vector3 staff = player.Feet;
+            Quaternion facing = player.transform.rotation;
+            Use("OBS_SHIFT_LOG");
+            yield return Until(() => ui.IsModal && !busy, "AS-05 Large Print ready");
+            Require(State.FindObservation(ObservationRegistry.ShiftGuide).HasDetail("LARGE_PRINT") &&
+                    ActivePageContains("Giấy kẹp của Lan") && !TryPlayStaffReaction(),
+                "AS-05 Large Print includes the back; no reaction while reading");
+            ButtonMatching("Đặt xuống & tiếp tục").onClick.Invoke();
+            Require(staffReactions.Count == 1 && StaffTranscriptCount("CH01-D18") == 0 &&
+                    !MayDeliver("CH01-D18", null), "AS-05 queues only when closed");
+
+            lanDirector.StartEncounter(Line);
+            Require(lanDirector.IsEncounterRunning && !voice.IsSpeaking && !TryPlayStaffReaction(),
+                "STAFF reaction waits through a pause in Lan's encounter");
+            lanDirector.StopEncounter(false);
+            bool? completed = null;
+            voice.Speak("CH01-D05", "Lan", Line("CH01-D05"), onComplete: heard => completed = heard);
+            Require(voice.IsSpeaking && !TryPlayStaffReaction() && completed == null, "STAFF reaction cannot interrupt active dialogue");
+            yield return Until(() => completed == true, "Lan dialogue finishes naturally");
+            Require(TryPlayStaffReaction(), "AS-05 reaction plays after Lan");
+            yield return Until(() => !busy && staffReactionCaption != null, "AS-05 caption shown");
+            Require(StaffTranscriptCount("CH01-D18") == 1 && StaffTranscriptCount("CH01-D17") == 0, "AS-05 can be discovered first");
+
+            Use("OBS_CORRIDOR_NOTICE");
+            yield return Until(() => ui.IsModal && !busy, "notice Large Print ready");
+            Require(!TryPlayStaffReaction() && StaffTranscriptCount("CH01-D17") == 0, "notice stays quiet while open");
+            ButtonMatching("Đặt xuống & tiếp tục").onClick.Invoke();
+            player.Teleport(scene.Pad("AP02"));
+            yield return null;
+            Require(staffReactions.Count == 0 && StaffTranscriptCount("CH01-D17") == 0, "leaving STAFF cancels queued reaction");
+
+            player.Teleport(staff, facing);
+            Use("OBS_CORRIDOR_NOTICE");
+            yield return Until(() => ui.IsModal && !busy, "notice reopened");
+            ButtonMatching("Đặt xuống & tiếp tục").onClick.Invoke();
+            Require(TryPlayStaffReaction(), "notice discovered second without a detail hotspot");
+            yield return Until(() => !busy && staffReactionCaption != null, "notice caption shown");
+            yield return LoadAsync(SaveSlot.Auto);
+            Require(StaffTranscriptCount("CH01-D17") == 1 && StaffTranscriptCount("CH01-D18") == 1 &&
+                    State.FindObservation(ObservationRegistry.ShiftGuide).flippedBack,
+                "autosave restores both transcripts and AS-05 back");
+            player.Teleport(staff, facing);
+            Use("OBS_SHIFT_LOG");
+            yield return Until(() => ui.IsModal && !busy, "AS-05 reopened after reload");
+            ButtonMatching("Đặt xuống & tiếp tục").onClick.Invoke();
+            Require(!TryPlayStaffReaction() && staffReactions.Count == 0, "reload and reopening cannot replay AS-05");
+            verification.Add("TASK04–05 STAFF PASS: reverse discovery order, Large Print, Lan and reading guards, scene cancellation, autosave and once-only reactions.");
+        }
+
+        private Dictionary<Collider, Bounds> ActiveWardColliders()
+        {
+            var colliders = new Dictionary<Collider, Bounds>();
+            foreach (var root in scene.f101WallRenderer.gameObject.scene.GetRootGameObjects())
+                foreach (var collider in root.GetComponentsInChildren<Collider>())
+                    if (collider.enabled) colliders.Add(collider, collider.bounds);
+            return colliders;
+        }
+
+        private void RequireF101Presentation(FormStatus decision, bool layerB)
+        {
+            FormStatus visible = layerB ? decision : FormStatus.Pending;
+            var (paper, fan) = visible switch
+            {
+                FormStatus.Affirmed => (scene.f101MatA, 1.14f),
+                FormStatus.Unverified => (scene.f101MatB, 0.56f),
+                FormStatus.Refuted => (scene.f101MatC, 0.82f),
+                _ => (scene.f101MatPending, 1f)
+            };
+            Require(scene.f101WallRenderer.sharedMaterial == paper &&
+                scene.deniedBay.activeInHierarchy == (visible == FormStatus.Affirmed) &&
+                scene.pendingBay.activeInHierarchy == (layerB && visible is (FormStatus.Pending or FormStatus.Unverified)) &&
+                scene.refutedBay.activeInHierarchy == (visible == FormStatus.Refuted) &&
+                Mathf.Approximately(scene.motion.fanSpeedScale, fan),
+                "F101 material, bay and fan baseline agree with " + decision + " in " + State.layer);
+        }
+
+        private IEnumerator VerifyF101Revisions()
+        {
+            player.Teleport(scene.Pad("AP04"));
+            if (State.f101.current != FormStatus.Refuted)
+            {
+                var submission = new DeductionSubmission
+                {
+                    formId = "F101",
+                    selectedEvidenceIds = new() { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
+                    claimId = HypothesisService.ClaimUnreliableZero
+                };
+                yield return WaitForApplied(casework.SubmitF101Async(FormStatus.Refuted, submission, player.Feet), "F101 start revision check");
+            }
+            FormStatus first = State.f101.firstDecision;
+            int revision = State.f101.revision;
+            Require(!scene.interactables.curtainPulled, "Refuted uses its own curtain without pulling the manual cloth");
+            yield return null;
+            float refutedIntensity = scene.bed4TubeLight.intensity;
+
+            scene.motion.SlowFans(1.5f);
+            yield return WaitForApplied(casework.SubmitF101Async(FormStatus.Unverified, null, player.Feet), "F101 Refuted → Unverified");
+            RequireF101Presentation(FormStatus.Unverified, true);
+            Require(!scene.interactables.curtainPulled && Mathf.Approximately(scene.motion.EffectiveFanSpeed, 0.22f),
+                "Unverified restores the unpulled curtain and leaves the active fan slowdown in progress");
+            yield return null;
+            float baseIntensity = scene.bed4TubeLight.intensity;
+            Require(Mathf.Approximately(refutedIntensity, baseIntensity * 0.48f), "Bed-4 Refuted dimming persists through frame updates");
+
+            Require(scene.interactables.ToggleCurtain(null), "Manual curtain opens in Unverified");
+            transaction.Present(State);
+            Require(scene.interactables.curtainPulled, "Reapplying Unverified preserves the manual curtain target");
+            long beforeFailure = State.sequence;
+            var rejectedRevision = State.Copy();
+            Require(FormService.Apply(rejectedRevision, FormStatus.Affirmed), "QA prepares valid A revision");
+            var flushed = new TaskCompletionSource<bool>();
+            var release = new TaskCompletionSource<bool>();
+            var failedSign = transaction.CommitAsync(rejectedRevision, player.Feet, "AP04", geometryChanges: true, afterFlush: () =>
+            {
+                flushed.SetResult(true);
+                release.Task.Wait(TimeSpan.FromSeconds(5));
+                throw new IOException("QA F101 write interrupted before publication");
+            });
+            try
+            {
+                yield return Until(() => flushed.Task.IsCompleted, "F101 staged write reached the flush");
+                Require(State.sequence == beforeFailure && scene.f101WallRenderer.sharedMaterial == scene.f101MatB,
+                    "F101 paper remains Unverified while the A revision is unpublished");
+            }
+            finally { release.TrySetResult(true); }
+            yield return Until(() => failedSign.IsCompleted, "F101 failed write rolled back");
+            Require(failedSign.GetAwaiter().GetResult() == CommitResult.SaveUnavailable && State.sequence == beforeFailure &&
+                scene.interactables.curtainPulled, "Failed revision retains the previous snapshot and manual curtain pose");
+            RequireF101Presentation(FormStatus.Unverified, true);
+
+            yield return WaitForApplied(casework.SubmitF101Async(FormStatus.Affirmed, null, player.Feet), "F101 Unverified → Affirmed");
+            RequireF101Presentation(FormStatus.Affirmed, true);
+            yield return Until(() => Mathf.Approximately(scene.motion.EffectiveFanSpeed, 1.14f), "temporary fan slowdown expires to Affirmed");
+            Require(Mathf.Approximately(scene.bed4TubeLight.intensity, baseIntensity * 1.08f), "Affirmed tube intensity survives frame updates");
+            Require(State.f101.firstDecision == first && State.f101.revision == revision + 2 && State.f101History.Count == revision + 2,
+                "Each changed F101 decision preserves the first decision and appends one revision");
+            long sequence = State.sequence;
+            yield return WaitForApplied(casework.SubmitF101Async(FormStatus.Affirmed, null, player.Feet), "F101 duplicate submission");
+            Require(State.sequence == sequence && State.f101.revision == revision + 2, "Unchanged submission writes no save or revision");
+
+            scene.motion.SlowFans(7.5f);
+            Require(transaction.Restore(SaveSlot.Auto, out _) == SaveRead.Valid, "Restore signed F101 snapshot in B");
+            RequireF101Presentation(FormStatus.Affirmed, true);
+            Require(!scene.interactables.curtainPulled && Mathf.Approximately(scene.motion.EffectiveFanSpeed, 1.14f),
+                "Save/load restores the default curtain and committed fan speed");
+            string ward = scene.f101WallRenderer.gameObject.scene.name;
+            var oldPaper = scene.f101WallRenderer;
+            yield return scene.UnloadZoneAsync(ward);
+            yield return scene.LoadZoneAsync(ward);
+            Require(oldPaper == null && scene.f101WallRenderer != null, "Additive reload rebinds the F101 renderer");
+            RequireF101Presentation(FormStatus.Affirmed, true);
+            yield return null;
+            Require(Mathf.Approximately(scene.bed4TubeLight.intensity, baseIntensity * 1.08f) &&
+                Mathf.Approximately(scene.motion.EffectiveFanSpeed, 1.14f), "Additive reload restores the tube and fan baselines");
+            verification.Add("TASK03 F101 PASS: initial presentations, revisions, manual curtain, motion expiry, save restore, additive rebind, and R collider independence.");
         }
 
         private IEnumerator WaitForApplied(Task<CommitResult> pending, string label)

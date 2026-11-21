@@ -11,6 +11,14 @@ namespace CTCC
         public bool reducedMotion;
         public bool reportLayer;
         public float fanSpeedScale = 1f;
+        private float fanSlowUntil;
+
+        internal float EffectiveFanSpeed => reportLayer && Time.unscaledTime < fanSlowUntil ? 0.22f : fanSpeedScale;
+
+        internal void SlowFans(float seconds) =>
+            fanSlowUntil = Mathf.Max(fanSlowUntil, Time.unscaledTime + seconds);
+
+        internal void ClearFanSlowdown() => fanSlowUntil = 0f;
 
         private readonly List<Transform> dynamicBlades = new();
         private readonly List<(Light light, float power)> dynamicTubes = new();
@@ -76,15 +84,29 @@ namespace CTCC
                 dynamicCloth.RemoveAll(c => c.filter == null || System.Array.IndexOf(extraCurtains, c.filter) >= 0);
         }
 
+        internal void SetTubeBaseline(Light light, float intensity)
+        {
+            // The ambient pulse modulates the branch's baseline rather than overwriting it.
+            for (int i = 0; i < dynamicTubes.Count; i++)
+            {
+                if (dynamicTubes[i].light != light) continue;
+                if (dynamicTubes[i].power == intensity) return;
+                dynamicTubes[i] = (light, intensity);
+                break;
+            }
+            light.intensity = intensity;
+        }
+
         private void Update()
         {
             float t = Time.unscaledTime;
+            float fanSpeed = EffectiveFanSpeed;
             for (int i = dynamicBlades.Count - 1; i >= 0; i--)
             {
                 var blade = dynamicBlades[i];
                 if (blade == null) { dynamicBlades.RemoveAt(i); continue; }
-                if (reportLayer && blade.gameObject.activeInHierarchy && !reducedMotion && fanSpeedScale > 0.01f)
-                    blade.Rotate(0, Time.unscaledDeltaTime * (119 + i * 11) * fanSpeedScale, 0, Space.Self);
+                if (reportLayer && blade.gameObject.activeInHierarchy && !reducedMotion && fanSpeed > 0.01f)
+                    blade.Rotate(0, Time.unscaledDeltaTime * (119 + i * 11) * fanSpeed, 0, Space.Self);
             }
 
             for (int i = dynamicTubes.Count - 1; i >= 0; i--)

@@ -61,6 +61,7 @@ namespace CTCC
 
         public IReadOnlyList<TranscriptEntry> Transcript => transcript;
         public bool IsSpeaking => activeRoutine != null;
+        internal bool IsPaused => paused;
 
         public void Initialize(VoiceClipEntry[] voiceEntries, AudioClip lanMotif, EnvironmentalAudio envAudio,
             HospitalUI hud, Func<string, string, bool> mayDeliver)
@@ -84,7 +85,7 @@ namespace CTCC
 
             musicSource = gameObject.AddComponent<AudioSource>();
             musicSource.playOnAwake = false;
-            musicSource.loop = true;
+            musicSource.loop = false;
             musicSource.spatialBlend = 0f;
             musicSource.reverbZoneMix = 0f;
             musicSource.clip = lanMotif;
@@ -127,7 +128,10 @@ namespace CTCC
         {
             musicTarget = active ? Mathf.Clamp01(level) : 0f;
             if (active && musicSource != null && musicSource.clip != null && !musicSource.isPlaying)
+            {
+                musicSource.volume = 0f;
                 musicSource.Play();
+            }
         }
 
         public void StopCurrent()
@@ -155,6 +159,11 @@ namespace CTCC
                 else activeVoice.UnPause();
             }
             if (activeSpeaker != null) activeSpeaker.SetSpeechPaused(paused);
+            if (musicSource != null)
+            {
+                if (paused) musicSource.Pause();
+                else musicSource.UnPause();
+            }
         }
 
         private void FinishSpeech(bool completed)
@@ -245,7 +254,7 @@ namespace CTCC
         private void Update()
         {
             bool audible = ApplyVoiceMix();
-            if (musicSource == null) return;
+            if (musicSource == null || paused) return;
             float goal = musicTarget * musicVolume * (audible ? 0.71f : 1f);
             musicSource.volume = Mathf.MoveTowards(musicSource.volume, goal, Time.unscaledDeltaTime * 0.25f);
             if (goal <= 0.001f && musicSource.volume <= 0.001f && musicSource.isPlaying)

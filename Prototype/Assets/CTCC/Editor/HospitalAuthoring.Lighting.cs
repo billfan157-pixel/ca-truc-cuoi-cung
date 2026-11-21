@@ -624,7 +624,12 @@ namespace CTCC.Editor
                 item.loop = true;
                 item.clip = Clip(id);
                 var rl = new RoomLoop { source = item, level = level, report = b, exteriorOccluded = occluded };
-                if (multiScene) ZoneAt(point.z).loops.Add(rl);
+                if (multiScene)
+                {
+                    var zone = ZoneAt(point.z);
+                    zone.loops.Add(rl);
+                    if (zone.id == "LOC02" && id == "Fan") zone.region.receptionFan = item;
+                }
                 else bootstrapLoops.Add(rl);
             }
 

@@ -15,6 +15,7 @@ def run():
     conditions = []
     known = set()
     locked = {"CH01-D16b", "CH04-D06"}
+    staff_reactions = {"CH01-D17": "OBS_CORRIDOR_NOTICE", "CH01-D18": "OBS_SHIFT_LOG"}
     for number, row in sheet.items():
         if number == 1:
             continue
@@ -25,6 +26,12 @@ def run():
                 raise ValueError(f"Core 07 conditions changed for {identity}: {chapter} / {context}")
             conditions.append({"id": identity, "chapter": chapter, "beat": "B06",
                                "requiredEvents": ["H05.verified", "PT02.presented"]})
+        if identity in staff_reactions:
+            chapter, context = row["B"], row["D"]
+            if chapter != "CH01" or any(marker not in context for marker in ("STAFF", "lớp B", staff_reactions[identity])):
+                raise ValueError(f"Core 07 conditions changed for {identity}: {chapter} / {context}")
+            conditions.append({"id": identity, "chapter": chapter, "beat": "STAFF",
+                               "requiredEvents": ["CH01-T03"]})
         if row.get("B") not in ("CH01", "CH02", "CH03", "CH04"):
             continue
         if identity in known:
@@ -34,7 +41,8 @@ def run():
             "id": identity, "chapter": row["B"], "speaker": row.get("C", ""),
             "context": row.get("D", ""), "copy": row.get("E", ""),
         })
-    assert locked <= known and {condition["id"] for condition in conditions} == locked
+    guarded = locked | staff_reactions.keys()
+    assert guarded <= known and {condition["id"] for condition in conditions} == guarded
     assert {
         "CH01-D03", "CH01-D04", "CH01-D05", "CH01-D07", "CH01-D15", "CH01-D16",
         "CH02-D04", "CH03-D01", "CH03-D02", "CH03-D03", "CH03-D04", "CH03-D05", "CH03-D06",

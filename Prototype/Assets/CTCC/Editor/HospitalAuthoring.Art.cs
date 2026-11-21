@@ -1349,7 +1349,7 @@ namespace CTCC.Editor
             CapsuleTarget("OBS101A", "Dấu sử dụng tại vị trí giường 4", new Vector3(11.05f, 0.28f, 3.35f), new Vector3(0.86f, 0.44f, 0.90f), report);
             CapsuleTarget("OBS101B", "Thẻ bàn giao giường 4 (AS-05B)", new Vector3(11.35f, 1.34f, 4.48f), new Vector3(0.42f, 0.48f, 0.22f), report);
             CapsuleTarget("OBS101C", "Phiếu chuyển giường 02 (Đã hoàn tất)", new Vector3(10.25f, 0.94f, 5.88f), new Vector3(0.42f, 0.46f, 0.28f), report);
-            CapsuleTarget("LAN_TALK", "Trò chuyện với Lan", new Vector3(2.65f, 1.48f, -3.40f), new Vector3(0.42f, 0.80f, 0.42f), report);
+            CapsuleTarget("LAN_TALK", "Trò chuyện với Lan", new Vector3(2.55f, 1.48f, -3.68f), new Vector3(0.42f, 0.80f, 0.42f), report);
             CapsuleTarget("OBS_CLOCK_0317", "Đồng hồ treo tường (Dừng ở 03:17)", new Vector3(-0.92f, 2.42f, -3.26f), new Vector3(0.46f, 0.80f, 0.56f), permanent);
             CapsuleTarget("LIST", "Bản kê ba giường", new Vector3(6.65f, 1.34f, 2.127f), new Vector3(0.54f, 0.58f, 0.13f), real);
             CapsuleTarget("SOCKETS", "Bốn vị trí ổ cắm", new Vector3(11.54f, 1.31f, 2.115f), new Vector3(0.53f, 0.37f, 0.18f), real);
@@ -1440,7 +1440,9 @@ namespace CTCC.Editor
                 world.f101MatB = Mat("F101_SignedB");
                 world.f101MatC = Mat("F101_SignedC");
             }
-            Flat("Spare signed board", "F101", new Vector3(2.12f, 1.133f, -2.90f), Vector3.up, new Vector2(0.25f, 0.349f));
+            var receptionBoard = Flat("Reception F101 sheet", "F101", new Vector3(2.12f, 1.133f, -2.90f),
+                Vector3.up, new Vector2(0.25f, 0.349f));
+            if (multiScene) zones["LOC02"].region.receptionBoard = receptionBoard;
 
             // CH01-R Grounded Bed 4 Chart Holder (replaces floating quad!), Bed 4 Blanket/Slippers trace, & Bed 2 Transfer Comparison Chart!
             var loc03RepRoot = ResolveParent(report, new Vector3(11.35f, 0f, 4.48f));

@@ -114,6 +114,7 @@ namespace CTCC
         public Transform LanDeskPoint { get; private set; }
         public Transform LanStepOutPoint { get; private set; }
         public GameObject ReceptionGlassSilhouette { get; private set; }
+        public GameObject ReceptionBoard { get; private set; }
         public GameObject TrolleyShadowProp { get; private set; }
         public GameObject SpareBatteryProp { get; private set; }
         public Light[] EmergencyRedLights { get; private set; } = Array.Empty<Light>();
@@ -190,6 +191,7 @@ namespace CTCC
         private void Awake()
         {
             Instance = this;
+            if (bed4TubeLight != null) bed4TubeBaseIntensity = bed4TubeLight.intensity;
             RebuildPadLookup();
             RebuildProbeLookup();
 
@@ -366,6 +368,7 @@ namespace CTCC
             if (region.clockHandsB != null) clockHandsB = region.clockHandsB;
             if (region.spareBatteryProp != null) SpareBatteryProp = region.spareBatteryProp;
             if (region.receptionGlassSilhouette != null) ReceptionGlassSilhouette = region.receptionGlassSilhouette;
+            if (region.receptionBoard != null) ReceptionBoard = region.receptionBoard;
             if (region.trolleyShadowProp != null) TrolleyShadowProp = region.trolleyShadowProp;
             if (region.cabinet != null)
             {
@@ -460,6 +463,7 @@ namespace CTCC
                 interactables.curtainCloth = null;
             if (SpareBatteryProp == region.spareBatteryProp) SpareBatteryProp = null;
             if (ReceptionGlassSilhouette == region.receptionGlassSilhouette) ReceptionGlassSilhouette = null;
+            if (ReceptionBoard == region.receptionBoard) ReceptionBoard = null;
             if (TrolleyShadowProp == region.trolleyShadowProp) TrolleyShadowProp = null;
             if (LanActor == region.lanActor) LanActor = null;
             if (GatekeeperActor == region.gatekeeperActor) GatekeeperActor = null;
@@ -573,7 +577,7 @@ namespace CTCC
         }
 
         public void Present(bool layerB, int form, bool entered, bool acceptedBoard, bool closetOpen, bool secondGate,
-            bool layerM = false, bool thirdGate = false, bool serviceGate = false)
+            bool layerM = false, bool thirdGate = false, bool serviceGate = false, bool deferF101Visuals = false)
         {
             lastLayerB = layerB;
             lastLayerM = layerM;
@@ -623,51 +627,11 @@ namespace CTCC
                 themeReady = true;
             }
 
-            Toggle(pendingBay, layerB && (form < 2 || form == 3));
+            // The denied bay has colliders and must be staged for the navigation preflight.
             Toggle(deniedBay, layerB && form == 2);
-            Toggle(refutedBay, layerB && form == 4);
-            Toggle(statusA, layerB && form == 2);
-            Toggle(statusB, layerB && form == 3);
-            Toggle(statusC, layerB && form == 4);
-            Toggle(paperAfter, layerB && form >= 2);
+            if (!deferF101Visuals)
+                PresentF101(layerB, (FormStatus)form);
             Toggle(storeClues, !layerB && closetOpen);
-
-            // Dynamic F101 wall clipboard ink/stamp consequence in Layer B (Reality.R untouched!)
-            if (f101WallRenderer != null)
-            {
-                var targetMat = form switch
-                {
-                    2 => f101MatA,
-                    3 => f101MatB,
-                    4 => f101MatC,
-                    _ => f101MatPending
-                };
-                if (targetMat != null)
-                    f101WallRenderer.sharedMaterial = targetMat;
-            }
-
-            // Consequential Reality.B environmental atmosphere for each F101 outcome (Reality.R strictly unaltered!)
-            if (motion != null)
-            {
-                motion.fanSpeedScale = !layerB ? 1f : form switch
-                {
-                    2 => 1.14f, // Affirmed: unnaturally steady sterile airflow
-                    3 => 0.56f, // Unverified: uneasy lingering slowdown
-                    4 => 0.82f, // Refuted: destabilized rhythm
-                    _ => 1.00f
-                };
-            }
-            if (bed4TubeLight != null && bed4TubeBaseIntensity > 0f)
-            {
-                bed4TubeLight.intensity = layerB && form == 4
-                    ? bed4TubeBaseIntensity * 0.48f
-                    : (layerB && form == 2 ? bed4TubeBaseIntensity * 1.08f : bed4TubeBaseIntensity);
-            }
-            if (layerB && form == 4 && interactables != null)
-            {
-                // Refuted destabilizes the false curtain concealment around Bed 4
-                interactables.SetCurtainPulled(true, !smoothPresentation);
-            }
 
             if (cabinet != null)
             {
@@ -701,6 +665,51 @@ namespace CTCC
             emergencyDoorB?.Set(secondGate);
             archiveExitDoor?.Set(thirdGate);
             Physics.SyncTransforms();
+        }
+
+        internal void PresentF101(bool layerB, FormStatus committed)
+        {
+            FormStatus form = layerB ? committed : FormStatus.Pending;
+            // Refuted has its own parted curtain. The interactive cloth belongs to the pending/unverified bay.
+            Toggle(pendingBay, layerB && form is (FormStatus.Pending or FormStatus.Unverified));
+            Toggle(refutedBay, form == FormStatus.Refuted);
+            Toggle(statusA, form == FormStatus.Affirmed);
+            Toggle(statusB, form == FormStatus.Unverified);
+            Toggle(statusC, form == FormStatus.Refuted);
+            Toggle(paperAfter, form != FormStatus.Pending);
+
+            var paper = form switch
+            {
+                FormStatus.Affirmed => f101MatA,
+                FormStatus.Unverified => f101MatB,
+                FormStatus.Refuted => f101MatC,
+                _ => f101MatPending
+            };
+            if (f101WallRenderer != null && paper != null && f101WallRenderer.sharedMaterial != paper)
+                f101WallRenderer.sharedMaterial = paper;
+
+            if (motion != null)
+                motion.fanSpeedScale = form switch
+                {
+                    FormStatus.Affirmed => 1.14f,
+                    FormStatus.Unverified => 0.56f,
+                    FormStatus.Refuted => 0.82f,
+                    _ => 1f
+                };
+
+            if (bed4TubeLight != null && bed4TubeBaseIntensity > 0f)
+            {
+                float intensity = bed4TubeBaseIntensity * (form switch
+                {
+                    FormStatus.Affirmed => 1.08f,
+                    FormStatus.Refuted => 0.48f,
+                    _ => 1f
+                });
+                if (motion != null)
+                    motion.SetTubeBaseline(bed4TubeLight, intensity);
+                else
+                    bed4TubeLight.intensity = intensity;
+            }
         }
 
         private void ApplyIndirectLighting(bool layerB, bool layerM = false)

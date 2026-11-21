@@ -187,23 +187,17 @@ namespace CTCC
     {
         public readonly string Id;
         public readonly string Label;
-        public readonly string CategoryTag;
-        public readonly bool IsSupportedForRefutation;
         public readonly HypothesisOutcome FailureOutcome;
         public readonly string FailureDiagnostic;
 
         public DeductionClaimSpec(
             string id,
             string label,
-            string categoryTag,
-            bool isSupported,
-            HypothesisOutcome failureOutcome,
-            string failureDiagnostic)
+            HypothesisOutcome failureOutcome = HypothesisOutcome.Valid,
+            string failureDiagnostic = "")
         {
             Id = id;
             Label = label;
-            CategoryTag = categoryTag;
-            IsSupportedForRefutation = isSupported;
             FailureOutcome = failureOutcome;
             FailureDiagnostic = failureDiagnostic;
         }
@@ -251,7 +245,7 @@ namespace CTCC
             new(
                 Bed4Traces, "OBS101A", "Dấu sử dụng tại vị trí giường 4",
                 "Sau rèm cuối phòng 101 có vết kéo bánh giường in ngang nền, tấm chăn bông gấp vội và đôi dép nhỏ để lệch.",
-                "Dữ kiện thực địa: vị trí số 4 vừa có người dùng gần đây; tự dấu vết này chưa đủ để khẳng định hiện vẫn còn người trong phòng hay danh tính của họ.",
+                "Những dấu vết này cho thấy chỗ kê giường từng được sử dụng. Chưa rõ ai đã dùng hoặc rời đi lúc nào.",
                 "Lớp B · Hốc giường 4, Phòng 101",
                 ObservationCategory.Fact,
                 new[] { Reality.B },
@@ -268,7 +262,7 @@ namespace CTCC
             new(
                 Bed4Card, "OBS101B", "Thẻ bàn giao giường số 4 (AS-05B)",
                 "Thẻ ghi ngày 17/11/2005, 'Khám sốt tạm', khoanh tròn 'CHƯA BÀN GIAO', trống ô chữ ký người nhận và nhòe dấu mực xanh; không ghi tên hay mã bệnh nhân.",
-                "Dữ kiện hồ sơ: phiếu bàn giao của giường 4 chưa được khép; thiếu chữ ký tự nó chưa chứng minh cố ý làm giả hay ca tử vong.",
+                "Thẻ vẫn ghi tình trạng lúc lập. Ô ký nhận còn trống nên chưa rõ sau đó ca trực đã làm gì.",
                 "Lớp B · Giá treo đầu giường 4, Phòng 101",
                 ObservationCategory.Fact,
                 new[] { Reality.B },
@@ -288,7 +282,7 @@ namespace CTCC
             new(
                 Bed2Transfer, "OBS101C", "Phiếu chuyển giường 02 (Đã hoàn tất)",
                 "Giường 02 chuyển khoa Nội B lúc 19g20 ngày 17/11/2005: đủ mã hồ sơ, nơi tiếp nhận, chữ ký cả hai phía giao–nhận và dấu đỏ xác nhận.",
-                "Tài liệu đối chiếu: cho thấy một ca chuyển giường hợp lệ tại An Sinh phải có đủ 2 chữ ký và điểm đến — tương phản rõ với thẻ bỏ dở ở giường 4.",
+                "Phiếu này cho thấy nơi đến và người nhận được ghi thế nào khi một ca chuyển giường đã hoàn tất.",
                 "Lớp B · Đuôi giường 02, Phòng 101",
                 ObservationCategory.Comparison,
                 new[] { Reality.B },
@@ -306,8 +300,8 @@ namespace CTCC
                 }),
             new(
                 Bed3Meds, "OBS101D", "Phiếu phát thuốc giường 03 (Đã xuất viện)",
-                "Lịch cấp phát thuốc thường quy của giường 03 đã khóa xong từ 10g15 ngày 17/11/2005 khi bệnh nhân xuất viện, khớp hoàn toàn với dòng 03 trên F101.",
-                "Tài liệu đối chiếu không liên quan sai lệch: hồ sơ giường 03 khép đủ và không bác bỏ hay chứng minh điều gì về vị trí giường 4.",
+                "Lịch cấp phát thuốc của giường 03 đã khóa lúc 10g15 ngày 17/11/2005 khi bệnh nhân xuất viện.",
+                "Giờ khóa phiếu và tình trạng xuất viện có thể đối chiếu với dòng giường 03 trên F101.",
                 "Lớp B · Ngăn tủ đầu giường 03, Phòng 101",
                 ObservationCategory.Comparison,
                 new[] { Reality.B },
@@ -321,7 +315,7 @@ namespace CTCC
                 detailLabels: new[]
                 {
                     "Các cữ thuốc ngày 15–17/11 đều đã ký phát đầy đủ.",
-                    "Dấu khóa phiếu xuất viện 10g15 ngày 17/11 — hoàn toàn khớp F101."
+                    "Dấu khóa phiếu xuất viện lúc 10g15 ngày 17/11."
                 }),
             new(
                 ShiftGuide, "AS-05", "Quy chế bàn giao ca đêm AS-05",
@@ -475,37 +469,33 @@ namespace CTCC
         public const string ClaimPatientPresent = "F101_CLAIM_PATIENT_PRESENT";
         public const string ClaimFalsification = "F101_CLAIM_FALSIFICATION";
         public const string ClaimClericalOk = "F101_CLAIM_CLERICAL_OK";
+        public const string ClaimBlankSignature = "F101_CLAIM_BLANK_SIGNATURE";
 
         private static readonly DeductionClaimSpec[] F101ClaimsList =
         {
             new(
-                ClaimUnreliableZero,
-                "Con số 0 trên F101 chưa đủ tin cậy để xác nhận: có dấu vết dùng giường 4 và thẻ bàn giao bỏ dở.",
-                "Kết luận có căn cứ",
-                isSupported: true,
-                failureOutcome: HypothesisOutcome.Valid,
-                failureDiagnostic: ""),
+                ClaimBlankSignature,
+                "Thẻ giường tạm còn trống ô chữ ký người nhận.",
+                HypothesisOutcome.UnsupportedConclusion,
+                "Ô ký nhận đúng là còn trống. Lập luận vẫn cần giải thích chi tiết đó có ý nghĩa gì đối với số tổng hợp."),
             new(
                 ClaimPatientPresent,
-                "Chắc chắn hiện tại vẫn còn một bệnh nhân đang nằm lại hoặc ẩn trong phòng 101.",
-                "Giả thuyết vượt chứng cứ",
-                isSupported: false,
-                failureOutcome: HypothesisOutcome.UnsupportedConclusion,
-                failureDiagnostic: "Dấu giường 4 và thẻ thiếu chữ ký chỉ chứng tỏ vị trí đó từng có người dùng và chưa khép bàn giao — không đủ để khẳng định hiện vẫn còn người ở trong phòng."),
-            new(
-                ClaimFalsification,
-                "Điều dưỡng trực đã cố tình làm giả phiếu F101 để che giấu một ca tử vong tại giường 4.",
-                "Suy đoán quy kết",
-                isSupported: false,
-                failureOutcome: HypothesisOutcome.UnsupportedConclusion,
-                failureDiagnostic: "Thiếu chữ ký nhận hay thiếu dòng giường tạm trên mẫu in sẵn không đủ chứng minh cố ý làm giả hồ sơ hay một ca tử vong. Hãy chọn kết luận bám sát chứng cứ."),
+                "Lúc chốt ca, người bệnh ở giường tạm vẫn còn trong phòng 101.",
+                HypothesisOutcome.UnsupportedConclusion,
+                "Dấu vết có thể còn lại sau khi người bệnh rời đi. Chưa có dữ kiện xác định họ ở đâu vào lúc chốt ca."),
             new(
                 ClaimClericalOk,
-                "Đây chỉ là sơ sót hành chính nhỏ; vẫn có thể tin con số 0 trên F101 là đúng.",
-                "Mâu thuẫn lựa chọn",
-                isSupported: false,
-                failureOutcome: HypothesisOutcome.ContradictsDecision,
-                failureDiagnostic: "Kết luận này mâu thuẫn với mục 'Ghi nhận bất nhất'. Nếu muốn xác nhận số 0 hoặc giữ nguyên trạng chờ kiểm tra, hãy chọn đúng quyết định tương ứng.")
+                "Giường tạm đã bàn giao xong, chỉ còn thiếu chữ ký.",
+                HypothesisOutcome.ContradictsDecision,
+                "Ô ký nhận bỏ trống cũng có thể là do chưa bàn giao. Cần có căn cứ cho thấy ca bàn giao đã hoàn tất."),
+            new(
+                ClaimUnreliableZero,
+                "Số 0 bỏ sót hồ sơ bàn giao còn để ngỏ của giường tạm."),
+            new(
+                ClaimFalsification,
+                "Người lập phiếu cố ý bỏ qua giường tạm để chốt ca.",
+                HypothesisOutcome.UnsupportedConclusion,
+                "Mẫu in và chữ ký cho thấy hồ sơ được ghi thế nào. Chưa có dữ kiện về việc người lập phiếu đã biết gì khi chốt ca.")
         };
 
         private static readonly Dictionary<string, DeductionClaimSpec> ClaimsById;
@@ -586,8 +576,8 @@ namespace CTCC
             {
                 return HypothesisEvaluation.Reject(
                     HypothesisOutcome.InsufficientEvidence,
-                    "Chưa lập luận chứng",
-                    "Để ghi nhận bất nhất cho F101, hãy chọn các chứng cứ đối chiếu và một kết luận có căn cứ.");
+                    "Chưa có lập luận",
+                    "Hãy chọn các ghi nhận làm căn cứ cho nhận định về F101.");
             }
 
             var selected = submission.selectedEvidenceIds ?? new List<string>();
@@ -596,8 +586,8 @@ namespace CTCC
                 return HypothesisEvaluation.Reject(
                     HypothesisOutcome.InsufficientEvidence,
                     "Chưa chọn bằng chứng",
-                    "Cần chọn ít nhất hai nguồn bổ sung cho nhau: dấu sử dụng thực tế tại giường 4 và thẻ bàn giao giường 4 bỏ dở.",
-                    "Gợi ý: Kiểm tra góc sau rèm cuối phòng 101 rồi đối chiếu dấu thực địa với thẻ treo đầu giường 4.");
+                    "Cần đối chiếu điều ghi trong hồ sơ bàn giao với những gì quan sát được trong phòng.",
+                    "Hãy tìm hai nguồn độc lập cho biết chỗ nào từng được dùng và ca trực ghi nhận việc bàn giao ra sao.");
             }
 
             var unique = new HashSet<string>(StringComparer.Ordinal);
@@ -655,16 +645,16 @@ namespace CTCC
 
                 if (IsIrrelevantForF101(id))
                 {
-                    string reason = id == ObservationRegistry.Bed3Meds
-                        ? "Phiếu thuốc giường 03 đã khóa đúng ngày xuất viện và hoàn toàn khớp với F101 — tài liệu này không chứng minh sai lệch ở giường 4."
-                        : id == ObservationRegistry.StoppedClock0317
-                            ? "Đồng hồ dừng ở 03:17 gợi nhớ mốc đêm cháy nhưng không phải căn cứ bác bỏ số giường tồn đọng trên F101."
-                            : "Sổ phân ca trực ở quầy cho thấy bối cảnh thiếu người chứ không trực tiếp bác bỏ con số 0 của phòng 101.";
+                    string reason = id switch
+                    {
+                        ObservationRegistry.Bed3Meds => "Phiếu thuốc xác nhận giờ xuất viện của giường 03, vốn đã khớp với bản kê. Nó chỉ giúp kiểm tra dòng đó.",
+                        ObservationRegistry.StoppedClock0317 => "Đồng hồ cho thấy kim dừng ở 03:17. Chi tiết này không cho biết ca bàn giao nào còn để ngỏ.",
+                        _ => "Sổ phân ca cho thấy ca trực thiếu người. Nó không ghi tình trạng bàn giao của từng giường."
+                    };
                     return HypothesisEvaluation.Reject(
                         HypothesisOutcome.IrrelevantEvidence,
-                        "Chứng cứ không phục vụ trực tiếp cho lập luận",
-                        reason,
-                        "Gợi ý: Loại bỏ hồ sơ khớp sẵn của giường 03 hoặc chi tiết ngoài buồng; chỉ giữ chứng cứ đối chiếu trực tiếp với giường 4.");
+                        "Chi tiết chưa giúp đối chiếu số tổng hợp",
+                        reason);
                 }
 
                 if (id == ObservationRegistry.Bed4Traces) hasA = true;
@@ -681,15 +671,17 @@ namespace CTCC
             if (!hasA || !hasB)
             {
                 string missingMsg = !hasA && !hasB
-                    ? "Các tài liệu đối chiếu hay quy chế chỉ làm rõ bối cảnh. Cần chọn đủ cả hai nguồn trực tiếp tại giường 4: dấu sử dụng thực tế và thẻ bàn giao bỏ dở."
+                    ? "Tài liệu đối chiếu giúp hiểu cách ghi sổ. Cần thêm căn cứ về việc sử dụng chỗ kê và tình trạng bàn giao tại đó."
                     : !hasA
-                        ? "Một thẻ giường thiếu chữ ký có thể chỉ là giấy sót lại nếu không có dấu vết thực tế cho thấy vị trí giường 4 vừa được dùng."
-                        : "Dấu chăn dép và vết bánh giường tự nó chưa cho biết tình trạng bàn giao — cần ghép thêm thẻ bàn giao giường 4 (AS-05B) còn bỏ dở.";
+                        ? "Một thẻ thiếu chữ ký có thể là giấy còn sót lại. Điều gì cho thấy chỗ kê ghi trên thẻ từng được dùng?"
+                        : "Dấu vết cho thấy chỗ kê từng được dùng. Hồ sơ ca trực ghi gì về việc bàn giao tại đó?";
                 return HypothesisEvaluation.Reject(
                     HypothesisOutcome.InsufficientEvidence,
-                    "Chưa đủ hai nguồn đối chiếu bổ sung",
+                    "Còn thiếu căn cứ đối chiếu",
                     missingMsg,
-                    "Gợi ý: Ghép (1) Dấu sử dụng tại vị trí giường 4 với (2) Thẻ bàn giao giường số 4 chưa ký nhận.");
+                    !hasA
+                        ? "Ngoài giấy tờ, hãy xem tại chỗ kê còn dấu vết gì."
+                        : "Khi đối chiếu các phiếu, hãy xem một ca bàn giao hoàn tất thường ghi gì về người nhận.");
             }
 
             var claim = GetClaim(submission.claimId);
@@ -698,18 +690,16 @@ namespace CTCC
                 return HypothesisEvaluation.Reject(
                     HypothesisOutcome.UnsupportedConclusion,
                     "Chưa chọn kết luận đối chiếu",
-                    "Hãy chọn nhận định bám sát chứng cứ để hoàn tất lập luận ghi nhận bất nhất.");
+                    "Từ những gì đã chọn, hãy ghi nhận điều có thể suy ra về số tổng hợp.");
             }
 
-            if (!claim.IsSupportedForRefutation)
+            if (claim.FailureOutcome != HypothesisOutcome.Valid)
             {
                 return HypothesisEvaluation.Reject(
                     claim.FailureOutcome,
-                    claim.FailureOutcome == HypothesisOutcome.ContradictsDecision
-                        ? "Kết luận mâu thuẫn với quyết định"
-                        : "Kết luận vượt quá phạm vi chứng cứ",
+                    "Cần xem lại nhận định",
                     claim.FailureDiagnostic,
-                    "Gợi ý: Với chứng cứ hiện có, chỉ có thể kết luận con số 0 trên F101 chưa đủ tin cậy để xác nhận.");
+                    "Hãy thử chỉ ra chi tiết nào dẫn từ điều đã quan sát đến nhận định này.");
             }
 
             return HypothesisEvaluation.Pass(

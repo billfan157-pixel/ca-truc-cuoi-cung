@@ -279,6 +279,20 @@
       "speaker": "Lan",
       "context": "CH04 B06; H05 verified AND PT02 presented; optional, never CH01; before CH07",
       "copy": "Em ở lại với họ. Em chỉ biết đến lúc không còn nghe thấy ai ngoài cửa nữa."
+    },
+    {
+      "id": "CH01-D17",
+      "chapter": "CH01",
+      "speaker": "Minh",
+      "context": "CH01 STAFF, lớp B. OBS_CORRIDOR_NOTICE sau khi xem và đóng thông báo. Tùy chọn, một lần.",
+      "copy": "Ra là giường kê thêm. Mẫu in hồi đó đâu có chỗ cho giường thứ tư."
+    },
+    {
+      "id": "CH01-D18",
+      "chapter": "CH01",
+      "speaker": "Minh",
+      "context": "CH01 STAFF, lớp B. OBS_SHIFT_LOG sau khi soi chi tiết, lật giấy hoặc đọc bản chữ lớn rồi đóng. Tùy chọn, một lần.",
+      "copy": "Hồi đó, sắp hết ca chỉ muốn ký cho xong. Nhưng đã ký thì phần còn dở cũng mang tên mình."
     }
   ],
   "conditions": [
@@ -298,6 +312,22 @@
       "requiredEvents": [
         "H05.verified",
         "PT02.presented"
+      ]
+    },
+    {
+      "id": "CH01-D17",
+      "chapter": "CH01",
+      "beat": "STAFF",
+      "requiredEvents": [
+        "CH01-T03"
+      ]
+    },
+    {
+      "id": "CH01-D18",
+      "chapter": "CH01",
+      "beat": "STAFF",
+      "requiredEvents": [
+        "CH01-T03"
       ]
     }
   ]

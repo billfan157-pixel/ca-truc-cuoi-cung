@@ -57,7 +57,7 @@ namespace CTCC
         private bool showingBack;
         private InspectDetailTarget[] details = Array.Empty<InspectDetailTarget>();
         private int activeDetailIndex = -1;
-        private Action onFlippedBack;
+        private Action<bool> onFlipped;
         private Action<string> onDetailFocused;
         private EnvironmentalAudio audioBus;
 
@@ -66,6 +66,7 @@ namespace CTCC
         public bool ShowingBack => showingBack;
         public int ActiveDetailIndex => activeDetailIndex;
         public InspectDetailTarget[] Details => details;
+        public bool InputBlocked { get; set; }
 
         public void Initialize(Camera camera, EnvironmentalAudio audio = null)
         {
@@ -112,7 +113,7 @@ namespace CTCC
             Volume activeGrade,
             Texture backTexture = null,
             InspectDetailTarget[] detailTargets = null,
-            Action onFlipBack = null,
+            Action<bool> onFlip = null,
             Action<string> onDetail = null)
         {
             Close();
@@ -130,7 +131,7 @@ namespace CTCC
             hasBackSide = prefabOrTemplate == null && backTexture != null;
             details = detailTargets ?? Array.Empty<InspectDetailTarget>();
             activeDetailIndex = -1;
-            onFlippedBack = onFlipBack;
+            onFlipped = onFlip;
             onDetailFocused = onDetail;
 
             if (prefabOrTemplate != null)
@@ -167,7 +168,6 @@ namespace CTCC
                 baseDofDist = dof.focusDistance.value;
                 baseDofActive = dof.active;
                 activeDof.active = !reducedMotion;
-                activeDof.focusDistance.value = 0.40f;
             }
 
             stage.localPosition = new Vector3(-0.085f, -0.01f, zoom);
@@ -179,7 +179,7 @@ namespace CTCC
 
         public void Flip()
         {
-            if (!active || !hasBackSide) return;
+            if (!active || !hasBackSide || InputBlocked) return;
             showingBack = !showingBack;
             flipTarget = showingBack ? 180f : 0f;
             if (reducedMotion) flipAngle = flipTarget;
@@ -189,23 +189,16 @@ namespace CTCC
             zoomTarget = 0.40f;
             activeDetailIndex = -1;
             if (eye != null) audioBus?.From("paperFlip", eye.transform.position + eye.transform.forward * 0.35f, 0.85f);
-            if (showingBack) onFlippedBack?.Invoke();
             UpdateTransform();
+            onFlipped?.Invoke(showingBack);
         }
 
         public void FocusDetail(int index)
         {
-            if (!active || details == null || index < 0 || index >= details.Length) return;
+            if (!active || InputBlocked || index < 0 || index >= details.Length) return;
             var d = details[index];
+            if (d.OnBackSide != showingBack) return;
             activeDetailIndex = index;
-            if (hasBackSide && d.OnBackSide != showingBack)
-            {
-                showingBack = d.OnBackSide;
-                flipTarget = showingBack ? 180f : 0f;
-                if (reducedMotion) flipAngle = flipTarget;
-                if (eye != null) audioBus?.From("paperFlip", eye.transform.position + eye.transform.forward * 0.35f, 0.80f);
-                if (showingBack) onFlippedBack?.Invoke();
-            }
             rotX = 0f;
             rotY = 0f;
             panTarget = d.OffsetXY;
@@ -262,7 +255,7 @@ namespace CTCC
             showingBack = false;
             details = Array.Empty<InspectDetailTarget>();
             activeDetailIndex = -1;
-            onFlippedBack = null;
+            onFlipped = null;
             onDetailFocused = null;
             if (stage != null) stage.gameObject.SetActive(false);
             if (keyLight != null) keyLight.enabled = false;
@@ -286,6 +279,12 @@ namespace CTCC
             flipAngle = Mathf.MoveTowards(flipAngle, flipTarget, dt * (reducedMotion ? 1400f : 540f));
             panOffset = Vector2.MoveTowards(panOffset, panTarget, dt * (reducedMotion ? 5f : 0.65f));
             zoom = Mathf.MoveTowards(zoom, zoomTarget, dt * (reducedMotion ? 5f : 0.85f));
+
+            if (InputBlocked)
+            {
+                UpdateTransform();
+                return;
+            }
 
             var mouse = Mouse.current;
             var keys = Keyboard.current;
@@ -328,10 +327,14 @@ namespace CTCC
 
         private void UpdateTransform()
         {
+            // Tilt a sheet for reading without rotating past the edge of the selected side.
+            if (hasBackSide) rotY = Mathf.Clamp(rotY, -52f, 52f);
             float ease = 1f - Mathf.Pow(1f - openBlend, 3f);
             float baseX = -0.095f + panOffset.x;
             float baseY = Mathf.Lerp(-0.20f, 0.01f, ease) + panOffset.y;
             stage.localPosition = new Vector3(baseX, baseY, zoom);
+            if (activeDof != null && activeDof.active)
+                activeDof.focusDistance.value = zoom;
             float idleSway = reducedMotion ? 0f : Mathf.Sin(Time.unscaledTime * 1.05f) * 1.1f;
             holder.localRotation = Quaternion.Euler(rotX + idleSway * 0.35f, rotY + flipAngle + idleSway, 0f);
         }
