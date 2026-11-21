@@ -12,12 +12,14 @@ namespace CTCC
     {
         public readonly Rect Uv;
         public readonly bool Marked;
+        public readonly string Label;
         public readonly Action Press;
 
-        public DocumentHotspot(Rect uv, bool marked, Action press)
+        public DocumentHotspot(Rect uv, bool marked, string label, Action press)
         {
             Uv = uv;
             Marked = marked;
+            Label = label;
             Press = press;
         }
     }
@@ -221,17 +223,10 @@ namespace CTCC
         }
 
         public void Show(string section, string title, string body, ActionChoice[] buttons, Action close,
-            Texture splitImage = null, int initialFocus = 0)
+            Texture splitImage = null, int initialFocus = 0, bool largePrint = false)
         {
             ShowLayout(section, title, body, buttons, close, splitImage, sideInspectMode: false, onClose: null, inspectHint: null,
-                initialFocus: initialFocus);
-        }
-
-        internal void ShowAnnotatedDocument(string section, string title, string body, ActionChoice[] buttons, Action close,
-            Texture image, float paperAspect, DocumentHotspot[] hotspots, bool largePrint, int initialFocus)
-        {
-            ShowLayout(section, title, body, buttons, close, image, sideInspectMode: false, onClose: null,
-                inspectHint: null, initialFocus: initialFocus, hotspots: hotspots, largePrint: largePrint, paperAspect: paperAspect);
+                initialFocus: initialFocus, largePrint: largePrint);
         }
 
         public void ShowInspectSidebar(string section, string title, string body, ActionChoice[] buttons, Action close, Action onClose = null, string inspectHint = null)
@@ -239,90 +234,11 @@ namespace CTCC
             ShowLayout(section, title, body, buttons, close, splitImage: null, sideInspectMode: true, onClose: onClose, inspectHint: inspectHint);
         }
 
-        public void ShowComparison(
-            string section,
-            string title,
-            string leftLabel,
-            Texture leftTex,
-            string leftNotes,
-            string rightLabel,
-            Texture rightTex,
-            string rightNotes,
-            ActionChoice[] buttons,
-            Action close)
-        {
-            ResetNotebookInput();
-            for (int i = panel.childCount - 1; i >= 0; i--)
-            {
-                panel.GetChild(i).gameObject.SetActive(false);
-                Destroy(panel.GetChild(i).gameObject);
-            }
-            dismiss = close;
-            onCloseExtra = null;
-            focus.Clear();
-            selected = -1;
-
-            modalBackdrop.color = new Color(0.012f, 0.020f, 0.017f, 0.78f);
-            modalBackdrop.raycastTarget = true;
-            panel.anchorMin = new Vector2(0.08f, 0.06f);
-            panel.anchorMax = new Vector2(0.92f, 0.94f);
-            panelBg.color = ScreenDark;
-
-            Graphic(Rect("BorderTop", panel, new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -2), Vector2.zero), Frame, false);
-            Graphic(Rect("BorderLeft", panel, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(2, 0)), Frame, false);
-
-            int padX = 36;
-            var h = Rect("Compare header", panel, new Vector2(0, 0.84f), new Vector2(1, 1), new Vector2(padX, 2), new Vector2(-padX, -18));
-            FloatText("Section", h, new Vector2(0, 1), new Vector2(0, -16), new Vector2(900, 30), 19, Accent, TextAnchor.MiddleLeft, true).text = section;
-            FillText("Title text", Rect("Title", h, new Vector2(0, 0.08f), new Vector2(1, 0.66f)), 36, Ink, TextAnchor.MiddleLeft, true).text = title;
-            Graphic(Rect("Header rule", panel, new Vector2(0, 0.835f), new Vector2(1, 0.836f), new Vector2(padX, 0), new Vector2(-padX, 0)), Frame, false);
-
-            float shelf = Mathf.Min(0.28f, 0.045f + buttons.Length * 0.056f);
-            BuildComparePane("LeftDoc", new Vector2(0f, shelf), new Vector2(0.495f, 0.825f), padX, 12, leftLabel, leftTex, leftNotes);
-            BuildComparePane("RightDoc", new Vector2(0.505f, shelf), new Vector2(1f, 0.825f), 12, padX, rightLabel, rightTex, rightNotes);
-            Graphic(Rect("MidDivider", panel, new Vector2(0.499f, shelf + 0.02f), new Vector2(0.501f, 0.815f)), Frame, false);
-
-            BuildActionShelf(buttons, padX, shelf, sideInspectMode: false);
-
-            modal.gameObject.SetActive(true);
-            modalOpenedFrame = Time.frameCount;
-            hud.gameObject.SetActive(false);
-            OpenChanged?.Invoke();
-            MoveFocus(1);
-        }
-
-        private void BuildComparePane(string name, Vector2 minAnchor, Vector2 maxAnchor, int leftPad, int rightPad,
-            string headerLabel, Texture tex, string notes)
-        {
-            var pane = Rect(name, panel, minAnchor, maxAnchor, new Vector2(leftPad, 8), new Vector2(-rightPad, -8));
-            FillText(name + "Label", Rect("Lbl", pane, new Vector2(0, 0.90f), new Vector2(1, 1)), 20, Accent, TextAnchor.MiddleLeft, true).text = headerLabel ?? "";
-            if (tex != null)
-            {
-                var imgHolder = Rect("ImgHolder", pane, new Vector2(0, 0.30f), new Vector2(1, 0.89f), Vector2.zero, new Vector2(0, -4));
-                var frame = Rect("Frame", imgHolder, Vector2.zero, Vector2.one);
-                var raw = frame.gameObject.AddComponent<RawImage>();
-                raw.texture = tex;
-                raw.raycastTarget = false;
-                var keep = frame.gameObject.AddComponent<AspectRatioFitter>();
-                keep.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-                keep.aspectRatio = (float)tex.width / Mathf.Max(1, tex.height);
-            }
-            var noteArea = Rect("Notes", pane, new Vector2(0, 0), new Vector2(1, tex != null ? 0.29f : 0.88f), new Vector2(4, 4), new Vector2(-4, -4));
-            var txt = FillText("NoteTxt", noteArea, 18, Ink, TextAnchor.UpperLeft, false);
-            txt.text = notes ?? "";
-            txt.lineSpacing = 1.12f;
-        }
-
         private void ShowLayout(string section, string title, string body, ActionChoice[] buttons, Action close,
             Texture splitImage, bool sideInspectMode, Action onClose, string inspectHint, int initialFocus = 0,
-            DocumentHotspot[] hotspots = null, bool largePrint = false, float paperAspect = 0f)
+            bool largePrint = false)
         {
-            ResetNotebookInput();
-            for (int i = panel.childCount - 1; i >= 0; i--)
-            {
-                panel.GetChild(i).gameObject.SetActive(false);
-                Destroy(panel.GetChild(i).gameObject);
-            }
+            ClearModalPanel();
             dismiss = close;
             onCloseExtra = onClose;
             focus.Clear();
@@ -405,30 +321,7 @@ namespace CTCC
                 image.raycastTarget = false;
                 var keep = frame.gameObject.AddComponent<AspectRatioFitter>();
                 keep.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-                keep.aspectRatio = paperAspect > 0f ? paperAspect : (float)splitImage.width / splitImage.height;
-                if (hotspots != null)
-                {
-                    foreach (var hotspot in hotspots)
-                    {
-                        var region = Rect("Document hotspot", frame, hotspot.Uv.min, hotspot.Uv.max);
-                        var hitArea = Graphic(region, Color.white, true);
-                        hitArea.canvasRenderer.cullTransparentMesh = false;
-                        var button = region.gameObject.AddComponent<Button>();
-                        button.targetGraphic = hitArea;
-                        button.navigation = new Navigation { mode = Navigation.Mode.None };
-                        var colors = button.colors;
-                        colors.normalColor = new Color(0.14f, 0.30f, 0.38f, hotspot.Marked ? 0.24f : 0f);
-                        colors.highlightedColor = new Color(0.14f, 0.30f, 0.38f, 0.35f);
-                        colors.pressedColor = colors.highlightedColor;
-                        colors.selectedColor = colors.normalColor;
-                        button.colors = colors;
-                        hitArea.canvasRenderer.SetColor(colors.normalColor);
-                        button.onClick.AddListener(() => { if (!ModalInputBlocked) hotspot.Press(); });
-                        if (hotspot.Marked)
-                            Graphic(Rect("Ink underline", region, Vector2.zero, Vector2.right, Vector2.zero, new Vector2(0, 2)),
-                                new Color(0.11f, 0.24f, 0.34f, 0.88f), false);
-                    }
-                }
+                keep.aspectRatio = (float)splitImage.width / splitImage.height;
             }
 
             BuildActionShelf(buttons, padX, shelf, sideInspectMode, largePrint);
@@ -515,13 +408,33 @@ namespace CTCC
                 return;
             }
             bool reverse = k.leftShiftKey.isPressed || k.rightShiftKey.isPressed || k.upArrowKey.wasPressedThisFrame;
-            if (k.tabKey.wasPressedThisFrame || k.downArrowKey.wasPressedThisFrame || k.upArrowKey.wasPressedThisFrame)
-                MoveFocus(reverse ? -1 : 1);
+            bool move = k.tabKey.wasPressedThisFrame || k.downArrowKey.wasPressedThisFrame || k.upArrowKey.wasPressedThisFrame;
+            bool submit = k.enterKey.wasPressedThisFrame || k.numpadEnterKey.wasPressedThisFrame;
+            if (notebookOpen && (move || submit) && EventSystem.current != null &&
+                EventSystem.current.currentSelectedGameObject is GameObject current &&
+                current.TryGetComponent<Button>(out var pointed))
+            {
+                int index = focus.IndexOf(pointed);
+                if (index >= 0) selected = index;
+            }
+            if (move) MoveFocus(reverse ? -1 : 1);
             if (readingScroll != null && (k.pageDownKey.wasPressedThisFrame || k.pageUpKey.wasPressedThisFrame))
                 readingScroll.verticalNormalizedPosition = Mathf.Clamp01(readingScroll.verticalNormalizedPosition +
                     (k.pageUpKey.wasPressedThisFrame ? 0.28f : -0.28f));
-            if ((k.enterKey.wasPressedThisFrame || k.numpadEnterKey.wasPressedThisFrame) && selected >= 0 && selected < focus.Count)
+            if (submit && selected >= 0 && selected < focus.Count)
                 focus[selected].onClick.Invoke();
+        }
+
+        private void ClearModalPanel()
+        {
+            ResetNotebookInput();
+            for (int i = panel.childCount - 1; i >= 0; i--)
+            {
+                var child = panel.GetChild(i);
+                if (child == notebookRoot) continue;
+                child.gameObject.SetActive(false);
+                Destroy(child.gameObject);
+            }
         }
 
         private void MoveFocus(int offset)
@@ -531,6 +444,12 @@ namespace CTCC
             if (EventSystem.current != null)
                 EventSystem.current.SetSelectedGameObject(focus[selected].gameObject);
             RevealNotebookEntry(focus[selected].transform);
+        }
+
+        private void FocusButton(Button button)
+        {
+            int index = focus.IndexOf(button);
+            if (index >= 0) MoveFocus(index - selected);
         }
 
         private int Scaled(int size) => Mathf.RoundToInt(size * scale);

@@ -559,7 +559,7 @@ namespace CTCC
                 ClaimPatientPresent,
                 "Lúc chốt ca, người bệnh ở giường tạm vẫn còn trong phòng 101.",
                 HypothesisOutcome.UnsupportedConclusion,
-                "Mình đang đoán vì sợ — chăn gấp vội và đôi dép chỉ nói giường này từng có người nằm, chứ không chứng minh được họ đang ở đâu vào lúc chốt ca. Trên giấy chỉ mới chứng minh được con số 0 này có vấn đề."),
+                "Những dấu vết này cho thấy giường từng có người nằm. Mình vẫn chưa biết họ ở đâu lúc chốt ca."),
             new(
                 ClaimClericalOk,
                 "Giường tạm đã bàn giao xong, chỉ còn thiếu chữ ký.",
@@ -572,7 +572,7 @@ namespace CTCC
                 ClaimFalsification,
                 "Người lập phiếu cố ý bỏ qua giường tạm để chốt ca.",
                 HypothesisOutcome.UnsupportedConclusion,
-                "Mình muốn tin có ai đó đã cố tình xóa dấu… nhưng giấy tờ chỉ cho thấy hồ sơ bỏ dở, chưa có gì chứng minh người lập phiếu đã biết gì đêm đó. Trên giấy chỉ mới chứng minh được con số 0 này có vấn đề.")
+                "Hồ sơ bỏ dở. Mình chưa có căn cứ để nói người lập phiếu đã biết gì đêm đó.")
         };
 
         private static readonly Dictionary<string, DeductionClaimSpec> ClaimsById;
@@ -769,7 +769,7 @@ namespace CTCC
                 return HypothesisEvaluation.Reject(
                     HypothesisOutcome.InsufficientEvidence,
                     "Mình chưa nối đúng chỗ vênh giữa giấy và phòng",
-                    "Trên F101 phải khoanh đúng con số 0, trên thẻ AS-05B phải đánh dấu ô ký nhận trống rồi nối thẳng sang dấu vết giường 4.");
+                    "Mình đã có nguồn, nhưng chưa chỉ rõ những dòng và dấu vết nào đang vênh nhau. Cần xem lại các nét đánh dấu và liên kết đã kẹp vào phiếu.");
             }
 
             var claim = GetClaim(submission.claimId);

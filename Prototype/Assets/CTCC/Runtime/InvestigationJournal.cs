@@ -6,12 +6,30 @@ namespace CTCC
     public enum JournalNoteKind { Annotation, Hypothesis, Contradiction, Question }
 
     [Serializable]
+    public struct JournalPaperMark
+    {
+        public bool placed;
+        public bool back;
+        public float x;
+        public float y;
+
+        internal bool ValidFor(JournalNoteKind kind, string source)
+        {
+            if (!placed) return true;
+            var spec = ObservationRegistry.Get(source);
+            return kind == JournalNoteKind.Annotation && spec?.IsDocument == true && (!back || spec.HasBackSide) &&
+                float.IsFinite(x) && float.IsFinite(y) && x >= 0 && x <= 1 && y >= 0 && y <= 1;
+        }
+    }
+
+    [Serializable]
     public sealed class JournalNote
     {
         public JournalNoteKind kind;
         public string text;
         public string source;
         public string related;
+        public JournalPaperMark paperMark;
 
         public const int MaxLength = 280;
         public const int MaxNotes = 32;
@@ -27,7 +45,8 @@ namespace CTCC
                 text.Length > MaxLength || !string.IsNullOrEmpty(source) && !HasSource(state, source) ||
                 !string.IsNullOrEmpty(related) && (source == related || !HasSource(state, source) || !HasSource(state, related)))
                 return false;
-            return kind != JournalNoteKind.Annotation || HasSource(state, source);
+            return paperMark.ValidFor(kind, source) &&
+                (kind != JournalNoteKind.Annotation || HasSource(state, source));
         }
     }
 

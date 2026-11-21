@@ -9,19 +9,26 @@ namespace CTCC
     {
         private enum JournalTab { Field, Documents, Reasoning, Timeline, Decisions }
         private JournalTab journalTab;
-        private string fieldSelection, documentSelection, leftDocument, rightDocument;
-        private bool comparingDocuments, leftBack, rightBack;
+        private string fieldSelection, documentSelection;
+        private readonly PaperPlacement[] comparison = new PaperPlacement[2];
+        private bool comparingDocuments, returnNoteToPaper;
         private int editNoteIndex = -1, chooseNoteSource;
         private int selectedDecisionRevision;
         private JournalNote noteDraft;
 
-        private void Journal() => DrawJournal(journalTab, pageTurn: true);
+        private void Journal() => DrawJournal(journalTab, pageTurn: !ui.IsModal);
 
         private void ResetNotebookSession()
         {
             journalTab = JournalTab.Field;
-            fieldSelection = documentSelection = leftDocument = rightDocument = null;
-            comparingDocuments = leftBack = rightBack = false;
+            fieldSelection = documentSelection = null;
+            comparison[0] = comparison[1] = null;
+            comparingDocuments = returnNoteToPaper = false;
+            reportDraft = new F101Draft();
+            formPage = FormPage.Draft;
+            formFeedback = linkStart = null;
+            pickingLink = false;
+            journalReturn = null;
             noteDraft = null;
             chooseNoteSource = 0;
             selectedDecisionRevision = 0;
@@ -36,12 +43,8 @@ namespace CTCC
                 noteDraft = null;
                 chooseNoteSource = 0;
                 DrawJournal((JournalTab)index, pageTurn: true);
-            }, () =>
-            {
-                noteDraft = null;
-                chooseNoteSource = 0;
-                CloseModal();
-            }, Options.alternateBindings, pageTurn && !Options.reduceMotion);
+            }, CloseNotebook, Options.alternateBindings, pageTurn && !Options.reduceMotion,
+                wideComparison: tab == JournalTab.Documents && comparingDocuments, returnToClipboard: journalReturn != null);
 
             switch (tab)
             {
@@ -88,7 +91,8 @@ namespace CTCC
                     .Append("\n\n").Append(observation.FactSummary);
                 AppendAuthoredNotes(body, selected.id);
                 ui.NotebookPage(observation.Title, body.ToString(),
-                    new ActionChoice("Ghi bên lề", () => EditJournalNote(-1, JournalNoteKind.Annotation, selected.id)));
+                    new ActionChoice("Ghi bên lề", () => EditJournalNote(-1, JournalNoteKind.Annotation, selected.id)),
+                    new ActionChoice("Kẹp nguồn vào F101", () => PinFromJournal(selected.id), casework.CanRevise));
             }
             else if (fieldSelection == "LAN_TALK")
             {
@@ -139,17 +143,16 @@ namespace CTCC
         {
             var docs = CollectObservedDocuments();
             var entries = new List<NotebookEntry>();
-            if (State.Happened("E10a.SMSRead"))
+            if (!comparingDocuments && State.Happened("E10a.SMSRead"))
                 entries.Add(new NotebookEntry("Bì thư và tin nhắn của Bảy", () =>
                 {
                     documentSelection = "E10a";
-                    comparingDocuments = false;
                     DrawJournal(JournalTab.Documents);
                 }));
             foreach (var paper in docs)
-                entries.Add(new NotebookEntry(paper.Title, () =>
+                entries.Add(new NotebookEntry(comparingDocuments ? ClipLabel(paper.Id, paper.Title) : paper.Title, () =>
                 {
-                    if (comparingDocuments) PlaceDocument(paper.Id, leftDocument == null ? 0 : 1);
+                    if (comparingDocuments) PlaceDocument(paper.Id, comparison[0] == null ? 0 : 1);
                     else
                     {
                         documentSelection = paper.Id;
@@ -159,17 +162,20 @@ namespace CTCC
 
             if (comparingDocuments)
             {
-                ui.NotebookCompare(ClipLabel(leftDocument, "Trái"), ClipImage(leftDocument, leftBack), ClipActions(leftDocument, 0),
-                    ClipLabel(rightDocument, "Phải"), ClipImage(rightDocument, rightBack), ClipActions(rightDocument, 1),
-                    PlaceDocument, new ActionChoice("Trở lại tài liệu", () => { comparingDocuments = false; DrawJournal(JournalTab.Documents); }));
-                ui.NotebookIndex(entries, "Chưa lưu bản sao.");
+                ui.NotebookCompare(PlaceDocument,
+                    new ActionChoice("Đổi hai tờ", SwapDocuments, comparison[0] != null || comparison[1] != null),
+                    new ActionChoice("Về tập tài liệu", () => { comparingDocuments = false; DrawJournal(JournalTab.Documents); }));
+                ui.NotebookIndex(entries, "Chưa đọc tờ nào.", "Tập giấy");
+                for (int side = 0; side < comparison.Length; side++) DrawPaper(side);
                 return;
             }
-            ui.NotebookIndex(entries, "Tài liệu sẽ được kẹp vào đây sau khi đọc.");
+
+            ui.NotebookIndex(entries, "Tài liệu sẽ có ở đây sau khi đọc.", "Tập giấy");
             var actions = new List<ActionChoice>();
             var spec = docs.Find(d => d.Id == documentSelection);
-            string title = "Bản sao đã đọc";
-            string copy = "Chọn một nguồn bên trang trái để mở.";
+            string title = "Tài liệu đã đọc";
+            string copy = "Chọn tài liệu ở mép sổ để xem bản sao.";
+            Texture image = null;
             if (documentSelection == "E10a" && State.Happened("E10a.SMSRead"))
             {
                 title = "Bì thư của Bảy";
@@ -180,19 +186,107 @@ namespace CTCC
             else if (spec != null)
             {
                 title = spec.Title;
+                image = Image(spec.FrontTexture);
                 var record = State.FindObservation(spec.Id);
                 var body = new StringBuilder(spec.ProvenanceLabel).Append("\n\n").Append(ObservationSynopsis(spec, record));
                 if (State.f101Annotations.MarkedHotspot(spec.Id) is string field && !string.IsNullOrEmpty(field))
-                    body.Append("\n\nĐã đánh dấu · ").Append(AnnotationLabel(field));
+                    body.Append("\n\nNét bút · ").Append(AnnotationLabel(field));
                 AppendAuthoredNotes(body, spec.Id);
                 copy = body.ToString();
-                actions.Add(new ActionChoice("Mở bản sao 3D / chữ lớn", () => OpenObservationInspector(spec, Journal)));
+                actions.Add(new ActionChoice("Cầm bản sao", () => OpenObservationInspector(spec, Journal)));
                 actions.Add(new ActionChoice("Ghi bên lề", () => EditJournalNote(-1, JournalNoteKind.Annotation, spec.Id)));
                 actions.Add(new ActionChoice("Kẹp sang trái", () => PlaceDocument(spec.Id, 0)));
                 actions.Add(new ActionChoice("Kẹp sang phải", () => PlaceDocument(spec.Id, 1)));
+                if (casework.CanRevise) actions.Add(new ActionChoice("Kẹp nguồn vào F101", () => PinFromJournal(spec.Id)));
             }
-            actions.Add(new ActionChoice("So sánh hai tài liệu", () => { comparingDocuments = true; DrawJournal(JournalTab.Documents, true); }, docs.Count > 0));
-            ui.NotebookPage(title, copy, actions.ToArray());
+            actions.Add(new ActionChoice("Mở trang đối chiếu", () => { comparingDocuments = true; DrawJournal(JournalTab.Documents, true); }, docs.Count > 0));
+            ui.NotebookPage(title, copy, image, actions.ToArray());
+        }
+
+        private void DrawPaper(int side)
+        {
+            var placement = comparison[side];
+            var spec = ObservationRegistry.Get(placement?.Id);
+            if (spec == null)
+            {
+                ui.NotebookPaper(side, null, side == 0 ? "Kẹp trái" : "Kẹp phải", null, "", Array.Empty<DocumentHotspot>(),
+                    Array.Empty<JournalPaperMark>(), null, null, null, null, null, null);
+                return;
+            }
+            string id = spec.Id;
+            var hotspots = new List<DocumentHotspot>();
+            if (!placement.Back && CanMarkF101Document(id))
+                foreach (var field in AnnotationFields(id))
+                    hotspots.Add(new DocumentHotspot(field.Uv, State.f101Annotations.MarkedHotspot(id) == field.Id,
+                        PaperFieldLabel(field.Id), () => SaveCheckpoint(() => casework.ToggleF101MarkAsync(id, field.Id), Journal)));
+
+            var pins = new List<JournalPaperMark>();
+            foreach (var note in State.journalNotes)
+                if (note.source == id && note.paperMark.placed && note.paperMark.back == placement.Back) pins.Add(note.paperMark);
+
+            string transcript = spec.ProvenanceLabel + "\n\n" +
+                (placement.Back ? ObservationBackText(id) ?? spec.FactSummary : spec.FactSummary);
+            if (placement.Back && State.FindObservation(id)?.HasDetail(CorroborationService.RakingDetailId) == true)
+                transcript += "\n\n" + ObservationRakingText(id);
+
+            Action flip = !spec.HasBackSide ? null : () =>
+            {
+                placement.Back = !placement.Back;
+                if (placement.Back) SaveCheckpoint(() => casework.MarkObservationDetailAsync(id, "BACK", flippedBack: true),
+                    Journal, onFailure: () => { placement.Back = false; Journal(); });
+                else Journal();
+            };
+            ui.NotebookPaper(side, placement, ClipLabel(id, "") + (placement.Back ? " · Mặt sau" : " · Mặt trước"),
+                Image(placement.Back ? spec.BackTexture : spec.FrontTexture), transcript, hotspots.ToArray(), pins, flip,
+                () => OpenObservationInspector(spec, Journal),
+                () => { placement.LargePrint = !placement.LargePrint; Journal(); },
+                () => { comparison[side] = null; Journal(); },
+                State.journalNotes.Count < JournalNote.MaxNotes
+                    ? uv => EditJournalNote(-1, JournalNoteKind.Annotation, id,
+                        new JournalPaperMark { placed = true, back = placement.Back, x = uv.x, y = uv.y }, returnToPaper: true) : null,
+                casework.CanRevise ? () => PinFromJournal(id) : null);
+        }
+
+        private static string PaperFieldLabel(string field) => field switch
+        {
+            F101Annotations.Table => "Bảng kê",
+            F101Annotations.Zero => "Dòng số 0",
+            F101Annotations.CardStatus => "Tình trạng",
+            _ => "Ô ký nhận"
+        };
+
+        private void PlaceDocument(string id, int side)
+        {
+            if (!JournalNote.HasSource(State, id) || ObservationRegistry.Get(id)?.IsDocument != true) return;
+            int other = 1 - side;
+            if (comparison[other]?.Id == id)
+                (comparison[0], comparison[1]) = (comparison[1], comparison[0]);
+            else if (comparison[side]?.Id != id)
+                comparison[side] = new PaperPlacement(id);
+            comparingDocuments = true;
+            DrawJournal(JournalTab.Documents);
+        }
+
+        private void SwapDocuments()
+        {
+            (comparison[0], comparison[1]) = (comparison[1], comparison[0]);
+            Journal();
+        }
+
+        private void CloseNotebook()
+        {
+            noteDraft = null;
+            chooseNoteSource = 0;
+            var back = journalReturn;
+            journalReturn = null;
+            if (back == null) CloseModal();
+            else back();
+        }
+
+        private void PinFromJournal(string id)
+        {
+            if (PinF101Source(id))
+                ui.Caption("Đã kẹp nguồn vào phiếu nháp F101.", 3, aboveModal: true);
         }
 
         private static string ObservationSynopsis(ObservationSpec spec, ObservationRecord record)
@@ -217,65 +311,20 @@ namespace CTCC
         {
             ObservationRegistry.F101Sheet => "F101",
             ObservationRegistry.Bed4Card => "Thẻ AS-05B",
+            ObservationRegistry.Bed4Traces => "Dấu sử dụng giường 4",
             ObservationRegistry.Bed2Transfer => "Phiếu chuyển giường 02",
             ObservationRegistry.Bed3Meds => "Phiếu thuốc giường 03",
+            ObservationRegistry.ShiftGuide => "Quy chế AS-05",
+            ObservationRegistry.WardOverflowNotice => "Thông báo kê giường tạm",
+            ObservationRegistry.ReceptionDrawerLog => "Sổ phân ca",
             _ => ObservationRegistry.Get(id)?.Title ?? empty
         };
-
-        private Texture ClipImage(string id, bool back)
-        {
-            var doc = ObservationRegistry.Get(id);
-            return doc == null ? null : Image(back ? doc.BackTexture : doc.FrontTexture);
-        }
-
-        private ActionChoice[] ClipActions(string id, int side)
-        {
-            var doc = ObservationRegistry.Get(id);
-            if (doc == null) return Array.Empty<ActionChoice>();
-            bool isBack = side == 0 ? leftBack : rightBack;
-            string name = ClipLabel(id, "");
-            var choices = new List<ActionChoice>
-            {
-                new("Mở để đọc", () => OpenObservationInspector(doc, Journal))
-            };
-            if (doc.HasBackSide && State.FindObservation(id)?.flippedBack == true)
-                choices.Add(new ActionChoice(isBack ? "Mặt trước" : "Mặt sau", () =>
-                {
-                    if (side == 0) leftBack = !leftBack; else rightBack = !rightBack;
-                    DrawJournal(JournalTab.Documents);
-                }));
-            choices.Add(new ActionChoice("Rút " + name, () =>
-            {
-                if (side == 0) leftDocument = null; else rightDocument = null;
-                DrawJournal(JournalTab.Documents);
-            }));
-            return choices.ToArray();
-        }
-
-        private void PlaceDocument(string id, int side)
-        {
-            if (!JournalNote.HasSource(State, id) || ObservationRegistry.Get(id)?.IsDocument != true) return;
-            if (side == 0)
-            {
-                if (rightDocument == id) { rightDocument = leftDocument; rightBack = leftBack; }
-                leftDocument = id;
-                leftBack = false;
-            }
-            else
-            {
-                if (leftDocument == id) { leftDocument = rightDocument; leftBack = rightBack; }
-                rightDocument = id;
-                rightBack = false;
-            }
-            comparingDocuments = true;
-            DrawJournal(JournalTab.Documents);
-        }
 
         private static string NoteLabel(JournalNoteKind kind) => kind switch
         {
             JournalNoteKind.Annotation => "Ghi bên lề",
             JournalNoteKind.Contradiction => "Điểm mâu thuẫn",
-            JournalNoteKind.Question => "Câu hỏi còn mở",
+            JournalNoteKind.Question => "Chưa xác thực",
             _ => "Giả thuyết"
         };
 
@@ -306,7 +355,11 @@ namespace CTCC
                     var spec = ObservationRegistry.Get(id);
                     entries.Add(new NotebookEntry(spec?.Title ?? SourceTitle(id), () =>
                     {
-                        if (chooseNoteSource == 1) noteDraft.source = id;
+                        if (chooseNoteSource == 1)
+                        {
+                            if (noteDraft.source != id) noteDraft.paperMark = default;
+                            noteDraft.source = id;
+                        }
                         else noteDraft.related = id;
                         chooseNoteSource = 0;
                         DrawJournal(JournalTab.Reasoning);
@@ -343,14 +396,11 @@ namespace CTCC
                 new("Ghi điểm mâu thuẫn", () => EditJournalNote(-1, JournalNoteKind.Contradiction), State.journalNotes.Count < JournalNote.MaxNotes),
                 new("Để lại câu hỏi", () => EditJournalNote(-1, JournalNoteKind.Question), State.journalNotes.Count < JournalNote.MaxNotes)
             };
-            if (casework.CanRevise && !string.IsNullOrEmpty(f101.MarkedHotspot(ObservationRegistry.Bed4Card)) &&
-                HypothesisService.HasExaminedInLayerB(State, ObservationRegistry.Bed4Traces))
-                actions.Add(new ActionChoice(f101.HasLink ? "Tháo liên kết thẻ và dấu vết" : "Nối thẻ AS-05B với dấu vết giường 4",
-                    () => SaveCheckpoint(casework.ToggleF101TraceLinkAsync, Journal)));
             ui.NotebookPage("Suy luận của Minh", summary.ToString(), actions.ToArray());
         }
 
-        private void EditJournalNote(int index, JournalNoteKind kind = JournalNoteKind.Hypothesis, string source = null)
+        private void EditJournalNote(int index, JournalNoteKind kind = JournalNoteKind.Hypothesis, string source = null,
+            JournalPaperMark mark = default, bool returnToPaper = false)
         {
             if (index == -1 && State.journalNotes.Count >= JournalNote.MaxNotes)
             {
@@ -358,13 +408,15 @@ namespace CTCC
                 return;
             }
             editNoteIndex = index;
+            returnNoteToPaper = returnToPaper;
             var saved = index >= 0 ? State.journalNotes[index] : null;
             noteDraft = new JournalNote
             {
                 kind = saved?.kind ?? kind,
                 source = saved?.source ?? source,
                 related = saved?.related,
-                text = saved?.text ?? ""
+                text = saved?.text ?? "",
+                paperMark = saved?.paperMark ?? mark
             };
             chooseNoteSource = 0;
             DrawJournal(JournalTab.Reasoning);
@@ -374,11 +426,8 @@ namespace CTCC
         private void ShowNoteEditor()
         {
             var note = noteDraft;
-            var actions = new List<ActionChoice>
+            var footer = new List<ActionChoice>
             {
-                new("Viết tiếp", ui.FocusNotebookWriting),
-                new("Chọn nguồn", () => PickSource(1)),
-                new("Nối nguồn thứ hai", () => PickSource(2), JournalNote.HasSource(State, note.source)),
                 new("Lưu dòng này", () =>
                 {
                     note.text = note.text?.Trim();
@@ -391,13 +440,40 @@ namespace CTCC
                 }),
                 new("Hủy", Done)
             };
-            if (!string.IsNullOrEmpty(note.related))
-                actions.Add(new ActionChoice("Tháo liên kết", () => { note.related = null; DrawJournal(JournalTab.Reasoning); }));
+            bool hasSource = JournalNote.HasSource(State, note.source);
+            bool linked = JournalNote.HasSource(State, note.related);
+            if (casework.CanRevise && (ObservationRegistry.Get(note.source) != null || ObservationRegistry.Get(note.related) != null))
+                footer.Add(new ActionChoice("Kẹp nguồn vào F101", () =>
+                {
+                    PinF101Source(note.source);
+                    PinF101Source(note.related);
+                    ui.Caption("Đã kẹp nguồn của ghi chú vào phiếu nháp F101.", 3, aboveModal: true);
+                }));
+            ActionChoice status = default;
+            if (note.kind != JournalNoteKind.Annotation)
+            {
+                var next = note.kind switch
+                {
+                    JournalNoteKind.Hypothesis => JournalNoteKind.Question,
+                    JournalNoteKind.Question => JournalNoteKind.Contradiction,
+                    _ => JournalNoteKind.Hypothesis
+                };
+                status = new ActionChoice("Đổi sang " + NoteLabel(next).ToLowerInvariant(), () =>
+                {
+                    note.kind = next;
+                    DrawJournal(JournalTab.Reasoning);
+                });
+            }
             if (editNoteIndex >= 0)
-                actions.Add(new ActionChoice("Xóa dòng này", () => SaveCheckpoint(() => casework.WriteJournalNoteAsync(editNoteIndex, null), Done)));
-            ui.NotebookEditor(NoteLabel(note.kind), SourceTitle(note.source) +
-                (string.IsNullOrEmpty(note.related) ? "" : "  ↔  " + SourceTitle(note.related)),
-                note.text, value => note.text = value, actions.ToArray());
+                footer.Add(new ActionChoice("Xóa dòng này", () => SaveCheckpoint(() => casework.WriteJournalNoteAsync(editNoteIndex, null), Done)));
+            ui.NotebookEditor(NoteLabel(note.kind), note.text, value => note.text = value,
+                chooseFirst: new ActionChoice(hasSource ? "Chọn nguồn · " + SourceTitle(note.source) : "Chọn nguồn", () => PickSource(1)),
+                chooseSecond: new ActionChoice(linked ? "Nối nguồn thứ hai · " + SourceTitle(note.related) : "Nối nguồn thứ hai",
+                    () => PickSource(2), hasSource),
+                openFirst: new ActionChoice("Mở nguồn đang kẹp", () => OpenNoteSource(note.source), hasSource),
+                openSecond: new ActionChoice("Mở nguồn thứ hai", () => OpenNoteSource(note.related), linked),
+                unlink: new ActionChoice("Tháo liên kết", () => { note.related = null; DrawJournal(JournalTab.Reasoning); }, linked),
+                status: status, footer: footer);
 
             void PickSource(int slot)
             {
@@ -408,8 +484,19 @@ namespace CTCC
             {
                 noteDraft = null;
                 chooseNoteSource = 0;
-                DrawJournal(JournalTab.Reasoning);
+                DrawJournal(returnNoteToPaper ? JournalTab.Documents : JournalTab.Reasoning);
             }
+        }
+
+        private void OpenNoteSource(string id)
+        {
+            var source = ObservationRegistry.Get(id);
+            Action back = () => DrawJournal(JournalTab.Reasoning);
+            if (source?.IsDocument == true) OpenObservationInspector(source, back);
+            else if (source != null || id == "E10a")
+                ui.Show("NGUỒN CỦA GHI CHÚ", SourceTitle(id),
+                    source?.FactSummary ?? "Tờ hẹn lúc 23 giờ, thư cũ, mẩu báo và tin nhắn báo hoãn của Bảy.",
+                    new[] { new ActionChoice("Về ghi chú", back) }, back);
         }
 
         private void DrawTimeline()
@@ -502,9 +589,7 @@ namespace CTCC
                 FormStatus.Unverified => "F101_SignedB",
                 _ => "F101_SignedC"
             };
-            ui.NotebookPage("Phiếu bàn giao 101", copy, new ActionChoice("Xem bản đã ký", () =>
-                ui.Show("F101 · " + label, "Bản bàn giao", copy,
-                    new[] { new ActionChoice("Trở về lịch sử", Journal) }, Journal, Image(imageId))));
+            ui.NotebookPage("Phiếu bàn giao 101", copy, Image(imageId));
         }
     }
 }

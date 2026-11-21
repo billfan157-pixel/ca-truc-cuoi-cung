@@ -225,6 +225,7 @@ namespace CTCC
                     yield return Until(() => !busy && CorroborationService.IsCorroborated(State), "correct time records CH01-EX01");
                     yield return Choose("Quay lại Sổ điều tra");
                     yield return VerifyNotebookInput();
+                    yield return NotebookLifetimeStress();
 
                     // Mark the report and card in different reading modes, then link the field observation.
                     yield return WalkWithInput(new Vector3(7.36f, 0f, 4.98f));
@@ -242,60 +243,110 @@ namespace CTCC
                     yield return Tap(Key.M);
                     yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet) == F101Annotations.Zero,
                         "mark the actual 3D sheet using the keyboard");
-                    yield return Choose("Đặt lên bảng kẹp để ký");
-                    Require(ui.IsModal && !inspector.IsInspecting, "placing the paper back keeps signing available");
-                    Require(scene.f101WallRenderer.enabled, "the sheet returns to the board before signing");
-                    yield return Choose("C    Ghi nhận bất nhất");
-                    Require(!ButtonMatching("Viết vào phiếu").interactable, "Collecting observations alone does not authorize signing C");
-                    yield return Choose("Đánh dấu trên F101");
-                    ClickDocumentHotspot(1);
-                    yield return Until(() => !busy && string.IsNullOrEmpty(State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet)),
-                        "same mark can be removed from the flat view");
-                    yield return null;
-                    ClickDocumentHotspot(1);
-                    yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet) == F101Annotations.Zero,
-                        "Mouse marks the zero on the printed F101");
-                    ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "f101-marked-zero.png"));
-                    yield return Choose("Quay lại");
-                    yield return Choose("Đánh dấu trên thẻ AS-05B");
-                    int cardTextSize = ui.GetComponentsInChildren<Text>().Single(label => label.name == "Readable copy").fontSize;
-                    yield return Choose("Bản chữ lớn");
-                    Require(ui.GetComponentsInChildren<Text>().Single(label => label.name == "Readable copy").fontSize > cardTextSize,
-                        "Large-print annotations increase the reading size");
-                    yield return Choose("Tình trạng: Chưa bàn giao");
-                    yield return Choose("Quay lại");
-                    yield return Choose("Nối dấu vết giường 4");
-                    yield return Until(() => !busy && State.f101Annotations.HasLink, "Card status linked to field observations");
-                    Require(State.f101Annotations.HasLink && !ButtonMatching("Viết vào phiếu").interactable && !GateService.G01(State),
-                        "Linking the other field leaves the unsigned form and its gate unchanged");
+                    yield return Choose("Đặt giấy lên bảng kẹp");
+                    Require(ui.IsModal && !inspector.IsInspecting && scene.f101WallRenderer.enabled,
+                        "paper returns to the clipboard in the same interaction");
+                    Require(reportDraft.SourceCount == 0 && string.IsNullOrEmpty(reportDraft.ClaimId),
+                        "observations, markings and a journal hypothesis do not prefill the form");
+                    yield return Choose("Ghi nhận sai lệch trong bàn giao");
+                    yield return Choose("Đọc lại trên phiếu");
+                    Require(formPage == FormPage.Draft && !GateService.G01(State), "no attachments cannot reach the signature");
 
-                    yield return Choose("Đánh dấu trên thẻ AS-05B");
-                    yield return Choose("Bản chữ lớn");
-                    yield return Choose("Người nhận bàn giao: ô ký nhận trống");
+                    ClickUi(ButtonMatching("Số bệnh nhân chưa bàn giao"));
+                    yield return Until(() => !busy && string.IsNullOrEmpty(State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet)),
+                        "pointer on the printed total removes a mark");
+                    ClickUi(ButtonMatching("Số bệnh nhân chưa bàn giao"));
+                    yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet) == F101Annotations.Zero,
+                        "pointer on the printed total marks the zero");
+                    yield return Choose("Mở trang đối chiếu");
+                    yield return Choose("Suy luận");
+                    yield return Choose("Cần trở lại");
+                    yield return Tap(Key.Tab);
+                    yield return Choose("Kẹp nguồn vào F101");
+                    Require(reportDraft.SourceCount == 1 && reportDraft.Includes(ObservationRegistry.Bed4Card) &&
+                        string.IsNullOrEmpty(reportDraft.ClaimId), "explicit journal handoff attaches only its chosen source");
+                    yield return Choose("Tài liệu");
+                    var clip = ComparisonSlot(0);
+                    if (!comparison[0].LargePrint) yield return Choose("Chữ lớn", clip);
+                    yield return Choose("Tình trạng", clip);
+                    yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.Bed4Card) == F101Annotations.CardStatus,
+                        "large print marks the player's chosen field");
+                    yield return Choose("Về phiếu F101");
+                    var draftSource = ButtonMatching("F101 · Phiếu bàn giao");
+                    var sheet = ui.GetComponentsInChildren<RectTransform>().Single(r => r.name == "Right page");
+                    Canvas.ForceUpdateCanvases();
+                    SendPaperDrag(draftSource.gameObject, RectTransformUtility.WorldToScreenPoint(null, draftSource.transform.position),
+                        RectTransformUtility.WorldToScreenPoint(null, sheet.TransformPoint(sheet.rect.center)));
+                    Require(reportDraft.Includes(ObservationRegistry.F101Sheet), "drag attaches the original sheet to the clipboard");
+                    yield return Choose("Dấu sử dụng giường 4");
+                    yield return LinkFormInputs();
+                    yield return Choose("chưa đủ căn cứ xác nhận số 0");
+                    yield return Choose("Đọc lại trên phiếu");
+                    Require(formPage == FormPage.Draft && ActivePageContains("nét đánh dấu"), "wrong field has an evidence gap");
+
+                    yield return Choose("Mở trang đối chiếu");
+                    yield return Choose("Mặt giấy", clip);
+                    ClickPaperField(clip, AnnotationFields(ObservationRegistry.Bed4Card)[1].Uv.center);
                     yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.Bed4Card) == F101Annotations.Receiver,
-                        "Receiving signature marked through the keyboard in large print");
-                    ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "f101-card-large-print.png"));
-                    yield return Choose("Quay lại");
-                    Require(!State.f101Annotations.HasLink, "Changing a mark clears its old link");
-                    yield return Choose("Nối dấu vết giường 4");
-                    yield return Choose("Quay lại phiếu F101");
-                    yield return Choose("Đặt phiếu xuống");
-                    yield return AimAndUseHere("F101");
-                    yield return Choose("Đặt lên bảng kẹp để ký");
-                    yield return Choose("C    Ghi nhận bất nhất");
-                    Require(ButtonMatching("Viết vào phiếu").interactable, "F101 keeps the marked and linked fields across closing");
+                        "mouse raycast marks the signature on the document itself");
+                    Require(!State.f101Annotations.HasLink, "changing the mark clears the previous endpoint");
+                    yield return Choose("Chữ lớn", clip);
+                    CaptureInvestigation("card-mark-100");
+                    yield return Choose("Về phiếu F101");
+                    yield return LinkFormInputs();
+
+                    yield return Choose("Phiếu phát thuốc giường 03");
+                    yield return Choose("Đọc lại trên phiếu");
+                    Require(formPage == FormPage.Draft && ActivePageContains("đang bám nhầm"), "unrelated observed source gives localized reasoning feedback");
+                    yield return Choose("Phiếu phát thuốc giường 03");
+                    yield return Choose("vẫn còn trong phòng 101");
+                    yield return Choose("Đọc lại trên phiếu");
+                    Require(formPage == FormPage.Draft && ActivePageContains("ở đâu"), "unsupported conclusion is rejected without signing");
+                    yield return Choose("chưa đủ căn cứ xác nhận số 0");
+                    CaptureInvestigation("f101-draft-100");
+                    yield return null;
+                    var larger = new VisitSettings { textScale = 1.3f, captions = Options.captions, alternateBindings = Options.alternateBindings };
+                    ui.Apply(larger);
+                    Form();
+                    Require(ButtonMatching("Ghi nhận sai lệch trong bàn giao").GetComponentInChildren<Text>().fontSize >= 24,
+                        "clipboard decisions inherit 130-percent font sizing");
+                    CaptureInvestigation("f101-draft-130");
+                    yield return null;
+                    ui.Apply(Options);
+                    Form();
+
                     var annotationSaves = new AtomicSaves(Argument("-ctcc-save"));
                     Require(annotationSaves.Read(SaveSlot.Auto, out var annotated) == SaveRead.Valid &&
                         annotated.f101Annotations.SupportsRefutation(annotated) && annotated.f101History.Count == 0,
-                        "Draft marks and link round-trip before the first signature");
-                    yield return Choose("Viết vào phiếu");
-                    Require(ActivePageContains("chưa đủ căn cứ xác nhận số 0"), "Signed note limits the conclusion to the reported zero");
-                    yield return Choose("Xác nhận và đóng dấu phiếu");
-                    yield return Until(() => !busy && GateService.G01(State), "F101 Refuted committed via real UI");
+                        "draft marks and link round-trip before the first signature");
+                    yield return Choose("Đọc lại trên phiếu");
+                    Require(formPage == FormPage.Review && ActivePageContains("chưa đủ căn cứ xác nhận số 0"),
+                        "review shows only the chosen claim and attachments");
+                    DragSignature();
+                    yield return Until(() => formPage == FormPage.Seal, "mouse stroke stages the signature");
+                    yield return Tap(Key.Escape);
+                    Require(formPage == FormPage.Draft && State.f101.revision == 0 && !GateService.G01(State),
+                        "cancel after drawing leaves the signed history and gate untouched");
+                    yield return Choose("Đọc lại trên phiếu");
+                    yield return Choose("Kéo bút qua dòng ký");
+                    CaptureInvestigation("f101-pre-seal-100");
+                    yield return null;
+
+                    Button seal = ButtonMatching("Đóng dấu");
+                    ClickUi(seal);
+                    ExecuteEvents.Execute(seal.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerClickHandler);
+                    yield return Until(() => State.f101.revision == 1, "F101 publishes before stamp animation");
+                    Require(GateService.G01(State) && !ActivePageContains("ĐÃ GHI SỔ"),
+                        "the visible stamp waits for publication");
+                    yield return Until(() => ActivePageContains("ĐÃ GHI SỔ"), "published stamp is shown on the paper");
+                    CaptureInvestigation("f101-signed-100");
+                    yield return Until(() => !busy && !ui.IsModal, "F101 Refuted committed via real UI");
                     Require(State.f101.firstDecision == FormStatus.Refuted && State.f101.revision == 1 &&
                         State.f101Argument.annotationVersion == F101Annotations.Version &&
+                        State.f101Argument.selectedEvidenceIds.Count == 3 &&
                         State.f101History[0].annotations.SupportsRefutation(State) &&
                         scene.refutedBay != null && scene.refutedBay.activeInHierarchy, "Refuted visual and signed annotations verified");
+                    verification.Add("REBIRTH II F101 PASS: missing sources, wrong hotspot/link, unrelated evidence, overclaim, mouse signature, cancel, double-stamp guard and before/after publication.");
                     if (captureExpansion) yield return new WaitForSecondsRealtime(0.75f);
 
                     // Walk back out of Room 101 to Reception (B->R collapse), outer gate seam, and Reception (CH02 handoff) — ZERO TELEPORTS!
@@ -373,8 +424,26 @@ namespace CTCC
 
                 yield return WalkWithInput(new Vector3(7.24f, 0f, 4.93f));
                 yield return OpenFormInput();
-                yield return Choose(branch == FormStatus.Affirmed ? "A    Xác nhận" : "B    Để ngỏ");
-                yield return Choose("Xác nhận và đóng dấu phiếu");
+                yield return Choose(branch == FormStatus.Affirmed ? "Xác nhận số 0" : "Để ngỏ, chờ kiểm tra");
+                yield return Choose("Đọc lại trên phiếu");
+                yield return Choose("Kéo bút qua dòng ký");
+                if (branch == FormStatus.Affirmed)
+                {
+                    long sequence = State.sequence;
+                    using (var slotLock = new FileStream(saves.SlotPath(SaveSlot.Auto) + ".lock", FileMode.Open,
+                        FileAccess.ReadWrite, FileShare.None))
+                    {
+                        yield return Choose("Đóng dấu");
+                        yield return Until(() => !busy && ActivePageContains("Chưa ghi được bản lưu"), "UI retries a blocked atomic save");
+                        Require(State.sequence == sequence && State.f101.revision == 0 && !GateService.G01(State) &&
+                            !ActivePageContains("ĐÃ GHI SỔ") && formPage == FormPage.Seal,
+                            "failed publication leaves the preview available, without signing or stamping");
+                        CaptureInvestigation("f101-save-blocked");
+                        yield return null;
+                    }
+                    verification.Add("REBIRTH II SAVE FAILURE PASS: locked autosave leaves the same draft and revision, with the gate closed.");
+                }
+                yield return Choose("Đóng dấu");
                 yield return Until(() => !busy && GateService.G01(State), $"F101 {branch} confirmation");
                 Require(State.f101.firstDecision == branch && State.f101.revision == 1 &&
                     FormService.Distortion(State) == (branch == FormStatus.Affirmed ? 1 : 0), $"F101 {branch} state");
@@ -387,11 +456,13 @@ namespace CTCC
                         source.isPlaying && (source.clip == audio.stamp || source.clip == audio.switchLayer));
                     yield return new WaitForSecondsRealtime(2.3f);
                     yield return Until(() => !voice.IsSpeaking && !SignatureCuePlaying(), "first signature cue finished");
-                    long sequence = State.sequence;
                     int historyCount = State.f101History.Count;
                     yield return OpenFormInput();
-                    yield return Choose("B    Để ngỏ");
-                    yield return Choose("Xác nhận và đóng dấu phiếu");
+                    yield return Choose("Để ngỏ, chờ kiểm tra");
+                    yield return Choose("Đọc lại trên phiếu");
+                    yield return Choose("Kéo bút qua dòng ký");
+                    long sequence = State.sequence;
+                    yield return Choose("Đóng dấu");
                     yield return Until(() => !busy && !ui.IsModal, "duplicate F101 submission closes");
                     Require(!voice.IsSpeaking && !SignatureCuePlaying() && State.sequence == sequence &&
                         State.f101.revision == 1 && State.f101History.Count == historyCount,
@@ -453,8 +524,9 @@ namespace CTCC
                     "Supported F101 argument and its single committed revision survive CH02 manual load");
                 Require(State.settings.alternateBindings && State.settings.textScale > 1.25f && AudioListener.volume == 0,
                     "accessibility survives manual load");
-                Require(State.journalNotes.Count == 1 && State.journalNotes[0].source == ObservationRegistry.Bed4Card &&
-                    string.IsNullOrEmpty(State.journalNotes[0].related) &&
+                Require(State.journalNotes.Count == 2 && State.journalNotes[0].paperMark.placed &&
+                    State.journalNotes[1].source == ObservationRegistry.Bed4Card &&
+                    string.IsNullOrEmpty(State.journalNotes[1].related) &&
                     State.FindPropPose("CHAIR-STAFF", Reality.B)?.openness > .9f &&
                     State.FindPropPose("DRAWER-NURSE", Reality.B)?.openness > .9f,
                     "authored notes and independent physical poses survive handoff and manual reload");
@@ -643,7 +715,7 @@ namespace CTCC
         {
             yield return Until(() => State.Happened("CH01-T06"), "room checkpoint");
             yield return AimAndUseHere("F101");
-            yield return Choose("Đặt lên bảng kẹp để ký");
+            yield return Choose("Đặt giấy lên bảng kẹp");
         }
 
         private IEnumerator AimAndUseHere(string id)
@@ -694,20 +766,74 @@ namespace CTCC
             Require(found, $"No interactable sightline to {id} from {origin} at {target.transform.position}");
         }
 
-        private void ClickDocumentHotspot(int index)
+        private RectTransform ComparisonSlot(int side) =>
+            ui.GetComponentsInChildren<RectTransform>().Where(rect => rect.name == "Document clip").ElementAt(side);
+
+        private void CaptureInvestigation(string name) =>
+            ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), name + ".png"));
+
+        private void ClickUi(Button button)
         {
             Canvas.ForceUpdateCanvases();
-            var hotspot = ui.GetComponentsInChildren<Button>().Where(button => button.name == "Document hotspot").ElementAt(index);
-            var rect = (RectTransform)hotspot.transform;
+            var rect = (RectTransform)button.transform;
             var pointer = new PointerEventData(EventSystem.current)
             {
                 button = PointerEventData.InputButton.Left,
                 position = RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(rect.rect.center))
             };
+            DispatchPaperClick(button.gameObject, pointer);
+        }
+
+        private void ClickPaperField(RectTransform clip, Vector2 uv)
+        {
+            Canvas.ForceUpdateCanvases();
+            var viewport = clip.GetComponentInChildren<PaperPointer>();
+            var paper = clip.GetComponentInChildren<RawImage>().rectTransform;
+            var local = new Vector2(Mathf.Lerp(paper.rect.xMin, paper.rect.xMax, uv.x), Mathf.Lerp(paper.rect.yMin, paper.rect.yMax, uv.y));
+            var pointer = new PointerEventData(EventSystem.current)
+            {
+                button = PointerEventData.InputButton.Right,
+                position = RectTransformUtility.WorldToScreenPoint(null, paper.TransformPoint(local))
+            };
+            DispatchPaperClick(viewport.gameObject, pointer);
+        }
+
+        private void DispatchPaperClick(GameObject expected, PointerEventData pointer)
+        {
             var hits = new List<RaycastResult>();
             EventSystem.current.RaycastAll(pointer, hits);
-            Require(hits.Count > 0 && hits[0].gameObject == hotspot.gameObject, "Mouse hits the field printed on the document");
+            Require(hits.Count != 0 && hits[0].gameObject == expected, "raycast hits " + expected.name);
             ExecuteEvents.Execute(hits[0].gameObject, pointer, ExecuteEvents.pointerClickHandler);
+        }
+
+        private void DragSignature()
+        {
+            var target = (RectTransform)ButtonMatching("Kéo bút qua dòng ký").transform;
+            Vector2 start = RectTransformUtility.WorldToScreenPoint(null, target.TransformPoint(new Vector2(target.rect.xMin + 30, 0)));
+            Vector2 end = start + new Vector2(Screen.width * .18f, 6);
+            SendPaperDrag(target.gameObject, start, end);
+        }
+
+        private static void SendPaperDrag(GameObject source, Vector2 start, Vector2 end)
+        {
+            var pointer = new PointerEventData(EventSystem.current)
+            {
+                button = PointerEventData.InputButton.Left,
+                position = start,
+                pressPosition = start
+            };
+            ExecuteEvents.Execute(source, pointer, ExecuteEvents.beginDragHandler);
+            pointer.position = end;
+            ExecuteEvents.Execute(source, pointer, ExecuteEvents.dragHandler);
+            ExecuteEvents.Execute(source, pointer, ExecuteEvents.endDragHandler);
+        }
+
+        private IEnumerator LinkFormInputs()
+        {
+            yield return Choose("Nối hai nguồn");
+            yield return Choose("AS-05B · Thẻ giường 4");
+            yield return Choose("Dấu sử dụng giường 4");
+            yield return Until(() => !busy && State.f101Annotations.HasLink, "selected endpoints form a durable link");
         }
 
         private IEnumerator VerifyNotebookInput()
@@ -718,19 +844,78 @@ namespace CTCC
                 !ActivePageContains("Nhận định thận trọng"), "notebook preserves the inspected reverse side as an observation");
             yield return Choose("Kẹp sang trái");
             var source = ButtonMatching("Phiếu chuyển giường 02");
-            var right = ui.GetComponentsInChildren<RectTransform>().Where(rect => rect.name == "Document clip").Last();
+            var right = ComparisonSlot(1);
             Canvas.ForceUpdateCanvases();
-            var pointer = new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left };
-            pointer.position = RectTransformUtility.WorldToScreenPoint(null, source.transform.position);
-            ExecuteEvents.Execute(source.gameObject, pointer, ExecuteEvents.beginDragHandler);
-            pointer.position = RectTransformUtility.WorldToScreenPoint(null, right.TransformPoint(right.rect.center));
-            ExecuteEvents.Execute(source.gameObject, pointer, ExecuteEvents.dragHandler);
-            ExecuteEvents.Execute(source.gameObject, pointer, ExecuteEvents.endDragHandler);
-            Require(leftDocument == ObservationRegistry.Bed4Card && rightDocument == ObservationRegistry.Bed2Transfer &&
-                ui.GetComponentsInChildren<RawImage>().Count(image => image.texture != null) == 2, "two inspected sheets placed by keyboard and drag");
-            ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "notebook-comparison.png"));
+            SendPaperDrag(source.gameObject, RectTransformUtility.WorldToScreenPoint(null, source.transform.position),
+                RectTransformUtility.WorldToScreenPoint(null, right.TransformPoint(right.rect.center)));
+            Require(comparison[0]?.Id == ObservationRegistry.Bed4Card && comparison[1]?.Id == ObservationRegistry.Bed2Transfer &&
+                ui.GetComponentsInChildren<RawImage>().Count(image => image.texture != null) == 2,
+                "two inspected sheets placed by keyboard and drag");
+            Require(Screen.width == 1920 && Screen.height == 1080, $"comparison expected at 1080p, got {Screen.width}x{Screen.height}");
+            CaptureInvestigation("notebook-comparison-100");
             yield return null;
 
+            var left = ComparisonSlot(0);
+            var leftPaper = comparison[0];
+            var rightPaper = comparison[1];
+            yield return Tap(Key.Digit1);
+            yield return Hold(Key.Q, .6f);
+            Require(leftPaper.Zoom > 1.5f && rightPaper.Zoom == 1, "zoom is independent");
+            var viewport = left.GetComponentInChildren<PaperPointer>().gameObject;
+            Vector2 center = RectTransformUtility.WorldToScreenPoint(null, viewport.transform.position);
+            SendPaperDrag(viewport, center, center + new Vector2(114, 87));
+            Require(leftPaper.Pan.sqrMagnitude > .005f && rightPaper.Pan == Vector2.zero, "drag pans only the selected scan");
+            CaptureInvestigation("notebook-zoom-100");
+            yield return null;
+            yield return Choose("Lật giấy", left);
+            Require(leftPaper.Back && !rightPaper.Back, "only the left sheet flips");
+            float zoom = leftPaper.Zoom;
+            Vector2 pan = leftPaper.Pan;
+            yield return Choose("Soi 3D", left);
+            yield return Until(() => inspector.IsInspecting, "opens registered inspector from the comparison");
+            yield return Choose("Quay lại sổ trực");
+            Require(comparison[0] == leftPaper && comparison[1] == rightPaper && leftPaper.Back &&
+                leftPaper.Zoom == zoom && (leftPaper.Pan - pan).sqrMagnitude < .00001f,
+                "inspector returns to the same papers, side, zoom and pan");
+            yield return Choose("Đổi hai tờ");
+            Require(comparison[0] == rightPaper && comparison[1] == leftPaper && leftPaper.Back, "swap moves the entire paper pose");
+            yield return Choose("Đổi hai tờ");
+            yield return Choose("Đặt lại", left);
+            yield return Choose("Lật giấy", left);
+
+            var larger = new VisitSettings
+            {
+                textScale = 1.3f, alternateBindings = Options.alternateBindings, captions = Options.captions
+            };
+            ui.Apply(larger);
+            Journal();
+            yield return Choose("Chữ lớn", left);
+            yield return Choose("Chữ lớn", right);
+            Require(ui.GetComponentsInChildren<Text>().Count(label => label.name == "Large print on paper" && label.fontSize >= 29) == 2 &&
+                ActivePageContains("CHƯA BÀN GIAO"), "both papers are simultaneously readable at 130 percent");
+            CaptureInvestigation("notebook-comparison-130");
+            yield return null;
+            yield return Choose("Mặt giấy", left);
+            yield return Choose("Mặt giấy", right);
+            ui.Apply(Options);
+            Journal();
+
+            yield return Choose("Ghim vùng đang soi", right);
+            var markedWriting = ui.GetComponentInChildren<InputField>();
+            yield return Until(() => markedWriting != null && markedWriting.isFocused, "mark opens an attached note");
+            markedWriting.text = "Đối chiếu vị trí ghi dấu của bản gốc.";
+            yield return Tap(Key.Tab);
+            yield return Choose("Lưu dòng này");
+            yield return Until(() => !busy && State.journalNotes.Count == 1 && comparingDocuments &&
+                journalTab == JournalTab.Documents, "saved mark returns to the two-paper comparison");
+            var pin = State.journalNotes[0];
+            Require(pin.paperMark.placed && !pin.paperMark.back && pin.source == ObservationRegistry.Bed2Transfer &&
+                right.GetComponentsInChildren<RectTransform>().Any(rect => rect.name == "Noted region"),
+                "note is pinned to the selected region and face of a previously read paper");
+
+            yield return Choose("Rút tờ", right);
+            Require(comparison[1] == null && comparison[0] == leftPaper, "removing the right sheet keeps the left sheet");
+            yield return Choose("Phiếu chuyển giường 02");
             yield return Choose("Suy luận");
             yield return Choose("Viết giả thuyết");
             var writing = ui.GetComponentInChildren<InputField>();
@@ -742,25 +927,31 @@ namespace CTCC
             yield return Choose("Nối nguồn thứ hai");
             yield return Choose("Dấu sử dụng tại vị trí giường 4");
             yield return Choose("Lưu dòng này");
-            yield return Until(() => !busy && State.journalNotes.Count == 1, "authored note with two sources saved");
-            var note = State.journalNotes[0];
+            yield return Until(() => !busy && State.journalNotes.Count == 2, "authored note with two sources saved");
+            var note = State.journalNotes[1];
             Require(note.kind == JournalNoteKind.Hypothesis && note.source == ObservationRegistry.Bed4Card &&
-                note.related == ObservationRegistry.Bed4Traces && !State.f101Annotations.HasLink && !GateService.G01(State),
-                "a personal hypothesis and its source link do not sign the form");
+                note.related == ObservationRegistry.Bed4Traces && !State.f101Annotations.HasLink && reportDraft.SourceCount == 0 &&
+                !GateService.G01(State), "a hypothesis link has no effect on the official form");
             yield return Choose("Cần trở lại");
             yield return Tap(Key.Tab);
-            ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "notebook-reasoning.png"));
+            yield return Choose("Mở nguồn thứ hai");
+            Require(ActivePageContains("Vết") || ActivePageContains("vết kéo"), "the selected note opens its field source");
+            yield return Choose("Về ghi chú");
+            yield return Choose("Đổi sang chưa xác thực");
+            CaptureInvestigation("notebook-reasoning-100");
             yield return null;
             yield return Choose("Tháo liên kết");
             yield return Choose("Lưu dòng này");
-            yield return Until(() => !busy && string.IsNullOrEmpty(State.journalNotes[0].related), "removing a link leaves the note intact");
+            yield return Until(() => !busy && string.IsNullOrEmpty(State.journalNotes[1].related) &&
+                State.journalNotes[1].kind == JournalNoteKind.Question, "unlink and status changes persist");
             yield return Tap(Key.Escape);
-            verification.Add("CH01 NOTEBOOK INPUT PASS: two documents placed, drag target, independent hypothesis, linked sources, durable unlink.");
+            verification.Add("REBIRTH II JOURNAL PASS: 1080p 100%/130%, keyboard, pointer drag, independent zoom/pan/flip, inspector return, swap/remove, positioned annotation, saved hypothesis, source reopen, status and unlink.");
         }
 
-        private Button ButtonMatching(string label)
+        private Button ButtonMatching(string label, Transform within = null)
         {
-            return ui.GetComponentsInChildren<Button>().Single(b => b.GetComponentInChildren<Text>()?.text.Contains(label) == true);
+            var root = within == null ? ui.transform : within;
+            return root.GetComponentsInChildren<Button>().Single(b => b.GetComponentInChildren<Text>()?.text.Contains(label) == true);
         }
 
         private bool ActivePageContains(string copy) =>
@@ -768,12 +959,12 @@ namespace CTCC
 
         private int StaffTranscriptCount(string id) => voice.Transcript.Count(entry => entry.LineId == id);
 
-        private IEnumerator Choose(string label)
+        private IEnumerator Choose(string label, Transform within = null)
         {
             yield return Until(() => ui.IsModal && !busy && !savingDialogue, "modal for " + label);
-            var button = ButtonMatching(label);
+            var button = ButtonMatching(label, within);
             Require(button.interactable, "enabled action " + label);
-            for (int i = 0; i < 24 && EventSystem.current.currentSelectedGameObject != button.gameObject; i++)
+            for (int i = 0; i < 64 && EventSystem.current.currentSelectedGameObject != button.gameObject; i++)
                 yield return Tap(Key.Tab);
             Require(EventSystem.current.currentSelectedGameObject == button.gameObject, "keyboard focused " + label);
             yield return Tap(Key.Enter);
@@ -842,6 +1033,30 @@ namespace CTCC
             long after = Profiler.GetTotalAllocatedMemoryLong();
             Require(meshes == 0 && materials == 0, $"Inspector retains {meshes} meshes and {materials} materials");
             verification.Add($"INPUT STRESS PASS: 100 dual-sided + raking-light open/close cycles; {meshes} live paper meshes, {materials} live paper materials, Unity allocated bytes {before}→{after}.");
+        }
+
+        private IEnumerator NotebookLifetimeStress()
+        {
+            var lastTab = journalTab;
+            for (int i = 0; i < 5; i++) DrawJournal((JournalTab)i);
+            Form();
+            CloseModal();
+            yield return null;
+            int objects = ui.GetComponentsInChildren<RectTransform>(true).Length;
+            for (int cycle = 0; cycle < 100; cycle++)
+            {
+                DrawJournal((JournalTab)(cycle % 5));
+                CloseModal();
+                yield return null;
+                Form();
+                CloseModal();
+                yield return null;
+            }
+            int after = ui.GetComponentsInChildren<RectTransform>(true).Length;
+            Require(objects == after && !ui.IsModal && !inspector.IsInspecting,
+                $"notebook and clipboard retain a bounded hierarchy ({objects} → {after} RectTransforms)");
+            journalTab = lastTab;
+            verification.Add($"REBIRTH II RETENTION PASS: 100 notebook and 100 clipboard open/close cycles; {objects} → {after} RectTransforms.");
         }
     }
 }

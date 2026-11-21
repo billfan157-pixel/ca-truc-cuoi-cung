@@ -264,17 +264,16 @@ namespace CTCC
             return reality.CommitEvidenceAsync(next, publishGameplay: false);
         }
 
-        internal Task<CommitResult> ToggleF101TraceLinkAsync()
+        internal Task<CommitResult> SetF101LinkAsync(EvidenceAnnotation first, EvidenceAnnotation second)
         {
-            string hotspot = State.f101Annotations.MarkedHotspot(ObservationRegistry.Bed4Card);
-            if (!CanRevise || string.IsNullOrEmpty(hotspot) ||
-                !HypothesisService.HasExaminedInLayerB(State, ObservationRegistry.Bed4Traces))
-                return Task.FromResult(CommitResult.PadRequired);
+            if (!CanRevise) return Task.FromResult(CommitResult.PadRequired);
+            if (first.observationId == ObservationRegistry.Bed4Traces)
+                (first, second) = (second, first);
             var next = State.Copy();
             var notes = next.f101Annotations;
-            bool removing = notes.HasLink;
-            notes.linkFrom = removing ? default : new EvidenceAnnotation(ObservationRegistry.Bed4Card, hotspot);
-            notes.linkTo = removing ? default : new EvidenceAnnotation(ObservationRegistry.Bed4Traces, F101Annotations.TraceGroup);
+            notes.linkFrom = first;
+            notes.linkTo = second;
+            if (!notes.ValidFor(next)) return Task.FromResult(CommitResult.PadRequired);
             return reality.CommitEvidenceAsync(next, publishGameplay: false);
         }
 
