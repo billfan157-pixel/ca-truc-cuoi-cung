@@ -1,0 +1,8 @@
+modal_surfaces=4
+Nhấc F101	held paper
+Đặt lên bảng kẹp để ký	choice modal
+C    Ghi nhận bất nhất	deduction modal
+Nối dấu vết giường 4	deduction modal
+Viết vào phiếu	confirmation modal
+G01 mở	world
+refuted_revision=1

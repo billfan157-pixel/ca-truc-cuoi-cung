@@ -1,0 +1,222 @@
+{
+  "before-r3": {
+    "turn": {
+      "n": 70,
+      "dispatch_ms": {
+        "median": 5.4013,
+        "p95": 9.5327
+      },
+      "first_render_ms": {
+        "median": 13.3935,
+        "p95": 18.714
+      },
+      "gc_bytes": {
+        "median": 626900.0,
+        "p95": 729906.0
+      },
+      "layout_ms": {
+        "median": 0.3865,
+        "p95": 0.6198
+      },
+      "layout_calls": {
+        "median": 2.0,
+        "p95": 2.0
+      },
+      "canvas_ms": {
+        "median": 0.0936,
+        "p95": 0.1867
+      },
+      "cpu_main_ms": {
+        "median": 6.1021,
+        "p95": 14.8443
+      },
+      "frame_ms": {
+        "median": 8.325,
+        "p95": 25.0024
+      },
+      "hitches_over_33_3_ms": 1
+    },
+    "drag": {
+      "n": 240,
+      "dispatch_ms": {
+        "median": 0.0146,
+        "p95": 0.0206
+      },
+      "first_render_ms": {
+        "median": 0.0,
+        "p95": 0.0
+      },
+      "gc_bytes": {
+        "median": 328.0,
+        "p95": 392.0
+      },
+      "layout_ms": {
+        "median": 0.0038,
+        "p95": 0.0053
+      },
+      "layout_calls": {
+        "median": 1.0,
+        "p95": 1.0
+      },
+      "canvas_ms": {
+        "median": 0.0809,
+        "p95": 0.3638
+      },
+      "cpu_main_ms": {
+        "median": 5.4777,
+        "p95": 12.509
+      },
+      "frame_ms": {
+        "median": 8.325,
+        "p95": 8.3378
+      },
+      "hitches_over_33_3_ms": 0
+    },
+    "drop": {
+      "n": 30,
+      "dispatch_ms": {
+        "median": 7.1997,
+        "p95": 8.9144
+      },
+      "first_render_ms": {
+        "median": 0.0,
+        "p95": 0.0
+      },
+      "gc_bytes": {
+        "median": 625633.0,
+        "p95": 625637.0
+      },
+      "layout_ms": {
+        "median": 0.004,
+        "p95": 0.0171
+      },
+      "layout_calls": {
+        "median": 1.0,
+        "p95": 1.0
+      },
+      "canvas_ms": {
+        "median": 0.0571,
+        "p95": 0.1411
+      },
+      "cpu_main_ms": {
+        "median": 5.3456,
+        "p95": 6.4816
+      },
+      "frame_ms": {
+        "median": 8.3374,
+        "p95": 8.338
+      },
+      "hitches_over_33_3_ms": 0
+    }
+  },
+  "after-r3": {
+    "turn": {
+      "n": 70,
+      "dispatch_ms": {
+        "median": 1.0309,
+        "p95": 1.6592
+      },
+      "first_render_ms": {
+        "median": 6.0998,
+        "p95": 9.7145
+      },
+      "gc_bytes": {
+        "median": 7122.0,
+        "p95": 11890.0
+      },
+      "layout_ms": {
+        "median": 0.028,
+        "p95": 0.0541
+      },
+      "layout_calls": {
+        "median": 1.0,
+        "p95": 2.0
+      },
+      "canvas_ms": {
+        "median": 0.8113,
+        "p95": 2.4759
+      },
+      "cpu_main_ms": {
+        "median": 4.7826,
+        "p95": 9.8674
+      },
+      "frame_ms": {
+        "median": 8.325,
+        "p95": 16.6628
+      },
+      "hitches_over_33_3_ms": 0
+    },
+    "drag": {
+      "n": 240,
+      "dispatch_ms": {
+        "median": 0.0163,
+        "p95": 0.0235
+      },
+      "first_render_ms": {
+        "median": 0.0,
+        "p95": 0.0
+      },
+      "gc_bytes": {
+        "median": 328.0,
+        "p95": 328.0
+      },
+      "layout_ms": {
+        "median": 0.0035,
+        "p95": 0.0049
+      },
+      "layout_calls": {
+        "median": 1.0,
+        "p95": 1.0
+      },
+      "canvas_ms": {
+        "median": 0.0961,
+        "p95": 0.3904
+      },
+      "cpu_main_ms": {
+        "median": 4.1353,
+        "p95": 5.9999
+      },
+      "frame_ms": {
+        "median": 8.3375,
+        "p95": 8.338
+      },
+      "hitches_over_33_3_ms": 0
+    },
+    "drop": {
+      "n": 30,
+      "dispatch_ms": {
+        "median": 0.8782,
+        "p95": 1.3011
+      },
+      "first_render_ms": {
+        "median": 0.0,
+        "p95": 0.0
+      },
+      "gc_bytes": {
+        "median": 11032.0,
+        "p95": 11067.0
+      },
+      "layout_ms": {
+        "median": 0.0033,
+        "p95": 0.0042
+      },
+      "layout_calls": {
+        "median": 1.0,
+        "p95": 1.0
+      },
+      "canvas_ms": {
+        "median": 0.0702,
+        "p95": 0.0953
+      },
+      "cpu_main_ms": {
+        "median": 3.9329,
+        "p95": 5.8753
+      },
+      "frame_ms": {
+        "median": 8.325,
+        "p95": 8.325
+      },
+      "hitches_over_33_3_ms": 0
+    }
+  }
+}

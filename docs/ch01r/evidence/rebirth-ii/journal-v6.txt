@@ -1,0 +1,6 @@
+result=Valid
+schema=6
+chapter=CH02
+notes=1
+source=OBS101B
+revision=1

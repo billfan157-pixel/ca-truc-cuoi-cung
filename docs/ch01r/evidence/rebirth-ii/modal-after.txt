@@ -1,0 +1,15 @@
+modal_surfaces=2
+Nhấc F101	held paper
+Đặt giấy lên bảng kẹp	clipboard sheet
+F101 · Phiếu bàn giao	clipboard sheet
+AS-05B · Thẻ giường 4	clipboard sheet
+Dấu sử dụng giường 4	clipboard sheet
+Nối hai nguồn	clipboard sheet
+AS-05B · Thẻ giường 4	clipboard sheet
+Dấu sử dụng giường 4	clipboard sheet
+Ghi nhận sai lệch trong bàn giao	clipboard sheet
+chưa đủ căn cứ xác nhận số 0	clipboard sheet
+Đọc lại trên phiếu	clipboard sheet
+Kéo bút qua dòng ký	clipboard sheet
+G01 mở	world
+refuted_revision=1
