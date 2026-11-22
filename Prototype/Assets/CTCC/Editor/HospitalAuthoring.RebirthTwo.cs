@@ -165,7 +165,7 @@ namespace CTCC.Editor
             var partition = Named(region.transform, "CTCC_ENV_ReceptionPartition");
             var oldGlass = ReferenceMaterial("Glass");
             var glass = RebirthMaterial("CH01_ReceptionGlass", oldGlass);
-            glass.SetFloat("_Smoothness", .84f);
+            glass.SetFloat("_Smoothness", .64f);
             glass.SetColor("_BaseColor", new Color(.26f, .38f, .35f, .105f));
             EditorUtility.SetDirty(glass);
             foreach (var surface in partition.GetComponentsInChildren<Renderer>(true))
