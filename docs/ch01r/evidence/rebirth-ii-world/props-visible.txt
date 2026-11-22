@@ -1,0 +1,5 @@
+FIELD PASS blanket, slippers and wheels have independent focus and one saved observation.
+FIELD PASS working foot pedal, visible/observable bin lining, escape releases it.
+FIELD PASS thermos and cup use the physical inspector and return together.
+FIELD PASS calendar flip and individually examined notes are saved.
+RESULT=PASS

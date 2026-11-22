@@ -1,0 +1,12 @@
+LAN CH01-D03 at 5,745s
+LAN CH01-D03c at 14,239s
+LAN CH01-D04c at 25,930s
+LAN CH01-D05 at 30,914s
+LAN CH01-D05c at 40,845s
+LAN CH01-D07 at 46,644s
+FIELD PASS blanket, slippers and wheels have independent focus and one saved observation.
+FIELD PASS working foot pedal, visible/observable bin lining, escape releases it.
+FIELD PASS thermos and cup use the physical inspector and return together.
+FIELD PASS calendar flip and individually examined notes are saved.
+Captured gate, courtyard, canopy from two angles, live Lan through handover, Room 101 entry and curtain at two positions.
+RESULT=PASS
