@@ -52,6 +52,7 @@ namespace CTCC
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifySpatialAudio();
             yield return VerifyKeyboard();
             yield return VerifyCh01RAdversarialSuite();
+            yield return VerifyCh01WalkthroughSuite();
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
             yield return VerifyScalableM3AndCh03();
         }
@@ -442,7 +443,7 @@ namespace CTCC
             foreach (var (collider, bounds) in realWardBefore)
                 Require(realWardAfter.TryGetValue(collider, out var after) && after == bounds,
                     "F101 leaves R ward collider and bounds unchanged: " + collider.name);
-            Walk(new Vector3(4,0,-20.30f));
+            Walk(new Vector3(4,0,-19.2f));
             Apply(casework.OutsideAttempt(player.Feet),"seam");
             player.Teleport(scene.Pad("AP01"));
             Require(casework.OutsideAttempt(player.Feet)!=CommitResult.Applied && scene.seamBlocker.activeSelf,"seam once");
@@ -982,6 +983,7 @@ namespace CTCC
             VerifyLegacySave(3);
             VerifyLegacySave(4);
             VerifyLegacySave(5);
+            VerifyLegacySave(6);
 
             var multi = State.Copy();
             multi.f101.current = FormStatus.Affirmed;
@@ -1131,8 +1133,15 @@ namespace CTCC
                 seed.dreadEventsSeen.Clear();
                 seed.dreadSeed = 0;
             }
+            if (schema <= 6)
+            {
+                seed.backpackItems.Clear();
+                seed.equippedInstanceId = "";
+                seed.e10aLastTab = 0;
+            }
             string payload = JsonUtility.ToJson(seed);
-            payload = payload.Replace(",\"journalNotes\":[]", "").Replace(",\"sceneProps\":[]", "");
+            payload = payload.Replace(",\"journalNotes\":[]", "").Replace(",\"sceneProps\":[]", "")
+                .Replace(",\"backpackItems\":[]", "").Replace(",\"equippedInstanceId\":\"\"", "").Replace(",\"e10aLastTab\":0", "");
             if (schema == 4)
             {
                 string draftField = ",\"f101Annotations\":" + JsonUtility.ToJson(seed.f101Annotations);
@@ -1151,6 +1160,7 @@ namespace CTCC
                 upgraded.f101.current == seed.f101.current && upgraded.f101.firstDecision == seed.f101.firstDecision &&
                 upgraded.f101Annotations.marks.Count == 0 &&
                 upgraded.sceneProps.Count == 0 && upgraded.journalNotes.Count == 0 &&
+                upgraded.backpackItems.Count >= 1 &&
                 upgraded.observationRecords.Count >= upgraded.observed.Count,
                 "Upgrade legacy schema " + schema);
         }
@@ -1496,8 +1506,9 @@ namespace CTCC
             scene.motion?.ClearTubeBlackout();
             Require(dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B06ClockTick), "Dread triggers cleanly when unsuppressed");
             yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.B06ClockTick), "Dread event persisted to state");
-            foreach (string id in new[] { DreadCatalog.B02GlassShadow, DreadCatalog.B04TrolleyStop, DreadCatalog.B04CurtainBreath,
-                DreadCatalog.B05FanDecelerate, DreadCatalog.B05DistantSteps, DreadCatalog.ShiftCurtainCreep, DreadCatalog.ShiftHallChair })
+            foreach (string id in new[] { DreadCatalog.B02GlassShadow, DreadCatalog.B04TrolleyStop, DreadCatalog.B04TrolleyNear,
+                DreadCatalog.B04CurtainBreath, DreadCatalog.B05FanDecelerate, DreadCatalog.B05DistantSteps,
+                DreadCatalog.ShiftCurtainCreep, DreadCatalog.ShiftHallChair })
             {
                 if (dreadDirector.AmbientBudgetExhausted) break;
                 if (State.HasDreadEvent(id)) continue;
@@ -1569,6 +1580,182 @@ namespace CTCC
             Apply(transaction.Commit(savedBefore, scene.Pad("AP05").position, warp: false, geometryChanges: true), "Restore post-CH02 snapshot");
             player.Teleport(scene.Pad("AP05"));
             verification.Add("CH01-R ADVERSARIAL PASS: Lan VO and old transcripts, LOG06-Q01 card content, 03:17 inspection and answer validation, D19 guard, F101 reaction at exhausted ambient budget, once-only cues after reload, and independent Reality.R progression.");
+        }
+
+        private IEnumerator VerifyCh01WalkthroughSuite()
+        {
+            var savedBefore = State.Copy();
+            var wtSettings = new VisitSettings { volume = 0f, reduceMotion = true, captions = true, hintsEnabled = true };
+            Apply(casework.Begin(scene.Pad("AP00").position, wtSettings), "WT begin");
+            scene.interactables?.ResetSessionProps();
+            player.Teleport(scene.Pad("AP00"));
+
+            // 1) B01: Multi-layer E10a, key extraction, wrong-key rejection, SMS gating, single E10a evidence, wind sign knock
+            Require(InventoryService.HasPhysical(State, BackpackCatalog.Flashlight) && State.evidence.Count == 1 && State.Has("E10a"),
+                "WT B01 starts with flashlight and single E10a evidence");
+            yield return WaitForApplied(casework.InspectE10aLayerAsync(1, "LAN_LETTER", markSmsRead: false), "WT E10a tab 1");
+            Require(State.e10aLastTab == 1 && !State.Happened("E10a.SMSRead"), "WT E10a remembers tab without auto-reading SMS");
+            yield return WaitForApplied(casework.InspectE10aLayerAsync(4, "KEYS_EXTRACTED", markSmsRead: false, extractKeys: true), "WT extract 2 keys");
+            Require(InventoryService.HasPhysical(State, BackpackCatalog.GateKey) &&
+                    InventoryService.HasPhysical(State, BackpackCatalog.WingCKey) &&
+                    State.evidence.Count == 1 && State.Has("E10a"), "WT extracting keys keeps CH01 evidence.Count == 1");
+
+            // Missing SMS feedback (NOT wrong key!) even when holding KEY_GATE
+            var noSmsRes = WorldUseResolver.Resolve(State, BackpackCatalog.GateKey, "GATE-CONG");
+            Require(noSmsRes.Outcome == WorldUseOutcome.NeedSmsBeforeGate, "WT KEY_GATE before SMS reports missing SMS");
+            // Wrong key (KEY_WING_C) rejected and retained!
+            yield return WaitForApplied(casework.InspectE10aLayerAsync(3, "BAY_SMS", markSmsRead: true), "WT read SMS");
+            yield return WaitForApplied(casework.EquipItemAsync(BackpackCatalog.WingCKey), "WT equip KEY_WING_C");
+            var wrongKeyRes = WorldUseResolver.Resolve(State, BackpackCatalog.WingCKey, "GATE-CONG");
+            Require(wrongKeyRes.Outcome == WorldUseOutcome.WrongKeyForOuterGate &&
+                    InventoryService.HasPhysical(State, BackpackCatalog.WingCKey), "WT KEY_WING_C rejected and retained");
+            yield return WaitForApplied(casework.EquipItemAsync(BackpackCatalog.GateKey), "WT equip KEY_GATE");
+            Require(WorldUseResolver.Resolve(State, BackpackCatalog.GateKey, "GATE-CONG").Outcome == WorldUseOutcome.UnlockOuterGate,
+                "WT KEY_GATE resolves to UnlockOuterGate after SMS");
+            Apply(casework.OpenGate(player.Feet), "WT open gate");
+            Require(dreadDirector.TryTriggerB01SignKnock(), "WT B01 demolition sign wind knock fires once");
+            yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.B01SignKnock), "WT B01 sign knock persisted");
+            Require(!dreadDirector.TryTriggerB01SignKnock(), "WT B01 sign knock does not replay");
+
+            // 2) B02: Glass study persistence
+            yield return WaitForApplied(casework.RecordDreadEventAsync(DreadCatalog.B02GlassStudied), "WT B02 glass studied");
+            Require(State.HasDreadEvent(DreadCatalog.B02GlassStudied), "WT B02 glass studied persisted");
+
+            // 3) B03: 2-phase Lan encounter -> CH01-T03 does NOT auto-set CH01-T04; cinematic + safe skip!
+            player.Teleport(scene.Pad("AP02"));
+            Apply(casework.AtHub(player.Feet, out _), "WT enter B (Pha 1)");
+            Require(State.layer == Reality.B && State.Happened("CH01-T03") && !State.Happened("CH01-T04") &&
+                    !State.Happened("CH01-T05") && !State.Observed(ObservationRegistry.StoppedClock0317),
+                "WT Pha 1 R->B does NOT auto-commit CH01-T04, BOARD, or OBS_CLOCK_0317");
+            yield return WaitForApplied(casework.RecordLanNoticedAsync(), "WT Pha 2 Lan noticed");
+            Require(State.Happened("CH01-LAN-NOTICED") && !State.Happened("CH01-T04"), "WT Pha 2 keeps CH01-T04 player-initiated");
+
+            bool cineDone = false;
+            Require(lanDirector.StartCinematicEncounter(LanEncounterLine, skipOpeningGreeting: true, reducedMotion: true,
+                onComplete: () => cineDone = true), "WT Pha 3 Lan cinematic starts cleanly");
+            Require(lanDirector.IsCinematicActive && player.ExternalCameraControl, "WT cinematic owns camera safely");
+            yield return null;
+            lanDirector.RequestSkipCinematic();
+            yield return Until(() => cineDone && !lanDirector.IsCinematicActive && !player.ExternalCameraControl,
+                "WT cinematic skip restores camera cleanly");
+            yield return WaitForApplied(casework.CompleteLanCinematicAsync(), "WT commit CH01-T04");
+            Require(State.Happened("CH01-T04") && !State.Happened("CH01-T05") && !State.Observed(ObservationRegistry.StoppedClock0317) &&
+                    StaffTranscriptCount("CH01-D07") > 0 &&
+                    !MayDeliver("CH01-D16b", "B03") && !MayDeliver("CH04-D06", "B03"),
+                "WT cinematic skip records canonical transcript, keeps CH04 guards locked, and never auto-credits clock/BOARD");
+
+            // B03 Lan drawer look once
+            yield return WaitForApplied(casework.RecordDreadEventAsync(DreadCatalog.B03LanDrawerLook), "WT B03 drawer look");
+            Require(State.HasDreadEvent(DreadCatalog.B03LanDrawerLook), "WT B03 drawer look persisted");
+
+            // Pha 4 BOARD pickup
+            Apply(casework.Board(player.Feet), "WT Pha 4 accept BOARD");
+            Require(State.Happened("CH01-T05") && InventoryService.HasPhysical(State, BackpackCatalog.BoardAssignment),
+                "WT BOARD stored in Backpack as Layer B item");
+
+            // STAFF DRAWER-NURSE quiet latch vs force-pull reaction check
+            Require(scene.interactables.ToggleDrawer("DRAWER-NURSE", scene.atmosphere, instant: true, quiet: true), "WT quiet latch opens DRAWER-NURSE");
+            Require(scene.interactables.IsDrawerOpen("DRAWER-NURSE"), "WT quiet drawer opened cleanly");
+            Require(!scene.interactables.ToggleDrawer("DRAWER-NURSE", scene.atmosphere, instant: true), "WT close DRAWER-NURSE");
+            dreadDirector.ResetSeed(State.dreadSeed);
+            Require(dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B04TrolleyStop), "WT stage-1 trolley active");
+            yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.B04TrolleyStop), "WT stage-1 trolley persisted");
+            Require(dreadDirector.NotifyStaffDrawerForcePull(), "WT force pull triggers once-only staff trolley halt");
+            yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.B04StaffTrolleyHalt), "WT staff trolley halt persisted");
+            Require(!dreadDirector.NotifyStaffDrawerForcePull(), "WT staff trolley halt does not replay");
+
+            // 4) B04/B05: Stow Layer B paper, clip at AN02, P-SC05 silhouette once, F101 C + B->R reconciliation (3 cases)
+            player.Teleport(scene.Pad("AP04"));
+            Apply(casework.EnterRoom(player.Feet), "WT enter Room 101");
+            Require(!dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B05CurtainSilhouette),
+                "WT P-SC05 blocked before OBS101B examined");
+            Apply(casework.Observe(ObservationRegistry.Bed4Card, player.Feet, "LOC03"), "WT examine OBS101B");
+            Apply(casework.Observe(ObservationRegistry.Bed4Traces, player.Feet, "LOC03"), "WT examine OBS101A");
+            yield return WaitForApplied(casework.AcquireItemAsync(BackpackCatalog.PaperObs101B, "LOC03"), "WT stow AS-05B");
+            yield return WaitForApplied(casework.EquipItemAsync(BackpackCatalog.PaperObs101B), "WT equip AS-05B");
+            handPresenter?.SyncState(State, scene, hideViewModel: false);
+            Require(handPresenter.EquippedItemDefId == BackpackCatalog.PaperObs101B, "WT AS-05B held in 3D hand rig");
+            Require(WorldUseResolver.Resolve(State, BackpackCatalog.PaperObs101B, "COMPARE_CLIP_AN02").Outcome == WorldUseOutcome.PlacePaperOnAnchor,
+                "WT resolver places AS-05B on AN02 clip");
+            yield return WaitForApplied(casework.PlaceItemAtAnchorAsync(BackpackCatalog.PaperObs101B, WorldAnchors.An02CompareClip), "WT clip AS-05B at AN02");
+            handPresenter?.SyncState(State, scene, hideViewModel: false);
+            Require(handPresenter.PlacedAn02ItemDefId == BackpackCatalog.PaperObs101B, "WT AN02 wall clip visibly holds AS-05B");
+
+            // Peak Horror #1 P-SC05 fires once in Layer B after OBS101B examined
+            dreadDirector.ResetSeed(State.dreadSeed);
+            Require(dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B05CurtainSilhouette), "WT P-SC05 fires once after OBS101B");
+            yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.B05CurtainSilhouette), "WT P-SC05 persisted");
+            Require(!dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B05CurtainSilhouette), "WT P-SC05 never replays");
+
+            // Also verify stowed InBag reconciliation case by stowing OBS101C
+            Apply(casework.Observe(ObservationRegistry.Bed2Transfer, player.Feet, "LOC03"), "WT examine OBS101C");
+            yield return WaitForApplied(casework.AcquireItemAsync(BackpackCatalog.PaperObs101C, "LOC03"), "WT stow OBS101C in bag");
+            Apply(casework.SubmitF101(FormStatus.Refuted, new DeductionSubmission
+            {
+                formId = "F101",
+                selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
+                claimId = HypothesisService.ClaimUnreliableZero
+            }, player.Feet, out var wtC), "WT F101 Refuted");
+            Require(wtC.Accepted && GateService.G01(State), "WT F101 C accepted");
+
+            // 5) B06: Atomic B->R reconciliation (Placed AS-05B + InBag OBS101C + BOARD -> MemoryRef) AND rollback on save fail!
+            player.Teleport(scene.Pad("AP02"));
+            long beforeFailSwap = State.sequence;
+            using (var lockFile = new FileStream(saves.SlotPath(SaveSlot.Auto) + ".lock", FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                Require(casework.AtHub(player.Feet, out _) == CommitResult.SaveUnavailable, "WT B->R swap fails cleanly when save locked");
+                Require(State.layer == Reality.B && State.sequence == beforeFailSwap &&
+                        InventoryService.GetPlacedAt(State, WorldAnchors.An02CompareClip)?.itemDefId == BackpackCatalog.PaperObs101B,
+                    "WT failed B->R swap rolls back without losing physical Layer B paper or AN02 clip state");
+            }
+            Apply(casework.AtHub(player.Feet, out _), "WT B->R collapse");
+            handPresenter?.SyncState(State, scene, hideViewModel: false);
+            Require(State.layer == Reality.R && State.Happened("CH01-T08") && State.evidence.Count == 1 &&
+                    InventoryService.FindByDef(State, BackpackCatalog.PaperObs101B)?.status == BackpackItemStatus.MemoryRef &&
+                    InventoryService.FindByDef(State, BackpackCatalog.PaperObs101C)?.status == BackpackItemStatus.MemoryRef &&
+                    InventoryService.FindByDef(State, BackpackCatalog.BoardAssignment)?.status == BackpackItemStatus.MemoryRef &&
+                    InventoryService.GetEquipped(State) == null &&
+                    InventoryService.GetPlacedAt(State, WorldAnchors.An02CompareClip) == null &&
+                    string.IsNullOrEmpty(handPresenter.PlacedAn02ItemDefId),
+                "WT B->R atomically reconciles Placed/Equipped/InBag Layer B papers to MemoryRef with zero R export");
+
+            // CRITICAL BUG FIX VERIFICATION: DREAD_B06_CLOCK_TICK strictly blocked in Layer R!
+            Require(!dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B06ClockTick),
+                "WT BUGFIX VERIFIED: DREAD_B06_CLOCK_TICK strictly blocked in Layer R (11:52 clock)");
+
+            // 6) B07: Peak Horror #2 + intentional SEAM once + keys not consumed on refusal
+            Require(dreadDirector.PlayPeakGateSlam(reducedMotion: true), "WT B07 Peak Horror #2 fires once");
+            yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.B07GateSlam), "WT B07 gate slam persisted");
+            Require(!dreadDirector.PlayPeakGateSlam(reducedMotion: true), "WT B07 gate slam does not replay");
+            Apply(casework.OutsideAttempt(player.Feet), "WT B07 SEAM once");
+            Require(State.Happened("CH01-T09") && casework.OutsideAttempt(player.Feet) != CommitResult.Applied,
+                "WT B07 SEAM fires once and refuses repeat");
+            var seamKeyRes = WorldUseResolver.Resolve(State, BackpackCatalog.GateKey, "SEAM");
+            Require(seamKeyRes.Outcome == WorldUseOutcome.GateRefusedAfterCollapse &&
+                    InventoryService.HasPhysical(State, BackpackCatalog.GateKey),
+                "WT B07 using KEY_GATE on SEAM refuses cleanly and retains key");
+
+            // 7) B08: Conditional P_BAG08_ECHO + Pocket Note decision reflection (A/B/C)
+            Require(ShouldTriggerBag08Echo(), "WT B08 P_BAG08_ECHO eligible when OBS101B was examined in B");
+            string pocketC = PocketNoteBuilder.BuildEpistemicSummary(State);
+            Require(pocketC.Contains("chưa đủ căn cứ xác nhận") && !pocketC.Contains("Bé An") && !pocketC.Contains("Khu C"),
+                "WT B08 Pocket Note C copy matches Walkthrough and respects canon reveal lock");
+            var fastBState = State.Copy();
+            fastBState.observationRecords.RemoveAll(r => r.id == ObservationRegistry.Bed4Card);
+            fastBState.observed.Remove(ObservationRegistry.Bed4Card);
+            fastBState.f101.current = FormStatus.Unverified;
+            Require(!HypothesisService.HasExaminedInLayerB(fastBState, ObservationRegistry.Bed4Card),
+                "WT fast A/B route without OBS101B never triggers P_BAG08_ECHO");
+            Require(PocketNoteBuilder.BuildEpistemicSummary(fastBState).Contains("chưa xác minh"),
+                "WT B08 Pocket Note B copy matches Walkthrough");
+            fastBState.f101.current = FormStatus.Affirmed;
+            Require(PocketNoteBuilder.BuildEpistemicSummary(fastBState).Contains("đã ký xác nhận số 0"),
+                "WT B08 Pocket Note A copy matches Walkthrough");
+
+            // Restore pre-test CH02 snapshot cleanly
+            Apply(transaction.Commit(savedBefore, scene.Pad("AP05").position, warp: false, geometryChanges: true), "WT restore post-CH02");
+            player.Teleport(scene.Pad("AP05"));
+            verification.Add("CH01 WALKTHROUGH SUITE PASS: B01 multi-layer E10a/keys/sign knock, B02 glass study, B03 2-phase Lan cinematic+skip+drawer look, B04/B05 stow+AN02 clip+P-SC05, B06 Layer-R clock-tick fix + 3-case B->R reconciliation+rollback, B07 gate slam+SEAM once, B08 conditional P_BAG08_ECHO + Pocket Note A/B/C.");
         }
 
         private IEnumerator VerifyStaffReactionOrder()

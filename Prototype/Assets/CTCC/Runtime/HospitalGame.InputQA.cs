@@ -73,11 +73,49 @@ namespace CTCC
                 Require(Quaternion.Angle(before, holder.localRotation) > 9 && Mathf.Abs(zoom - holder.parent.localPosition.z) > 0.017f,
                     "physical inspector keyboard rotation and zoom");
             }
-            yield return Choose("Ghi tin nhắn");
-            yield return Until(() => !busy && State.Happened("E10a.SMSRead"), "letter checkpoint");
-            Require(!inspector.IsInspecting && State.Happened("E10a.SMSRead"), "letter closes and enters journal");
+            if (branch == FormStatus.Refuted)
+            {
+                yield return Choose("2. Thư cũ của Lan");
+                yield return Until(() => !busy && inspector.IsInspecting && inspector.HasBackSide, "E10a Lan letter 2-sided layer");
+                yield return Tap(Key.Space);
+                yield return Until(() => inspector.ShowingBack, "E10a Lan letter flips to back");
+                CaptureInvestigation("walkthrough-e10a-letter");
+                yield return null;
+            }
+            yield return Choose("4. Tin nhắn Bảy");
+            yield return Choose("Xác nhận đã đọc tin nhắn Bảy");
+            yield return Until(() => !busy && State.Happened("E10a.SMSRead"), "letter SMS checkpoint");
+            yield return Choose("5. Rút hai chìa khóa");
+            if (branch == FormStatus.Affirmed)
+            {
+                yield return Choose("Rút 2 chìa khóa cất vào ba lô");
+                yield return Until(() => !busy && InventoryService.HasPhysical(State, BackpackCatalog.GateKey) &&
+                    InventoryService.HasPhysical(State, BackpackCatalog.WingCKey), "both keys extracted to backpack");
+                yield return Choose("Cầm chìa khu C trên tay");
+                yield return Until(() => !busy && !ui.IsModal && !inspector.IsInspecting &&
+                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.WingCKey, "Wing-C key equipped");
+                yield return AimAndUseHere("GATE-CONG");
+                yield return new WaitForSecondsRealtime(0.25f);
+                Require(!State.Happened("CH01-T02") && InventoryService.HasPhysical(State, BackpackCatalog.WingCKey),
+                    "wrong Wing-C key rejected at outer gate and retained in backpack");
+                yield return Tap(Key.Tab);
+                yield return Until(() => ui.IsModal, "backpack opened to swap key");
+                yield return Choose("Chìa cổng phụ");
+                yield return Choose("Cầm ra tay");
+                yield return Until(() => !busy && !ui.IsModal &&
+                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey, "Gate key equipped from backpack");
+            }
+            else
+            {
+                yield return Choose("Rút 2 chìa khóa & cầm chìa cổng phụ");
+                yield return Until(() => !busy && !ui.IsModal && !inspector.IsInspecting &&
+                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey, "keys extracted and gate key equipped");
+            }
+            Require(State.evidence.Count == 1 && State.Has("E10a"), "CH01 official evidence strictly remains E10a only");
             yield return AimAndUseHere("GATE-CONG");
-            yield return Until(() => State.Happened("CH01-T02"), "gate unlocked");
+            yield return Until(() => State.Happened("CH01-T02"), "gate unlocked with gate key");
+            yield return Until(() => Quaternion.Angle(scene.outerGate.pivot.localRotation, Quaternion.Euler(0, scene.outerGate.openAngle, 0)) < 3f,
+                "outer gate swings smoothly open");
             if (branch == FormStatus.Affirmed)
             {
                 yield return Until(() => Application.isFocused, "movement check requires a focused window");
@@ -114,25 +152,49 @@ namespace CTCC
                     Vector3 entryFeet = player.Feet;
                     yield return AimAndUseHere("AN01");
                     yield return Until(() => !busy && State.layer == Reality.B && State.Happened("CH01-T03"), "reading the ledger changes reception in place");
-                    Require(Vector3.Distance(entryFeet, player.Feet) < .18f && !ui.IsModal, "reception interaction preserves a stance away from AP02");
-                    yield return Until(() => !lanDirector.IsEncounterRunning, "full live Lan encounter", timeoutSeconds: 110);
-                    Require(voice.Transcript.Any(entry => entry.LineId == "CH01-D07b"), "Lan encounter reached its last new beat");
+                    Require(Vector3.Distance(entryFeet, player.Feet) < .18f && !ui.IsModal &&
+                        !State.Happened("CH01-T04") && !State.Happened("CH01-T05") && !State.Observed(ObservationRegistry.StoppedClock0317),
+                        "Pha 1 reception flip preserves stance and leaves Lan cinematic player-initiated");
+
+                    // Pha 3: Player-initiated active cinematic dialogue scene with Lan + safe skip verification
                     yield return WalkWithInput(new Vector3(3.35f, 0f, -3.40f));
-                    yield return Until(() => NextLanReflection() != null, "Lan can answer at the desk");
+                    yield return AimAndUseHere("LAN_TALK");
+                    yield return Until(() => lanDirector.IsCinematicActive && player.ExternalCameraControl, "active Lan cinematic starts on player input");
+                    yield return new WaitForSecondsRealtime(0.85f);
+                    CaptureInvestigation("walkthrough-lan-cinematic");
+                    yield return null;
+                    yield return Tap(Key.Space);
+                    yield return Until(() => !busy && !lanDirector.IsCinematicActive && !player.ExternalCameraControl && State.Happened("CH01-T04"),
+                        "Lan cinematic skip restores FPS control and commits CH01-T04");
+                    Require(voice.Transcript.Any(entry => entry.LineId == "CH01-D07b") &&
+                        !State.Happened("CH01-T05") && !State.Observed(ObservationRegistry.StoppedClock0317),
+                        "Lan cinematic skip keeps full canonical transcript without auto-crediting clock or BOARD");
+
+                    // Optional in-world Lan reflection after cinematic
+                    yield return Until(() => NextLanReflection() != null, "Lan can answer optional question at the desk");
                     yield return AimAndUseHere("LAN_TALK");
                     Require(!ui.IsModal, "optional words with Lan stay in the room");
                     yield return Until(() => voice.Transcript.Any(t => t.LineId == "CH01-D08"), "optional Lan dialogue recorded");
                     yield return Tap(Key.Tab);
+                    yield return Until(() => ui.IsModal, "Tab opens Backpack");
+                    yield return Choose("Pocket Note");
+                    yield return Choose("Mở sổ trực đầy đủ");
                     yield return Choose("Lời Lan tại quầy");
                     Require(ActivePageContains("Lan — " + Line("CH01-D04c")) &&
                             !ActivePageContains("không thấy bóng em"),
                         "Lan transcript keeps the clock line and omits the retired reflection beat");
                     yield return Tap(Key.Escape);
+                    if (ui.IsModal) yield return Tap(Key.Escape);
+
+                    // Pha 4: Manual 3D BOARD inspect and pickup -> unlocks DOOR-101 ajar
                     yield return WalkWithInput(new Vector3(2.95f, 0f, -2.75f));
                     yield return AimAndUseHere("BOARD");
-                    yield return Until(() => !busy && State.Happened("CH01-T05"), "board granted");
-                    yield return Until(() => Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.Euler(0, scene.roomDoor.openAngle, 0)) < 1,
-                        "room door opens");
+                    yield return Until(() => !busy && inspector.IsInspecting, "BOARD opens in 3D inspector before accept");
+                    yield return Choose("Nhận bảng kẹp & cất vào ba lô");
+                    yield return Until(() => !busy && !ui.IsModal && State.Happened("CH01-T05"), "board granted after manual inspect");
+                    yield return new WaitForSecondsRealtime(0.25f);
+                    float doorAjar = scene.interactables.GetDragOpenness01("DOOR-101");
+                    Require(doorAjar > 0.06f && doorAjar < 0.30f, $"DOOR-101 unlocks ajar for physical entry (got {doorAjar:F2})");
 
                     // Walk optional compact nonlinear exploration loop: Reception -> STAFF Nursing Alcove -> open DOOR-STAFF -> HALL -> Room 101!
                     yield return WalkWithInput(new Vector3(0.05f, 0f, -1.0f));
@@ -188,6 +250,10 @@ namespace CTCC
                         "STAFF cross-door swings fully open via keyboard use");
                     yield return WalkWithInput(new Vector3(4.00f, 0f, 7.50f));
                     yield return WalkWithInput(new Vector3(4.00f, 0f, 4.75f));
+                    yield return AimAndUseHere("DOOR-101");
+                    yield return Until(() => scene.roomDoor.isOpen &&
+                        Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.Euler(0, scene.roomDoor.openAngle, 0)) < 2f,
+                        "ajar DOOR-101 swings open via player interaction");
                     yield return WalkWithInput(new Vector3(6.52f, 0f, 4.93f));
                     yield return Until(() => !busy && State.Happened("CH01-T06"), "Room 101 threshold checkpoint via keyboard walk");
 
@@ -231,14 +297,34 @@ namespace CTCC
                     yield return Choose("Đọc vết hằn mặt sau");
                     yield return Until(() => !busy && CorroborationService.HasCardTimestamp(State) &&
                         ActivePageContains("03g17") && !ActivePageContains("C01"), "accessible reading finds a canon-safe card time");
+                    yield return Choose("Cất tạm vào ba lô (Lớp B)");
+                    yield return Until(() => !busy && InventoryService.HasPhysical(State, BackpackCatalog.PaperObs101B),
+                        "AS-05B temporarily stowed in Backpack (Layer B)");
                     yield return Tap(Key.Escape);
 
                     yield return WalkWithInput(new Vector3(10.75f, 0f, 4.35f));
                     yield return AimAndUseHere("OBS101A");
                     yield return Until(() => !busy && State.Observed("OBS101A"), "OBS101A Bed-4 trace observed");
 
+                    // Clip stowed AS-05B physically onto COMPARE_CLIP_AN02 beside F101 (standing clear of midCurtain)!
+                    yield return WalkWithInput(new Vector3(6.42f, 0f, 4.92f));
+                    yield return WalkWithInput(new Vector3(6.24f, 0f, 5.64f));
+                    yield return AimAndUseHere("COMPARE_CLIP_AN02");
+                    yield return Choose("Kẹp Thẻ AS-05B");
+                    yield return Until(() => !busy && !ui.IsModal &&
+                        InventoryService.GetPlacedAt(State, WorldAnchors.An02CompareClip)?.itemDefId == BackpackCatalog.PaperObs101B,
+                        "AS-05B physically mounted on comparison clip beside F101");
+                    player.Eye.transform.LookAt(new Vector3(5.73f, 1.36f, 5.64f));
+                    yield return null;
+                    CaptureInvestigation("walkthrough-an02-clip");
+                    yield return null;
+
                     yield return Tap(Key.Tab);
-                    yield return Until(() => ui.IsModal, "Journal opened via Tab");
+                    yield return Until(() => ui.IsModal, "Backpack opened via Tab");
+                    yield return new WaitForSecondsRealtime(0.24f);
+                    CaptureInvestigation("walkthrough-backpack-papers");
+                    yield return null;
+                    yield return Choose("Mở sổ ghi chép đầy đủ");
                     yield return Choose("Dòng thời gian");
                     yield return Choose("Phiếu chuyển giường 02");
                     yield return Choose("Ghim mốc trái");
@@ -266,6 +352,7 @@ namespace CTCC
                         ActivePageContains("chưa xác định sự kiện"), "timeline records source IDs and limits the result");
                     CaptureInvestigation("timeline-0317-saved");
                     yield return VerifyNotebookInput();
+                    if (ui.IsModal) yield return Tap(Key.Escape);
                     yield return NotebookLifetimeStress();
 
                     // Mark the report and card in different reading modes, then link the field observation.
@@ -405,14 +492,31 @@ namespace CTCC
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -3.30f));
                     yield return AimAndUseHere("AN01");
                     yield return Until(() => !busy && State.layer == Reality.R && State.Happened("CH01-T08"), "reception B→R collapse at the ledger");
+                    Require(InventoryService.FindByDef(State, BackpackCatalog.PaperObs101B)?.status == BackpackItemStatus.MemoryRef &&
+                        InventoryService.GetPlacedAt(State, WorldAnchors.An02CompareClip) == null && State.evidence.Count == 1,
+                        "B->R collapse reconciles clipped AS-05B to MemoryRef with zero R export");
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
-                    yield return WalkWithInput(new Vector3(4.00f, 0f, -20.30f));
-                    yield return Until(() => !busy && State.Happened("CH01-T09"), "exterior seam via walk");
+                    yield return WalkWithInput(new Vector3(4.00f, 0f, -19.0f));
+                    yield return AimAndUseHere("SEAM");
+                    yield return Until(() => !busy && State.Happened("CH01-T09") && State.HasDreadEvent(DreadCatalog.B07GateSlam),
+                        "B07 intentional gate pull triggers Peak Horror #2 and continuity seam");
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -3.30f));
+                    yield return Tap(Key.Tab);
+                    yield return Until(() => ui.IsModal, "B08 Backpack opened on Pocket Note");
+                    Require(ActivePageContains("chưa đủ căn cứ xác nhận"), "B08 Pocket Note reflects Refuted choice");
+                    yield return new WaitForSecondsRealtime(0.24f);
+                    CaptureInvestigation("walkthrough-b08-pocket-note");
+                    yield return null;
+                    yield return Choose("Giấy tờ & vật chứng");
+                    yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.Bag08Echo), "B08 P_BAG08_ECHO triggers once when AS-05B was examined in B");
+                    yield return new WaitForSecondsRealtime(0.24f);
+                    CaptureInvestigation("walkthrough-b08-echo");
+                    yield return null;
+                    yield return Tap(Key.Escape);
                     yield return AimAndUseHere("AN01");
                     yield return Until(() => !busy && State.chapter == "CH02", "CH02 handoff via pure keyboard+mouse CH01 route");
-                    verification.Add("INPUT CH01-R FULL ROUTE PASS: zero teleportation from AP00 through STAFF loop, drawers, Room 101 docs, dual-sided inspector, Journal comparison, F101 mouse hotspot, keyboard large print, link and durable refutation, collapse, seam, and CH02 handoff.");
+                    verification.Add("INPUT CH01-R FULL ROUTE PASS: zero teleportation from AP00 through multi-layer E10a, Lan cinematic+skip, BOARD inspect, ajar DOOR-101, STAFF loop, Room 101 stow+AN02 clip, Journal/F101, B->R reconciliation, B07 gate pull+slam, B08 echo+Pocket Note, and CH02 handoff.");
                 }
                 finally { captureExpansion = false; }
             }
@@ -423,14 +527,24 @@ namespace CTCC
                 yield return WalkWithInput(new Vector3(4f, 0f, -3.30f));
                 yield return AimAndUseHere("AN01");
                 yield return Until(() => !busy && State.layer == Reality.B && State.Happened("CH01-T03"), "reception R→B");
+                yield return WalkWithInput(new Vector3(3.35f, 0f, -3.40f));
+                yield return AimAndUseHere("LAN_TALK");
+                yield return Until(() => lanDirector.IsCinematicActive, "Lan cinematic started on fast route");
+                yield return new WaitForSecondsRealtime(0.38f);
+                yield return Tap(Key.Space);
+                yield return Until(() => !busy && !lanDirector.IsCinematicActive && State.Happened("CH01-T04"), "Lan cinematic skipped cleanly");
                 yield return WalkWithInput(new Vector3(2.98f, 0f, -2.76f));
                 yield return AimAndUseHere("BOARD");
-                yield return Until(() => !busy && State.Happened("CH01-T05"), "board granted");
-                yield return Until(() => Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.Euler(0, scene.roomDoor.openAngle, 0)) < 1,
-                    "room door opens");
+                yield return Until(() => !busy && inspector.IsInspecting, "BOARD inspected");
+                yield return Choose("Nhận bảng kẹp & cất vào ba lô");
+                yield return Until(() => !busy && !ui.IsModal && State.Happened("CH01-T05"), "board granted");
 
                 yield return WalkWithInput(new Vector3(4f, 0f, -1f));
                 yield return WalkWithInput(new Vector3(4f, 0f, 4.77f));
+                yield return AimAndUseHere("DOOR-101");
+                yield return Until(() => scene.roomDoor.isOpen &&
+                    Quaternion.Angle(scene.roomDoor.pivot.localRotation, Quaternion.Euler(0, scene.roomDoor.openAngle, 0)) < 2f,
+                    "room door opens physically on player use");
                 yield return WalkWithInput(new Vector3(6.52f, 0f, 4.90f));
                 if (branch == FormStatus.Affirmed)
                 {
@@ -533,10 +647,20 @@ namespace CTCC
                 yield return AimAndUseHere("AN01");
                 yield return Until(() => !busy && State.layer == Reality.R, "reception B→R");
                 yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
-                yield return WalkWithInput(new Vector3(4.00f, 0f, -20.30f));
-                yield return Until(() => !busy && State.Happened("CH01-T09"), "exterior seam");
+                yield return WalkWithInput(new Vector3(4.00f, 0f, -19.0f));
+                yield return AimAndUseHere("SEAM");
+                yield return Until(() => !busy && State.Happened("CH01-T09"), "exterior seam via gate pull");
                 yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
                 yield return WalkWithInput(new Vector3(4.00f, 0f, -3.30f));
+                yield return Tap(Key.Tab);
+                yield return Until(() => ui.IsModal, "B08 Backpack Pocket Note");
+                Require(ActivePageContains(branch == FormStatus.Affirmed ? "đã ký xác nhận số 0" : "chưa xác minh"),
+                    $"B08 Pocket Note reflects {branch} choice");
+                yield return Choose("Giấy tờ & vật chứng");
+                yield return new WaitForSecondsRealtime(0.20f);
+                Require(!State.HasDreadEvent(DreadCatalog.Bag08Echo),
+                    $"P_BAG08_ECHO strictly does NOT fire on {branch} route where AS-05B was never examined");
+                yield return Tap(Key.Escape);
                 yield return AimAndUseHere("AN01");
                 yield return Until(() => !busy && State.chapter == "CH02", "CH02 handoff");
             }
