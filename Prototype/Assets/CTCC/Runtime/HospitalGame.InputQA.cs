@@ -98,12 +98,18 @@ namespace CTCC
                 yield return new WaitForSecondsRealtime(0.25f);
                 Require(!State.Happened("CH01-T02") && InventoryService.HasPhysical(State, BackpackCatalog.WingCKey),
                     "wrong Wing-C key rejected at outer gate and retained in backpack");
-                yield return Tap(Key.Tab);
-                yield return Until(() => ui.IsModal, "backpack opened to swap key");
-                yield return Choose("Chìa cổng phụ");
-                yield return Choose("Cầm ra tay");
-                yield return Until(() => !busy && !ui.IsModal &&
-                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey, "Gate key equipped from backpack");
+                // Test real keyboard Quick-Slot [1] & [H] stow (Proposal V1.1 §3.1 / BP-02)
+                Require(State.quickSlots.Count >= 2 && State.quickSlots[0] == BackpackCatalog.GateKey,
+                    "GateKey auto-assigned to Quick-Slot #1");
+                yield return Tap(Key.Digit1);
+                yield return Until(() => !busy && InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey,
+                    "Quick-Slot [1] equips GateKey directly without opening Backpack");
+                yield return Tap(Key.H);
+                yield return Until(() => !busy && InventoryService.GetEquipped(State) == null,
+                    "[H] stows held GateKey back into Backpack");
+                yield return Tap(Key.Digit1);
+                yield return Until(() => !busy && InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey,
+                    "Quick-Slot [1] re-equips GateKey for outer gate");
             }
             else
             {
@@ -119,9 +125,16 @@ namespace CTCC
             if (branch == FormStatus.Affirmed)
             {
                 yield return Until(() => Application.isFocused, "movement check requires a focused window");
+                yield return Tap(Key.F);
+                yield return Until(() => player.IsTorchOn && player.TorchIntensity >= 32f, "F toggles boosted flashlight ON");
+                yield return null;
+                CaptureInvestigation("proposal-flashlight-bright");
+                yield return null;
                 float z = player.Feet.z;
                 yield return Hold(Key.W, 0.4f);
                 Require(player.Feet.z > z + 0.35f, "W moves the real capsule");
+                yield return Tap(Key.F);
+                yield return Until(() => !player.IsTorchOn, "F toggles flashlight OFF cleanly");
             }
             if (branch == FormStatus.Refuted)
             {
@@ -239,9 +252,25 @@ namespace CTCC
                         "AS-05 reaction stays quiet while reading the discovered detail");
                     yield return new WaitForSecondsRealtime(0.35f);
                     ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "task04-05-shift-back.png"));
+                    yield return Choose("Cất tạm vào ba lô (Lớp B)");
+                    yield return Until(() => !busy && InventoryService.HasPhysical(State, BackpackCatalog.PaperShiftLog),
+                        "AS-05 shift guide temporarily stowed in Backpack (Layer B)");
                     yield return Tap(Key.Escape);
                     yield return Until(() => StaffTranscriptCount("CH01-D18") == 1 && staffReactionCaption != null,
                         "AS-05 reacts after inspection and close");
+                    // Place stowed AS-05 onto 2-slot STAFF physical comparison desk and capture 1080p visual proof!
+                    yield return WalkWithInput(new Vector3(-0.08f, 0f, 3.70f));
+                    yield return AimAndUseHere("COMPARE_DESK_STAFF");
+                    yield return Choose("Đặt Quy chế AS-05 vào đây");
+                    yield return Until(() => !busy &&
+                        InventoryService.GetPlacedAt(State, WorldAnchors.StaffDeskLeft)?.itemDefId == BackpackCatalog.PaperShiftLog,
+                        "AS-05 placed visibly on 2-slot STAFF comparison desk");
+                    yield return Tap(Key.Escape);
+                    yield return Until(() => !ui.IsModal, "STAFF comparison modal closed");
+                    player.SetViewRotation(Quaternion.LookRotation(new Vector3(0.88f, 0.93f, 3.70f) - player.Eye.transform.position));
+                    yield return null;
+                    CaptureInvestigation("proposal-staff-desk-2slot");
+                    yield return null;
                     yield return WalkWithInput(new Vector3(0.15f, 0f, 7.50f));
                     yield return WalkWithInput(new Vector3(1.55f, 0f, 7.50f));
                     yield return AimAndUseHere("DOOR-STAFF");
@@ -320,8 +349,16 @@ namespace CTCC
                     yield return null;
 
                     yield return Tap(Key.Tab);
-                    yield return Until(() => ui.IsModal, "Backpack opened via Tab");
-                    yield return new WaitForSecondsRealtime(0.24f);
+                    yield return Until(() => ui.IsModal && backpackStage != null && backpackStage.IsOpen, "Backpack + 3D canvas stage opened via Tab");
+                    yield return new WaitForSecondsRealtime(0.28f);
+                    CaptureInvestigation("proposal-backpack-3d");
+                    yield return null;
+                    yield return Choose("Tìm đồ đã đặt");
+                    yield return new WaitForSecondsRealtime(0.16f);
+                    Require(ActivePageContains("Kẹp đối chiếu cạnh F101") && ActivePageContains("Bàn điều dưỡng STAFF"),
+                        "Backpack 'Tìm đồ đã đặt' lists all placed items across zones");
+                    yield return Choose("Thẻ AS-05B [Đang đặt]");
+                    yield return new WaitForSecondsRealtime(0.16f);
                     CaptureInvestigation("walkthrough-backpack-papers");
                     yield return null;
                     yield return Choose("Mở sổ ghi chép đầy đủ");
@@ -755,6 +792,8 @@ namespace CTCC
             yield return Until(() => State.layer == Reality.M, "M via AN03");
             yield return Choose("Trở về kho");
             yield return Until(() => !busy && State.layer == Reality.R && !ui.IsModal, "Back to R");
+            Require(InventoryService.FindByDef(State, BackpackCatalog.MemVignetteC02)?.status == BackpackItemStatus.MemoryRef &&
+                    InventoryService.ValidState(State), "CH03 MemoryOnly vignette recorded strictly as non-exportable MemoryRef");
             yield return UseFrom("C12_BOX", new Vector3(-1.55f, 8.015f, 33.45f));
             yield return Choose("Ghi nhận sự tồn tại C12");
             yield return Until(() => !busy && State.Happened("FS19"), "C12 row saved");
@@ -776,6 +815,11 @@ namespace CTCC
             yield return Choose("Đọc bản chép băng");
             yield return Choose("Ghi nhận lời Lan");
             yield return Choose("Rời phòng trực");
+            Require(InventoryService.HasPhysical(State, BackpackCatalog.Ch04Orders) &&
+                    InventoryService.HasPhysical(State, BackpackCatalog.Ch04Log) &&
+                    InventoryService.HasPhysical(State, BackpackCatalog.Ch04Tape) &&
+                    WorldUseResolver.Resolve(State, BackpackCatalog.Ch04Tape, "AN04").Outcome == WorldUseOutcome.PlayTapeAtDutyDesk,
+                "CH04 duty items & tape synced to Backpack and WorldUseResolver");
             yield return WalkWithInput(new Vector3(4, 4, 33.6f));
             yield return WalkWithInput(new Vector3(4, 0, 20.97f));
             yield return WalkWithInput(new Vector3(7, 0, 21.17f));
@@ -898,11 +942,40 @@ namespace CTCC
                 yield return Choose("Thu thập");
                 yield return Until(() => !busy && !ui.IsModal, id + " durable pickup completed");
             }
+            Require(InventoryService.HasPhysical(State, BackpackCatalog.Ch02Draw1) &&
+                    InventoryService.HasPhysical(State, BackpackCatalog.Ch02Draw2) &&
+                    InventoryService.HasPhysical(State, BackpackCatalog.Ch02Draw3) &&
+                    InventoryService.HasPhysical(State, BackpackCatalog.Ch02Wristband) &&
+                    InventoryService.HasPhysical(State, BackpackCatalog.Ch02Transfer),
+                "CH02 evidence auto-synced into physical Backpack catalog");
+            if (!sideDoor)
+            {
+                // Affirmed branch tests physical Room 101 2-slot table: place wristband + assemble 3 drawing fragments on table!
+                player.Teleport(new Vector3(7.08f, 0.02f, 3.18f), Quaternion.Euler(0f, 180f, 0f));
+                yield return AimAndUseHere("COMPARE_DESK_101");
+                yield return Choose("Đặt Vòng tay C01 vào đây");
+                yield return Until(() => !busy &&
+                    InventoryService.GetPlacedAt(State, WorldAnchors.Ward101TableLeft)?.itemDefId == BackpackCatalog.Ch02Wristband,
+                    "CH02 wristband placed on Room 101 comparison table slot 1");
+                yield return Choose("Ghép 3 mảnh tranh trên mặt bàn");
+                yield return Until(() => !busy && !ui.IsModal && State.Has(EvidenceRegistry.Drawing) &&
+                    InventoryService.GetPlacedAt(State, WorldAnchors.Ward101TableRight)?.itemDefId == BackpackCatalog.Ch02DrawFull,
+                    "CH02 3 drawing fragments physically assembled on Room 101 table beside C01 wristband");
+                player.SetTorchEnabled(true);
+                player.SetViewRotation(Quaternion.LookRotation(new Vector3(7.08f, 0.80f, 2.26f) - player.Eye.transform.position));
+                yield return null;
+                CaptureInvestigation("proposal-ch02-table-drawing");
+                yield return null;
+                player.SetTorchEnabled(false);
+            }
             player.Teleport(scene.Pad("AP04"));
             yield return AimAndUseHere("F101");
             yield return Choose("Ghép tranh và kiểm hồ sơ");
-            yield return Choose("Ghép tranh theo đường mép");
-            yield return Until(() => !busy && State.Has(EvidenceRegistry.Drawing), "assembled drawing was saved");
+            if (!State.Has(EvidenceRegistry.Drawing))
+            {
+                yield return Choose("Ghép tranh theo đường mép");
+                yield return Until(() => !busy && State.Has(EvidenceRegistry.Drawing), "assembled drawing was saved");
+            }
             yield return Choose("Đối chiếu An");
             yield return Until(() => !busy && !savingDialogue && GateService.G02(State), "C01 checkpoint");
             Require(GateService.G02(State), "G02 opens through physical evidence and UI");

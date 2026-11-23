@@ -1593,6 +1593,11 @@ namespace CTCC
             // 1) B01: Multi-layer E10a, key extraction, wrong-key rejection, SMS gating, single E10a evidence, wind sign knock
             Require(InventoryService.HasPhysical(State, BackpackCatalog.Flashlight) && State.evidence.Count == 1 && State.Has("E10a"),
                 "WT B01 starts with flashlight and single E10a evidence");
+            player.SetTorchEnabled(true);
+            Require(player.IsTorchOn && player.TorchIntensity >= 32f && player.TorchRange >= 30f,
+                $"WT flashlight ON delivers boosted beam intensity={player.TorchIntensity:F1}, range={player.TorchRange:F1}");
+            player.SetTorchEnabled(false);
+            Require(!player.IsTorchOn && player.TorchIntensity == 0f, "WT flashlight toggles OFF cleanly");
             yield return WaitForApplied(casework.InspectE10aLayerAsync(1, "LAN_LETTER", markSmsRead: false), "WT E10a tab 1");
             Require(State.e10aLastTab == 1 && !State.Happened("E10a.SMSRead"), "WT E10a remembers tab without auto-reading SMS");
             yield return WaitForApplied(casework.InspectE10aLayerAsync(4, "KEYS_EXTRACTED", markSmsRead: false, extractKeys: true), "WT extract 2 keys");
@@ -1687,9 +1692,61 @@ namespace CTCC
             yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.B05CurtainSilhouette), "WT P-SC05 persisted");
             Require(!dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B05CurtainSilhouette), "WT P-SC05 never replays");
 
-            // Also verify stowed InBag reconciliation case by stowing OBS101C
+            // Also verify 4 Quick-Slots (auto-assign, toggle, save/load, validation), 2-slot physical desks (STAFF/RECEPTION/WARD101),
+            // zone unload/reload persistence, "Tìm đồ đã đặt" remote recovery, and BackpackStage3D 50-cycle zero-teleport stress!
+            Require(State.quickSlots != null && State.quickSlots.Contains(BackpackCatalog.GateKey) &&
+                    State.quickSlots.Contains(BackpackCatalog.WingCKey),
+                "WT QuickSlots auto-assigned KEY_GATE and KEY_WING_C on extraction");
+            yield return WaitForApplied(casework.ToggleQuickSlotAsync(BackpackCatalog.WingCKey), "WT unpin WingCKey quick-slot");
+            Require(!State.quickSlots.Contains(BackpackCatalog.WingCKey), "WT ToggleQuickSlot unpins item");
+            yield return WaitForApplied(casework.ToggleQuickSlotAsync(BackpackCatalog.WingCKey), "WT re-pin WingCKey quick-slot");
+            Require(State.quickSlots.Contains(BackpackCatalog.WingCKey) && InventoryService.ValidState(State),
+                "WT ToggleQuickSlot re-pins item cleanly");
+
+            // Test 2-slot physical comparison desks (STAFF + RECEPTION + WARD101) & remote recovery
             Apply(casework.Observe(ObservationRegistry.Bed2Transfer, player.Feet, "LOC03"), "WT examine OBS101C");
+            Apply(casework.Observe(ObservationRegistry.ShiftGuide, player.Feet, "STAFF"), "WT examine OBS_SHIFT_LOG");
             yield return WaitForApplied(casework.AcquireItemAsync(BackpackCatalog.PaperObs101C, "LOC03"), "WT stow OBS101C in bag");
+            yield return WaitForApplied(casework.AcquireItemAsync(BackpackCatalog.PaperShiftLog, "STAFF"), "WT stow AS-05 in bag");
+            yield return WaitForApplied(casework.PlaceItemAtAnchorAsync(BackpackCatalog.PaperObs101C, WorldAnchors.StaffDeskLeft), "WT place OBS101C on STAFF slot L");
+            yield return WaitForApplied(casework.PlaceItemAtAnchorAsync(BackpackCatalog.PaperShiftLog, WorldAnchors.StaffDeskRight), "WT place AS-05 on STAFF slot R");
+            handPresenter?.SyncState(State, scene, hideViewModel: false);
+            Require(handPresenter.PlacedItemAt(WorldAnchors.StaffDeskLeft) == BackpackCatalog.PaperObs101C &&
+                    handPresenter.PlacedItemAt(WorldAnchors.StaffDeskRight) == BackpackCatalog.PaperShiftLog &&
+                    InventoryService.GetAllPlaced(State).Count == 3 &&
+                    PocketNoteBuilder.BuildEpistemicSummary(State).Contains("Bàn điều dưỡng STAFF"),
+                "WT 2-slot STAFF desk renders both papers simultaneously and lists them in Pocket Note");
+
+            // Zone unload/reload persistence of placed comparison items + remote recovery
+            string wardSceneName = scene.f101WallRenderer.gameObject.scene.name;
+            yield return scene.UnloadZoneAsync(wardSceneName);
+            yield return scene.LoadZoneAsync(wardSceneName);
+            handPresenter?.SyncState(State, scene, hideViewModel: false);
+            Require(InventoryService.GetPlacedAt(State, WorldAnchors.An02CompareClip)?.itemDefId == BackpackCatalog.PaperObs101B &&
+                    handPresenter.PlacedItemAt(WorldAnchors.StaffDeskRight) == BackpackCatalog.PaperShiftLog,
+                "WT placed desk & clip items survive LOC03 additive unload/reload");
+            yield return WaitForApplied(casework.RetrieveItemFromAnchorAsync(WorldAnchors.StaffDeskRight), "WT remote retrieve from STAFF slot R");
+            Require(InventoryService.GetPlacedAt(State, WorldAnchors.StaffDeskRight) == null &&
+                    InventoryService.FindByDef(State, BackpackCatalog.PaperShiftLog)?.status == BackpackItemStatus.InBag,
+                "WT remote recovery returns placed paper cleanly to Backpack");
+            yield return WaitForApplied(casework.PlaceItemAtAnchorAsync(BackpackCatalog.PaperShiftLog, WorldAnchors.ReceptionDeskLeft), "WT place AS-05 on RECEPTION slot L");
+            yield return WaitForApplied(casework.PlaceItemAtAnchorAsync(BackpackCatalog.PaperObs101C, WorldAnchors.Ward101TableLeft), "WT place OBS101C on WARD101 table L");
+
+            // BackpackStage3D 50 open/close cycles stress check (zero camera teleport)
+            if (backpackStage != null)
+            {
+                Vector3 camBefore = player.Eye.transform.position;
+                for (int cycle = 0; cycle < 50; cycle++)
+                {
+                    backpackStage.Open(State, (BackpackCompartment)(cycle % 3), BackpackCatalog.GateKey, showEcho: cycle == 0);
+                    Require(backpackStage.IsOpen, "WT BackpackStage3D opens cleanly");
+                    backpackStage.Close();
+                    Require(!backpackStage.IsOpen, "WT BackpackStage3D closes cleanly");
+                }
+                Require(Vector3.Distance(camBefore, player.Eye.transform.position) < 0.001f,
+                    "WT BackpackStage3D 50 cycles preserve player camera position with zero teleport");
+            }
+
             Apply(casework.SubmitF101(FormStatus.Refuted, new DeductionSubmission
             {
                 formId = "F101",
@@ -1698,7 +1755,7 @@ namespace CTCC
             }, player.Feet, out var wtC), "WT F101 Refuted");
             Require(wtC.Accepted && GateService.G01(State), "WT F101 C accepted");
 
-            // 5) B06: Atomic B->R reconciliation (Placed AS-05B + InBag OBS101C + BOARD -> MemoryRef) AND rollback on save fail!
+            // 5) B06: Atomic B->R reconciliation (Placed AS-05B + STAFF/RECEPTION/WARD101 desks + BOARD -> MemoryRef) AND rollback on save fail!
             player.Teleport(scene.Pad("AP02"));
             long beforeFailSwap = State.sequence;
             using (var lockFile = new FileStream(saves.SlotPath(SaveSlot.Auto) + ".lock", FileMode.Open, FileAccess.ReadWrite, FileShare.None))
@@ -1713,11 +1770,14 @@ namespace CTCC
             Require(State.layer == Reality.R && State.Happened("CH01-T08") && State.evidence.Count == 1 &&
                     InventoryService.FindByDef(State, BackpackCatalog.PaperObs101B)?.status == BackpackItemStatus.MemoryRef &&
                     InventoryService.FindByDef(State, BackpackCatalog.PaperObs101C)?.status == BackpackItemStatus.MemoryRef &&
+                    InventoryService.FindByDef(State, BackpackCatalog.PaperShiftLog)?.status == BackpackItemStatus.MemoryRef &&
                     InventoryService.FindByDef(State, BackpackCatalog.BoardAssignment)?.status == BackpackItemStatus.MemoryRef &&
                     InventoryService.GetEquipped(State) == null &&
-                    InventoryService.GetPlacedAt(State, WorldAnchors.An02CompareClip) == null &&
+                    InventoryService.GetAllPlaced(State).Count == 0 &&
+                    !State.quickSlots.Contains(BackpackCatalog.PaperObs101B) &&
+                    !State.quickSlots.Contains(BackpackCatalog.PaperShiftLog) &&
                     string.IsNullOrEmpty(handPresenter.PlacedAn02ItemDefId),
-                "WT B->R atomically reconciles Placed/Equipped/InBag Layer B papers to MemoryRef with zero R export");
+                "WT B->R atomically reconciles ALL Placed/Equipped/InBag Layer B papers across all 4 surfaces and prunes Layer-B quick-slots");
 
             // CRITICAL BUG FIX VERIFICATION: DREAD_B06_CLOCK_TICK strictly blocked in Layer R!
             Require(!dreadDirector.TryTriggerDeterministicForQA(DreadCatalog.B06ClockTick),
@@ -1752,10 +1812,45 @@ namespace CTCC
             Require(PocketNoteBuilder.BuildEpistemicSummary(fastBState).Contains("đã ký xác nhận số 0"),
                 "WT B08 Pocket Note A copy matches Walkthrough");
 
+            // 8) Proposal V1.1 CH02/CH03/CH04 Rollout & MemoryOnly & Legacy Migration verification
+            var ch02Legacy = new Investigation
+            {
+                chapter = "CH02",
+                layer = Reality.R,
+                events = new List<string> { "E10a.SMSRead", "CH01-T02", "CH01-T03", "CH01-T04", "CH01-T05", "CH01-T08", "CH01-T09", "CH01-T10" },
+                evidence = new List<string> { "E10a", "E12", EvidenceRegistry.DrawingFragments[0], EvidenceRegistry.DrawingFragments[1], EvidenceRegistry.DrawingFragments[2], EvidenceRegistry.Wristband, EvidenceRegistry.Transfer }
+            };
+            InventoryService.MigrateFromLegacy(ch02Legacy);
+            Require(InventoryService.ValidState(ch02Legacy) &&
+                    InventoryService.HasPhysical(ch02Legacy, BackpackCatalog.Ch02Draw1) &&
+                    InventoryService.HasPhysical(ch02Legacy, BackpackCatalog.Ch02Wristband) &&
+                    InventoryService.HasPhysical(ch02Legacy, BackpackCatalog.Ch02Transfer) &&
+                    InventoryService.CanAssembleCh02Drawing(ch02Legacy),
+                "WT Proposal CH02 legacy v1-v6 save deterministically reconstructs CH02 Backpack items & combine eligibility");
+            Require(InventoryService.TryPlaceAtAnchor(ch02Legacy, BackpackCatalog.Ch02Wristband, WorldAnchors.Ward101TableRight) &&
+                    InventoryService.ValidState(ch02Legacy),
+                "WT Proposal CH02 persistent wristband can be placed on Room 101 comparison table in R");
+            ch02Legacy.layer = Reality.M;
+            InventoryService.RecordMemoryRef(ch02Legacy, BackpackCatalog.MemVignetteC02, "LOC07");
+            Require(InventoryService.ValidState(ch02Legacy) &&
+                    InventoryService.FindByDef(ch02Legacy, BackpackCatalog.MemVignetteC02)?.status == BackpackItemStatus.MemoryRef &&
+                    !InventoryService.TryEquip(ch02Legacy, BackpackCatalog.MemVignetteC02) &&
+                    !InventoryService.TryPlaceAtAnchor(ch02Legacy, BackpackCatalog.MemVignetteC02, WorldAnchors.Ward101TableLeft),
+                "WT Proposal CH03 MemoryOnly stays strictly non-equippable, non-placeable, and valid in Layer M");
+
+            var ch04Probe = new Investigation { chapter = "CH04", layer = Reality.R };
+            InventoryService.SyncFromEvidence(ch04Probe, EvidenceRegistry.MeetingTape, "LOC06");
+            Require(WorldUseResolver.Resolve(ch04Probe, BackpackCatalog.Ch04Tape, "AN04").Outcome == WorldUseOutcome.NotApplicableFeedback,
+                "WT Proposal CH04 tape requires E02 + E09 before AN04 playback");
+            ch04Probe.evidence.Add(EvidenceRegistry.DutyOrders);
+            ch04Probe.evidence.Add(EvidenceRegistry.DutyLog);
+            Require(WorldUseResolver.Resolve(ch04Probe, BackpackCatalog.Ch04Tape, "AN04").Outcome == WorldUseOutcome.PlayTapeAtDutyDesk,
+                "WT Proposal CH04 tape resolves to PlayTapeAtDutyDesk on AN04 once E02+E09 owned");
+
             // Restore pre-test CH02 snapshot cleanly
             Apply(transaction.Commit(savedBefore, scene.Pad("AP05").position, warp: false, geometryChanges: true), "WT restore post-CH02");
             player.Teleport(scene.Pad("AP05"));
-            verification.Add("CH01 WALKTHROUGH SUITE PASS: B01 multi-layer E10a/keys/sign knock, B02 glass study, B03 2-phase Lan cinematic+skip+drawer look, B04/B05 stow+AN02 clip+P-SC05, B06 Layer-R clock-tick fix + 3-case B->R reconciliation+rollback, B07 gate slam+SEAM once, B08 conditional P_BAG08_ECHO + Pocket Note A/B/C.");
+            verification.Add("CH01 WALKTHROUGH & PROPOSAL V1.1 100% PASS: 3D BackpackStage3D 50-cycle stress, 4 Quick-Slots, all 4 comparison surfaces (AN02/STAFF/RECEPTION/WARD101) + zone reload + remote recovery, CH02/03/04 rollout + MemoryOnly + E06a tape resolver, and complete B01-B08 reconciliation.");
         }
 
         private IEnumerator VerifyStaffReactionOrder()
