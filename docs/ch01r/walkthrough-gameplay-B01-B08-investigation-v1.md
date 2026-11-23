@@ -65,6 +65,24 @@ Mưa đêm rơi xuống sân xi măng. Xe máy Minh dừng cạnh lối cổng p
 
 5. **Bước vào.** Người chơi chủ động đẩy cánh cổng, mưa nặng hạt phủ khoảng sân phía trong. Camera không tự xoay lại chiếc xe. Quyết định đầu tiên của Minh là **đi vào dù cuộc hẹn bị hoãn**.
 
+#### Từng bước trong cảnh: vật thể, tay cầm và chú ý của Minh
+
+| Khoảnh khắc | Người chơi làm gì | Phản hồi phải nhìn/nghe được | Câu hỏi được đặt ra |
+| --- | --- | --- | --- |
+| Trước khi đụng E10a | Tự nhìn xe, cửa phụ, thông báo trong vùng tối; có thể thử tay nắm cổng | Cổng chưa nhúc nhích, chìa không tự xuất hiện; phong bì dưới đèn vẫn là điểm nhìn | Bảy đã hoãn; tại sao Minh vẫn có mặt? |
+| Chạm phong bì | Bàn tay nâng E10a khỏi bề mặt, không biến mất tức thì vào HUD | Âm giấy ướt, nếp gấp có độ dày; bàn tay giữ yên khi vào inspector | Ai chuẩn bị để Minh đọc chuyện này? |
+| Mở từng lớp | Lật mặt, hé phong bì, soi thư Lan và tin Bảy, quay qua mẩu báo | Các mặt giấy dùng texture và transcript đúng nguồn; đọc theo thứ tự bất kỳ, không tự đọc hộ câu trả lời | Lời hẹn và lời báo hoãn có ý nghĩa gì? |
+| Nhìn cụm chìa | Rút chìa cổng, cất chìa còn lại; xoay chìa trước ống kính nếu muốn | Đồ vật nhỏ vẫn có hình và âm kim loại, ngăn dụng cụ hiện item thực sự đã nhận | Tại sao cùng phong bì lại có một chìa khác? |
+| Gặp ổ khóa | Đưa chìa tới ổ, thao tác xoay, mở chốt, đẩy cổng | Ánh kim loại gỉ, tiếng khóa rời và lực cánh cửa; không có animation điện ảnh lấy mất camera | Chính Minh đã lựa chọn đi tiếp |
+
+**Nhịp thao tác:** khi nhấc E10a lần đầu, giữ vật ở vị trí thuận tay, không lập tức chuyển tới trang văn bản nguyên khối. Bì thư là một vật thể có ít nhất mặt ngoài và khoang chứa; nội dung thư, mẩu báo và chìa phải được tiếp cận qua một hành động có hình. Không buộc player xoay đủ một góc pixel-perfect: vùng lật và nút trợ năng cho kết quả như nhau. Nếu đang xem mẩu báo và đóng túi, mở lại đúng trang/cấu trúc mà người chơi đã xem; không buộc lặp đọc lại SMS để đóng gate.
+
+**Điểm khác biệt giữa “đã nhặt” và “đã hiểu”:** đưa E10a vào túi chỉ làm trạng thái sở hữu thay đổi. CH01-T02 yêu cầu đã **đọc nội dung tin báo hoãn** (E10a.SMSRead), không chỉ chạm prop. Ngược lại, sau khi đọc hợp lệ, không ép xem thêm tấm biển tháo dỡ mới cho cổng mở. Người chơi có thể đọc thư Lan trước, đọc mẩu báo sau, rồi tin Bảy cuối cùng; mọi trình tự hợp lệ.
+
+**Gợi hướng và sai thao tác:** nếu thử mở cổng khi chưa có chìa, âm ổ khóa khô và Minh chú ý về bì thư gần xe; không bật cửa sổ hướng dẫn nhiều dòng. Nếu đã có chìa nhưng chưa đọc SMS, phản hồi từ chối phải nói điều còn thiếu là thông tin, không “đưa sai chìa”. Nếu cầm chìa khu C vào cổng phụ, trò chơi cho phép cất/đổi qua chìa đúng với phản hồi ngắn; không lấy món C khỏi túi hay gắn nhãn nó là đồ vô dụng. Nếu người chơi thả chìa tại anchor được phép, nó vẫn có thể lấy lại, không rơi dưới mặt đất qua collider.
+
+**Bản lưu:** lần đọc E10a, nhận item con, sự kiện SMS và CH01-T02 phải có once ID riêng. Khởi tạo evidence E10a có thể có sẵn trong data; vì thế nhặt và mở phong bì **không thêm lần thứ hai vào state.evidence**. Save ngay sau khi nhặt nhưng trước khi đọc phải cho phép quay lại đúng chỗ, mở tiếp phần SMS, không auto mở cổng; save sau khi mở cổng phải giữ khóa và gate không bị đặt lại.
+
 #### Nhịp kinh dị
 
 Khi người chơi hạ phong bì, âm mưa trở lại hơi khác hướng. Nếu đã nhìn biển tháo dỡ, cánh biển tôn gõ một tiếng ngắn sau khi chốt cổng chuyển động; đó là âm kim loại có nguồn, không phải một jumpscare “ma” đầu chương. Giữ khoảng trống âm thanh để người chơi tiếp tục suy nghĩ về lời hẹn.
@@ -93,6 +111,22 @@ Minh biết bệnh viện đã đóng, có 13 người chết theo thông tin c�
 #### Nhịp kinh dị
 
 Một micro-dread phụ thuộc góc nhìn là đủ. Không chồng tia chớp mạnh, tiếng gõ kim loại B01 và jumpscare ở cửa sảnh trong thời gian quá sát nhau. Cảnh rùng mình đến từ điều phi lý rất nhỏ: **ánh sáng của một ca trực trong tòa nhà lẽ ra đã bỏ hoang**.
+
+#### Dàn cảnh bổ sung tại sân và ô kính
+
+**Bản đồ chú ý:** lối đi từ cổng tới sảnh đặt người chơi trên một đường có thể nhìn thấy quầy đèn ấm. Khoảng sân không nên bị xây thêm bẫy hành lang hay vật chắn khiến người chơi không thể tiếp cận vì không tìm được một công tắc. Vùng đèn có thể phản chiếu trên nền ướt, nhưng **không phải dấu chỉ đường tuyệt đối**; người chơi đã thấy cổng, xe và thông báo trong B01 nên vẫn nhận ra phương hướng khi quay lại B07.
+
+**Những lần nhìn khác nhau:**
+
+- **Đi thẳng, không ngoái:** bóng thoáng đủ một khoảnh khắc ở mép kính; lời/cue CH01-D02 có thể mở theo guard đã có. Không ném HUD “Bạn đã bỏ lỡ manh mối”.
+- **Dừng tại góc rộng:** bóng người ở sâu sau kính, đèn tạo lớp phản xạ khiến không rõ đó là một người sống, một nhân viên bảo vệ hay ánh đèn bị méo.
+- **Đi ngang kính sang trái/phải:** trục bóng so với cột/quầy đổi chậm hơn dự kiến. Điều này là một anomaly thị giác, không ghi thành Evidence.
+- **Tiến sát và nhìn lại lần hai:** một cú thay đổi góc vai hoặc bóng ở ghế diễn ra đúng lúc player tự rời mắt khỏi một landmark. Khi nhìn trực diện lại, quầy có thể trống hoặc khó nhìn hơn qua phản xạ.
+- **Bật/tắt đèn pin:** ánh sáng trên lớp kính thay đổi đúng quy tắc phản xạ; bóng trong sảnh không bị rọi sáng thành một khuôn mặt quái dị.
+
+**Thời gian và tính chủ động:** sự kiện phụ chỉ có thể phát một lần và không được buộc chờ một timeout 60 giây. Sau mỗi sự kiện quan sát mạnh có nhịp yên đủ để chân người chơi, mưa và tiếng cửa lấn lên trở lại. Nếu player chạy qua, game giữ nhịp, không teleport bóng ra trước mặt cho bằng được.
+
+**Tính liên tục với B03:** đây là hình ảnh trục quầy từ phía R. Sau khi giở sổ R→B ở AN01, Lan phải ở vị trí có thể liên hệ với bóng ấy; tuy vậy game không đóng dấu “đã gặp Lan” chỉ vì người chơi nhìn qua kính. LAN_TALK không bị kích bằng trục nhìn B02. Mọi nguồn ghi nhận siêu nhiên ở giai đoạn này chỉ là cảm giác về không gian, không là tài liệu dùng ký F101.
 
 #### Thông tin và trạng thái sau beat
 
