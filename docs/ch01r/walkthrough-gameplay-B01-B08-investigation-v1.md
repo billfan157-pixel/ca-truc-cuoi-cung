@@ -492,3 +492,49 @@ Giữ nguyên các trang Sổ trực phản ánh **sự kiện / nguồn / suy l
 **Trạng thái:** Proposal v1.3, **chưa sửa code**. Các thao tác item-use, save schema v7, bag UI, B→R item reconciliation và spatial placement là yêu cầu triển khai mới. Đường code hiện `Journal()` qua Tab/J, `PhysicalInspector`, `Casework` và `Protocol.Schema = 6` phải được review từng stage; không tự ghi PASS.
 
 **Canon QA:** `E10a` là 1 evidence seeded; `OBS101A/B` vẫn là cặp suy luận C; A/B mở G01 khi chưa nhặt gì; giấy B không export vật lý R; `LIST/SOCKETS/WHEELS/PZ01/E12/E11` chỉ được CH02 xác thực; `CH01-D16b/CH04-D06` không lộ sớm; `E08` nonexport; end states giữ nguyên. Save/load, rollback, keyboard/alternate, large print và giảm chuyển động là cổng nghiệm thu bắt buộc.
+
+---
+
+## 10. Đối chiếu bản Backpack & Exploration-First v2.0 → quyết định v1.4 (23/11/2026)
+
+**Nguồn review:** file `walkthrough_gameplay_b01_b08_backpack_v2.md` do người dùng cung cấp (256 dòng, đề xuất thiết kế). Bản này có khả năng tăng immersion mạnh vì cầm/nắm/soi/sử dụng đồ trực tiếp, giản lược giao diện suy luận và dựng phản ứng kinh dị trên đồ trong túi. Dù vậy, không thể gọi là đã “đạt chuẩn indie hàng đầu thế giới” khi **chưa có playtest**; so sánh với *Devotion*, *Amnesia: The Bunker*, *SIGNALIS* và *P.T.* là nguồn cảm hứng, không phải chứng minh hiệu quả CTCC.
+
+| Ý nguồn v2.0 | Quyết định | Phần đã cập nhật trong Walkthrough |
+| --- | --- | --- |
+| Ba ngăn: dụng cụ, tài liệu, giấy nhớ | **Tiếp nhận phần giao diện** | Ba ngăn rõ ràng, mở vật nhanh bằng một bước tới `PhysicalInspector`; backend giữ loại dữ liệu/provenance và chứng cứ tách biệt. Pocket Note 1–2 câu nội tâm/mục tiêu, có sổ nguồn đầy đủ mở sâu khi cần, không xóa save notes. |
+| Phong bì chứa hai chìa; chìa phụ dùng mở cổng | **Tiếp nhận sau khi kiểm code** | E10a source đã có *cả hai chìa* trong `Letter()`; item hóa chìa phụ/tra ổ bằng thao tác thế giới, giữ `E10a.SMSRead`, T02 và evidence count=1. |
+| Thử chìa khu C tại LOC04 CH01, khóa không vừa | **Không tiếp nhận** | Chìa khu C có trong E10a nhưng CH01 không cho khám phá Khu C trước; câu mở khóa/đổi khóa cũng cần narrative guard. Dành vật phẩm làm gợi báo cho chương phù hợp. |
+| Bỏ cinematic gặp Lan, thoại 100% FPS ±35°, 6 giây tự giao việc | **Không thay đổi quyết định hybrid** | Scripted lead-in tự nhiên → player E/K → cinematic thoại ngắn → FPS và tự nhặt BOARD. Không auto-lock camera từ xa hay auto-feed T05. |
+| Lan tuyệt đối không phản chiếu trong kính | **Giữ ở dạng thử nghiệm mơ hồ** | Chỉ thử lóa kính/trễ ánh phản xạ ở một góc phụ; không tự khẳng định siêu nhiên hoặc thêm bằng chứng ghost chắc chắn vào nhật ký. |
+| Thêm 4 công tắc bóc băng, bóng giường 4 | **Chờ review level/điện** | Không lấy 4 ổ cắm CH02 R làm cớ tự dựng 4 công tắc B; trước mắt giữ spatial deduction dấu sàn/rèm/vị trí đầu giường thuộc OBS101A. |
+| Thẻ AS-05B được kẹp F101 và ký ngay C | **Lấy thao tác kẹp, không nhận tự động pass** | `Clip AS-05B` chỉ tạo visual placement/candidate relation, phải có OBS101A/B Examined, marks chính xác và claim giới hạn, validator quyết định; A/B không đòi thẻ. |
+| F101 signed mang từ quầy sang 101 rồi về AN01 | **Không thay đổi anchor canon** | BOARD/T05 tại AN01 khác F101/AN02; giấy ký/hình học F101 vẫn gắn lớp B và quyết định được lưu trong history; T08 vẫn qua sổ trực AN01, không bỏ gate. |
+| Acoustic Vacuum 2,5s, hai jumpscare, tối toàn sân | **Chấp nhận ý tứ, chỉnh tham số** | Ducking theo tương tác và nhịp thở, có hướng, không ép quay camera, ngưỡng tiếng/trợ năng, không khóa tối sân/đường đi hoặc tự cố định thời gian cho tất cả người chơi. |
+| Mang nguyên F101 + AS-05B 2005 qua R 2012 | **Không nhận literal; nhận nỗi sợ từ ký ức đồ vật** | `P-BAG08_ECHO` là hình ảnh/memory-reference có điều kiện **chỉ cho người từng xem/cất**; không tương đương giấy gốc, không thể sử dụng, không thêm Evidence, giấy B trở về anchor sau T08. |
+| Pacing “18–22 phút đặc quánh” | **Không nhận số khi chưa test** | Bảng nguồn cộng min **21 phút**, max **26,5 phút** (nó tự ghi 21–26, tiêu đề còn ghi 18–22). Bản v1.4 giữ mục tiêu thiết kế **20,5–30 phút** của §4, không coi là kết quả QA. |
+
+### 10.1. Tương tác chính v1.4 so với baseline chạy thật
+
+| Beat | Không gian 3D làm gì? | Item/ba lô làm gì? | Tại sao người chơi muốn làm? | Lúc nào không có menu? |
+| --- | --- | --- | --- | --- |
+| **B01** | Đến xe → mở phong bì → tra chìa vào cổng | E10a lưu, chìa phụ equip; chìa khu C chỉ là dấu hỏi | Tự quyết định bước vào dù Bảy hoãn | Toàn bộ pha khám phá sân/cổng |
+| **B02** | Lia đèn/đổi góc nhìn qua kính, vào quầy | Không cần mở ba lô | Xác minh bóng người ở nơi bỏ hoang | Cả beat |
+| **B03** | Lan nhận ra Minh, player tự bắt chuyện | Tự lấy BOARD/T05 sau cinematic | Minh giúp một người thân quen, chưa hiểu thời gian | Scripted lead-in và phần sau scene |
+| **B04** | Mở cửa/rèm, tự soi vệt bánh, nhấc thẻ B | AS-05B được lật/soi/cất; optional hồ sơ khác | So vật lý và quy trình bàn giao | Không buộc giao diện nối giấy |
+| **B05** | Kẹp thẻ cạnh F101 anchored, mark bằng tay, ký | Rút đúng thẻ nguồn B, chọn hỗ trợ link/claim | Phân biệt đã thấy với số 0 được yêu cầu ký | A/B ký ngay; C cần suy luận nhưng không màn quiz |
+| **B06** | Quay lại quầy, nhìn chỗ Lan vắng, giở sổ | B-paper chuyển thành reference sau swap | Kiểm xem câu chuyện “ca trực” có còn thật ở R | Không ép mở ba lô |
+| **B07** | Tự kéo cổng / seam một lần | Không có key-item giải seam | Muốn thoát nơi này | Cả beat |
+| **B08** | Tự đi lại quầy/AN01 | Nếu đã cất thẻ: thoáng thấy echo trong túi, bấm chỉ còn memory | Muốn kiểm chứng phòng 101 R | Không auto mở túi hay cấp vật chứng CH02 |
+
+### 10.2. Acceptance/QA bổ sung (đều **chưa chạy**)
+
+1. **E10a có hai chìa:** instance ID deterministic, mở hai lần không sinh chìa đôi; không có đường bỏ qua `E10a.SMSRead`; nhập save v1–6 không tự tặng vật phẩm/hồ sơ chưa nhặt.
+2. **Khu C giữ khóa tiết lộ:** item C tồn tại nếu E10a đã đọc nhưng `LOC04` CH01 không thành tuyến item-use mới; không ghi “đã kiểm ổ khóa thay” nếu người chơi chưa/không thể tới đó.
+3. **B03 hybrid không lùi lại:** trường hợp Lan thấy Minh mà Minh lùi lại, 6 giây đứng im, spam E/K, skip, load, không auto-start cinematic hoặc commit T05, không nhân VO, không auto-observe 03:17.
+4. **B04 tác vụ thật không làm tăng evidence:** đổi góc soi, kéo rèm, thẻ B, cầm/đặt/cất trong B; reset/rollback theo scene, alternate key/hỗ trợ chữ lớn đều tiếp cận OBS101A/B; C/D/EX01 vẫn optional.
+5. **B05 anti-bypass:** chỉ kẹp AS-05B rồi ký C khi chưa có OBS101A => *reject*. Chọn sai hotspot/link/claim => *reject có giải thích*. A/B => ký và mở G01 không cần vật phẩm. C hợp lệ => first/current/revisions đúng, B thay đổi riêng.
+6. **B06/B08 không chuyển vật chất B→R:** cầm AS-05B trên tay / đặt bàn / cất ngăn rồi T08 => sau swap **không có item B có thể equip trong R**; `ObservationRecord`/transcript/memory reference vẫn đầy đủ. `P-BAG08_ECHO` chỉ chạy nếu đã thực sự xem/cất, không bắt buộc để T10 và không tạo asset source R.
+7. **B07 dark/quiet accessibility:** mute, monoAudio, reducedMotion, captions, visibility tăng, không có vòng seam thứ hai; cổng/AN01 luôn tìm được. Không replay scare sau load.
+8. **TASK010 đối chứng:** đo thời gian tương tác vật lý vs UI, tỷ lệ tự lấy chìa đúng cách, số người hiểu vì sao kẹp AS-05B không đủ bác bỏ, mức độ sợ của echo có/không, và động lực tự vào CH02; nếu người chơi nhầm “đã nhặt tờ giấy B thật ở R”, cần điều chỉnh feedback provenance, **không coi nhầm lẫn là payoff thành công**.
+
+**Ghi chú khi bàn giao:** bản v1.4 vẫn là Markdown thiết kế. Chưa có ba lô runtime, chưa build/đo, chưa làm `P-BAG08_ECHO`, `P-SC03` hoặc các interaction mới. Thay đổi schema v7, nguồn copy và unlock mới chỉ được làm sau quyết định thuộc Core 01/02/04/06/07 và bản QA.
