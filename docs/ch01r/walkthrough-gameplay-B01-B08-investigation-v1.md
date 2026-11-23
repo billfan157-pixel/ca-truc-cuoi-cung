@@ -1,7 +1,7 @@
-# CH01 — NGƯỜI TRỞ VỀ: Walkthrough gameplay B01–B08 (Investigation-First Proposal v1.1)
+# CH01 — NGƯỜI TRỞ VỀ: Walkthrough gameplay B01–B08 (Investigation-First Proposal v1.2)
 
 > **TRẠNG THÁI: ĐỀ XUẤT THIẾT KẾ ĐỂ REVIEW, CHƯA TRIỂN KHAI / CHƯA PHÊ DUYỆT CANON.**
-> Ngày: 23/11/2026. Phạm vi: CH01 B01–B08 của *Ca trực cuối cùng*, trên CH01-R hiện hành.
+> Ngày: 23/11/2026. Phạm vi: CH01 B01–B08 của *Ca trực cuối cùng*, trên CH01-R hiện hành. **v1.2: tích hợp có chọn lọc phản biện từ báo cáo kiểm toán v1.1 người dùng cung cấp**; vẫn là đề xuất, chưa có build hoặc phê duyệt canon.
 > Tài liệu này là một walkthrough **được chỉ đạo bởi hành động của người chơi**, không phải chuỗi cutscene thuần tuyến tính. **Ngoại lệ có chủ đích tại B03:** Lan nhận biết Minh qua Scripted Event trong thế giới, rồi người chơi chủ động kích hoạt một Cinematic Dialogue Scene ngắn, liền mạch với FPS; sau đó trở lại khám phá tự do. Cách kể mới chỉ là phương án dàn dựng; thoại chính thức vẫn do Core 07/Dialogue sở hữu. Các trigger mới gắn tiền tố **P-SC / P-INT / P-NOTE** chỉ tồn tại trong đề xuất, KHÔNG phải event ID đã đăng ký.
 > Mục đích: tăng chiều sâu điều tra và nỗi sợ trong khi KHÔNG thay đổi canon, các gate và dữ liệu bằng chứng hiện hành trước khi được duyệt.
 
@@ -28,10 +28,10 @@
 
 ### 0.2. Nhịp mục tiêu và phạm vi
 
-- **Tuyến bắt buộc:** khoảng 21–27 phút ở người chơi mới biết đọc cơ bản; 16–20 phút khi chơi lại. 
-- **Tuyến khám phá sâu:** thêm 6–10 phút ở STAFF, ngăn kéo, hai hồ sơ đối chiếu, 03:17 và ghi chú cá nhân. Khoảng 27–37 phút không được biến thành yêu cầu bắt buộc của vertical slice.
+- **Tuyến chính v1.2:** mục tiêu **18–24 phút** cho người chơi mới; tổng các dải thời lượng B01–B08 ở §4 cộng **đúng 18–24 phút**. Đây là giả thuyết pacing để playtest, không phải số liệu thực nghiệm. Tuyến chơi lại có thể nhanh hơn và phải đo riêng; nếu người mới cần lâu hơn để hiểu F101, không được ép thời gian bằng cách bỏ manh mối. 
+- **Tuyến khám phá sâu:** thêm khoảng 6–10 phút tại STAFF, hồ sơ phụ, EX01 và ghi chú cá nhân; tổng thiết kế **24–34 phút**. Tất cả khám phá sâu là tùy chọn, không là điều kiện ký A/B hoặc qua G01.
 - **Nấc cảm xúc:** B01 tò mò có lỗi → B02 có người đang chờ → B03 thời gian trở nên không đáng tin → B04 hồ sơ và hiện trường bất đồng → B05 trách nhiệm của chữ ký → B06 hậu quả và vắng mặt → B07 không thể bỏ đi → B08 quyết tâm kiểm lại thế giới thật.
-- **Scare mix dự kiến:** 2 điểm nhấn vừa/lớn, 1 scare chính có thể tránh nếu không nhìn đúng thời điểm, 4–6 micro-dread có ngữ cảnh. Nhịp mạnh phải có 1–2 gợi báo, tối thiểu 45 giây không bị xếp chồng, sau đó khoảng lặng 20–35 giây. Không phát scare lúc người chơi đang đọc tài liệu, mở sổ, nghe thoại hoặc thao tác menu; “xê dịch sau tờ giấy” chỉ kích hoạt khi trở về 3D và khi camera có vùng nhìn an toàn. Cần duyệt mức âm, chuyển động và phản xạ bất ngờ với TASK028.
+- **Scare mix dự kiến:** 2 điểm authored có trọng lượng (B05/B07), một silhouette có thể bỏ lỡ nhưng không làm mất thông tin cốt truyện, và 4–6 micro-dread có ngữ cảnh. Không dùng cooldown 45–60 giây cứng cho *mọi* cue nhỏ: hệ nền hiện có global cooldown seed khoảng 16 giây; riêng scare lớn cần hồi nhịp riêng, theo hành động thay vì chỉ timer. Cấm cú giật ở inspector, sổ, thoại, cinematic, menu, save/load hoặc đổi lớp; xê dịch sau tờ giấy chỉ xảy ra khi trở lại 3D an toàn. Không ép xoay camera. Duyệt ngưỡng âm, chuyển động, caption với TASK028.
 
 ## 1. Đồ thị câu hỏi và tri thức
 
@@ -50,7 +50,7 @@
 
 # 2. WALKTHROUGH THEO THAO TÁC NGƯỜI CHƠI
 
-## B01 — Bức thư không còn lời hẹn (LOC01, R, 3–4 phút)
+## B01 — Bức thư không còn lời hẹn (LOC01, R, 1,5–2 phút tuyến chính)
 
 **Mục tiêu kịch:** Đưa người chơi từ “một ca trông coi/đêm quay lại” sang hành động có lý do cá nhân: kiểm tra vì sao Bảy mời rồi lại hoãn gặp, trong khi Minh tự quyết định đến An Sinh. Mở Q1, gieo Q5 dưới hình thức đồ vật bị quản lý bằng giấy.
 
@@ -67,9 +67,11 @@
 
 **Ý nghĩa tầng:** Người chơi tự mở cổng dù biết lời hẹn bị hoãn. Chủ đề: “Một lựa chọn cũng là một dạng chữ ký”. Về sau khi F101, hành động ký lặp lại hành động tự bước vào.
 
+**Nén nhịp v1.2:** thư E10a, chìa và cổng nằm trên tuyến tự nhiên từ xe. Quan sát xe/biển tháo dỡ vẫn có ý nghĩa nhưng không bị biến thành thủ tục bắt buộc. Người chơi có thể mở cổng nhanh sau khi đọc SMS; hành động tự bước vào vẫn là một quyết định của Minh.
+
 **Output:** E10a acquired + SMSRead; CH01-T02; Q1 mở, AP/rollback cổng hợp lệ. **Fallback:** đọc theo thứ tự ngược nhau không thất lạc E10a; bỏ qua thông báo không khóa cổng; mute vẫn có ánh sáng cổng/đồ vật.
 
-## B02 — Người đứng sau ô kính (LOC01 sân → LOC02, R, 2–3 phút)
+## B02 — Người đứng sau ô kính (LOC01 sân → LOC02, R, 1–1,5 phút tuyến chính)
 
 **Mục tiêu kịch:** Từ “đây là nơi bỏ hoang” sang “có ai đó đang chờ mình”. Nỗi sợ nằm ở mong muốn gặp người quen và đồng thời biết điều đó không thể đơn giản đúng.
 
@@ -83,9 +85,11 @@
 
 **Scare medium có điều kiện:** Khi người chơi tự nhìn xuyên qua kính lần thứ hai, một chiếc bóng thấp thoáng qua **phía sau**, kèm hai bước chân (không bật ngay sát tai); khi xoay lại chỉ là khoảng sân trống. Giữ khả năng lờ nó đi; không ảnh hưởng gate. Thứ tự với DREAD_B02 phải được điều phối, **không phát hai cue trong cùng 45 giây**. Đây là phương án dàn cảnh, chưa có trong build.
 
+**Nén nhịp v1.2:** bóng người qua kính đã đủ là hook; P-SC02 chỉ là phần thưởng phụ, không buộc đứng chờ hoặc soi kính hai lần để qua. Bước vào sảnh là tiếp cận ngay AN01. Bóng ngoài kính trong R **không** kích hoạt cinematic của B03.
+
 **Output:** tới điểm AN01/LOC02; được tiếp cận sổ trực. **Handoff sang B03:** bóng người ngoài kính là setup nhìn-thấy; chỉ sau CH01-T03/R→B Lan mới nhận diện Minh bằng Scripted Event. Tuyệt đối không tự cắt sang cinematic ngay khi bóng người xuất hiện. **Fallback:** nếu người chơi sprint qua sân không nhìn kính, câu CH01-D02 và hiện diện Lan vẫn được setup tại quầy; không yêu cầu nhìn scare để tiến.
 
-## B03 — Ca trực ở một ngày khác (LOC02, AN01, R→B, khoảng 5–6 phút; **Hybrid Cinematic Encounter**)
+## B03 — Ca trực ở một ngày khác (LOC02, AN01, R→B, 3–4 phút tuyến chính; **Hybrid Cinematic Encounter**)
 
 **Mục tiêu kịch:** Vừa dạy sổ trực như **công cụ phán đoán**, vừa tạo một cuộc gặp có trọng lượng cảm xúc. Scripted Event làm Lan có vẻ là một con người đang sống, *chủ động nhận ra Minh*; Cinematic Dialogue Scene bảo vệ nhịp diễn xuất, mâu thuẫn thời gian và cảm giác từng quen biết; gameplay tự do trả lại quyền điều tra cho người chơi. Q2 (Lan) và Q4 (03:17) cùng mở, nhưng không giải đáp hộ.
 
@@ -120,11 +124,19 @@
 6. **Tri thức & canon:** không dùng cinematic như chứng cứ xuất, chỉ E10a trong CH01; `CH01-D16b`/`CH04-D06` tuyệt đối không phát; không đổi ngữ nghĩa `CH01-D04c`; lời thoại chính xác lấy từ `07/Dialogue`. Hãy rà xem `LanDirector.StartEncounter()` hiện được gọi tự động từ `HospitalGame.Hub()` sau T03: **triển khai hybrid buộc phải refactor đường tự phát thoại đó** thành `Lan notices → E/K conversation`; đây là thay đổi **chưa làm trong code**.
 7. **Dấu ấn cho B06:** nhớ staging tương phản — lúc gặp, quầy có đèn ấm/bút/lời nói; lúc về, sổ vẫn còn mà không có Lan. Không lặp Timeline, không dùng hiệu ứng biến Lan trước camera để hù dọa.
 
+### Tinh chỉnh hybrid theo phản biện (v1.2 — **không bỏ cinematic**)
+
+- **Giữ Scripted Event → chủ động trò chuyện → Cinematic Dialogue Scene → FPS**, vì đây là lựa chọn đã thống nhất. Đề nghị thay 100% cinematic bằng free-look FPS là một biến thể đáng thử, **không phải thay đổi mặc định**. Giảm số insert shot máy móc, giữ scene ngắn khoảng 60–90 giây; hình ảnh đồng hồ 03:17 có thể nằm ở hậu cảnh, không ghi `OBS_CLOCK_0317` từ góc máy.
+- **Sửa hành vi chờ phím E/K:** sau khi Lan ngẩng lên, cô giữ eye contact một nhịp, chỉnh sổ, kéo ghế hoặc nhẹ nhàng đẩy **BOARD ra mép quầy như cử chỉ mời làm việc**. Nếu Minh lùi lại, Lan chuyển sang idle hợp lý rồi trở lại khi Minh đến; không khởi động cinematic tự động sau một timer 6 giây và không tự commit `CH01-T05`. Để trò chuyện, Minh vẫn **chủ động** nhấn E/K.
+- **Cinematic là diễn xuất có dụng ý, không showreel camera:** ưu tiên khuôn mặt Lan, phản ứng Minh và một dấu thời gian tinh tế; tránh cắt bốn góc máy cứng nhắc. Từ quầy trở lại FPS ngay sau take hoặc Skip; người chơi tự cầm BOARD. Không khóa nhân vật ở bên kia quầy hoặc phát jumpscare khi vừa thoát cinematic.
+- **Đừng biến góc máy thành vật chứng:** người chơi mới có thể nhận ra sự lệch thời gian từ thoại; nhưng muốn EX01 vẫn phải tự kiểm đồng hồ B, thẻ AS-05B và nguồn ca. Không auto ghi sự kiện chỉ vì cinematic có một shot.
+- **Acceptance thêm:** test trường hợp Lan đã thấy Minh nhưng Minh bỏ đi, quay lại, spam E/K, Skip, load trước/sau/giữa thoại; cảnh phát tối đa một lần, các dòng canonical guard đúng; không mất BOARD, không auto-credit EX01; B06 không replay cinematic. Đo tỷ lệ người chơi tự nhận ra năm 2005, không mặc định 4/6 là chuẩn chất lượng tuyệt đối.
+
 **Output:** CH01-T03/T04 (theo contract hiện hành), AP02, cue Lan/biên bản thoại đúng guard, người chơi tự kích `CH01-T05` bằng BOARD; Q2 mở, Q4 tùy chọn. **Fallback:** bỏ ngăn kéo/điện thoại vẫn hiểu mâu thuẫn thời gian; mất cinematic do skip/load vẫn có transcript/tóm tắt và BOARD; nếu người chơi bỏ đi trước khi bắt chuyện, hệ thống không tự nhảy qua nhiệm vụ.
 
 **Trạng thái:** toàn bộ thay đổi dàn dựng hybrid và các `P-INT03_*` là **đề xuất cần triển khai + QA**; baseline hiện có Lan encounter in-world tự động, không phải cinematic.
 
-## B04 — Phòng có giường thứ tư (HALL ↔ STAFF ↔ LOC03 B, 6–8 phút; trục điều tra chính)
+## B04 — Phòng có giường thứ tư (HALL ↔ STAFF ↔ LOC03 B, 5–6 phút tuyến chính; trục điều tra 3D)
 
 **Mục tiêu kịch:** Biến một căn phòng thành **hiện trường có thể kiểm chứng**, nơi một con số hành chính xung đột với dấu sử dụng vật lý. Người chơi tự chọn lộ trình; hệ thống không chấm điều tra theo thứ tự.
 
@@ -159,9 +171,20 @@ Những từ chối này phải là tự vấn có lời giải thích ngắn, k
 - **P-SC04 “Không ai cầm đầu cáng” (đề xuất, mức vừa):** sau khi đã quan sát OBS101A và quay ra hành lang, âm một bánh xe nảy mạnh phía sau cửa vừa khép; qua khe cửa thấy bóng xe trên nền nhưng **không có vật thể xâm nhập**. Không hiện mặt người. Đây là cách nhấn vào vết bánh giường và sự thiếu xác nhận, không phải vật thể tấn công.
 - **DeferredMicroShift hiện có:** sau khi người chơi hạ một giấy, rèm lặng lẽ khép thêm hoặc đèn tuýp ngắt 0,6 giây; chỉ dùng khi không đe dọa khả năng đọc, vùng đi lại hay suy luận. Mỗi cue ghi once flag và không biến thành evidence.
 
+### Spatial Deduction — căn phòng phải *được điều tra bằng cơ thể* (v1.2)
+
+Hai micro-task **đề xuất** cho phép người chơi tự kiểm không gian thay vì chỉ kéo thẻ vào UI; cả hai đều làm rõ `OBS101A`, **không tạo evidence chính thức mới** và không lấy mất giải đố CH02:
+
+1. **P-INT04_SPATIAL_ALIGN:** đi từ giường 1–3 đến hốc số 4, so cách bố trí đầu giường, khoảng trống, chân giường/ổ điện và dấu bánh dưới rèm. Bố trí cho phép người chơi *nhìn ra một vị trí giường đã từng được dùng* từ khoảng cách và dấu mòn, nhưng không phát badge “4 bệnh nhân” hoặc tự suy ra tên bệnh nhân. Không chụp trực tiếp toàn bộ logic `SOCKETS` của CH02-R sang đây.
+2. **P-INT04_FLOOR_RAKE:** chủ động kéo rèm, dịch bước hoặc xoay đèn pin để thấy một đoạn vệt mòn trong lớp B ở đúng hướng hốc giường; tự quay sang các giường hiện hữu để so vị trí. Vệt này chỉ là chi tiết **thuộc `OBS101A`**; không gắn `WHEELS` / `LIST` / `E12` / `E11` vốn thuộc R của CH02. Bản chữ lớn và phụ đề cho người không thể nhìn raking light phải cho thông tin tương đương.
+3. **Bốn công tắc bị dán băng trong bản kiểm toán: _chỉ được cân nhắc sau review_**. Repository hiện xác nhận **4 ổ cắm đầu giường** trong kiến trúc, không tự suy ra có 4 công tắc riêng và đèn sau rèm. Nếu muốn dùng, phải đối chiếu Core 03/04, mô hình điện và specialist TASK026/028; không biến thao tác điện thành vật chứng xác minh độc lập.
+4. Phản hồi vật lý tức thời: sau khi tự tìm vệt bánh, tiếng xe cáng xa có thể bất chợt dừng ở hướng phù hợp. Đó là dấu gợi câu hỏi về *việc sử dụng vị trí này*, không xác nhận người đẩy là ai. Ở mức logic, Refuted vẫn phải do `OBS101A + OBS101B + marks/link/claim` thông qua HypothesisService. A/B không cần micro-task này để qua G01.
+
+**Kiểm chống spoiler:** chơi lại CH02 sau đủ mọi micro-task, `LIST/SOCKETS/WHEELS → PZ01/E12 → E11` vẫn là một phát hiện độc lập trong R. Mute, alternate E, large print, save tại AP04 và các góc nhìn đều phải tương đương.
+
 **Output:** ít nhất đường cho OBS101A, OBS101B và khả năng nộp F101; hồ sơ đối chiếu C/D/STAFF tùy chọn; Q3 hình thành; CH01-T06. **Fallback:** nếu dùng E không kéo analog, tương tác vẫn tương đương; người chơi có thể quay lại các nguồn chưa đọc; cửa luôn có lối mở; mất nguồn âm không làm mất một dấu bắt buộc; save ở ngưỡng phục hồi toàn bộ trạng thái ngăn/rèm/giấy.
 
-## B05 — Chữ ký làm biến dạng căn phòng (LOC03 B, 5–7 phút; choice climax)
+## B05 — Chữ ký làm biến dạng căn phòng (LOC03 B, 4–5 phút tuyến chính; choice climax)
 
 **Mục tiêu kịch:** Chuyển từ “tìm một đáp án đúng” sang “chịu trách nhiệm về mức độ biết chắc”. Đây là đỉnh cảm xúc của CH01 và là nút gameplay ảnh hưởng lớp B. Ba lựa chọn **đều hợp lệ**, nhưng kể ba nỗi sợ khác nhau.
 
@@ -181,7 +204,7 @@ Những từ chối này phải là tự vấn có lời giải thích ngắn, k
 
 **Output:** CH01-T07, G01 true, first/current/revision và variant B theo F101, không thay R. **Fallback:** thiếu A/B không khóa đường A hoặc B; lỗi save không chiếu hậu quả trước commit; có thể phục hồi phiếu & quan sát qua load.
 
-## B06 — Người đã nhận phiếu biến mất (LOC03 → HALL → LOC02, B→R, 3–4 phút)
+## B06 — Người đã nhận phiếu biến mất (LOC03 → HALL → LOC02, B→R, 1,5–2,5 phút tuyến chính)
 
 **Mục tiêu kịch:** Cho người chơi trải nghiệm hậu quả của điều mình **đã ký**, sau đó nhận ra người giao việc không còn ở đó. **Đối trọng với cinematic ấm áp ở B03:** B06 giữ camera FPS tự do, không dựng một cutscene Lan biến mất; chính việc người chơi tìm Lan ở đúng góc quầy trước đây tạo khoảng trống đáng sợ. Biến tuyến backtrack thành một lần **đọc lại môi trường**.
 
@@ -196,7 +219,7 @@ Những từ chối này phải là tự vấn có lời giải thích ngắn, k
 
 **Output:** CH01-T08 và R phục hồi, Lan vắng mặt. **Fallback:** nếu người chơi quay lại khi chưa bàn giao, được sửa F101 ở B theo contract; khi hoàn tất T08 không làm A/B/C phá OBS của R. Checkpoint trước/sau swap, không mất firstDecision.
 
-## B07 — Cánh cổng dẫn về cùng một nơi (LOC02 → LOC01 → LOC02, R, 2–3 phút)
+## B07 — Cánh cổng dẫn về cùng một nơi (LOC02 → LOC01 → LOC02, R, 1–1,5 phút tuyến chính)
 
 **Mục tiêu kịch:** Người chơi thử giải pháp hợp lý nhất của con người: rời khỏi bệnh viện. Seam buộc họ phải đối mặt điều chưa giải quyết nhưng không biến game thành escape-room vô nghĩa.
 
@@ -211,7 +234,7 @@ Những từ chối này phải là tự vấn có lời giải thích ngắn, k
 
 **Output:** CH01-T09, seamConsumed=true, objective trở về sổ. **Fallback:** seam không lặp vô hạn, không gây mắc trong collider ở cửa; người chơi luôn có đường tới AN01 sau load; disable jumpscare không đổi T09.
 
-## B08 — Tôi sẽ không ký vào điều mình chưa biết (LOC02, R, 2–3 phút)
+## B08 — Điều còn ở phía bên kia cánh cửa (LOC02, R, 1–1,5 phút tuyến chính)
 
 **Mục tiêu kịch:** CH01 kết bằng một **cam kết phương pháp**, không phải một lời khẳng định vụ án. Người chơi chuyển sang CH02 vì muốn kiểm nghiệm hiện trường R độc lập với thứ họ vừa thấy ở B.
 
