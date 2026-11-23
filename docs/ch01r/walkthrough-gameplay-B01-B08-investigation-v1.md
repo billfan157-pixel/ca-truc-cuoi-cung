@@ -255,6 +255,66 @@ Minh đã trải nghiệm ca trực B năm 2005, gặp Lan và nhận BOARD. Q v
 14. **Giường 3:** mở DRAWER-BED3 xem **OBS101D**, phiếu thuốc/việc hoàn tất của giường 3. Nó cho thấy giấy tờ có thể khớp đúng một vị trí mà **không** chứng minh điều gì về vị trí 4. Nếu đem phiếu này làm căn cứ bác bỏ F101, Minh phản hồi nguồn đó nói về giường khác.
 15. **Mốc thời gian tùy chọn EX01:** nếu đã tự xem đồng hồ B ở quầy, soi vết hằn mặt sau AS-05B và đọc một nguồn ca trực tại quầy hoặc STAFF, người chơi có thể tự ghi mối liên hệ **03:17** trong Pocket Note mở rộng. Trình tự nguồn có thể bất kỳ. EX01 chỉ mở khả năng nghe CH01-D19 sau khi ký, không thay kết luận F101.
 
+#### Ba lộ trình điều tra hội tụ tại cùng một câu hỏi
+
+Người chơi đi qua các phòng theo ý mình, không có thứ tự thu thập chính thức. Thiết kế phải xử lý ba trường hợp đều hợp lý:
+
+| Lộ trình | Thứ tự người chơi có thể tự chọn | Hiệu ứng lên cách hiểu | Khả năng tiến |
+| --- | --- | --- | --- |
+| **Hiện trường trước** | Quầy → HALL → mở 101 → vết bánh/chăn/dép → AS-05B → vòng STAFF xem quy chế | Người chơi nhìn thấy điều lạ rồi mới tìm một tiêu chuẩn nghiệp vụ để đặt câu hỏi | Có thể ký A/B bất kỳ lúc nào; C khi đã có đủ cặp quan sát và lập luận |
+| **Quy chế trước** | Quầy → DRAWER-DESK/đồng hồ → STAFF xem bảng, quy chế → HALL → Phòng 101 | Player biết dấu bàn giao hoàn tất ra sao rồi tự nhận ra ô nhận thiếu | Không được thưởng “đã giải” trước khi soi hiện trường |
+| **So hồ sơ ngang trước** | Quầy → 101 → hồ sơ giường 2/3 → rèm 4 → thẻ 4 → có thể quay STAFF | Người chơi thử giả thuyết “giấy tờ 101 đều bình thường”, rồi gặp nguồn ngoại lệ | Giường 3 không tạo căn cứ sai cho nhánh C; không phải về STAFF nếu không muốn |
+
+Không khóa cửa STAFF dựa trên việc đã xem giường 4, cũng không buộc một món ở STAFF mở ngăn kéo giường 3. Lối phòng STAFF qua DOOR-STAFF và đường hành lang chính phải hội tụ tự nhiên; mọi cửa/giấy sau khi được mở/đặt vẫn có đường quay lại, không làm biến mất khỏi thế giới khi chạm E nếu không thật sự nhặt.
+
+#### Thao tác không gian theo lớp — người chơi tự chứng minh bằng đôi chân
+
+**01. Ngưỡng cửa:** khi nhìn qua khe DOOR-101, ở phía đối diện là rèm chứ không phải toàn bộ hốc giường. Người chơi quyết định mở cửa thêm, bước vào hay nhìn bảng F101. Âm quạt và vùng sáng giường hiện hữu giúp không gian giống buồng bệnh đang làm việc, không phải một “căn phòng puzzle” được sắp đặt bằng HUD.
+
+**02. So tương quan giường:** từ vị trí giường 1–3, hướng nhìn tới tường/đầu giường cho thấy cách vật dụng đặt đúng tầm người. Minh có thể đi từng bước sang khoảng trống sau rèm, quan sát mặt sàn và dấu đặt chân giường. Nếu người chơi nhìn từ góc xấu chưa thấy, âm cọ dép/dấu xước không tự bật thành toast giải thích; chỉ có prompt khám phá nhẹ khi đến đủ gần. Bốn ổ cắm CH02-R không được đưa sang đây như một mini-game bốn công tắc.
+
+**03. Vệt sàn dưới ánh xiên:** vệt bánh/đường kéo là texture/decal gắn mặt sàn lớp B, không biến thành item. Người chơi cúi hoặc xoay đèn pin để thấy rõ những đường mòn ở ngưỡng hốc 4. Nếu thích thao tác ánh sáng, giữ T / điều chỉnh nguồn sáng một nhịp; nếu không thể xoay camera hoặc cần chữ lớn, action “Kiểm dấu dưới ánh sáng” cung cấp mô tả tương đương và ghi stage Examined. Không yêu cầu đúng 25°–40° mới có quyền hiểu dấu; độ nghiêng đó chỉ là hướng dàn dựng cho thẻ giấy.
+
+**04. Rèm có lực cản:** rèm đang khép một phần. Khi người chơi giữ kéo, lực ma sát tạo phản hồi qua tốc độ và âm ray; một cú nhấn E cũng mở tới trạng thái đủ tiếp cận AS-05B. Nếu kéo nửa chừng rồi đi, save/load phục hồi vị trí hợp lý, không tạo collider vô hình chặn đường. Rèm rung nhẹ vì luồng gió có thể xảy ra, nhưng không là vật chứng cho sự tồn tại của bệnh nhân.
+
+**05. Những đồ vật mang đời sống:** chăn gấp vội, dép nhựa nhỏ và dấu khung giường có kích thước/độ mòn thống nhất. Không có dòng “bé An” hiện trên dép và không tự gọi nó là dép của bệnh nhi. Giá kẹp tại vị trí 4 nằm trong tầm thấy sau khi kéo rèm; không được đẩy sâu vào điểm mù buộc người chơi click hunt trên một texture tối.
+
+**06. Thẻ trước và sau:** nhấc AS-05B, thấy mặt trước. Đảo mặt là một hành động có mục đích: ô người nhận bàn giao trống và vết hằn bên kia khiến người chơi nghi quy trình chưa hoàn tất. Nếu người chơi chỉ nhìn mặt trước rồi cất, observation có thể dừng ở Examined; việc hiểu vết hằn phụ EX01 vẫn còn mở. Minh có thể cầm thẻ tới bàn so giấy ở STAFF/101 hoặc cất vào ngăn giấy B; **bản cất tạm không đổi thành evidence**.
+
+#### Những sai lầm phải được phản hồi như một suy nghĩ nghề nghiệp
+
+| Điều người chơi thử suy ra | Vì sao chưa đủ | Phản hồi phù hợp |
+| --- | --- | --- |
+| Chăn và dép chứng tỏ một người đang trong phòng | Chỉ xác nhận dấu sử dụng; hiện tại phòng trống | “Có người từng dùng chỗ này… nhưng không biết họ đang ở đâu.” |
+| Thẻ AS-05B tự chứng minh kê giường thật | Một thẻ có thể còn sót, thiếu đối chiếu hiện trường | “Một tờ thẻ bỏ lại chưa đủ chứng minh tình trạng phòng.” |
+| Phiếu giường 2 hoàn tất chứng minh giường 4 cũng hoàn tất | Là hai nguồn riêng, giường 2 là đối chứng quy trình | “Chữ ký ở giường 2 rõ ràng. Còn vị trí này thì sao?” |
+| Phiếu thuốc giường 3 được dùng bác số 0 | Nó nói về giường khác và không chỉ dấu trạng thái giường 4 | “Không thể lấy giấy giường 3 để nói về vị trí thứ tư.” |
+| Đồng hồ 03:17 là giờ có người chết | Chỉ là dấu thời gian, chưa có chứng cứ tử vong tại đó | “Trùng mốc không đồng nghĩa biết chuyện đã xảy ra.” |
+| Thiếu chữ ký = có chủ ý làm giả | Chưa biết lỗi nghiệp vụ, hoàn cảnh hay chủ thể quyết định | “Không thể kết tội ai chỉ bằng một ô còn trống.” |
+
+Các phản hồi là **hướng diễn đạt/diễn xuất chờ duyệt với kho thoại**, không tự phát thành VO mới khi chưa có line được cho phép. Ở gameplay, phải trả một lý do có thể hiểu thay vì toast màu đỏ “Sai”.
+
+#### Đối chiếu giấy thực tế và vòng quay lại STAFF
+
+Khi player mở DRAWER-NURSE, động tác kéo ngăn tủ là thao tác chính, không cần thêm một khóa số. Quy chế **OBS_SHIFT_LOG** có thể được rút ra, lật, cất tạm ở B và đặt cạnh **OBS101C** hoặc thẻ **AS-05B**. Người chơi đọc hai chữ ký/chỗ nhận ở giường 2 rồi nhìn ô trống của giường 4 bằng mắt mình; **bàn so 3D là nơi đặt đồ chứ không là máy xác nhận lời giải**. Khi nhấc lại một giấy, không xóa observation đã lưu; khi đặt cả hai cùng một anchor, không nhân bản bản gốc hay tự mở G01.
+
+**Khả năng quay lại:** nếu người chơi tới 101 trước rồi muốn hiểu quy định, đường về STAFF phải rõ qua HALL, không bắt đi một vòng cảnh khác. Khi quay lại 101, cửa/rèm giữ trạng thái đã mở để cảm giác người chơi thực sự đã can thiệp vào căn phòng. Nếu chưa cất thẻ mà để trên bàn, trạng thái anchored placement phải tìm lại được. Khi mất điện/giảm sáng vì scare, những vật liệu cần đọc phải trở lại đủ sáng.
+
+#### Nhánh thời gian 03:17 — một câu hỏi tùy chọn có ba nguồn
+
+Phát hiện **CH01-EX01** chỉ hình thành nếu player tự thu đủ: (1) **xem đồng hồ dừng ở 03:17 trong lớp B**, (2) **soi nghiêng mặt sau AS-05B để thấy “03g17 · CHƯA CHỐT SỔ”**, (3) **xem ít nhất một nguồn ca** ở quầy hoặc STAFF. Các nguồn có thể được xem theo bất kỳ thứ tự nào; việc cinematic B03 đưa đồng hồ vào khuôn hình **không** thay (1). Một cú lật thẻ thông thường chưa thấy vết hằn **không** thay (2).
+
+Sau khi tự liên hệ các nguồn, người chơi có thể ghi một câu hỏi trong phần ghi chép Pocket Note: “Hai dấu thời gian cùng chỉ 03:17 — vì sao?”. Không xuất hiện banner kết luận tai nạn hoặc người đã chết. EX01 chỉ là tiền đề mở line CH01-D19 khi đã ký; nếu thiếu một nguồn, không mất đường A/B/C hay Chương 2. Nếu người chơi cố chọn một mốc khác, có thể giữ giả thuyết chưa xác nhận để sau này xét lại, không tự sửa số trên các tài liệu.
+
+#### Dread được tạo bởi chính việc soi một nơi cụ thể
+
+- Sau khi thấy OBS101A, tiếng bánh từ hành lang **có thể** dừng đúng nơi vệt kéo trên sàn hướng tới. Player quay ra sẽ gặp hành lang trống; camera không bị khóa nhìn một cỗ cáng đang lao đến.
+- Khi nhấc thẻ B, ánh sáng ở nơi giường 4 có thể hạ nhẹ; nếu đang trong inspector, không phát bất kỳ giật âm/đèn hay làm người chơi đánh rơi tài liệu.
+- Khi người chơi tự quay nhìn lại hốc 4 sau khi hiểu chữ ký thiếu, **một tiếng móc rèm/ngăn kéo** có thể đặt câu hỏi “ai đang dùng nơi này?”. Đó là setup cho silhouette đơn lẻ ở B05, không thêm bốn jumpscare cho cùng một khám phá.
+- DeferredMicroShift chỉ cho phép rèm dịch chút hoặc một bóng đèn lệch một nhịp **sau khi thoát chế độ đọc**, không làm dấu bánh, thẻ hay cửa biến mất khi chưa được ghi nguồn.
+
+**Điều kiện mở bước tiếp:** CH01-T06 hoàn tất khi người chơi vào 101; F101 luôn có đường tương tác A/B ngay cả khi player chỉ nhìn một phần căn phòng. Nếu muốn C, validator sẽ chờ đúng OBS101A+B và lập luận được kiểm chứng ở B05. Người chơi không bị ép đi lại STAFF để mở một khóa tùy tiện.
+
 #### Nhịp kinh dị
 
 Khi Minh kiểm dấu bánh hoặc hạ thẻ sau khi đọc ô bàn giao, tiếng xe kim loại/tấm rèm có thể vang **đúng từ nơi thiếu dấu xác nhận**. Một chi tiết rèm khép thêm hay quạt chậm lại được phép xuất hiện sau khi camera về 3D, không trong inspector. Không dùng bóng người làm “phần thưởng chắc chắn” cho người chơi đọc tài liệu; sự yên ắng sau vật chứng có thể đáng sợ hơn.
