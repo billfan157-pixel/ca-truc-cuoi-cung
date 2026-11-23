@@ -10,6 +10,7 @@ description: >-
 
 - Dùng §2–4, §6 và Hình 1 cho hình học vật lý, cao độ seed, tuyến công cộng/kỹ thuật và continuity. [Core 03](../../../docs/03_World_Architecture_Bible.docx)
 - Dùng §1 cho adjacency, luồng cửa, chốt chương, metrics chơi và điểm dàn cảnh. Mở heading chương và hình kết nối CH01 theo phạm vi cần làm. [Core 04](../../../docs/04_Level_Chapter_Design.docx)
+- Với CH01, đọc [walkthrough B01–B08](../../../docs/ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) cho cổng phụ, điểm nhìn kính, STAFF, DOOR-101, AN01/AN02 và handoff.
 - Tra `07/Locations`, `Chapter gates`, `Events`, `QA` và `Assets` theo LOC, CH, beat và asset ID. Ví dụ `python docs/agent/project_docs.py doc 04 --section "CH02 /"`.
 
 ## Dựng theo tuyến
@@ -17,7 +18,7 @@ description: >-
 1. Gắn cho beat mục tiêu người chơi, hành động, thông tin mới, phản hồi, trigger, điều kiện, điểm save và fallback. Định danh cảnh theo CH/beat cùng ID trong Events; chốt chuyển chương đọc state đã commit.
 2. Vẽ tuyến tiến, tuyến quay lại lấy evidence và vùng an toàn theo từng layer. Dùng một bệnh viện liên thông: R là gốc vật lý, B đổi mô-đun cục bộ quanh AN, M là cảnh giới hạn. Giữ landmark, cột và trục nhìn chung để người chơi nhận ra cùng một nơi. Dùng Core 03 cho seed vật lý nếu số đo trong phần cũ của Core 04 khác nhau.
 3. Dựng greybox trước asset nặng. Gắn LOC, cửa, pad, CP, vật chứng, navigation và clearance. Sau khi có engine, kiểm capsule/xe đẩy, cửa và hốc giường; đi được từ mỗi CP tới mục tiêu và safe zone với gate/layer tương ứng. Dùng kiểm đồ thị cho kết nối và đi thực tế trong engine cho collider, tầm nhìn, navmesh, thời gian đường chạy.
-4. Dàn nhịp từ cue báo trước đến căng thẳng và khoảng lặng. CH01 giữ lối hồi từ 101 về quầy và seam cổng một lượt. CH02 đi được hai lối cameo LOC04 rồi hội tụ an toàn. Cảnh đọc có safe volume. Cue quan trọng phải đọc được khi mute/giảm chuyển động. Dùng `ctcc-gameplay` khi đổi gate/pad transaction và `ctcc-narrative` khi đổi trình tự thông tin.
+4. Dàn nhịp từ cue báo trước đến căng thẳng và khoảng lặng. CH01 giữ T02 sau SMS/chìa, STAFF tùy chọn, lối hồi từ 101 về AN01 và seam cổng một lượt ở AP01. T03/T08/T10 cần thao tác tại sổ trực vật lý. CH02 đi được hai lối cameo LOC04 rồi hội tụ an toàn. Cảnh đọc có safe volume. Cue quan trọng phải đọc được khi mute/giảm chuyển động. Dùng `ctcc-gameplay` khi đổi gate/pad transaction và `ctcc-narrative` khi đổi trình tự thông tin.
 
 ## Điểm cần giữ khi sửa layout
 

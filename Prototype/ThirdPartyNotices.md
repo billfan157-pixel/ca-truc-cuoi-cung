@@ -46,6 +46,10 @@ Toàn bộ tài sản môi trường/đạo cụ (36 tài sản M1 kế thừa +
 
 Bậc terrazzo, xe thuốc, tủ khô và bảng tải là thiết kế hư cấu do dự án dựng bằng Blender 4.5, với mã dựng tại `tools/blender_assets/build_m31_service_kit.py`. Tệp `.blend` và FBX cùng tên đi kèm mã nguồn. Vật liệu dùng thư viện nội bộ và các lớp PBR CC0 đã kê ở trên. Không đưa ảnh hồ sơ, nhãn bệnh viện hoặc bản vẽ nhà sản xuất vào bản chơi. Tham chiếu và các chi tiết cần duyệt được ghi trong [mặt cắt M3.1](../docs/m3/m31-world.md).
 
+## Foley walkthrough CH01
+
+CH01-WT-FOLEY-01 gồm PenWrite, SignKnock, KeyTurn, LatchClick, GateSlam, BagZip và ClipSnap. Các WAV mono PCM 48 kHz do dự án tổng hợp bằng [bake_ch01_walkthrough_audio.py](../tools/bake_ch01_walkthrough_audio.py), dùng NumPy và không dùng sample thu sẵn. Tệp runtime mang tiền tố CH01_ trong Assets/CTCC/Art/Resources/CTCC. Xem Core 07/Assets về build ứng viên và duyệt.
+
 ## Bộ tài sản điều tra & tương tác CH01-R
 
 - **7 mô hình Blender 4.5 LTS tự dựng** (`tools/blender_assets/build_ch01r_props.py`, nguồn `.blend` trong `ArtSource/Blender/`, FBX trong `Prototype/Assets/CTCC/Art/Meshes/`): `CTCC_PROP_Bed4ChartHolder`, `CTCC_PROP_NursingFilingDesk`, `CTCC_PROP_InteractiveDrawer`, `CTCC_PROP_Bed4BlanketTrace`, `CTCC_ENV_StaffCrossDoor`, bản UV-mapped tinh chỉnh `CTCC_PROP_ClipboardF101` và `CTCC_PROP_BayEnvelope`. Toàn bộ sử dụng hệ vật liệu PBR CC0 đã kê ở trên và mặt giấy nội bộ.

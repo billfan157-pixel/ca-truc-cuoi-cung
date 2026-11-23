@@ -16,7 +16,8 @@ description: >-
 
 | Thay đổi | Ca cần đối chiếu |
 | --- | --- |
-| F101, G01/G02, E11/E12 | CH01-Q01–Q05, Q07/Q13, CH02-Q01–Q05, LOG06-Q01. Đủ ba nhánh, thiếu phiếu chuyển, sửa, lặp submit và load. |
+| F101, G01/G02, E11/E12 | CH01-Q01–Q05, Q07/Q13, CH02-Q01–Q05, LOG06-Q01. Chạy A/B chưa quan sát và C thiếu từng nguồn, dấu, liên kết hoặc kết luận hợp lệ. Thử sửa, ký lặp, lỗi ghi, load và G02 thiếu phiếu chuyển. |
+| Walkthrough CH01 B01–B08 | CH01-WT-Q01/Q02 và các ca CH01 liên quan. Kiểm T02 thiếu SMS/chìa, Lan tự khởi thoại và skip, BOARD riêng, giấy B ở tay/túi/kẹp, cue đồng hồ trước T08, seam một lần, Pocket Note A/B/C và CH02 R. [Walkthrough](../../../docs/ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) |
 | Layer, collision, checkpoint | T02/T03/T08, LD01–04, các ca swap/load theo chương. Tại TASK025-B có 30 lượt thử swap theo Backlog. |
 | E05b, E06, E10 và G06 | CH05-Q03, CH06-Q02/Q05, W-Q03, V22-Q01. Thiếu một phần phải chỉ đường lấy lại. |
 | D16b, PT02, E08 | CH01-Q14, CH04-Q03/Q06, LOG10-Q01, V22-Q02/Q03, CH07-Q01–Q04. Test menu, VO, subtitle, transcript và cả reload. |
@@ -24,7 +25,7 @@ description: >-
 | Cue, stealth, trợ năng | CH02-Q03/Q05, CH03-Q03, CH08-Q07, T04/T06, LD05/06, AR/AU thích hợp. Thử mute, bàn phím, low-light và reduced motion. |
 | Tài liệu và milestone | V22-Q04, chạy kiểm tra dependency bằng `python docs/agent/project_docs.py check`, đối chiếu trạng thái thật từng đầu việc/cổng và biên bản review. |
 
-M2 cần quan sát 6 người mới trên slice. Ghi giờ giải C01, lần xin hint, hiểu tác động F101, phân biệt patient/threat và thoát cameo. Dùng ngưỡng 5/6 và các điều kiện trong Core 01; lưu ID ẩn danh và build. Với hiệu năng, ghi máy, preset, đường đo, p95 frame time, memory/load time theo Core 06 và mục tiêu đã chốt trong TASK029.
+M2 cần quan sát 6 người mới trên slice. Ghi giờ giải C01, lần xin hint, hiểu tác động F101, phân biệt patient/threat và thoát cameo. Chấm 5/6 riêng cho C01 trong 8 phút không được điều phối viên hướng dẫn, hiểu hệ quả ký sai F101 và phân biệt bệnh nhân/threat qua hành vi. Ghi build, ID ẩn danh, thời điểm đo và trợ giúp. Với hiệu năng, ghi máy, preset, đường đo, p95 frame time, memory/load time theo Core 06 và mục tiêu đã chốt trong TASK029.
 
 ## Ghi kết quả
 

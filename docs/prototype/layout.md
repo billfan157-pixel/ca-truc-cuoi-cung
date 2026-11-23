@@ -2,6 +2,8 @@
 
 [Mặt cắt](section.png) · [Mặt bằng tầng trệt](floor-plan.png) · [Dữ liệu kích thước](layout.json)
 
+Core 03 Campus-v0 dùng [bản tọa độ khuôn viên](campus-layout-concept.json) để đặt seed lõi này vào sáu khối. Sảnh khám chính và mái xe cấp cứu thuộc các cánh riêng. Bảng tuyến dưới đây mô tả bản TASK022 của lõi. Dùng Core 03 §3.2–3.5 cho công năng và phương án nối ở quy mô khuôn viên. Ghi nhận kết quả trên build Campus theo TASK030-B–F.
+
 Hệ trục dùng mét, X sang đông, Z sang bắc, Y lên cao. Phòng 101 rộng 8 m theo X và sâu 6 m theo Z. Cửa vào mở từ hành lang lòng 3 m, cửa kho ở đầu đối diện về phía giường 4. Giữ AP04 phía trong phòng, cách mặt cửa 0,92 m. Giường có đầu áp tường. Vị trí 4 hiện dưới dạng ổ cắm, dấu chân bánh và khoảng kê trống. B thêm mô-đun che hốc cục bộ theo F101. R dùng tủ di động trước lối kho cố định. CH02 nhận E12 qua dấu vật lý, kho trả đủ vòng C01, tranh và phiếu chuyển.
 
 | Tuyến | Liên kết gốc | Nghiệm thu |
@@ -22,7 +24,7 @@ Giữ nguyên 100% tọa độ phòng, cửa, giường và pad trong `layout.js
 - **Lớp hoàn thiện tường hai tầng:** Len chân tường đá mài bo cong cao 95 mm, dải sơn dầu xanh bệnh viện cao 1,15 m có đường chỉ phân cách 12 mm, phần trên sơn vôi/nước nhạt. Ở R (2012), hiện tượng thấm mao dẫn, muối hóa bong sơn và rêu mốc tập trung dọc chân tường bắc/đông và dưới bậu cửa sổ theo quy luật vật lý [R41].
 - **Hệ cửa đi & cửa sổ thông gió tự nhiên [R39/R40]:**
   - `GATE-101` (1,20 × 2,22 m): khuôn gỗ ghép nẹp chỉ, cánh gỗ pano dưới dày + tấm inox đá chân, ô kính mờ quan sát phía trên, tay gạt inox, khóa, 3 bản lề trụ, tay co thủy lực và ô thoáng chớp kính phía trên khuôn cửa (tới cao độ 2,86 m). Cánh cửa xoay mượt theo bản lề và cho phép người chơi đóng/mở trực tiếp trong R/B.
-  - 3 ô cửa sổ tường bắc phòng 101 (`z = 8,10 m`, tổng diện tích lấy sáng 10,19 m² = 21,2% diện tích sàn 48 m², đạt chuẩn TCVN 4470:1995): tường dày 200 mm tạo hốc cửa sâu có bậu đá mài nhô 35 mm, khung thép góc chia cánh, 6 lá chớp kính thông gió phía trên và lưới hoa sắt bảo vệ hàn hình học đổ bóng thực lên sàn và giường.
+  - 3 ô cửa sổ tường bắc phòng 101 (`z = 8,10 m`, diện tích lấy sáng 10,19 m² = 21,2% diện tích sàn 48 m² theo số đo prototype và đối chiếu R39): tường dày 200 mm tạo hốc cửa sâu có bậu đá mài nhô 35 mm, khung thép góc chia cánh, 6 lá chớp kính thông gió phía trên và lưới hoa sắt bảo vệ hàn hình học đổ bóng thực lên sàn và giường. Campus-v0 đặt sân sáng phía ngoài. Tính phù hợp thực tế chờ TASK026.
   - `GATE-STORE` (1,22 × 2,20 m): khuôn gỗ sâu, bậc ngưỡng mòn, biển `KHO GIƯỜNG` gắn vít nổi, bị tủ sắt kính 2 cánh di động (`1,36 × 0,48 × 2,06 m`) chắn phía trước trong R trước khi giải `E12` và lăn sang bên mượt mà sau khi đối chiếu `PZ01`.
 - **Hệ kỹ thuật nổi & giao thông nội phòng:** Ống ghen điện chạy nổi có kẹp đỡ và hộp nối chia nhánh tới từng đèn T8 đôi, hộp công tắc/ổ cắm đôi có số `1–4` đầu giường (ổ số 4 giữ nguyên dấu vết tại hốc trống), loa phóng thanh hành lang gắn tường gần `GATE-101`, bảng kẹp `F101` gắn tường trong cửa, bình chữa cháy treo hành lang, ray rèm treo trần có móc trượt và rèm vải có thể kéo mở vật lý quanh hốc giường 4.
 - **Đồng nhất hình học R/B:** Toàn bộ khung tường, cột, dầm, khuôn cửa, cửa sổ, quạt trần, máng đèn, ổ cắm và bao va chạm giường 1–3 giữ cùng vị trí giữa R (2012) và B (2005). B chỉ đổi vật liệu sạch hơn, ánh sáng đèn T8 vận hành, bật rèm `pendingBay` hoặc vách áp hồ sơ `deniedBay` theo trạng thái `F101`, và ẩn các lớp xuống cấp/vật chứng riêng của hiện trường 2012.

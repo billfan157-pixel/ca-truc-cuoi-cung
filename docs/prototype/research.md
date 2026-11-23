@@ -2,7 +2,13 @@
 
 19/11/2026 · M0 TASK022/023 · Core 03 §1–6, Core 05 §01–04, Core 07/Research
 
-An Sinh là bệnh viện hư cấu khởi lập năm 1987, có bổ sung trong các thập niên sau. Hai bộ ảnh R/B sẽ giữ cùng cao độ, khung cửa, trục giường và nhịp cột. R trình bày bệnh viện đóng cửa năm 2012. B mượn diện mạo còn vận hành năm 2005 và biểu hiện nội dung sổ bàn giao. B không phải cảnh tái hiện sự kiện.
+An Sinh là bệnh viện hư cấu khởi lập năm 1987, có bổ sung trong các thập niên sau. Hai bộ ảnh R/B giữ cùng cao độ, khung cửa, trục giường và nhịp cột. R trình bày hiện trường năm 2012. Bệnh viện ngừng hoạt động năm 2006, thanh lý đến 2012 theo Core 02 và LOCK-LOG09. B mượn diện mạo còn vận hành năm 2005 và biểu hiện nội dung sổ bàn giao. M là lớp tái hiện sự kiện.
+
+## Đối chiếu cấp khuôn viên
+
+[Core 03 Campus-v0](../03_World_Architecture_Bible.docx) và Core 07/Research R52–R57 bổ sung nghiên cứu cho đề án ngày 23/11/2026. Long Thành là mẫu tách các khối, đường nội bộ, cấp cứu và nhà đại thể. Củ Chi là mẫu mở rộng thấp tầng qua nhiều đợt. Hồ sơ JICA Trung ương Huế năm 2003 giữ vai trò đối chiếu cùng thời. Tư liệu công khai dùng để đọc quan hệ công năng. Bản vẽ, ảnh và biểu mẫu từ các cơ sở thật giữ ở nguồn.
+
+52 TCN–CTYT 0041:2005 ban hành ngày 30/11/2005, sau ngày sự kiện trong truyện. Dùng để so nhóm công năng gần thời kỳ. TCVN 9213:2012 là đối chiếu hậu kỳ. [Mặt bằng seed](campus-layout-concept.json) dùng khoảng 1,1 ha và 80–100 giường làm giả định thiết kế. Các số đo của phòng 101 bên dưới thuộc prototype đã có.
 
 ## Tư liệu và quyền
 

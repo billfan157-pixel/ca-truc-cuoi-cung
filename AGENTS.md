@@ -18,7 +18,9 @@
 ## Nguồn và cách làm
 
 - Dùng Core 02 cho canon và WR, Core 03 cho không gian vật lý, Core 04 cho luồng chương và beat, Core 01 cho mục tiêu gameplay và UX, Core 05 cho art/audio, Core 06 cho contract kỹ thuật, Core 07 cho dòng dữ liệu và trạng thái sản xuất. Lời thoại lấy từ `07/Dialogue`, bối cảnh phát từ Core 04. Tra bảng alias ở Core 01 §4 khi gặp mã DOC cũ.
+- Với CH01 B01–B08, mở [walkthrough hiện hành](docs/ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) và DEC-CH01R-04 để tra thao tác, cue, checkpoint và phục hồi. Core 02 vẫn sở hữu canon, Core 07/Dialogue sở hữu câu thoại, Core 06 sở hữu giao dịch và schema.
 - Khi bắt đầu việc sản xuất, đọc `07/Roadmap` và `07/Backlog` tại thời điểm làm. Có thể dùng `python docs/agent/project_docs.py status` và `python docs/agent/project_docs.py task TASK029`. Khi chưa có project engine, lập đầu ra theo task tiền sản xuất hoặc spike có phạm vi đúng với Roadmap.
 - Dẫn theo chuỗi task → mục nguồn và ID liên quan → thay đổi → ca QA → kết quả và bằng chứng theo build. Với việc sửa nhỏ, dùng các mắt xích cần thiết. Giữ các ID đã được dùng trong scene, dữ liệu và save.
-- Khi hai nguồn khác nhau, so phạm vi sở hữu, phiên bản và DEC/LOCK đang áp dụng. Ghi hai vị trí và ảnh hưởng nếu còn xung đột. Tiếp tục phần độc lập có đủ căn cứ. Đưa thay đổi thiết kế đang đề xuất vào luồng `07/Decisions`; sau khi chốt, đồng bộ các nguồn bị tác động và ghi `07/Changelog`.
+- Khi phát hiện skill hoặc tài liệu liên quan đến task có chỉ dẫn mâu thuẫn hoặc đã lỗi thời, dừng thực hiện task và báo người dùng. Nêu vị trí nguồn, nội dung bị lệch, căn cứ đối chiếu, ảnh hưởng đến task và phương án xử lý. Chỉ tiếp tục sau khi người dùng quyết định nguồn áp dụng hoặc cách xử lý.
+- Đưa thay đổi thiết kế đang đề xuất vào luồng `07/Decisions`. Sau khi chốt, đồng bộ các nguồn bị tác động và ghi `07/Changelog`.
 - Tự chạy các kiểm tra có thể thực hiện trong môi trường hiện tại. Trạng thái hoàn thành bám điều kiện Pass của từng task. Ghi riêng kết quả rà tài liệu, mô phỏng, chạy build, playtest và review chuyên gia theo bằng chứng thực tế.

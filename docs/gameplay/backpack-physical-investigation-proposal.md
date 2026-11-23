@@ -26,7 +26,9 @@
 
 **Độ tin cậy:** các trang nhà phát triển/Steam hỗ trợ đặc điểm game; hướng dẫn SIGNALIS/Mortuary là mô tả cộng đồng, không dùng chúng để khẳng định universal best practice. Tất cả lựa chọn cho CTCC bên dưới là **đề xuất thiết kế**, chưa có chứng cứ cho thấy playtest sẽ thích hơn.
 
-## 2. Kiểm toán code hiện hành — cái gì đã có và đang thiếu
+> **Trạng thái 23/11/2026:** phần ba ngăn, schema v7, kẹp AN02, đối chiếu B→R và echo B08 đã có trong ứng viên CH01. Phần dưới ghi khảo sát và đề xuất ban đầu. Dùng [walkthrough B01–B08](../ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) và DEC-CH01R-04 khi triển khai hoặc nghiệm thu.
+
+## 2. Kiểm toán code trước đợt triển khai
 
 | File/hệ thống hiện có | Đã làm được | Điểm cần chuyển đổi |
 | --- | --- | --- |

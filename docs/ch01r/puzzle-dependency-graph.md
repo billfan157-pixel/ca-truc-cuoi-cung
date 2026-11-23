@@ -5,6 +5,8 @@
 
 ---
 
+> Current design: [CH01 walkthrough B01–B08](walkthrough-gameplay-B01-B08-investigation-v1.md), DEC-CH01R-04.
+
 ## 1. Narrative Arc, Nonlinear Exploration Loop & F101 Deduction Flow
 
 ```mermaid
@@ -30,7 +32,7 @@ flowchart TD
     R101 --> B["Core Fact 2 · OBS101B\nBed-4 Incomplete Card AS-05B\n(Dual-Sided Flip + Detail Hotspots)"]
 
     %% Journal Comparison & Authoritative F101 Deduction
-    C & D & B & STAFF -.->|"Tự chọn, kéo hai nguồn vào sổ"| JOURNAL["Sổ trực (Tab)\nHiện trường · Tài liệu · Suy luận · Dòng thời gian · Quyết định"]
+    C & D & B & STAFF -.->|"Cất giấy rồi chọn nguồn để đối chiếu"| JOURNAL["Tab/J → Ba lô → Pocket Note → Nhật ký\nHiện trường · Tài liệu · Suy luận · Dòng thời gian · Quyết định"]
     B -.->|"Reveal reverse-side impression\n(tilt / large print)"| AS05TIME["AS-05B: 03g17"]
     AS05TIME & RECDRAW & STAFF -.->|"Clock and shift context; choose matching time"| EX01["Optional CH01-EX01\nUnlocks CH01-D19 after signing in B"]
     R101 --> F101["B05 · Nhấc phiếu F101 khỏi bảng kẹp\nSoi, đánh dấu và đặt lại để ký"]
@@ -76,7 +78,7 @@ flowchart TD
 
 ## 3. Observation Lifecycle & Provenance Contract
 
-Save schema `v5` loads `v1–v4` and stores F101's draft marks and link. Each new annotated `Refuted` revision records a separate copy of the signed marks, link and claim. The `ObservationRecord` stages for CH01 and CH02 are:
+Save schema v7 loads v1–v6 and keeps F101 drafts/history, authored item locations and backpack contents distinct from observations, notes and evidence. T08 restores B paper to its fixture and retains its memory reference. Each new annotated `Refuted` revision records a separate copy of the signed marks, link and claim. The `ObservationRecord` stages for CH01 and CH02 are:
 
 1. **`Discovered` (`0`)**: Registered but not yet inspected (insufficient for formal refutation).
 2. **`Examined` (`1`)**: Directly inspected in-world or via `PhysicalInspector` / Large Print in valid layer & location.

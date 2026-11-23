@@ -20,6 +20,8 @@ description: >-
 
 ## Chuỗi tiết lộ trọng yếu
 
+Dùng [walkthrough B01–B08](../../../docs/ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) cho dàn cảnh CH01 và Core 07/Dialogue cho câu thoại. Ba nhánh Pocket Note chỉ nhắc điều Minh đã ký và nguồn đã kiểm. EX01 ghi nhận mốc trùng, giữ cách hiểu 03:17 theo CAN05. Echo B08 thuộc lớp trình bày, không xác thực thêm người hoặc nguồn vật lý.
+
 - CH01 gieo E10a và tri thức công khai: 13 tử vong, Lan đã mất, Bảy gửi thư/hẹn rồi báo hoãn, Minh tự vào và nhớ mình từng từ chối mở cửa. D16 hỏi ký ức chung. Bằng chứng và hồi tưởng về địa điểm thu hồi Lan nằm ở các beat sau.
 - CH04 B05 dùng E04/E07 xác thực H05 và trình bày PT02. CH04 B06 mở `CH01-D16b` theo Chapter=CH04, Beat=B06, H05 và PT02_present. ID là mã cũ để truy vết. Giữ guard cho cả dòng `CH04-D06` theo Context của nó. D16b chỉ trình bày thoại và giữ G04, E08 độc lập.
 - CH05 giữ sáu người khu B được cứu. CH06 tách mốc mất liên lạc 03:17 được dùng làm giờ hoàn tất giả và 07:40 là giờ ký phiếu nội bộ. E04 là hồ sơ tiếp nhận và đối chiếu số. E06 là giấy ghi nhận lệnh, E06a là băng họp, E10b là danh mục nguồn của Bảy.

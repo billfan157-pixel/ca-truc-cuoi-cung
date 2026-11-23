@@ -4,7 +4,7 @@
 **Thể loại:** Kinh dị tâm lý góc nhìn thứ nhất, khám phá hiện trường và điều tra bằng vật thể 3D.  
 **Bối cảnh:** Bệnh viện An Sinh; đêm 17/11/2012 và ca trực 17/11/2005.  
 **Thời lượng thiết kế:** 20,5–30 phút cho tuyến chính; thêm khoảng 6–10 phút nếu khám phá sâu. Thời lượng cần xác minh qua playtest.  
-**Trạng thái:** Kịch bản thiết kế gameplay hoàn chỉnh để dựng và kiểm thử; các tương tác ba lô và cảnh điện ảnh được mô tả là đích triển khai, chưa phải tính năng đã có trong bản build.
+**Trạng thái:** Đặc tả thiết kế CH01 B01–B08 theo DEC-CH01R-04. Build Windows từ a4f5a3f đã qua Module và Input QA trong phạm vi ghi ở [hồ sơ kiểm kỹ thuật](acceptance.md#kiểm-kỹ-thuật-tuyến-b01b08). Thời lượng, nhịp và khả năng tự hiểu chờ playtest. Tuyến M2 rút gọn theo Core 07/Roadmap.
 
 ---
 
@@ -37,6 +37,8 @@ Một vật ở hiện trường có thể được **xem** mà không được 
 Tuyến chính đi theo đường:
 
 **Xe máy và cổng phụ (LOC01/R) → sân và kính sảnh → quầy AN01 (R→B) → hành lang / STAFF tùy chọn → Phòng 101 (LOC03/B) → bảng ký F101 tại AN02 → quầy AN01 (B→R) → cổng phụ và vòng lặp một lần → AN01 → Chương 2 (R).**
+
+Theo [Core 03 Campus-v0](../03_World_Architecture_Bible.docx), đây là tuyến trực đêm. Tầm nhìn dự kiến từ sân cho thấy dãy khám và mái đón ở các tiếp cận riêng. Quầy Lan là quầy ngoài giờ. Cửa sổ Phòng 101 nhìn vào sân sáng và dãy phòng lân cận. Dùng các cảnh nền làm mốc định hướng. Phần người chơi đi được kết thúc tại ranh LOC04 trong CH01. Giữ T09 sau T08 và điểm trở về AP01 ở R theo thiết kế dưới đây.
 
 Người chơi có thể quay lại các điểm chưa kiểm, đọc giấy theo thứ tự khác hoặc bỏ khám phá phụ. Riêng các thay đổi hiện thực R/B đều dùng giao dịch và checkpoint an toàn, không đưa Minh vào collider hoặc khóa lối khi quay về.
 
@@ -549,7 +551,7 @@ Chiếc đồng hồ treo sau quầy vẫn **dừng ở 03:17 trong lớp B**. N
 
 #### Điểm kết nhịp trong quầy
 
-Sau khi B→R, giữ vài giây cho âm mưa lấp đầy không gian, tiếng bút không quay lại. Cùng vị trí camera ở quầy, người chơi có thể nhìn từ nơi Lan từng ngồi ra hành lang trống. Đây là lúc game cho phép câu hỏi “mình đã gặp ai?” tồn tại mà không trả lời. Nếu phát DREAD_B06_CLOCK_TICK, chỉ dùng **một nhịp tích tắc khô** sau khoảng yên; không biến nó thành lời giải thích thời gian và không chồng cùng PA04.
+Sau khi B→R, giữ vài giây cho âm mưa lấp đầy không gian, tiếng bút không quay lại. Cùng vị trí camera ở quầy, người chơi có thể nhìn từ nơi Lan từng ngồi ra hành lang trống. Đây là lúc game cho phép câu hỏi “mình đã gặp ai?” tồn tại mà không trả lời. Khi đã về R, chỉ giữ âm hiện trường của R. Cue DREAD_B06_CLOCK_TICK thuộc đoạn trước T08 ở lớp B.
 
 **Gợi hướng B07:** khi player quay từ quầy ra cửa sảnh, hướng cổng phụ hiện rõ. Sau một cuộc gặp không thể giải thích, việc muốn thoát là phản ứng hợp lý, không phải nhiệm vụ HUD vô duyên. Pocket Note có thể chỉ ghi “Thử ra ngoài” rồi người chơi tự quyết định chân mình đi đâu.
 
@@ -788,7 +790,7 @@ Các trường hợp dưới đây là **tiêu chí cần chạy sau khi impleme
 4. **B04 nhịp xe:** tuyến nhanh chỉ nghe cue xa và vẫn ký A/B; tuyến sâu có thể nghe cue gần theo đúng thứ tự/zone. HE01 + DREAD_B04_TROLLEY_STOP không phát chồng; đọc trong inspector/large-print không bị scare chen vào.
 5. **STAFF hai cách mở:** kéo mạnh hoặc xem chốt để mở nhẹ cùng lấy được OBS_SHIFT_LOG cũ; không thêm vật chứng khác, không thay OBS101A/B hoặc luật Refuted. Âm mạnh nếu trùng lúc xe gần chỉ làm xe khựng **một lần** và giữ cooldown.
 6. **N6 ký A/B/C:** cả ba có chữ ký đã commit, giấy đổi trạng thái và hậu quả dễ nhận mà **không xoay camera**; người đứng nhìn bảng kẹp, người quay đi và người mute/reducedMotion đều nhận ra có thay đổi; nếu save fail trước commit, không có vật thể đã biến dạng.
-7. **03:17:** đồng hồ tại AN01/B đứng ở 03:17 trước và sau kiểm nguồn, không nhảy khi ký F101/AN02. Quay lại B06 có thể nghe tick một lần; ở R hiện đúng đồng hồ R, không tự cấp EX01 hoặc tuyên bố giờ tử vong. **Kiểm lại guard của DREAD_B06_CLOCK_TICK trong runtime:** nếu điều kiện hiện hành cho cue chạy sau khi đã trở về R, phải chặn caption/tick mang ngữ nghĩa 03:17 ở lớp R; không biến hành vi cũ thành canon mới.
+7. **03:17:** đồng hồ tại AN01/B đứng ở 03:17 trước và sau kiểm nguồn, không nhảy khi ký F101/AN02. Quay lại B06 có thể nghe tick một lần; ở R hiện đúng đồng hồ R, không tự cấp EX01 hoặc tuyên bố giờ tử vong. **Hồi quy DREAD_B06_CLOCK_TICK:** chỉ cho cue ở B trước T08. Khi về R, kiểm âm và caption của cue này đều vắng.
 8. **Pocket Note ở B08:** A/B/C hiển thị đúng dòng tự ghi từ currentDecision; ký A rồi sửa C trước T08 thì dòng chính là C, lịch sử giữ A. Không làm thêm evidence, không thay Room101/R hoặc G02; người không mở túi vẫn vào CH02.
 9. **Ngân sách:** so tuyến 20,5–30 phút với bản baseline trên cùng cách chơi; nếu cue buộc player dừng/chờ hoặc thêm lối khám phá chính quá dài, cắt cue/điều chỉnh vị trí, **không nới mục tiêu mặc định lên 35 phút**.
 10. **Đường phụ và trợ năng:** bỏ lỡ kính, không mở STAFF, chọn A/B không soi AS-05B, dùng mono/mute/large-print/keyboard/reduceMotion, load ở mỗi beat đều có thể tiếp tục và hiểu hậu quả mà không cần nghe một âm từ xa.

@@ -19,4 +19,6 @@ description: >-
 4. Gắn cue với trigger từ Events và lớp phát. Chìa cho CHAR005, xe thuốc cho CHAR006, dép cho An. Mọi cue cần để ra quyết định có caption hướng và dấu hiệu thị giác hoặc văn bản. Bản thu D16b, subtitle và transcript dùng cùng guard CH04 B06 + H05 + PT02; kiểm cả chế độ mute và skip. Nhạc motif Lan dùng biến thể đúng CH/ending từ Core 05.
 5. Ghi creator, URL/ngày hoặc nguồn tự tạo, phiên bản giấy phép, phạm vi sử dụng thương mại/phân phối và attribution. Dùng tài liệu có quyền rõ trong build. Giữ ảnh chỉ được dùng làm reference ở đúng phạm vi. Dùng tên, logo, hồ sơ và nhân vật hư cấu của An Sinh.
 
+Với CH01, tra [walkthrough B01–B08](../../../docs/ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md), CH01-WT-FOLEY-01 và Core 05. Tiếng bút gắn B03, quầy B06 vắng tiếng bút, cue đồng hồ 03:17 chỉ ở B trước T08. Hậu quả F101 sau commit tách ngân sách ambience. Đỉnh B05/B07 theo hành động, giữ đường hiểu khi mute và giảm chuyển động.
+
 Phân biệt kit/VO tạm của M2 với art lock và final asset. Tra `TASK023` và review `TASK026–028` trước art lock. Khi bàn giao, ghi đường dẫn resource, ID, phiên bản/license, thông số scale/pivot/collider/LOD nếu áp dụng, ảnh hoặc clip trong layer cần thiết, và AR/AU/W-Q tương ứng. Cập nhật Status/License của đúng dòng Assets khi có bằng chứng và nằm trong phạm vi.

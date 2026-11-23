@@ -1,0 +1,85 @@
+{
+  "revision": "Campus-v0",
+  "status": "Blockout seed; not measured geometry or canon bed count",
+  "source": "Core 03 and De an mo rong Benh vien An Sinh, 23/11/2026",
+  "coordinates": {
+    "units": "m",
+    "axis": {"x": "east", "y": "up", "z": "north"},
+    "transformFromUnity": "identity",
+    "rectOrder": ["xMin", "zMin", "xMax", "zMax"],
+    "site": [-42, -30, 58, 80]
+  },
+  "levels": {"B1": -3.4, "REAR_COURT": -1.9, "TRET": 0, "TANG_2": 4, "TANG_3": 8, "MAI_A": 11.7},
+  "capacity": {
+    "planningRange": [80, 100],
+    "nominalRegularBeds": 88,
+    "bedsPerStandardRoom": 4,
+    "excluded": ["LOC03 temporary bay 4", "emergency observation positions", "LOC12 irregular 12 positions"]
+  },
+  "blocks": [
+    {
+      "id": "K-A", "name": "Nhà chính",
+      "levels": {
+        "TRET": [[-8, -8, 18, 40], [-15, -6, -8, 10], [-6, 40, 10, 50]],
+        "TANG_2": [[-8, -8, 18, 40], [-15, -6, -8, 40], [-6, 40, 10, 50]],
+        "TANG_3": [[-17, 16, 10, 40]]
+      },
+      "throughCourt": [5.6, 8.1, 14.2, 14.1],
+      "regularRooms": {"TANG_2": 8},
+      "existingLocations": ["LOC02", "LOC03", "LOC05", "LOC06", "LOC07", "LOC08"]
+    },
+    {
+      "id": "K-B", "name": "Khám ngoại trú",
+      "levels": {"TRET": [[-38, -8, -22, 28]], "TANG_2": [[-38, -8, -22, 28]]},
+      "regularRooms": {},
+      "existingLocations": []
+    },
+    {
+      "id": "K-C", "name": "Nội trú",
+      "levels": {"TRET": [[22, 45, 48, 67]], "TANG_2": [[22, 45, 48, 67]], "TANG_3": [[22, 45, 48, 67]]},
+      "regularRooms": {"TRET": 2, "TANG_2": 6, "TANG_3": 6},
+      "existingLocations": []
+    },
+    {
+      "id": "K-D", "name": "Cấp cứu",
+      "levels": {"TRET": [[18, 14, 43, 32]]},
+      "regularRooms": {},
+      "existingLocations": ["LOC04"]
+    },
+    {
+      "id": "K-E", "name": "Hành chính",
+      "levels": {"TRET": [[-40, 41, -26, 63]], "TANG_2": [[-40, 41, -26, 63]]},
+      "regularRooms": {},
+      "existingLocations": []
+    },
+    {
+      "id": "K-F", "name": "Hậu cần",
+      "levels": {"TRET": [[-14, 59, 10, 73]]},
+      "regularRooms": {},
+      "existingLocations": ["LOC09", "LOC10"]
+    }
+  ],
+  "coveredLinks": {"K-B_to_K-A": [-22, 3, -15, 7], "K-A_to_K-C": [10, 46, 22, 50]},
+  "ambulanceCanopy": [43, 16, 49, 29],
+  "rearCourt": [34.5, 35, 49, 45],
+  "entrances": {
+    "public": [-30, -30], "nightGate": [4, -20], "ambulance": [53, -30], "service": [14, 80]
+  },
+  "circulation": {
+    "public": [[-30, -30], [-30, -8], [-30, 5], [-8, 5]],
+    "ambulance": [[53, -30], [53, 22], [43, 22], [24, 22], [24, 19], [18, 19], [9, 19]],
+    "night": [[4, -25], [4, -20], [4, -8], [4, 4.75], [5.6, 4.75]],
+    "service": [[14, 80], [14, 65], [10, 65]],
+    "morgueBranch": [[14, 65], [14, 56], [-20, 56], [-20, 39], [-1.5, 39]],
+    "rearCourtBranch": [[14, 77], [53, 77], [53, 40], [49, 40]]
+  },
+  "basement": {
+    "serviceModel": "Core 03 section seed references the B1 shells in HospitalAuthoring.Expansion.cs",
+    "rooms": {"LOC09": [4.5, 31.1, 10.5, 45.5], "LOC10": [-1.5, 36, 4.5, 42], "LOC11": [10.5, 39, 14.5, 45], "LOC12": [14.5, 35, 34.5, 49]},
+    "doorC": [14.5, 42],
+    "sealedRear": [34.5, 42],
+    "e05bObservationConcept": [[12.5, 44], [12.5, 50.5], [36.5, 50.5], [36.5, 42]],
+    "observationStatus": "Model the accessible face in R before G06. This perimeter gallery is a blockout option, not an implemented route."
+  },
+  "referenceOnly": "docs/prototype/layout.json defines the tested original rooms, openings, beds and pads. Do not import this campus concept into the runtime or overwrite tested anchors without gate QA."
+}

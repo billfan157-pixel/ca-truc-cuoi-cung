@@ -1,6 +1,6 @@
 # Hệ thống skill vận hành Ca trực cuối cùng
 
-[AGENTS.md](../../AGENTS.md) chọn skill theo đầu việc. Sáu skill cấp dự án nằm tại `.agents/skills/`. Mỗi skill quy định nguồn cần mở, hợp đồng cần giữ, việc cần làm và bằng chứng cần bàn giao. Nội dung và tiến độ sản xuất tiếp tục được quản lý tại bảy tài liệu Core.
+[AGENTS.md](../../AGENTS.md) chọn skill theo đầu việc. Sáu skill cấp dự án nằm tại `.agents/skills/`. Mỗi skill quy định nguồn cần mở, hợp đồng cần giữ, việc cần làm và bằng chứng cần bàn giao. Nội dung và tiến độ sản xuất được quản lý tại bảy tài liệu Core. Dùng [walkthrough CH01 B01–B08](../ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) và DEC-CH01R-04 cho trình tự thao tác, cue và phục hồi của CH01.
 
 ## Điều phối công việc
 
@@ -41,20 +41,20 @@ Mã `DOCxx` trong đoạn cũ dùng bảng chuyển đổi Core 01 §4. Chẳng 
 ## Cơ chế nối các skill
 
 - Mỗi manh mối bắt buộc có dấu hiệu trong cảnh, nguồn và vị trí rõ, thao tác cho người chơi suy luận, kết quả cập nhật state và cách lấy lại. R là hiện thực vật lý, B trình bày hệ quả của hồ sơ, M tái hiện một phần quá khứ đã cố định. Tái sử dụng địa hình và landmark R/B. Mọi gói công bố lấy từ chứng cứ vật lý đủ provenance, E08 được đánh dấu nonexport.
-- Đường dạy chính là F101/OBS101 ở CH01 → G01 → E11 đủ ba phần và E12 vật lý ở CH02 → G02 và xác thực C01. Điều tra sau đó đi từ tồn tại C02, sự thật về Lan, lối sau bị bịt đến mâu thuẫn phiếu nội bộ. Mỗi bước mở một kết luận hoặc thay đổi giả thuyết của người chơi. Cách áp dụng nghiên cứu của dự án nằm ở `07/Research` R1–R4, R7 và R13.
+- Đường dạy chính là F101/OBS101 ở CH01 → ký A/B hoặc hoàn tất đánh dấu, liên kết và kết luận C → G01 → E11 đủ ba phần và E12 vật lý ở CH02 → G02 và xác thực C01. Điều tra sau đó đi từ tồn tại C02, sự thật về Lan, lối sau bị bịt đến mâu thuẫn phiếu nội bộ. Mỗi bước mở một kết luận hoặc thay đổi giả thuyết của người chơi. Cách áp dụng nghiên cứu của dự án nằm ở `07/Research` R1–R4, R7 và R13.
 - Cuối game, G06 mở trước PZ09. PZ09 dùng các mốc đã có để mở M, sau đó mới hoàn tất E08. Năm phản bác PZ10 cần state đã commit trước G07. AN08 dùng xác nhận cuối cho bốn ending. Danh tính C02–11 tác động nội dung tùy chọn, C12 luôn chưa rõ tên, tổng 13 và việc Bảy nộp phần ngoài luôn giữ đúng canon.
 - Nhịp đi từ nỗi sợ của không gian quen mà sai lệch, qua An như người dẫn đường, đến thực thể báo trước bằng cue, rồi chuyển thành đối đầu qua chứng cứ. Chọn chase, reset, khoảng lặng và trợ năng theo beat. Test manh mối ở chế độ mute, bàn phím và giảm chuyển động theo Core 04/05 và `07/QA`. Dùng `07/Research` R5–R6 và R8–R10 khi cần truy nguyên quyết định.
 
 ## Giải quyết chênh lệch giữa nguồn
 
 1. Đối chiếu Core sở hữu chủ đề, khoản v2.2 mới nhất và DEC/LOCK tương ứng. Dùng trường dữ liệu tường minh, ví dụ Chapter và Context từ Dialogue, khi mã legacy dễ gây hiểu nhầm.
-2. Nếu đã có quyết định làm rõ, thực hiện theo quyết định và chỉ ra vị trí văn bản cũ còn lệch. Nếu hai nguồn sở hữu vẫn mâu thuẫn và thay đổi có thể ảnh hưởng canon/gate, ghi nguồn, phương án, ảnh hưởng và tiêu chí kiểm ở dạng đề xuất cho Decisions. Tiếp tục phần có đủ căn cứ.
+2. Nếu skill hoặc tài liệu liên quan đến task có chỉ dẫn mâu thuẫn hay lỗi thời, áp dụng quy định trong [AGENTS.md](../../AGENTS.md#nguồn-và-cách-làm). Dừng task và báo người dùng vị trí nguồn, nội dung bị lệch, căn cứ đối chiếu, ảnh hưởng và phương án xử lý. Chờ người dùng quyết định trước khi tiếp tục.
 3. Khi thay đổi được chốt trong phạm vi, cập nhật nơi sở hữu trước. Đồng bộ các tham chiếu bị tác động theo ID, thử bộ kiểm tra liên quan, ghi Changelog, rồi đọc lại nguồn và kiểm diff/dữ liệu trước khi báo xong. Dùng SHA-256 đầu/cuối khi cần đối chiếu nhiều phiên bản.
 
 | Điểm thấy trong bộ v2.2 | Cách vận hành |
 | --- | --- |
-| Core 04, bảng mở đầu CH03 còn ghi “số tử vong chưa biết” | Core 02 CAN02–03 và `07/Reveal order` CH01/CH03 xác định tri thức công khai từ đầu. Ở CH03, phần còn phải xác thực là liên hệ các mã C với nạn nhân. |
-| Một số bảng CH01 dùng “E10 acquired” và đoạn về T07 nhắc mở lại chỉnh phiếu ở CH06 | Dùng Core 06 v2.2, Core 04 CH02 B05 và `DEC-CH06`. CH01 chỉ seed E10a. CH02 cho sửa F101 ở AN02. E10 hoàn chỉnh tại CH06 sau E10b, giữ lịch sử lựa chọn đầu tiên. |
+| Tri thức ở CH03 | Core 02 CAN02–03 và 07/Reveal order xác định 13 tử vong đã công khai ở CH01. CH03 xác thực sự tồn tại C02 và giữ câu hỏi về liên hệ giữa mã C với nạn nhân. |
+| E10 và sửa phiếu | CH01 chỉ seed E10a. CH02 cho sửa F101 ở AN02, giữ firstDecision. E10 hoàn chỉnh sau E10b ở CH06. Tra Core 04 CH02 B05 và DEC-CH06. |
 | `Dialogue!A70:F70` có ID `CH01-D16b` và Chapter CH04. `CH04-D06` cũng có guard trong Context. | Dùng Chapter/Context và `LOCK-V22-02` để phát tại CH04 B06 sau H05/PT02. Dùng ID hiện có để truy vết và chạy V22-Q03. |
 
 ## Cổng sản xuất
@@ -68,7 +68,7 @@ Mã `DOCxx` trong đoạn cũ dùng bảng chuyển đổi Core 01 §4. Chẳng 
 | M4 | Art/VO/audio, trợ năng, hiệu năng và hồ sơ giấy phép theo build. |
 | M5 | Regression toàn build, phân phối đúng phạm vi và hết P0. |
 
-Snapshot khi thiết kế hệ thống skill, theo v2.2 ngày 19/11/2026. TASK001 hoàn thành rà soát thiết kế. TASK022, TASK023, TASK029 còn mở. M0 đang chuẩn bị, build game và kết quả QA chưa có trong workspace. Khi vận hành, lấy trạng thái mới từ Roadmap/Backlog và xác minh đầu ra tại chỗ.
+Core 07 ghi M0/M1 đã hoàn thành và M2 đang làm tại lần đồng bộ 23/11/2026. CH01 B01–B08 có kết quả kỹ thuật theo build a4f5a3f. Đối chiếu Roadmap/Backlog trước mỗi lượt và ghi riêng bằng chứng triển khai, kết quả ca QA và nghiệm thu task. Thời lượng 20,5–30 phút của CH01 đầy đủ và 20–30 phút của M2 rút gọn được đo theo hai tuyến tương ứng.
 
 | Task M0 | Skill chính | Đầu ra cần chứng minh |
 | --- | --- | --- |

@@ -18,6 +18,7 @@ description: >-
 - M0 dùng điều kiện sống tại `07/Roadmap`, `07/Backlog` và `LOCK-V22-03`. Ba hướng khởi động là mặt cắt hư cấu `TASK022`, reference đúng thời/quyền `TASK023` và thử nghiệm lựa chọn engine/target `TASK029`. Xem đầu ra và tiêu chí từng việc trong hướng dẫn vận hành.
 - Core 06 giao `TASK029` trước `TASK003`. Trong spike, so lựa chọn theo đúng tiêu chí Core 06 và ghi số đo/giới hạn từng phương án thực sự thử. Ghi kết quả vào `DEC-V2-04` khi được giao chốt lựa chọn.
 - M1 nghiệm thu `TASK025` qua module thực, gồm ba nhánh F101, sửa phiếu, R/B, save/load, E11/E12 và stress swap. M2 mở sau M1 pass. M2 dùng slice CH01 rút gọn + C01 với cameo scripted, playtest người mới và các review cần thiết trước art lock. Hunter/Orderly đầy đủ đi theo `TASK011` ở M3.
+- Với CH01, đọc [walkthrough B01–B08](../../../docs/ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) và DEC-CH01R-04. Ghi riêng thiết kế CH01 đầy đủ, build ứng viên và phạm vi M2 rút gọn trong Roadmap. Khi có log, ghi phạm vi qua kiểm theo build trước khi xem xét điều kiện đóng task.
 - Khi thiếu tiền đề của hạng mục đang được yêu cầu, xác định đầu việc tiên quyết đang mở. Thực hiện phần tiền đề hoặc việc độc lập nếu nằm trong phạm vi. Ghi blocker bằng ID và điều kiện còn thiếu. Mọi quyết định đổi canon, mục tiêu bản phát hành hoặc ràng buộc đã khóa đi qua DEC và người có thẩm quyền chốt.
 
 ## Đồng bộ và bàn giao

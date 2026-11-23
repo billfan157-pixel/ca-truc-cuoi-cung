@@ -6,6 +6,12 @@ Tài liệu nghiệm thu kỹ thuật và thiết kế cho bản tái cấu trú
 
 ---
 
+## Kiểm kỹ thuật tuyến B01–B08
+
+DEC-CH01R-04 áp dụng [walkthrough CH01](walkthrough-gameplay-B01-B08-investigation-v1.md) cho tuyến hoàn chỉnh. Ứng viên Windows x64 Unity 6000.3.28f1 từ a4f5a3f qua CH01-WT-Q01/Q02 trên Module và Input. Đã chạy B01–B08, ba nhánh F101, hợp nhất giấy B→R, guard đồng hồ, seam, Pocket Note/echo và chuyển CH02. Xem [định danh](evidence/walkthrough-build-identity.txt), [module](evidence/walkthrough-qa-module.txt) và [input](evidence/walkthrough-qa-input.txt).
+
+Thời lượng 20,5–30 phút của CH01 là mục tiêu thiết kế. M2 giữ tuyến rút gọn theo Roadmap. TASK010 và TASK026–028 còn mở. Các phần dưới ghi kết quả ở những mốc trước.
+
 ## 1. Kiểm toán Baseline (M3.1 `05a5bfa`) & Nguyên tắc Thiết kế
 
 Đánh giá bản build độc lập M3.1 (`output/m31/windows-05a5bfa/CaTrucCuoiCung.exe`, video nền [baseline-walkthrough.mp4](evidence/baseline-walkthrough.mp4), log [baseline-qa-gameplay.txt](evidence/baseline-qa-gameplay.txt)) cho thấy 7 điểm nghẽn cốt lõi ở CH01:
