@@ -400,7 +400,9 @@ Có một vị trí sử dụng khác với cách phiếu mô tả; thẻ bàn g
 
 **C — Refuted / Ghi nhận bất nhất.** Chỉ ký được sau khi lập luận hợp lệ bằng OBS101A/B và marks/link/claim đúng. **D(LOC03)=0**. Rèm tách, hốc giường lộ rõ hơn; mảng tường ẩm, dấu bánh đậm và góc CH01_PR01_Corner được nhìn thấy theo hiện trạng đã định. Không có lời thú nhận, tên bệnh nhân hay đáp án thủ phạm.
 
-7. **Chữ ký gây hậu quả trước mặt người chơi.** Bút/chốt giấy, một khoảng dừng, rồi sự thay đổi của căn phòng. Không che toàn bộ chuyển cảnh bằng một flash khiến player không kịp thấy kết quả do mình gây ra.
+7. **Chữ ký gây hậu quả trước mặt người chơi.** Bút chạm giấy, hệ thống xác minh và **commit F101/T07/G01 thành công** trước khi đổi cảnh. Nét mực cùng một tiếng chốt giấy xác nhận người chơi đã làm một việc có hệ quả; sau khoảng ngừng ngắn, ánh sáng và âm thanh từ **đúng hốc giường 4** tạo lý do để tự quay nhìn. Cảnh thay đổi theo A/B/C nhưng **không ép xoay camera**; khi người chơi đóng inspector, phải có ít nhất một phản hồi cảm nhận được từ góc đứng bên bảng kẹp. Không che toàn bộ chuyển cảnh bằng flash, không thêm đồng hồ 03:17 vào Phòng 101.
+
+   **Nếu người chơi không quay đầu:** giấy đã ký vẫn đổi trạng thái rõ ràng; âm có caption hướng, bóng/ánh sáng hốc 4 được nhìn thấy nếu họ quay lại sau đó. Không đòi nhìn ngay mới ghi nhận F101, không phát lại một tiếng giật để ép họ quay. Nếu save ngay sau ký, thế giới tái dựng đúng nhánh và cue hậu ký không phát thành jumpscare lần hai.
 8. **G01 mở ở cả A/B/C** ngay sau commit bền vững CH01-T07. Người chơi có thể đứng lại quan sát và sửa quyết định trước khi chuyển B→R. Lần ký đầu lưu firstDecision; mỗi sửa đổi hợp lệ cập nhật current/revision/history; bấm lặp cùng lựa chọn không nhân số lần.
 9. Nếu EX01 đã hoàn tất, khi rời Phòng 101 người chơi có thể nghe CH01-D19 đúng điều kiện; không tự kích cho người bỏ qua nhánh phụ.
 
@@ -440,6 +442,21 @@ Vị trí các vùng trên giấy phải có hình thức thật: trường tổ
 - Claim FALSIFICATION/PATIENT_PRESENT: chỉ ra kết luận vượt phạm vi nguồn, không tạo “bí mật sai” trong canon.
 - Dẫn OBS101D/đồng hồ 03:17 làm căn cứ trực tiếp: trả rằng chúng không chứng minh sai lệch của tổng số giường, dù có ý nghĩa phụ.
 - Quay về ký A/B sau khi thử C không thành: ký hợp lệ ngay, không bị khóa trong một nhánh “đã chọn C nên phải giải xong”.
+
+#### Khoảnh khắc sau chữ ký: không cưỡng bức camera nhưng không bỏ lỡ hậu quả
+
+Chuỗi này **thay cách dàn dựng phản hồi F101 cũ**, không thêm một nhiệm vụ mới và không xếp thêm scare vào sau P-SC05. Nó bắt đầu **chỉ khi chữ ký đã commit thành công**, sau khi inspector/bảng kẹp đóng hoặc nhả quyền điều khiển; trong modal chỉ có giấy và mực, không có sự kiện làm mất tập trung.
+
+| Bước | Điều người chơi tự cảm nhận | Ràng buộc kỹ thuật/dàn dựng |
+| --- | --- | --- |
+| **1. Bút ký** | Vết mực/ô đã ký đổi, âm chốt kẹp giấy khô | F101 first/current/history, T07 và G01 phải commit trước; fail thì giữ nguyên hiện trường |
+| **2. Dịch chuyển ánh sáng** | Vùng rèm/vách hốc 4 thay độ sáng ở ngoại vi hoặc qua bóng đổ trên nền gần bảng kẹp | Dùng ánh sáng của biến thể A/B/C đã có; không flash toàn phòng; không tắt lối đi |
+| **3. Một âm có nguồn** | Có âm từ hốc 4 khiến người chơi muốn quay lại, không nhất thiết nằm “sau lưng” nếu camera hướng khác | A: gõ nén sau vách; B: quạt lệch/khung rèm nhẹ; C: giấy/kẹp và chuyển vật liệu. Không phát cùng lúc ba âm |
+| **4. Người chơi tự kiểm** | FPS được trả lại, có thể đứng nhìn/đi gần vách/rèm và thấy hậu quả liên tục | Không ép yaw, không đóng cửa, không dùng một đồng hồ ở vị trí không có thật |
+
+Nếu trước ký người chơi **đã nhận một scare ở hốc 4**, phải dành khoảng nghỉ và hạ bớt cue hậu ký chứ không phát chồng cùng một nguồn. Nếu họ ký A/B rất sớm và chưa xem AS-05B, phản ứng vẫn dễ cảm nhận nhưng **không tự cấp thông tin đã đọc thẻ hoặc dấu sàn**. Ở chế độ mute/mono, ánh sáng/vật thể và caption vẫn báo có thay đổi; reduceMotion loại camera-shake và flash mà không bỏ mất bản thân hậu quả.
+
+Mốc **03:17** nằm trên đồng hồ **đứng kim tại quầy AN01 ở lớp B**, không chạy 02:40→03:17 theo tiến độ khám phá và không nhảy kim khi bút chạm F101 tại AN02. Chính sự bất động của chiếc đồng hồ sẽ còn tác dụng khi Minh quay về quầy ở B06. Không dùng kỹ thuật đếm giờ ẩn như điều kiện để người chơi được ký.
 
 #### Ba diễn biến sân khấu sau chữ ký — mỗi lựa chọn có một nỗi sợ riêng
 
@@ -514,6 +531,14 @@ Người chơi vừa chọn tin, để ngỏ hoặc phản đối một con số
 
 Cả ba đường phải giữ nguyên **OBS101A/B đã Examined, EX01 nếu có, first/current/history F101**. Nếu swap thất bại, mọi thứ trở lại B đúng trạng thái trước đó (kể cả thẻ trên bàn); không lấy mất giấy rồi hiển thị lỗi. Đường đi R cho CH02 không đổi theo ký A/B/C và không thừa một vách deniedBay từ lớp B.
 
+#### Hệ quả cảm xúc từ những hành động nhỏ trước đó
+
+Nếu người chơi từng tự mở DRAWER-DESK khi Lan còn ở quầy, họ có thể nhớ lại **một lần cô dừng bút nhìn tay Minh** khi giờ đây chỉ còn ngăn kéo và chiếc ghế trống. Không tự phát thêm flashback, không chèn tên Minh vào sổ bàn giao và không thêm dòng viết tay của Lan. Sự “ghi nhớ” ở đây là **đối xứng của hai cảnh có thể tận mắt thấy**, không phải bằng chứng rằng Lan biết tương lai.
+
+Chiếc đồng hồ treo sau quầy vẫn **dừng ở 03:17 trong lớp B**. Nếu Minh tự nhìn lại nó trước khi giở sổ T08, một tiếng tích khô có thể vang một lần bằng cơ chế DREAD_B06_CLOCK_TICK hiện có; kim không nhảy và không biến 03:17 thành giờ tử vong. Khi đổi về R, đồng hồ trở về biểu hiện đúng lớp R, không tiếp tục bị giữ ở 03:17 như một món vật chất xuyên lớp.
+
+Đường chuyển T08, sự vắng mặt của Lan và trạng thái R không được thay theo việc player có/không mở ngăn kéo. Nếu bất kỳ cue tùy chọn nào bị bỏ qua, ý nghĩa B06 vẫn nằm ở quầy trống, tiếng bút biến mất và chính thao tác Minh giở sổ để bàn giao.
+
 #### Điểm kết nhịp trong quầy
 
 Sau khi B→R, giữ vài giây cho âm mưa lấp đầy không gian, tiếng bút không quay lại. Cùng vị trí camera ở quầy, người chơi có thể nhìn từ nơi Lan từng ngồi ra hành lang trống. Đây là lúc game cho phép câu hỏi “mình đã gặp ai?” tồn tại mà không trả lời. Nếu phát DREAD_B06_CLOCK_TICK, chỉ dùng **một nhịp tích tắc khô** sau khoảng yên; không biến nó thành lời giải thích thời gian và không chồng cùng PA04.
@@ -587,6 +612,18 @@ CH01-T09 được lưu once; đường từ cổng về AN01 luôn mở. Ba lô 
 3. Nếu player từng **thực sự nhấc/soi hoặc cất AS-05B ở B**, khi mở ngăn giấy trong R có thể xuất hiện một **hình bóng thoáng qua của mép thẻ hoặc dấu ô bàn giao trên lớp trình bày của túi**. Khi đưa tay tới, đó không phải vật thật có thể equip: nó chỉ dẫn tới **ghi nhớ đã đọc tại LOC03/B**. Sự kiện thị giác này là **P-BAG08_ECHO**, một hiệu ứng biểu đạt ký ức, không phải item mới, không là chứng cứ vật lý 2012 và không xuất hiện nếu người chơi chưa hề thấy thẻ.
 4. Nếu người chơi không mở ba lô, câu chuyện vẫn hoàn chỉnh. Pocket Note có thể giữ một câu hỏi ngắn về thứ đã thấy trong Phòng 101, dựa trên chính những nguồn player đã thực sự kiểm. Không được tự tóm tắt rằng Minh đã gặp bệnh nhân, phát hiện thủ phạm hoặc biết giờ tử vong.
 5. Minh có thể lấy **E10a thực ở R** ra đọc lại: một lời hẹn bị hoãn, một mẩu tin cũ và lý do anh đã tự bước vào. Đối chiếu cảm giác với trải nghiệm ở B là suy nghĩ của người chơi, không phải thông báo “đã giải xong vụ án”.
+
+#### Pocket Note giữ đúng điều Minh đã ký, không thay sự thật
+
+Khi Minh mở ba lô sau T08, một dòng ngắn trong Pocket Note có thể nhắc lại **quyết định F101 mà chính người chơi đã thực hiện**. Đây là câu nhớ về chữ ký, không phải đánh giá “đúng/sai”, không giải thích kết quả và không là giấy gốc B mang tới năm 2012:
+
+| Current decision | Dòng tự ghi gọn trong Pocket Note | Điều không được suy ra |
+| --- | --- | --- |
+| **A · Affirmed** | “Mình đã ký xác nhận số 0.” | Không khẳng định sự thật khách quan là 0 |
+| **B · Unverified** | “Mình đã để số 0 ở trạng thái chưa xác minh.” | Không coi việc thận trọng là thất bại |
+| **C · Refuted** | “Mình đã ghi nhận: số 0 chưa đủ căn cứ xác nhận.” | Không khẳng định có bệnh nhân đang ở phòng, ai cố tình giấu hoặc 03:17 là giờ chết |
+
+Dữ liệu hiển thị lấy từ **F101 currentDecision** và nguồn đã thực sự Examined; nếu player ký A rồi sửa thành C trước T08, dòng gọn phản ánh **C hiện tại**, còn phần ghi chép sâu giữ **firstDecision/history** để không xóa việc đã từng ký A. Không cần tạo biến kết cục mới, không mở thêm màn hình buộc người chơi đọc, không tự đổi vật lý Phòng 101 ở CH02-R. Pocket Note và hiệu ứng ký ức giấy P-BAG08_ECHO độc lập nhau: người không hề soi AS-05B vẫn xem được điều mình đã ký, nhưng **không có echo giả**.
 
 #### Sự kiện trong ba lô được xây từ trí nhớ của chính người chơi
 
