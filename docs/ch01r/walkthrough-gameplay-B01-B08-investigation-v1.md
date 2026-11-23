@@ -81,7 +81,7 @@ Mưa đêm rơi xuống sân xi măng. Xe máy Minh dừng cạnh lối cổng p
 
 #### Trình tự người chơi
 
-1. **Quan sát nơi mình vừa tới.** Người chơi có thể nhìn vệt lốp mới, chiếc xe, bảng tên cũ và biển thông báo tháo dỡ. Vết lốp là chi tiết bối cảnh, không được biến thành “dấu vết thủ phạm”. Nếu bỏ qua, vẫn mở được cổng.
+1. **Quan sát nơi mình vừa tới.** Người chơi có thể nhìn vệt lốp mới, chiếc xe, bảng tên cũ và biển thông báo tháo dỡ. Vết lốp là chi tiết bối cảnh, không được biến thành “dấu vết thủ phạm”. Nếu bỏ qua, vẫn mở được cổng. Khi Minh tự bật đèn pin soi từ hướng thấp, bảng tên cũ nổi hình còn tấm biển tháo dỡ có thể bị lóa; nếu soi từ hướng khác, biển tháo dỡ dễ đọc hơn. Đây là **phản hồi từ lựa chọn góc sáng**, không tạo hai loại thông tin độc quyền: người chơi luôn có thể đổi góc hoặc tiến gần để đọc cả hai, không thêm item, event gate hay lời thoại.
 
 2. **Tự nhấc E10a.** Nhìn phong bì ở gần xe rồi nhấn E: Minh cầm vật lên trước camera. Người chơi có thể xoay, mở nếp gấp, xem thư cũ của Lan, lời hẹn Bảy, mẩu báo về vụ cháy rạng sáng **18/11/2005 khiến 13 người tử vong**, và tin nhắn Bảy báo hoãn. Nội dung thoại/tin nhắn giữ theo các dòng đã đăng ký, đặc biệt CH01-D15; không thay bằng dòng giải thích mới. Bản chữ lớn có thể mở trực tiếp.
 
@@ -152,6 +152,8 @@ Một micro-dread phụ thuộc góc nhìn là đủ. Không chồng tia chớp 
 
 **Thời gian và tính chủ động:** sự kiện phụ chỉ có thể phát một lần và không được buộc chờ một timeout 60 giây. Sau mỗi sự kiện quan sát mạnh có nhịp yên đủ để chân người chơi, mưa và tiếng cửa lấn lên trở lại. Nếu player chạy qua, game giữ nhịp, không teleport bóng ra trước mặt cho bằng được.
 
+**Phản hồi kín đáo cho cách quan sát:** nếu player chủ động tiến sát kính và dừng nhìn đủ để thấy bóng thay đổi, có thể lưu một cờ trình bày đã nhìn kỹ (once, phục hồi sau load); khi gặp Lan ở B03, cô giữ ánh mắt với Minh lâu hơn một nhịp trước khi quay lại giấy. Đây **không phải lời thoại mới**, không xác nhận bóng B02 chính là Lan, và không tạo ObservationRecord hay evidence. Nếu người chơi chạy thẳng qua hoặc không nhìn, cảnh gặp vẫn đầy đủ và không chặn cinematic.
+
 **Tính liên tục với B03:** đây là hình ảnh trục quầy từ phía R. Sau khi giở sổ R→B ở AN01, Lan phải ở vị trí có thể liên hệ với bóng ấy; tuy vậy game không đóng dấu “đã gặp Lan” chỉ vì người chơi nhìn qua kính. LAN_TALK không bị kích bằng trục nhìn B02. Mọi nguồn ghi nhận siêu nhiên ở giai đoạn này chỉ là cảm giác về không gian, không là tài liệu dùng ký F101.
 
 #### Thông tin và trạng thái sau beat
@@ -190,6 +192,14 @@ Người chơi hiểu rằng tại quầy có một điều cần kiểm tra, nh
 
 12. Người chơi tự **nhấc BOARD** khỏi quầy, kiểm tra giấy trong 3D và cất vào ngăn giấy của ba lô. Chỉ lúc này **CH01-T05** commit và việc vào Phòng 101 mới được mở. **BOARD tại quầy là đồ bàn giao nhiệm vụ; F101 là phiếu được kiểm tra, đánh dấu và ký ở Phòng 101**, không phải một món đã ký được Lan trao tại đây.
 13. Khám phá tùy chọn tại quầy: kéo **DRAWER-DESK** xem OBS_RECEPTION_DRAWER, soi lịch, quay lên đồng hồ 03:17 trong B để kiểm bằng chính camera của mình. Người chơi có thể dùng đèn/đổi góc và ghi nhớ nguồn; không cần phải hoàn thành tất cả để đi Phòng 101.
+
+#### Khi Minh tự mở ngăn kéo trong lúc Lan còn ở quầy
+
+DRAWER-DESK vẫn là ngăn kéo có OBS_RECEPTION_DRAWER, không thêm vật chứng hay khóa mới. Nếu player tự mở trong vùng Lan nhìn thấy (trước khi T08, ngoài cinematic và ngoài inspector), **Lan dừng bút, ngẩng nhìn về tay Minh, rồi bình thản viết tiếp**. Cô không làm Minh giật mình và cũng không tự mở hội thoại: đây là phản ứng có nguyên nhân từ hành động khám phá của người chơi. Không thêm câu “Anh cần gì cứ nói”, không viết tên Minh hoặc câu thần bí mới vào sổ trực.
+
+Phản ứng này **chỉ chạy một lần** và không biến việc mở ngăn kéo thành nhiệm vụ. Nếu Minh xem ngăn kéo trước khi Lan sẵn sàng quan sát, trong cinematic, sau khi Lan biến mất, hoặc khi player đã thấy phản ứng rồi, chỉ giữ hành vi kéo/xem giấy bình thường. Nếu người chơi đang đứng gần với ba lô mở, animation chờ đến khi inspector/modal đóng; không cướp input hoặc phát câu thoại khác. Khi save/load ở quầy, trạng thái ngăn kéo và phản ứng once phải phục hồi, không lặp cảnh và không ảnh hưởng T05.
+
+Lần mở ngăn kéo này là **một quyết định có phản hồi sớm**, không phải chọn thiện/ác: người chơi nhận thấy Lan chú ý tới việc mình làm, nhưng chưa biết cô thật sự nhận ra bao nhiêu. Sau này B06, chiếc ghế trống và tiếng bút vắng mặt có thể gợi nhớ đúng khoảnh khắc đó mà không cần thêm dòng chữ tiết lộ.
 
 #### Bảng dàn dựng encounter: thời điểm, camera và âm thanh
 
@@ -257,7 +267,7 @@ Minh đã trải nghiệm ca trực B năm 2005, gặp Lan và nhận BOARD. Q v
 #### Đường đến Phòng 101
 
 1. Sau khi cầm BOARD, người chơi có thể đi thẳng qua HALL hoặc vòng qua hốc hồ sơ điều dưỡng STAFF. Hai đường hội tụ ở Phòng 101; không có nhiệm vụ mở tủ STAFF mới được phép vào phòng. Lối tới Khu C chưa mở theo beat này.
-2. Trên đường qua HALL, tiếng xe đẩy xuất hiện ở đoạn xa rồi **khựng lại** (DREAD_B04_TROLLEY_STOP). Không cho xe lao vào camera hoặc chắn lối. Nếu Minh quay tìm, hành lang vắng nhưng sự chú ý của anh giờ hướng về những **dấu bánh xe** có thể kiểm.
+2. Trên đường qua HALL, tiếng xe đẩy xuất hiện ở đoạn xa rồi **khựng lại** (DREAD_B04_TROLLEY_STOP). Đây là nấc mở của một **âm thanh tiến gần có điều kiện**: khi player vào Phòng 101, sau đó thực sự kiểm một nguồn chính tại hốc 4, tiếng kim loại có thể vang lần nữa gần cửa rồi gần rèm, nhưng không nhất thiết phát đủ mọi nấc. Không có xe hiện hình hoặc đuổi theo Minh. Nếu Minh quay tìm, hành lang vắng nhưng sự chú ý của anh giờ hướng về những **dấu bánh xe** có thể kiểm. Nấc sau không được phát khi modal đang mở hoặc chồng với trolley shadow HE01 hiện có.
 3. Tại cửa Phòng 101, F101 đang ghi con số **0**. Người chơi có thể đọc ngay mặt trước, nghiêng tờ phiếu để nhìn ô số và đặt lại trên **bảng kẹp AN02**. Không bắt lập luận ngay; lúc này con số chỉ là một tuyên bố hành chính.
 
 #### Vào phòng và nhìn thấy điều giấy không nói
@@ -276,7 +286,7 @@ Minh đã trải nghiệm ca trực B năm 2005, gặp Lan và nhận BOARD. Q v
 
 #### Điều tra phụ có ý nghĩa
 
-12. **STAFF:** mở DRAWER-NURSE để đọc **OBS_SHIFT_LOG / quy chế AS-05**; xem **OBS_CORRIDOR_NOTICE**. Tác dụng là hiểu một chuyển giao hợp lệ cần có dấu nhận và cách kê giường tạm được quản lý. Đây là nền nghiệp vụ, không phải chìa khóa UI bắt buộc.
+12. **STAFF:** DRAWER-NURSE có chốt hơi kẹt. Người chơi có thể **kéo mạnh** (nhấn/giữ E hoặc chọn hành động trợ năng, âm kim loại to) hoặc **kiểm tra chốt rồi nhấc/mở nhẹ** (âm ngắn, ít ồn). Cả hai đều mở **chính ngăn kéo cũ**, cho đọc **OBS_SHIFT_LOG / quy chế AS-05** và xem **OBS_CORRIDOR_NOTICE**; không tạo nửa carbon, vật chứng mới hoặc yêu cầu phải đọc quy chế mới biết cách mở chốt. Nếu vừa kéo mạnh khi tiếng xe còn gần, một lần âm xe có thể khựng theo, rồi hệ âm thanh trở về khoảng nghỉ. Tác dụng là hiểu quy trình bàn giao và có một phản hồi vật lý cho khám phá tùy chọn; đây không phải chìa khóa UI bắt buộc, không ảnh hưởng điều kiện ký C.
 13. **Giường 2:** đọc **OBS101C**, phiếu chuyển đã hoàn tất có đầy đủ dấu bàn giao. Người chơi nhận ra **một hồ sơ đúng quy trình trông như thế nào**, từ đó biết tại sao thẻ giường 4 gây nghi vấn. Không cần đọc C để được ký Refuted nếu đã đủ hai nguồn chính.
 14. **Giường 3:** mở DRAWER-BED3 xem **OBS101D**, phiếu thuốc/việc hoàn tất của giường 3. Nó cho thấy giấy tờ có thể khớp đúng một vị trí mà **không** chứng minh điều gì về vị trí 4. Nếu đem phiếu này làm căn cứ bác bỏ F101, Minh phản hồi nguồn đó nói về giường khác.
 15. **Mốc thời gian tùy chọn EX01:** nếu đã tự xem đồng hồ B ở quầy, soi vết hằn mặt sau AS-05B và đọc một nguồn ca trực tại quầy hoặc STAFF, người chơi có thể tự ghi mối liên hệ **03:17** trong Pocket Note mở rộng. Trình tự nguồn có thể bất kỳ. EX01 chỉ mở khả năng nghe CH01-D19 sau khi ký, không thay kết luận F101.
@@ -331,6 +341,20 @@ Khi player mở DRAWER-NURSE, động tác kéo ngăn tủ là thao tác chính,
 Phát hiện **CH01-EX01** chỉ hình thành nếu player tự thu đủ: (1) **xem đồng hồ dừng ở 03:17 trong lớp B**, (2) **soi nghiêng mặt sau AS-05B để thấy “03g17 · CHƯA CHỐT SỔ”**, (3) **xem ít nhất một nguồn ca** ở quầy hoặc STAFF. Các nguồn có thể được xem theo bất kỳ thứ tự nào; việc cinematic B03 đưa đồng hồ vào khuôn hình **không** thay (1). Một cú lật thẻ thông thường chưa thấy vết hằn **không** thay (2).
 
 Sau khi tự liên hệ các nguồn, người chơi có thể ghi một câu hỏi trong phần ghi chép Pocket Note: “Hai dấu thời gian cùng chỉ 03:17 — vì sao?”. Không xuất hiện banner kết luận tai nạn hoặc người đã chết. EX01 chỉ là tiền đề mở line CH01-D19 khi đã ký; nếu thiếu một nguồn, không mất đường A/B/C hay Chương 2. Nếu người chơi cố chọn một mốc khác, có thể giữ giả thuyết chưa xác nhận để sau này xét lại, không tự sửa số trên các tài liệu.
+
+#### Tiến trình âm thanh đi cùng việc điều tra, không tăng số nhiệm vụ
+
+Một đường âm xe đẩy có thể có ba nấc trong cùng B04:
+
+| Nấc | Khi nào có thể phát | Vị trí âm | Điều kiện bỏ qua |
+| --- | --- | --- | --- |
+| **Xa** | T05 xong, người chơi đi vào HALL | Cuối hành lang, lăn rồi dừng; dùng cue hiện hành DREAD_B04_TROLLEY_STOP | Nếu đã phát HE01 quá gần, chỉ dùng một cue, không nhân hai tiếng xe |
+| **Gần** | Sau khi T06 xong và player thực sự kiểm một dấu/thẻ tại hốc 4; ngoài chế độ đọc | Vùng cửa 101/hành lang sát phòng | Nếu player rời ngay, đứng trong safe reading hoặc ambient budget đã đầy, bỏ qua |
+| **Sát** | Khi người chơi quay lại nhìn hốc 4 sau kiểm nguồn, trước hoặc gần B05 nhưng không lúc ký | Móc rèm/kim loại tại hốc giường 4 | Nếu đã có scare cùng nguồn, không phát thêm; có thể gộp làm cue hậu ký của đúng nhánh |
+
+Âm xe mang tính **gợi đe dọa**, không phải một AI/hunter hoặc lời hứa “có thứ đang đuổi Minh”. Nó không bắt buộc tiến một nấc sau *mọi* observation vì như vậy người chơi bị phạt khi khám phá kỹ. Một đường chơi nhanh có thể chỉ nghe nấc xa và vẫn đủ hiểu căn phòng. Một đường điều tra sâu có cơ hội nghe âm gần hơn, nhưng phải có khoảng nghỉ và giới hạn event budget. Mỗi nấc phát không quá một lần, vị trí nguồn và thứ tự được xác định bởi state/zone, không đếm trực tiếp thời gian đứng chơi.
+
+Nếu mở tủ STAFF bằng lực mạnh, tiếng chốt có thể làm xe **dừng bất ngờ** như một phản hồi trong chuỗi này; nó không tự tăng nấc, không tạo một scare riêng vượt ngân sách và không làm thay đổi evidence hay biến dạng của Phòng 101. Không buộc người chơi nghe stereo để hiểu: caption có hướng, cùng dấu hiệu môi trường khi mute, và mode giảm giật giữ được tuyến điều tra.
 
 #### Dread được tạo bởi chính việc soi một nơi cụ thể
 
