@@ -354,6 +354,65 @@ Có một vị trí sử dụng khác với cách phiếu mô tả; thẻ bàn g
 8. **G01 mở ở cả A/B/C** ngay sau commit bền vững CH01-T07. Người chơi có thể đứng lại quan sát và sửa quyết định trước khi chuyển B→R. Lần ký đầu lưu firstDecision; mỗi sửa đổi hợp lệ cập nhật current/revision/history; bấm lặp cùng lựa chọn không nhân số lần.
 9. Nếu EX01 đã hoàn tất, khi rời Phòng 101 người chơi có thể nghe CH01-D19 đúng điều kiện; không tự kích cho người bỏ qua nhánh phụ.
 
+#### F101 từ giấy hành chính trở thành một việc phải tự làm
+
+**Điểm vào:** F101 ở bảng kẹp AN02 trong LOC03/B, ngay trong vùng người chơi có thể quay lại sau khi soi giường 4. Trước khi ký, player được tự do cúi nhìn các trường, cầm cạnh phiếu để nghiêng và đọc mặt sau rồi trả vào kẹp. F101 không phải một đồ vật được tự phát trao ở quầy và không thể bị vứt ra khỏi bản đồ, vì nó là nơi nhận quyết định của beat.
+
+**Dàn dựng của bàn đối chiếu:** cạnh F101 có một chỗ đủ để kẹp tạm thẻ AS-05B hoặc giấy đối chứng. Người chơi mở ba lô 3 ngăn, chọn thẻ, nhấn “Lấy ra” và đưa tới điểm so; sau một âm kẹp nhỏ, hai bề mặt giấy có thể đọc cùng lúc. Nếu chỉ dùng bàn phím, hành động “Đặt làm nguồn đối chiếu” tạo đúng anchor và đưa các field cần soi vào một danh sách theo thứ tự nguồn; không buộc kéo thẻ pixel-perfect. Đặt giấy cạnh phiếu **không tự làm nổi vùng số 0, không hiện khung xanh báo đã ghép đúng**.
+
+**Trình tự bằng tay cho người muốn bác bỏ số 0:**
+
+| Hành động | Thao tác 3D cụ thể | Hệ thống thật sự xác minh | Điều người chơi phải hiểu |
+| --- | --- | --- | --- |
+| 1. Đọc yêu cầu của F101 | Cầm mép giấy/lật xem, nhìn trường tổng số | Phiếu đang yêu cầu ký trên số 0 | Đây là một lời tuyên bố từ hồ sơ |
+| 2. Đưa AS-05B tới kẹp phụ | Rút thẻ từ túi hoặc lấy lại tại giá; xoay đúng mặt ô nhận | OBS101B đã Examined đúng nguồn B, không chỉ nằm trong ba lô | Bàn giao của chỗ thứ tư chưa được xác nhận |
+| 3. Đánh dấu số 0 | Nhấn bút vào vùng F101_ZERO trên phiếu | Một vùng mark hợp lệ, không phải click vào mép kẹp | Điểm bất nhất nằm ở tổng số ghi trên giấy |
+| 4. Đánh dấu ô nhận | Tương tác hotspot OBS101B_SIGN | Một vùng mark hợp lệ trên nguồn thẻ | Vì sao có một thẻ bàn giao chưa hoàn tất? |
+| 5. Chỉ trở lại dấu sàn | Rời bảng, quay nhìn chỗ giường 4 hoặc chọn nguồn đã kiểm qua fallback | OBS101A đã Examined tại LOC03/B và liên hệ OBS101B_SIGN → OBS101A_TRACES | Thẻ không phải giấy sót lại vô căn cứ; hiện trường có dấu sử dụng |
+| 6. Chọn giới hạn phát biểu | Chọn câu “Số 0 chưa đủ đáng tin” trên phiếu, không ở màn đố trừu tượng | Claim F101_CLAIM_UNRELIABLE_ZERO; validator kiểm toàn bộ | Căn cứ đủ để không xác nhận số 0, chưa đủ để buộc tội |
+| 7. Ký | Người chơi chủ động bấm/giữ bút vào ô ghi quyết định | Commit CH01-T07 nếu đánh giá hợp lệ, lưu dấu và history | Minh chịu trách nhiệm với điều mình vừa kết luận |
+
+Vị trí các vùng trên giấy phải có hình thức thật: trường tổng số in, khu chữ ký, con dấu và hai ô bút đánh dấu. Cảm giác ký đến từ việc tay/bút dừng trên giấy, **không** đòi trace chữ ký tự do hay một trò giữ lực bút đúng phần trăm. Người chơi có thể rút giấy nguồn khỏi kẹp so và xem lại trước khi ký; thông tin Examined và những mark đã commit không biến mất, nhưng nếu người chơi hủy draft chưa commit, bản giấy thật phải trả về chỗ cũ.
+
+#### Ranh giới giữa nhận định hợp lý và suy đoán vượt chứng cứ
+
+**Nhánh A không cần phát hiện gì:** một người chơi mệt, không tin vào hiện tượng, hoặc muốn làm xong việc Lan giao có thể chọn xác nhận số 0 trên F101 ngay khi mở form. Game không ngăn cản chỉ vì “chưa nhặt đủ manh mối”; hậu quả tự sự của một quyết định quá dễ dàng đã thể hiện bằng vách mới.
+
+**Nhánh B không phải câu trả lời yếu:** có thể nói chưa đủ cơ sở dù chưa tìm thấy thẻ. Không trừ điểm hay đặt người chơi vào trạng thái “hết đường điều tra”. Sự bất định vẫn là một trạng thái được tôn trọng.
+
+**Nhánh C là ghi nhận bất nhất, không phải lời kết án:** cả dấu sàn và thẻ thiếu chữ ký đều phải được kiểm. Nếu player chỉ thấy chăn, chỉ cầm thẻ mà chưa lật, hoặc đặt giấy thuốc giường 3 bên F101, hệ thống trả phản hồi về **thiếu nguồn hoặc nguồn không liên quan**. Nếu chọn câu “có người hiện đang bị nhốt trong phòng” hoặc “nhân viên cố tình làm giả”, validator từ chối vì phần đó không được chứng minh. Các câu trả lời của Minh phải tránh kết tội người chơi: chúng mô tả độ chắc chắn của chứng cứ.
+
+**Những trường hợp phải có phản hồi riêng:**
+- OBS101A có nhưng OBS101B chưa Examined: không có cơ sở liên hệ một thẻ bàn giao thật.
+- OBS101B có nhưng OBS101A chưa Examined: thẻ có thể là giấy lưu lại; chưa chứng minh hiện trường tương ứng.
+- Đã xem cả hai nhưng đánh dấu sai trường: báo rõ “dấu cần kiểm không nằm ở đây” và cho người chơi thử lại, giữ item.
+- Đánh dấu đúng nhưng không tạo liên hệ tới dấu sàn: nhắc rằng các nguồn còn rời rạc, không auto tạo link vì thẻ đã ở gần bảng.
+- Claim FALSIFICATION/PATIENT_PRESENT: chỉ ra kết luận vượt phạm vi nguồn, không tạo “bí mật sai” trong canon.
+- Dẫn OBS101D/đồng hồ 03:17 làm căn cứ trực tiếp: trả rằng chúng không chứng minh sai lệch của tổng số giường, dù có ý nghĩa phụ.
+- Quay về ký A/B sau khi thử C không thành: ký hợp lệ ngay, không bị khóa trong một nhánh “đã chọn C nên phải giải xong”.
+
+#### Ba diễn biến sân khấu sau chữ ký — mỗi lựa chọn có một nỗi sợ riêng
+
+| Kết luận | Cơ học của căn phòng ngay sau bút ký | Âm thanh và ánh sáng | Dư vị của người chơi |
+| --- | --- | --- | --- |
+| **A · Xác nhận 0** | Vách deniedBay thay đổi phần hốc 4, báo cáo F101_SignedA hiển thị trên giá; đường đi còn an toàn | Quạt đều đặn như máy, lạnh sáng. Hai tiếng gõ nén sau lớp che chỉ phát sau khi người chơi nhận ra vách | Ký một dòng trên giấy có thể che khuất một nơi mình từng nhìn |
+| **B · Để ngỏ** | Rèm pendingBay và khoảng trống không được “giải quyết” bằng hình học | Đèn không thưởng màu sắc thắng; quạt lệch nhịp, yên lặng kéo dài rồi âm môi trường trở về | Không biết cũng là một quyết định có sức nặng |
+| **C · Ghi nhận bất nhất** | Rèm tách, refutedBay lộ mảng ẩm, vết bánh và góc CH01_PR01_Corner rõ hơn | Một tiếng kẹp giấy khô, đèn tuýp chập rất nhẹ, tiếng bề mặt vật liệu rạn có vị trí | Thế giới chống lại sự phủ nhận, nhưng vẫn chưa nói ai nằm ở đó |
+
+**Điều phối trình tự:** người chơi phải thấy mực/chốt giấy trước → nghỉ một nhịp → thay đổi hình học/ánh sáng trong tầm nhìn hoặc âm thanh nhận thức được → cho tự quay lại kiểm. Không chồng một cú silhouette cùng âm nứt hoặc tiếng gõ hậu ký; đây là hai loại scare khác nhau. Âm gõ sau vách chỉ hợp nhánh A, không phát trong B/C. Cảnh C không được dựng như “phần thưởng có quái vật đặc biệt” chỉ dành người chọn đúng: cả ba đều là kết cục kể chuyện có trọng lượng.
+
+#### Quyền quay lại và thay đổi quyết định
+
+Trong B khi T08 chưa commit, player có thể trở lại AN02 ký lại. Lần đầu luôn được lưu vào firstDecision; trạng thái hiện tại thay đổi trong currentDecision, revision chỉ tăng khi có quyết định mới thực sự khác, và history giữ toàn bộ nguồn/marks/claim của lần ký. Nếu người chơi ký A rồi đọc AS-05B và chuyển sang C, căn phòng biến từ deniedBay sang refutedBay **mà không phá vị trí đặt đồ hoặc chặn đường ra**. Nếu từ C chuyển sang B, phần đã xem và thẻ không bị xóa; chỉ trạng thái hiện diện B thay đổi.
+
+Khi người chơi mở lại bản sao biểu mẫu sau A/B/C, một hiệu ứng mực trắng hoặc nét mực lửng có thể chồng **lên lớp trình bày trong B** tương ứng chữ ký. Chế độ xem nguồn gốc luôn trả bản scan chính xác; không được sửa ObservationRecord, bản gốc, chữ viết tay của Minh hoặc save để “hù”. Nếu chọn A, hình ảnh mực che chỉ là cảm giác hành chính đang thắng chỗ trống; không hàm ý chứng cứ đã bị xóa khỏi lịch sử.
+
+#### Kỷ luật save, vị trí và giải quyết ngắt giữa chừng
+
+Khi player bấm ký, system kiểm state và điều kiện **trước** khi chạy hiệu ứng hủy hiện trường. Commit bền vững CH01-T07/first/current/revision/G01 rồi mới bật biến dạng B và VO/PA tương ứng. Nếu save lỗi giữa ký, giữ nguyên form và cho thử lại; không được xuất vách che khi state chưa ký. Nếu player skip/cancel animation bút, kết quả đã commit thì vẫn có hậu quả; nếu chưa commit, tuyệt đối không tạo half-signed state.
+
+Có thể đọc lại F101 qua inspector hoặc phần ghi chép nguồn trong ba lô mà không tạo thêm một F101 physical copy trong túi. Với người thao tác bàn phím hoặc trợ năng, các hotspot được duyệt theo vùng tương đương, không yêu cầu dùng chuột chính xác. Sau khi T08, không quay lại B ký mới từ R bằng một menu ba lô; các thay đổi sau này đi qua cơ chế CH02 và điều kiện canon riêng.
+
 #### Đỉnh kinh dị chính — “ở phía sau rèm”
 
 Khi người chơi **đã kiểm tra AS-05B, hạ tài liệu và đang tự do nhìn lại phòng**, tiếng quạt/hum đèn hạ nhẹ trong khoảng ngắn; một tiếng móc rèm hoặc khung giường phát đúng hướng hốc 4. Nếu player tự quay nhìn, có thể thoáng thấy một hình người thấp hoặc bóng tựa đầu giường trong chưa đầy hai giây, rồi mất khi ánh sáng ổn định. Không lộ mặt, không lao vào camera, không định danh. Nếu không quay, chỉ nghe âm và vẫn được kiểm tra hiện trường; **không ép camera, không tặng manh mối bắt buộc qua jumpscare**.
