@@ -231,13 +231,22 @@ namespace CTCC
             }, 5.2f);
             yield return new("board", () => { lanDirector.StopEncounter(true); voice.StopCurrent(); return casework.BoardAsync(player.Feet); });
             yield return new("hall-B", 4, 4.75f);
+            yield return new("open-door-101", () =>
+            {
+                if (scene.roomDoor != null && !scene.roomDoor.isOpen)
+                {
+                    scene.interactables?.ToggleDoor("DOOR-101", scene.atmosphere, instant: true);
+                    scene.roomDoor.isOpen = true;
+                }
+                return CommitResult.Applied;
+            });
             yield return new("room-entry-B", 6.52f, 4.88f);
             yield return new("enter-room", () => casework.EnterRoomAsync(player.Feet));
             yield return new("submit-F101-B", () => casework.SubmitF101Async(FormStatus.Unverified, null, player.Feet));
             yield return new("room-exit-B", 4, 4.75f);
             yield return new("hall-return-B", 4, -3.29f);
             yield return new("swap-B-R", async () => { var r = await casework.AtHubAsync(player.Feet); player.Teleport(scene.Pad("AP02")); return r; });
-            yield return new("approach-return-R", 4, -20.30f);
+            yield return new("approach-return-R", 4, -19.20f);
             yield return new("seam", async () => { var r = await casework.OutsideAttemptAsync(player.Feet); player.Teleport(scene.Pad("AP01")); return r; });
             yield return new("reception-return-R", 4, -3.30f);
             yield return new("handoff-and-load", async () => {
@@ -248,6 +257,15 @@ namespace CTCC
                 return r;
             });
             yield return new("hall-R-torch", 4, 4.75f);
+            yield return new("open-door-101-R", () =>
+            {
+                if (scene.roomDoor != null && !scene.roomDoor.isOpen)
+                {
+                    scene.interactables?.ToggleDoor("DOOR-101", scene.atmosphere, instant: true);
+                    scene.roomDoor.isOpen = true;
+                }
+                return CommitResult.Applied;
+            });
             yield return new("room-entry-R-torch", 6.52f, 4.91f);
             foreach (string id in new[] { "LIST", "SOCKETS", "WHEELS" }) yield return new("observe-" + id, () => casework.ObserveAsync(id));
             yield return new("room-cross-R-torch", 12.60f, 4.87f);

@@ -15,9 +15,16 @@ namespace CTCC
     public sealed class ZoneRegion : MonoBehaviour
     {
         public string zoneId;
+        public Bounds zoneBounds = new(Vector3.zero, new Vector3(16, 8, 16));
+        public int zonePriority = 0;
+        public bool isBackgroundCampus = false;
+        public bool participatesInNavMesh = true;
+        public string[] portalNeighbors = Array.Empty<string>();
         public Bounds navigationBounds = new(Vector3.zero, new Vector3(16, 8, 16));
         public MarkerPose[] pads = Array.Empty<MarkerPose>();
         public List<LayerFinish> finishes = new();
+
+        public bool ContainsPoint(Vector3 worldPos) => zoneBounds.Contains(worldPos);
 
         public GameObject realProps;
         public GameObject reportProps;

@@ -20,14 +20,85 @@ namespace CTCC.Editor
         private const string LegacySceneFile = Root + "/Scenes/AnSinh.unity";
         private const string GeometryFile = Root + "/Generated/TileGeometry.asset";
 
-        private static readonly (string id, string name, Bounds navBounds)[] ZoneSpecs =
+        private sealed class ZoneSpec
         {
-            ("LOC01", "LOC01_Exterior", new Bounds(new Vector3(4f, 1f, -16f), new Vector3(24f, 8f, 20f))),
-            ("LOC02", "LOC02_Reception", new Bounds(new Vector3(4f, 1f, -4f), new Vector3(14f, 8f, 12f))),
-            ("LOC03", "LOC03_Ward101", new Bounds(new Vector3(8.5f, 1f, 8f), new Vector3(22f, 8f, 20f))),
-            ("LOC04", "LOC04_Emergency", new Bounds(new Vector3(4f, 1f, 19f), new Vector3(14f, 8f, 10f))),
-            ("LOC05", "LOC05_ArchiveWing", new Bounds(new Vector3(-4f, 5f, 20f), new Vector3(28f, 16f, 60f))),
-            ("LOC09", "LOC09_ServiceWing", new Bounds(new Vector3(16f, -2f, 37f), new Vector3(40f, 11f, 33f))),
+            public string id;
+            public string name;
+            public Bounds navBounds;
+            public Bounds zoneBounds;
+            public int priority;
+            public bool isBootAdditive;
+            public bool isBackgroundCampus;
+            public bool participatesInNavMesh;
+            public string[] portalNeighbors;
+        }
+
+        private static readonly ZoneSpec[] ZoneSpecs =
+        {
+            new()
+            {
+                id = "LOC01", name = "LOC01_Exterior",
+                navBounds = new Bounds(new Vector3(4f, 1f, -16f), new Vector3(24f, 8f, 20f)),
+                zoneBounds = new Bounds(new Vector3(4f, 1.8f, -17f), new Vector3(19f, 5.5f, 19f)),
+                priority = 20, isBootAdditive = true, isBackgroundCampus = false, participatesInNavMesh = true,
+                portalNeighbors = new[] { "LOC02", "CAMPUS_EXT" }
+            },
+            new()
+            {
+                id = "LOC02", name = "LOC02_Reception",
+                navBounds = new Bounds(new Vector3(4f, 1f, -4f), new Vector3(14f, 8f, 12f)),
+                zoneBounds = new Bounds(new Vector3(4f, 1.8f, -4f), new Vector3(11f, 4.4f, 8.2f)),
+                priority = 20, isBootAdditive = true, isBackgroundCampus = false, participatesInNavMesh = true,
+                portalNeighbors = new[] { "LOC01", "LOC03", "LOC05" }
+            },
+            new()
+            {
+                id = "LOC03", name = "LOC03_Ward101",
+                navBounds = new Bounds(new Vector3(8.5f, 1f, 8f), new Vector3(22f, 8f, 20f)),
+                zoneBounds = new Bounds(new Vector3(8f, 1.8f, 8f), new Vector3(19.5f, 4.4f, 16.2f)),
+                priority = 20, isBootAdditive = true, isBackgroundCampus = false, participatesInNavMesh = true,
+                portalNeighbors = new[] { "LOC02", "LOC04", "CAMPUS_EXT" }
+            },
+            new()
+            {
+                id = "LOC04", name = "LOC04_Emergency",
+                navBounds = new Bounds(new Vector3(4f, 1f, 19f), new Vector3(14f, 8f, 10f)),
+                zoneBounds = new Bounds(new Vector3(4f, 1.8f, 19f), new Vector3(11f, 4.4f, 7.6f)),
+                priority = 20, isBootAdditive = true, isBackgroundCampus = false, participatesInNavMesh = true,
+                portalNeighbors = new[] { "LOC03", "LOC05", "LOC09", "CAMPUS_WINGS" }
+            },
+            new()
+            {
+                id = "CAMPUS_EXT", name = "Campus_Grounds",
+                navBounds = new Bounds(new Vector3(8f, 6f, 25f), new Vector3(116f, 24f, 130f)),
+                zoneBounds = new Bounds(new Vector3(8f, 7f, 25f), new Vector3(120f, 26f, 136f)),
+                priority = 1, isBootAdditive = true, isBackgroundCampus = true, participatesInNavMesh = false,
+                portalNeighbors = new[] { "LOC01", "LOC03", "CAMPUS_WINGS" }
+            },
+            new()
+            {
+                id = "LOC05", name = "LOC05_ArchiveWing",
+                navBounds = new Bounds(new Vector3(-4f, 5f, 20f), new Vector3(32f, 16f, 64f)),
+                zoneBounds = new Bounds(new Vector3(0.5f, 7.4f, 21f), new Vector3(36f, 8.6f, 60f)),
+                priority = 20, isBootAdditive = false, isBackgroundCampus = false, participatesInNavMesh = true,
+                portalNeighbors = new[] { "LOC02", "LOC04", "CAMPUS_EXT", "CAMPUS_WINGS" }
+            },
+            new()
+            {
+                id = "LOC09", name = "LOC09_ServiceWing",
+                navBounds = new Bounds(new Vector3(18f, -2f, 38f), new Vector3(46f, 11f, 36f)),
+                zoneBounds = new Bounds(new Vector3(18f, -2.0f, 38f), new Vector3(46f, 4.6f, 34f)),
+                priority = 20, isBootAdditive = false, isBackgroundCampus = false, participatesInNavMesh = true,
+                portalNeighbors = new[] { "LOC04", "CAMPUS_WINGS" }
+            },
+            new()
+            {
+                id = "CAMPUS_WINGS", name = "Campus_Interiors",
+                navBounds = new Bounds(new Vector3(8f, 4f, 28f), new Vector3(104f, 18f, 96f)),
+                zoneBounds = new Bounds(new Vector3(8f, 4f, 28f), new Vector3(104f, 18f, 96f)),
+                priority = 5, isBootAdditive = false, isBackgroundCampus = true, participatesInNavMesh = false,
+                portalNeighbors = new[] { "LOC01", "LOC04", "LOC05", "LOC09", "CAMPUS_EXT" }
+            },
         };
 
         private sealed class ZoneSlot
@@ -117,8 +188,8 @@ namespace CTCC.Editor
 
             if (this.multiScene)
             {
-                world.additiveZoneScenes = ZoneSpecs.Take(4).Select(z => z.name).ToArray();
-                world.regionalStreamZoneScenes = ZoneSpecs.Skip(4).Select(z => z.name).ToArray();
+                world.additiveZoneScenes = ZoneSpecs.Where(z => z.isBootAdditive).Select(z => z.name).ToArray();
+                world.regionalStreamZoneScenes = ZoneSpecs.Where(z => !z.isBootAdditive).Select(z => z.name).ToArray();
                 foreach (var spec in ZoneSpecs)
                 {
                     var zScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
@@ -128,6 +199,11 @@ namespace CTCC.Editor
                     var zRoot = new GameObject("Zone · " + spec.id);
                     var region = zRoot.AddComponent<ZoneRegion>();
                     region.zoneId = spec.id;
+                    region.zoneBounds = spec.zoneBounds;
+                    region.zonePriority = spec.priority;
+                    region.isBackgroundCampus = spec.isBackgroundCampus;
+                    region.participatesInNavMesh = spec.participatesInNavMesh;
+                    region.portalNeighbors = spec.portalNeighbors;
                     region.navigationBounds = spec.navBounds;
                     var zPerm = Group("Physical continuity", zRoot.transform);
                     var zReal = Group("R · 2012", zRoot.transform);
@@ -166,7 +242,7 @@ namespace CTCC.Editor
             foreach (var p in allPads)
             {
                 var pos = new Vector3(p.x, p.y + 0.015f, p.z);
-                var slot = this.multiScene ? (p.y < 0f ? zones["LOC09"] : p.y > 0f ? zones["LOC05"] : ZoneAt(p.z)) : null;
+                var slot = this.multiScene ? ZoneAt(pos) : null;
                 Transform parent = slot?.permanent ?? permanent;
                 var point = Group(p.id, parent, pos);
                 point.rotation = Quaternion.Euler(0, art && multiScene && p.id == "AP02" ? -82f : p.yaw, 0);
@@ -265,14 +341,34 @@ namespace CTCC.Editor
             AssetDatabase.SaveAssets();
         }
 
-        private ZoneSlot ZoneAt(float z)
+        /// <summary>
+        /// 3D XYZ spatial zone classifier supporting multi-wing same-Z disambiguation (K-B/K-A/K-D)
+        /// and multi-story elevation stacks (B1 -3.4m, Grade 0m, Floor 2 +4m, Floor 3 +8m).
+        /// Preserves legacy LOC01–LOC05 & LOC09 ownership for all core gameplay zones and saves.
+        /// </summary>
+        private ZoneSlot ZoneAt(Vector3 worldPos)
         {
-            if (z < -8.01f) return zones["LOC01"];
-            if (z < -0.01f) return zones["LOC02"];
-            if (z < 15.99f) return zones["LOC03"];
-            if (z < 23.50f) return zones["LOC04"];
-            return zones["LOC05"];
+            if (worldPos.y < -0.50f) return zones["LOC09"];
+            // Open-air LOC01 courtyard owns its overhead rain emitter & gate lamps cleanly regardless of elevation.
+            if (worldPos.z < -8.01f)
+                return worldPos.x >= -5.6f && worldPos.x <= 13.6f && worldPos.z >= -27.0f ? zones["LOC01"] : zones["CAMPUS_EXT"];
+            // Cutoff at 3.88m keeps ground-floor ceilings (y=3.71m) in LOC02–LOC04 while routing 2F/3F (>=4.0m) to LOC05.
+            if (worldPos.y > 3.88f)
+            {
+                if (worldPos.x >= -17.5f && worldPos.x <= 18.5f && worldPos.z >= -8.5f && worldPos.z <= 50.5f)
+                    return zones["LOC05"];
+                return zones["CAMPUS_EXT"];
+            }
+            if (worldPos.z < -0.01f)
+                return worldPos.x >= -1.5f && worldPos.x <= 9.5f ? zones["LOC02"] : zones["CAMPUS_EXT"];
+            if (worldPos.z < 15.99f)
+                return worldPos.x >= -1.5f && worldPos.x <= 17.6f ? zones["LOC03"] : zones["CAMPUS_EXT"];
+            if (worldPos.z < 23.50f)
+                return worldPos.x >= -1.5f && worldPos.x <= 9.5f ? zones["LOC04"] : zones["CAMPUS_EXT"];
+            return zones["CAMPUS_EXT"];
         }
+
+        private ZoneSlot ZoneAt(float z) => ZoneAt(new Vector3(4f, 0f, z));
 
         private ZoneSlot ZoneForTransform(Transform t)
         {
@@ -285,16 +381,16 @@ namespace CTCC.Editor
                     return slot;
                 cur = cur.parent;
             }
-            return ZoneAt(t.position.z);
+            return ZoneAt(t.position);
         }
 
         private Transform ResolveParent(Transform parent, Vector3 worldPos)
         {
             if (!multiScene) return parent == null ? permanent : parent;
-            if (parent == null || parent == permanent) return ZoneAt(worldPos.z).permanent;
-            if (parent == real) return ZoneAt(worldPos.z).real;
-            if (parent == report) return ZoneAt(worldPos.z).report;
-            if (parent == memory) return ZoneAt(worldPos.z).memory;
+            if (parent == null || parent == permanent) return ZoneAt(worldPos).permanent;
+            if (parent == real) return ZoneAt(worldPos).real;
+            if (parent == report) return ZoneAt(worldPos).report;
+            if (parent == memory) return ZoneAt(worldPos).memory;
             return parent;
         }
 
@@ -318,6 +414,7 @@ namespace CTCC.Editor
             BuildShell();
             BuildFurnishing();
             BuildM2ZoneDressing();
+            BuildFullCampus();
             MarkInteractions();
             LightAndStage();
             if (multiScene)
@@ -486,9 +583,9 @@ namespace CTCC.Editor
         }
 
         private GameObject Surface(string name, Vector3 p, Vector3 size, string r, string b,
-            bool solid = false, float tile = 0, bool isStatic = true)
+            bool solid = false, float tile = 0, bool isStatic = true, Transform parent = null)
         {
-            var item = Box(name, p, size, Mat(r), solid: solid, tile: tile, isStatic: isStatic);
+            var item = Box(name, p, size, Mat(r), parent: parent, solid: solid, tile: tile, isStatic: isStatic);
             AddFinish(new LayerFinish { renderer = item.GetComponent<Renderer>(), real = Mat(r), report = Mat(b) });
             return item;
         }
@@ -809,13 +906,71 @@ namespace CTCC.Editor
                 throw new InvalidOperationException("0.72 m stretcher proxy collided at the 101 doorway.");
             world.Present(false, 4, true, true, true, true, false, true, true);
             VerifyNav("CH03–04 / connected hospital", new[] { "AP02", "AP05", "AP06", "AN03", "AP07", "AP08", "AP09" });
+
+            // W-Q02: Khu B (AP06) -> S1 -> Reception (AP02) -> Courtyard (AP01) with B1 (LOC09) completely excluded!
+            if (multiScene && zones.TryGetValue("LOC09", out var b1Slot))
+            {
+                b1Slot.region.gameObject.SetActive(false);
+                Physics.SyncTransforms();
+                try
+                {
+                    VerifyNav("W-Q02 / Khu B to courtyard without B1", new[] { "AP06", "AP02", "AP01" });
+                }
+                finally
+                {
+                    b1Slot.region.gameObject.SetActive(true);
+                    Physics.SyncTransforms();
+                }
+            }
+
+            // W-Q03: Exterior observation of sealed 2004 door E05b (35.8, -3.4, 42.0) reachable from AP08 before G06,
+            // while sealed 2004 wall blocks direct pass-through into LOC12 (32.5, -3.4, 42.0)!
+            VerifyE05bObservationAndSeal();
+
             Physics.SyncTransforms();
             var erFeet = world.Pad("AP05").position;
             if (Physics.CapsuleCast(erFeet + Vector3.up * .46f, erFeet + Vector3.up * 1.40f,
                 HospitalScene.Radius, Vector3.forward, 2.21f, HospitalScene.SolidMask, QueryTriggerInteraction.Ignore))
                 throw new InvalidOperationException("The ER ledger or another fixture blocks the ward stair approach.");
             world.Present(false, 0, false, false, false, false);
-            Debug.Log("CTCC_GREYBOX_PASS R, three B branches, LOC04 routes, upper and basement safe pads, 0.72 m stretcher");
+            Debug.Log("CTCC_GREYBOX_PASS R, three B branches, LOC04 routes, upper and basement safe pads, 0.72 m stretcher, W-Q02 S1 independence, W-Q03 E05b exterior access & seal");
+        }
+
+        private void VerifyE05bObservationAndSeal()
+        {
+            var nav = world.BuildNavigation();
+            if (nav == null) throw new InvalidOperationException("No NavMesh for W-Q03 E05b verification");
+            var handle = NavMesh.AddNavMeshData(nav);
+            try
+            {
+                Vector3 ap08 = world.Pad("AP08").position;
+                Vector3 e05bExterior = new(35.8f, BasementLevel + 0.04f, 42.0f);
+                Vector3 loc12Interior = new(32.5f, BasementLevel + 0.04f, 42.0f);
+                if (!NavMesh.SamplePosition(ap08, out var startHit, 0.40f, NavMesh.AllAreas))
+                    throw new InvalidOperationException("W-Q03: AP08 missing from NavMesh");
+                if (HospitalScene.Occupied(e05bExterior) || !NavMesh.SamplePosition(e05bExterior, out var obsHit, 0.45f, NavMesh.AllAreas))
+                    throw new InvalidOperationException("W-Q03: E05b exterior observation point invalid or blocked: " + e05bExterior);
+                var toE05b = new NavMeshPath();
+                if (!NavMesh.CalculatePath(startHit.position, obsHit.position, NavMesh.AllAreas, toE05b) || toE05b.status != NavMeshPathStatus.PathComplete)
+                    throw new InvalidOperationException("W-Q03: E05b exterior observation gallery is not reachable from AP08 before G06");
+                // Sealed 2004 east wall MUST block pass-through into LOC12!
+                bool wallSolid = Physics.Linecast(e05bExterior + Vector3.up * 1.0f, loc12Interior + Vector3.up * 1.0f,
+                    HospitalScene.SolidMask, QueryTriggerInteraction.Ignore);
+                if (!wallSolid)
+                    throw new InvalidOperationException("W-Q03: Sealed 2004 rear door wall at x=34.5 is missing solid collision!");
+                if (NavMesh.SamplePosition(loc12Interior, out var cHit, 0.45f, NavMesh.AllAreas))
+                {
+                    var breach = new NavMeshPath();
+                    if (NavMesh.CalculatePath(obsHit.position, cHit.position, NavMesh.AllAreas, breach) && breach.status == NavMeshPathStatus.PathComplete)
+                        throw new InvalidOperationException("W-Q03: NavMesh leaked through sealed 2004 door or G06 into LOC12!");
+                }
+                Debug.Log("CTCC_WQ03_PASS E05b exterior observation reachable from AP08 before G06; 2004 infill solid; LOC12 sealed");
+            }
+            finally
+            {
+                handle.Remove();
+                UnityEngine.Object.DestroyImmediate(nav);
+            }
         }
 
         private void VerifyNav(string label, string[] pads)

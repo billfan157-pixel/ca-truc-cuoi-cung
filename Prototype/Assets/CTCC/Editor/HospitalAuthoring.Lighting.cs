@@ -24,19 +24,19 @@ namespace CTCC.Editor
             RenderSettings.ambientGroundColor = new Color(0.068f, 0.064f, 0.055f);
             RenderSettings.fog = art;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogDensity = 0.0155f;
-            RenderSettings.reflectionIntensity = 0.78f;
+            RenderSettings.fogDensity = 0.0082f;
+            RenderSettings.reflectionIntensity = 0.82f;
 
-            // Camera stays in Bootstrap persistent scene (positioned at AP00)
+            // Camera stays in Bootstrap persistent scene (positioned at AP00); farClipPlane 190m covers full 100x110m campus!
             Vector3 ap00Pos = layout.pads.Single(p => p.id == "AP00") is var p0 ? new Vector3(p0.x, 0.015f, p0.z) : new Vector3(4f, 0.015f, -21.2f);
             var rig = Group("Seeded player view", world.transform, ap00Pos + Vector3.up * 1.62f);
             var camera = rig.gameObject.AddComponent<Camera>();
             rig.tag = "MainCamera";
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(0.042f, 0.068f, 0.092f);
+            camera.backgroundColor = new Color(0.036f, 0.058f, 0.084f);
             camera.fieldOfView = 62f;
             camera.nearClipPlane = 0.055f;
-            camera.farClipPlane = 68f;
+            camera.farClipPlane = 190f;
             camera.allowHDR = true;
             camera.allowMSAA = false;
             var parameters = camera.GetUniversalAdditionalCameraData();
@@ -49,8 +49,8 @@ namespace CTCC.Editor
             var moon = Group("Overcast monsoon moonlight", permanent).gameObject.AddComponent<Light>();
             moon.type = LightType.Directional;
             moon.transform.rotation = Quaternion.Euler(34f, 192f, 0f);
-            moon.color = new Color(0.58f, 0.76f, 0.90f);
-            moon.intensity = art ? 0.92f : 1.7f;
+            moon.color = new Color(0.60f, 0.78f, 0.94f);
+            moon.intensity = art ? 1.38f : 1.7f;
             moon.shadows = LightShadows.Soft;
             moon.shadowStrength = 0.86f;
             moon.shadowBias = 0.04f;
@@ -220,8 +220,14 @@ namespace CTCC.Editor
             AddGrid(14.3f, 16.6f, 2, 2.5f, 5.0f, 2, new[] { 0.75f, 1.85f });
             // LOC04 Emergency Bay
             AddGrid(0.2f, 8.2f, 4, 16.8f, 21.4f, 3, interiorHeights);
-            // LOC05–07 Archive Wing (Nurse Station, Archive Loop & Duty Corridor)
-            AddGrid(-2.6f, 6.4f, 4, 25.8f, 38.8f, 4, interiorHeights);
+            // LOC05–08 Upper Floors (Khu B +4m, Archive & Director +8m) + B1 Technical / Morgue / E05b Gallery (-3.4m)
+            AddGrid(-2.6f, 6.4f, 4, 32.5f, 45.5f, 4, new[] { 4.6f, 5.8f, 6.9f });
+            AddGrid(-2.6f, 7.2f, 4, 30.0f, 38.0f, 3, new[] { 8.6f, 9.8f, 10.8f });
+            AddGrid(0.0f, 14.0f, 4, 32.0f, 45.0f, 3, new[] { -2.8f, -1.6f });
+            AddGrid(12.5f, 36.2f, 5, 42.0f, 50.8f, 2, new[] { -2.8f, -1.6f });
+            // Inner Light Court (Sân sáng) & Front Campus Approach for accurate exterior GI bounce
+            AddGrid(6.5f, 13.5f, 2, 9.0f, 13.2f, 2, exteriorHeights);
+            AddGrid(-18.0f, 24.0f, 4, -24.0f, -12.0f, 2, new[] { 1.2f, 4.8f });
 
             group.probePositions = pts.ToArray();
 
@@ -304,8 +310,8 @@ namespace CTCC.Editor
             if (AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/PC_RPAsset.asset") is { } pipeline)
             {
                 pipeline.renderScale = art ? 0.88f : 1.0f;
-                pipeline.shadowDistance = 24f;
-                pipeline.shadowCascadeCount = 1;
+                pipeline.shadowDistance = 38f;
+                pipeline.shadowCascadeCount = 2;
                 pipeline.useSRPBatcher = true;
                 pipeline.supportsCameraDepthTexture = true;
                 pipeline.supportsCameraOpaqueTexture = false;
@@ -428,7 +434,7 @@ namespace CTCC.Editor
                 lit.innerSpotAngle = 72f;
                 lit.shadowStrength = 0.72f;
             }
-            if (multiScene) ZoneAt(p.z).tubes.Add(lit);
+            if (multiScene) ZoneAt(p).tubes.Add(lit);
             else livingTubes.Add(lit);
             if (!art) return lit;
             var fixture = PlaceBlenderModel("CTCC_ENV_FluorescentFixture", permanent, p, yaw, pairRB: true);
@@ -442,7 +448,7 @@ namespace CTCC.Editor
             var rotor = FindDescendant(fan.transform, "FanRotor");
             if (rotor != null)
             {
-                if (multiScene) ZoneAt(p.z).fans.Add(rotor);
+                if (multiScene) ZoneAt(p).fans.Add(rotor);
                 else movingFans.Add(rotor);
             }
         }
@@ -608,7 +614,7 @@ namespace CTCC.Editor
             renderer.sharedMaterial = mat;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
 
-            if (multiScene) ZoneAt(center.z).atmosphericParticles.Add(p);
+            if (multiScene) ZoneAt(center).atmosphericParticles.Add(p);
             else atmosphericParticles.Add(p);
         }
 
@@ -655,7 +661,7 @@ namespace CTCC.Editor
             renderer.sharedMaterial = mat;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
 
-            if (multiScene) ZoneAt(center.z).atmosphericParticles.Add(p);
+            if (multiScene) ZoneAt(center).atmosphericParticles.Add(p);
             else atmosphericParticles.Add(p);
         }
 
@@ -718,14 +724,14 @@ namespace CTCC.Editor
             var bootstrapLoops = new List<RoomLoop>();
             void AddLoop(string id, Vector3 point, float level, float max, bool b, bool occluded = false)
             {
-                Transform loopParent = multiScene ? ZoneAt(point.z).permanent : root;
+                Transform loopParent = multiScene ? ZoneAt(point).permanent : root;
                 var item = Source("Loop · " + id, loopParent, point, max);
                 item.loop = true;
                 item.clip = Clip(id);
                 var rl = new RoomLoop { source = item, level = level, report = b, exteriorOccluded = occluded };
                 if (multiScene)
                 {
-                    var zone = ZoneAt(point.z);
+                    var zone = ZoneAt(point);
                     zone.loops.Add(rl);
                     if (zone.id == "LOC02" && id == "Fan") zone.region.receptionFan = item;
                 }
@@ -734,8 +740,10 @@ namespace CTCC.Editor
 
             AddLoop("Rain", new Vector3(4, 1.2f, -12.2f), 0.62f, 24, false, occluded: true);
             AddLoop("Roof", new Vector3(9.4f, 2.3f, 8.85f), 0.72f, 15, false, occluded: true);
+            AddLoop("Roof", new Vector3(-16.0f, 3.2f, -10.0f), 0.44f, 28, false, occluded: true);
             AddLoop("Rumble", new Vector3(5.52f, 2.2f, -10.0f), 0.48f, 24, false, occluded: true);
             AddLoop("Drips", new Vector3(9.85f, 0.39f, 7.65f), 0.72f, 9, false, occluded: false);
+            AddLoop("Drips", new Vector3(35.8f, -2.5f, 42.0f), 0.56f, 10, false, occluded: false);
             AddLoop("Fan", new Vector3(1.36f, 2.85f, -3.77f), 0.56f, 13, true);
             AddLoop("Fan", new Vector3(9.31f, 2.94f, 5.41f), 0.64f, 11, true);
             AddLoop("Tube", new Vector3(4.07f, 3.31f, 4.75f), 0.52f, 10, true);

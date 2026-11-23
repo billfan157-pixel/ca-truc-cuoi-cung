@@ -70,9 +70,33 @@ namespace CTCC.Editor
             // M2 Exterior, ER & Character PBR Materials
             Lit("WetAsphalt", 1f, 1f, 1f, maps: "WetAsphalt", bump: 0.65f, ao: 0.82f);
             Lit("ExteriorFacade", 1f, 1f, 1f, maps: "ExteriorFacade", bump: 0.50f, ao: 0.82f);
+            Lit("ExteriorFacadeB", 1f, 1f, 1f, maps: "ExteriorFacadeB", bump: 0.34f, ao: 0.72f);
+            Lit("CampusStuccoR", 1f, 1f, 1f, maps: "CampusStuccoR", bump: 0.46f, ao: 0.80f);
+            Lit("CampusStuccoB", 1f, 1f, 1f, maps: "CampusStuccoB", bump: 0.28f, ao: 0.68f);
+            Lit("CorrugatedRoofR", 1f, 1f, 1f, maps: "CorrugatedRoofR", bump: 0.72f, ao: 0.86f);
+            Lit("CorrugatedRoofB", 1f, 1f, 1f, maps: "CorrugatedRoofB", bump: 0.62f, ao: 0.76f);
+            Lit("ConcretePavingR", 1f, 1f, 1f, maps: "ConcretePavingR", bump: 0.56f, ao: 0.84f);
+            Lit("ConcretePavingB", 1f, 1f, 1f, maps: "ConcretePavingB", bump: 0.44f, ao: 0.74f);
+            Lit("BrickInfill2004", 1f, 1f, 1f, maps: "BrickInfill2004", bump: 0.82f, ao: 0.86f);
             Lit("WeatheredBrick", 1f, 1f, 1f, maps: "WeatheredBrick", bump: 0.78f, ao: 0.85f);
             Lit("TerrazzoBench", 1f, 1f, 1f, maps: "TerrazzoBench", bump: 0.38f, ao: 0.76f);
             Lit("MotorbikePaint", 0.24f, 0.055f, 0.068f, metal: 0.48f, smooth: 0.78f);
+            Lit("AmbulanceWhite", 0.84f, 0.85f, 0.82f, metal: 0.14f, smooth: 0.62f);
+            Lit("HazardYellow", 0.85f, 0.68f, 0.14f, metal: 0.08f, smooth: 0.48f);
+
+            // Campus Exterior Window Backing (R 2012 dark moonlit reflective glass <-> B 2005 operational warm-green fluorescent glow!)
+            Lit("WindowDarkR", 0.055f, 0.085f, 0.105f, metal: 0.18f, smooth: 0.82f);
+            Mat("WindowDarkR").SetColor("_EmissionColor", new Color(0.03f, 0.055f, 0.075f) * 0.45f);
+            Mat("WindowDarkR").EnableKeyword("_EMISSION");
+            EditorUtility.SetDirty(Mat("WindowDarkR"));
+
+            Lit("WindowLitB", 0.86f, 0.94f, 0.84f, metal: 0.05f, smooth: 0.74f);
+            Mat("WindowLitB").SetColor("_EmissionColor", new Color(0.76f, 0.90f, 0.74f) * 1.35f);
+            Mat("WindowLitB").EnableKeyword("_EMISSION");
+            EditorUtility.SetDirty(Mat("WindowLitB"));
+
+            Lit("CampusLawn", 0.095f, 0.145f, 0.090f, smooth: 0.16f);
+            Lit("HorizonTree", 0.035f, 0.055f, 0.045f, smooth: 0.10f);
 
             Lit("CrimsonGlow", 0.88f, 0.14f, 0.12f, smooth: 0.60f);
             Mat("CrimsonGlow").SetColor("_EmissionColor", new Color(0.95f, 0.16f, 0.12f) * 2.6f);
@@ -372,16 +396,20 @@ namespace CTCC.Editor
                     "Sign_NursingAlcove",
                     "BedList", "Transfer", "Drawing", "WardRules", "ChartCard",
                     "Sign_EmergencyBox", "Sign_KhuBClosed", "Sign_ReceptionWindow", "Sign_HospitalGate",
-                    "Calendar2005", "MonitorECG", "M31_KhuB", "M31_Kho", "M31_Service", "M31_Morgue"
+                    "Calendar2005", "MonitorECG", "M31_KhuB", "M31_Kho", "M31_Service", "M31_Morgue",
+                    "Sign_MainArch", "Sign_KB_Outpatient", "Sign_KC_Inpatient", "Sign_KD_Emergency",
+                    "Sign_KE_Admin", "Sign_KF_Service", "Sign_NightGate", "Sign_AmbulanceGate",
+                    "Sign_MorgueService", "Sign_CampusMap", "Sign_Pharmacy", "Sign_XRay",
+                    "Sign_Ward102", "Sign_Ward201", "Sign_Ward202"
                 })
                 {
-                    var m = Lit(name, 1f, 1f, 1f, smooth: name is "Room101" or "Welcome" or "Emergency" or "Sign_HospitalGate" or "Sign_ReceptionWindow" or "Sign_NursingAlcove" ? 0.42f : 0.14f, twoSided: true);
+                    var m = Lit(name, 1f, 1f, 1f, smooth: name is "Room101" or "Welcome" or "Emergency" or "Sign_HospitalGate" or "Sign_ReceptionWindow" or "Sign_NursingAlcove" or "Sign_MainArch" or "Sign_KB_Outpatient" or "Sign_KC_Inpatient" or "Sign_CampusMap" ? 0.42f : 0.14f, twoSided: true);
                     m.SetTexture("_BaseMap", Tex(name));
                     m.SetColor("_BaseColor", Color.white);
-                    if (name == "Sign_EmergencyBox")
+                    if (name == "Sign_EmergencyBox" || name == "Sign_KD_Emergency")
                     {
                         m.SetTexture("_EmissionMap", Tex(name));
-                        m.SetColor("_EmissionColor", new Color(0.95f, 0.24f, 0.18f) * 1.85f);
+                        m.SetColor("_EmissionColor", new Color(0.95f, 0.24f, 0.18f) * (name == "Sign_KD_Emergency" ? 2.15f : 1.85f));
                         m.EnableKeyword("_EMISSION");
                     }
                     EditorUtility.SetDirty(m);
@@ -965,6 +993,11 @@ namespace CTCC.Editor
             "MattressOld" => "Mattress",
             "CurtainOld" => "Curtain",
             "DeadTube" => "LiveTube",
+            "ExteriorFacade" => "ExteriorFacadeB",
+            "CampusStuccoR" => "CampusStuccoB",
+            "CorrugatedRoofR" => "CorrugatedRoofB",
+            "ConcretePavingR" => "ConcretePavingB",
+            "WindowDarkR" => "WindowLitB",
             _ => key
         };
 
@@ -981,6 +1014,11 @@ namespace CTCC.Editor
             "Mattress" => "MattressOld",
             "Curtain" => "CurtainOld",
             "LiveTube" => "DeadTube",
+            "ExteriorFacadeB" => "ExteriorFacade",
+            "CampusStuccoB" => "CampusStuccoR",
+            "CorrugatedRoofB" => "CorrugatedRoofR",
+            "ConcretePavingB" => "ConcretePavingR",
+            "WindowLitB" => "WindowDarkR",
             _ => reportKey
         };
 
@@ -1253,17 +1291,16 @@ namespace CTCC.Editor
             PlaceBlenderModel("CTCC_PROP_BulkheadLamp", permanent, new Vector3(4.0f, 2.66f, -8.12f), 0f, pairRB: false, castShadows: false);
             Box("Path edge", new Vector3(8.40f, 0.08f, -15.02f), new Vector3(4.5f, 0.17f, 3.89f), Mat("Exterior"), solid: true, isStatic: true);
             Box("Garden soil", new Vector3(8.40f, 0.182f, -15.02f), new Vector3(4.30f, 0.043f, 3.69f), Mat("Bark"), isStatic: true);
-            Box("North exterior ground", new Vector3(11, -0.24f, 11.5f), new Vector3(16, 0.20f, 8.5f), Mat("Exterior"), tile: 2f, isStatic: true);
-            // Low north garden perimeter brick wall so exterior feels enclosed & realistic from Room 101 windows
-            Box("North yard wall", new Vector3(10.5f, 0.85f, 15.2f), new Vector3(16f, 2.1f, 0.25f), Mat("Exterior"), tile: 2.2f, isStatic: true);
+            // Inner Light Court (Sân sáng north of Room 101: x=[5.6..14.2], z=[8.1..14.1]) wet concrete paving & garden border
+            Surface("Inner light court floor", new Vector3(9.9f, -0.14f, 11.1f), new Vector3(8.8f, 0.20f, 6.2f), "ConcretePavingR", "ConcretePavingB", solid: false, tile: 2.2f, isStatic: true);
+            Box("Light court planter curb", new Vector3(9.9f, 0.06f, 11.6f), new Vector3(5.6f, 0.22f, 2.4f), Mat("WeatheredBrick"), isStatic: true);
+            Box("Light court planter soil", new Vector3(9.9f, 0.16f, 11.6f), new Vector3(5.3f, 0.05f, 2.1f), Mat("Bark"), isStatic: true);
 
-            // Authentic 3D Branching Blender Courtyard Trees (cây bàng / xà cừ) clear of HALL & Room 101 north wall (z >= 12.2!)
+            // Authentic 3D Branching Blender Courtyard Trees (cây bàng / xà cừ) inside Inner Light Court & Front Courtyard
             var treeSpots = new (Vector3 pos, float yaw, float scale, bool variantA)[]
             {
-                (new Vector3(8.3f, -0.15f, 12.6f), 28f, 0.82f, true),
-                (new Vector3(11.1f, -0.15f, 13.1f), 142f, 0.88f, false),
-                (new Vector3(14.0f, -0.15f, 12.4f), 252f, 0.84f, true),
-                (new Vector3(16.4f, -0.15f, 13.5f), 74f, 0.90f, false),
+                (new Vector3(8.6f, 0.12f, 11.7f), 28f, 0.72f, true),
+                (new Vector3(11.6f, 0.12f, 11.5f), 142f, 0.76f, false),
                 (new Vector3(8.75f, 0.14f, -14.8f), 45f, 1.05f, true),
             };
             foreach (var tr in treeSpots)
@@ -1278,7 +1315,7 @@ namespace CTCC.Editor
             Sign("Phòng 101 inside", "Room101", new Vector3(5.715f, 3.06f, 4.74f), Vector3.right, new Vector2(0.54f, 0.205f));
             Sign("Main emergency sign", "Emergency", new Vector3(4, 2.60f, 15.885f), Vector3.back, new Vector2(1.16f, 0.435f));
             Sign("Staff sign", "Staff", new Vector3(0, 2.67f, 0.29f), Vector3.back, new Vector2(0.97f, 0.365f));
-            Sign("Canopy letterboard", "Welcome", new Vector3(4, 3.25f, -8.105f), Vector3.back, new Vector2(2.62f, 0.90f));
+            Sign("Canopy letterboard", "Welcome", new Vector3(4, 3.44f, -11.04f), Vector3.back, new Vector2(2.62f, 0.88f));
             Sign("Demolition board", "Demolition", new Vector3(6.76f, 1.20f, -20.115f), Vector3.back, new Vector2(1.48f, 0.557f), real);
             Sign("Demolition marker return", "Demolition", new Vector3(6.76f, 1.20f, -19.885f), Vector3.forward, new Vector2(1.48f, 0.557f), real);
 

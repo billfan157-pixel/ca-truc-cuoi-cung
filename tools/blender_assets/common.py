@@ -88,6 +88,19 @@ PREVIEW_PALETTE = {
     "ObscuredFace": ((0.075, 0.078, 0.076), 0.0, 0.90, "ObscuredFace"),
     "AnCotton": ((0.64, 0.68, 0.66), 0.0, 0.88, "AnCotton"),
     "AnSkin": ((0.72, 0.62, 0.54), 0.0, 0.74, None),
+    # Campus Full Expansion Materials (1987-2005 eras, R/B paired!)
+    "ExteriorFacadeB": ((0.78, 0.72, 0.54), 0.0, 0.78, "ExteriorFacadeB"),
+    "CampusStuccoR": ((0.58, 0.61, 0.55), 0.0, 0.84, "CampusStuccoR"),
+    "CampusStuccoB": ((0.76, 0.79, 0.72), 0.0, 0.76, "CampusStuccoB"),
+    "CorrugatedRoofR": ((0.24, 0.27, 0.25), 0.36, 0.62, "CorrugatedRoofR"),
+    "CorrugatedRoofB": ((0.18, 0.36, 0.34), 0.42, 0.48, "CorrugatedRoofB"),
+    "ConcretePavingR": ((0.34, 0.36, 0.34), 0.0, 0.64, "ConcretePavingR"),
+    "ConcretePavingB": ((0.50, 0.51, 0.48), 0.0, 0.68, "ConcretePavingB"),
+    "BrickInfill2004": ((0.50, 0.28, 0.20), 0.0, 0.86, "BrickInfill2004"),
+    "WindowDarkR": ((0.06, 0.09, 0.11), 0.0, 0.18, None),
+    "WindowLitB": ((0.86, 0.94, 0.84), 0.0, 0.22, None),
+    "AmbulanceWhite": ((0.84, 0.85, 0.82), 0.12, 0.36, None),
+    "HazardYellow": ((0.86, 0.68, 0.14), 0.10, 0.45, None),
 }
 
 

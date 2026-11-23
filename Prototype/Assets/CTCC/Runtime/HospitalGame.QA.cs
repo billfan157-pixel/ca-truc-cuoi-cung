@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.Rendering;
@@ -55,6 +56,7 @@ namespace CTCC
             yield return VerifyCh01WalkthroughSuite();
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
             yield return VerifyScalableM3AndCh03();
+            yield return VerifyCampusWorldQA();
         }
 
         private IEnumerator VerifySpatialAudio()
@@ -111,11 +113,13 @@ namespace CTCC
 
         private IEnumerator VerifyM2AdditiveAndCharacters()
         {
-            // 1) M2-ADDITIVE: verify all 4 additive zone scenes, duplicate zone rejection, and async unload/reload
+            // 1) M2-ADDITIVE + FULL CAMPUS BOOT: verify 4 gameplay zones + CAMPUS_EXT grounds, duplicate rejection, and async unload/reload
             if (scene.IsAdditiveMode)
             {
-                Require(scene.LoadedZoneCount == 4 && scene.HasZone("LOC01") && scene.HasZone("LOC02") &&
-                    scene.HasZone("LOC03") && scene.HasZone("LOC04"), $"All 4 additive zones loaded (got {scene.LoadedZoneCount})");
+                Require(scene.GameplayZoneCount == 4 && scene.LoadedZoneCount == 5 &&
+                    scene.HasZone("LOC01") && scene.HasZone("LOC02") && scene.HasZone("LOC03") && scene.HasZone("LOC04") &&
+                    scene.HasZone("CAMPUS_EXT"),
+                    $"All 4 boot gameplay zones + CAMPUS_EXT loaded (got gameplay={scene.GameplayZoneCount}, total={scene.LoadedZoneCount})");
 
                 // Duplicate zoneId rejection check (m2-scene-handoff.md)
                 var dupGo = new GameObject("QA_DupZone");
@@ -135,16 +139,16 @@ namespace CTCC
                 var originalDoor = scene.emergencyDoorA;
                 long sequence = State.sequence;
                 yield return scene.UnloadZoneAsync("LOC04_Emergency");
-                Require(scene.LoadedZoneCount == 3 && !scene.HasZone("LOC04") && scene.emergencyDoorA == null &&
+                Require(scene.GameplayZoneCount == 3 && scene.LoadedZoneCount == 4 && !scene.HasZone("LOC04") && scene.emergencyDoorA == null &&
                     !scene.TryPad("AP05", out _) && scene.GatekeeperWaypoints.Length == 0, "LOC04 released pad, actor and door bindings");
                 Require(transaction.Restore(SaveSlot.Auto, out var missing) == SaveRead.Damaged && missing == null &&
                     State.sequence == sequence, "An unloaded checkpoint preserves committed investigation");
                 yield return scene.LoadZoneAsync("LOC04_Emergency");
-                Require(scene.LoadedZoneCount == 4 && scene.HasZone("LOC04") && scene.Pad("AP05") != null, "LOC04 reloaded cleanly");
+                Require(scene.GameplayZoneCount == 4 && scene.LoadedZoneCount == 5 && scene.HasZone("LOC04") && scene.Pad("AP05") != null, "LOC04 reloaded cleanly");
                 Require(scene.emergencyDoorA != null && !ReferenceEquals(scene.emergencyDoorA, originalDoor) &&
                     transaction.Restore(SaveSlot.Auto, out var restored) == SaveRead.Valid && restored == scene.Pad("AP05") &&
                     State.sequence == sequence, "Reload rebinds door and restores the same revision at AP05");
-                verification.Add("M2-ADDITIVE PASS: duplicate zone/pad rejected; LOC04 released bindings, rejected unloaded restore, then rebound and restored AP05.");
+                verification.Add("M2-ADDITIVE PASS: 4 boot gameplay zones + CAMPUS_EXT; duplicate zone/pad rejected; LOC04 released, rejected unloaded restore, then rebound and restored AP05.");
             }
 
             // 2) LOCK-V22-02 / V22-Q03 runtime VO & transcript guard
@@ -967,8 +971,10 @@ namespace CTCC
             if (scene.IsAdditiveMode)
             {
                 yield return scene.EnsureRegionalZonesStreamedAsync();
-                Require(scene.LoadedZoneCount == 6 && scene.HasZone("LOC05") && scene.HasZone("LOC09"),
-                    "Upper and service regions registered");
+                Require(scene.GameplayZoneCount == 6 && scene.LoadedZoneCount == 8 &&
+                    scene.HasZone("LOC05") && scene.HasZone("LOC09") &&
+                    scene.HasZone("CAMPUS_EXT") && scene.HasZone("CAMPUS_WINGS"),
+                    $"Upper, service, and campus wings regions registered (gameplay={scene.GameplayZoneCount}, total={scene.LoadedZoneCount})");
             }
             var ap06 = scene.Pad("AP06");
             var an03 = scene.Pad("AN03");
@@ -2036,6 +2042,160 @@ namespace CTCC
         {
             while (!pending.IsCompleted) yield return null;
             Apply(pending.GetAwaiter().GetResult(), label);
+        }
+
+        private IEnumerator VerifyCampusWorldQA()
+        {
+            if (scene.IsAdditiveMode)
+            {
+                yield return scene.EnsureRegionalZonesStreamedAsync();
+
+                // WORLD-Q04: 3D XYZ multi-wing same-Z & multi-story elevation zone disambiguation
+                Require(scene.ResolveZoneAt(new Vector3(4f, 0.2f, -15f))?.zoneId == "LOC01", "XYZ courtyard resolves to LOC01");
+                Require(scene.ResolveZoneAt(new Vector3(4f, 0.2f, -4f))?.zoneId == "LOC02", "XYZ reception resolves to LOC02");
+                Require(scene.ResolveZoneAt(new Vector3(9f, 0.2f, 5f))?.zoneId == "LOC03", "XYZ Room 101 resolves to LOC03");
+                string kbZone = scene.ResolveZoneAt(new Vector3(-30f, 0.2f, 5f))?.zoneId;
+                string kdZone = scene.ResolveZoneAt(new Vector3(30f, 0.2f, 20f))?.zoneId;
+                Require(kbZone != "LOC03" && (kbZone == "CAMPUS_EXT" || kbZone == "CAMPUS_WINGS"),
+                    $"WORLD-Q04 K-B outpatient at same Z=5 disambiguates from LOC03 (got {kbZone})");
+                Require(kdZone != "LOC04" && (kdZone == "CAMPUS_EXT" || kdZone == "CAMPUS_WINGS"),
+                    $"WORLD-Q04 K-D emergency at same Z=20 disambiguates from LOC04 (got {kdZone})");
+                Require(scene.ResolveZoneAt(new Vector3(7f, -3.2f, 36f))?.zoneId == "LOC09", "XYZ B1 resolves to LOC09");
+                Require(scene.ResolveZoneAt(new Vector3(2f, 4.2f, 35f))?.zoneId == "LOC05", "XYZ Floor 2 Khu B resolves to LOC05");
+                Require(scene.ResolveZoneAt(new Vector3(0f, 8.2f, 34f))?.zoneId == "LOC05", "XYZ Floor 3 Archive resolves to LOC05");
+
+                // Campus_Interiors unload/reload without touching gameplay zones or safe pads
+                yield return scene.UnloadZoneAsync(RegionStreamer.CampusWings);
+                Require(scene.GameplayZoneCount == 6 && !scene.HasZone("CAMPUS_WINGS") && scene.HasZone("CAMPUS_EXT") &&
+                    scene.TryPad("AP04", out _) && scene.TryPad("AP08", out _),
+                    "Campus_Interiors unload leaves all 6 gameplay zones and safe pads intact");
+                yield return scene.LoadZoneAsync(RegionStreamer.CampusWings);
+                Require(scene.GameplayZoneCount == 6 && scene.LoadedZoneCount == 8 && scene.HasZone("CAMPUS_WINGS"),
+                    "Campus_Interiors reloads cleanly");
+
+                // W-Q02: Khu B (AP06) -> Reception (AP02) -> Courtyard (AP01) works with B1 (LOC09) unloaded!
+                yield return scene.UnloadZoneAsync(RegionStreamer.Service);
+                yield return null;
+                yield return null;
+                // Temporarily swap out un-stitched per-zone regional tiles for a single unified multi-zone NavMesh
+                // built strictly from currently loaded zones (LOC09 absent) to prove continuous S1 escape walkability!
+                NavMesh.RemoveAllNavMeshData();
+                var unifiedData = scene.BuildNavigation();
+                var unifiedInst = NavMesh.AddNavMeshData(unifiedData);
+                try
+                {
+                    var wq02Path = new NavMeshPath();
+                    bool s1ToLobby = NavMesh.CalculatePath(scene.Pad("AP06").position, scene.Pad("AP02").position, NavMesh.AllAreas, wq02Path)
+                        && wq02Path.status == NavMeshPathStatus.PathComplete;
+                    bool lobbyToYard = NavMesh.CalculatePath(scene.Pad("AP02").position, scene.Pad("AP01").position, NavMesh.AllAreas, wq02Path)
+                        && wq02Path.status == NavMeshPathStatus.PathComplete;
+                    Require(s1ToLobby && lobbyToYard, $"W-Q02 Khu B -> S1 -> Lobby -> Courtyard independent of B1 (s1={s1ToLobby}, yard={lobbyToYard})");
+                }
+                finally
+                {
+                    if (unifiedInst.valid) unifiedInst.Remove();
+                    if (unifiedData != null) Destroy(unifiedData);
+                    scene.TryRefreshNavigation(scene.Pad("AP02").position);
+                }
+                yield return scene.LoadZoneAsync(RegionStreamer.Service);
+                yield return null;
+                yield return null;
+            }
+
+            // W-Q03 / WORLD-Q03: B1 E05b exterior observation pit reachable from AP08 BEFORE G06 while LOC12 east wall stays sealed!
+            var e05bObsPoint = new Vector3(35.8f, -3.4f, 42.0f);
+            var loc12InsidePoint = new Vector3(32.5f, -3.4f, 42.0f);
+            var navE05b = new NavMeshPath();
+            bool canObserveE05b = NavMesh.CalculatePath(scene.Pad("AP08").position, e05bObsPoint, NavMesh.AllAreas, navE05b)
+                && navE05b.status == NavMeshPathStatus.PathComplete;
+            var navBreach = new NavMeshPath();
+            bool breachesLoc12 = NavMesh.CalculatePath(e05bObsPoint, loc12InsidePoint, NavMesh.AllAreas, navBreach)
+                && navBreach.status == NavMeshPathStatus.PathComplete;
+            bool solidBrickSeal = Physics.Linecast(e05bObsPoint + Vector3.up * 1.2f, loc12InsidePoint + Vector3.up * 1.2f, HospitalScene.SolidMask);
+            Require(canObserveE05b && !breachesLoc12 && solidBrickSeal,
+                $"W-Q03 E05b exterior observation pit reachable without breaching LOC12 (obs={canObserveE05b}, breach={breachesLoc12}, seal={solidBrickSeal})");
+            verification.Add("WORLD-Q03/Q04 & W-Q02/W-Q03 PASS: 3D XYZ multi-wing/multi-floor zones, Campus_Interiors streaming, B1-independent S1 Khu B route, and E05b sealed door exterior pit verified.");
+
+            // Full 1920x1080 Campus Visual Verification Gallery (R 2012 & B 2005 + High Elevation + B1 E05b + Aerials)
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) yield break;
+
+            var camera = player.Eye;
+            var rt = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            rt.Create();
+            bool prevCamEnabled = camera.enabled;
+            float prevFar = camera.farClipPlane;
+            Vector3 prevLocalPos = camera.transform.localPosition;
+            Quaternion prevLocalRot = camera.transform.localRotation;
+            var restoreState = State.Copy();
+            camera.enabled = false;
+            player.SetTorchEnabled(false);
+
+            void PresentLayerForShot(Reality layer)
+            {
+                var snap = restoreState.Copy();
+                snap.layer = layer;
+                snap.chapter = "CH04";
+                snap.Remember("CH01-gate-open");
+                transaction.Present(snap);
+            }
+
+            IEnumerator CaptureWorldView(string shotName, Vector3 camPos, Vector3 lookAt, float farClip = 195f)
+            {
+                camera.farClipPlane = farClip;
+                camera.transform.position = camPos;
+                camera.transform.LookAt(lookAt);
+                for (int i = 0; i < 4; i++) yield return null;
+                SaveFrame(camera, rt, shotName);
+            }
+
+            try
+            {
+                // --- REALITY R (2012 — Abandoned Monsoon Night) ---
+                PresentLayerForShot(Reality.R);
+                for (int i = 0; i < 8; i++) yield return null;
+
+                yield return CaptureWorldView("campus-ap00-R", new Vector3(3.85f, 1.64f, -24.4f), new Vector3(4.2f, 4.2f, -8.0f));
+                yield return CaptureWorldView("campus-ap01-R", new Vector3(3.95f, 1.64f, -16.8f), new Vector3(4.0f, 5.2f, -6.0f));
+                yield return CaptureWorldView("campus-courtyard-diag-R", new Vector3(13.8f, 2.25f, -24.5f), new Vector3(24.5f, 4.4f, 14.0f));
+                yield return CaptureWorldView("campus-ap02-reception-R", new Vector3(4.35f, 1.62f, -4.65f), new Vector3(1.5f, 1.35f, -3.5f));
+                yield return CaptureWorldView("campus-ap04-room101-window-R", new Vector3(9.6f, 1.62f, 5.2f), new Vector3(10.0f, 3.2f, 14.1f));
+                yield return CaptureWorldView("campus-ap05-emergency-R", new Vector3(3.65f, 1.62f, 17.15f), new Vector3(6.8f, 1.45f, 20.5f));
+                yield return CaptureWorldView("campus-kb-maingate-R", new Vector3(-28.5f, 2.2f, -37.5f), new Vector3(-27.0f, 3.8f, -8.0f));
+                yield return CaptureWorldView("campus-kd-ambulance-R", new Vector3(54.5f, 2.4f, 4.0f), new Vector3(43.5f, 3.4f, 22.5f));
+                yield return CaptureWorldView("campus-upper-s1-loc05-R", new Vector3(-12.3f, 5.65f, 14.0f), new Vector3(-4.0f, 5.4f, 35.0f));
+                // B1 E05b exterior sunken pit looking directly at the 2004 sealed bricked door & broken concrete steps!
+                player.SetTorchEnabled(true);
+                yield return CaptureWorldView("campus-b1-e05b-R", new Vector3(36.3f, -1.78f, 45.2f), new Vector3(34.6f, -2.15f, 42.0f));
+                player.SetTorchEnabled(false);
+                yield return CaptureWorldView("campus-aerial-SW-R", new Vector3(-56f, 38f, -48f), new Vector3(8f, 3f, 24f), 260f);
+                yield return CaptureWorldView("campus-aerial-NE-R", new Vector3(70f, 40f, 88f), new Vector3(4f, 3f, 20f), 260f);
+
+                // --- REALITY B (2005 — Operational Night Shift) ---
+                PresentLayerForShot(Reality.B);
+                for (int i = 0; i < 8; i++) yield return null;
+
+                yield return CaptureWorldView("campus-ap00-B", new Vector3(3.85f, 1.64f, -24.4f), new Vector3(4.2f, 4.2f, -8.0f));
+                yield return CaptureWorldView("campus-ap01-B", new Vector3(3.95f, 1.64f, -16.8f), new Vector3(4.0f, 5.2f, -6.0f));
+                yield return CaptureWorldView("campus-courtyard-diag-B", new Vector3(13.8f, 2.25f, -24.5f), new Vector3(24.5f, 4.4f, 14.0f));
+                yield return CaptureWorldView("campus-ap02-reception-B", new Vector3(4.35f, 1.62f, -4.65f), new Vector3(1.5f, 1.35f, -3.5f));
+                yield return CaptureWorldView("campus-ap04-room101-window-B", new Vector3(9.6f, 1.62f, 5.2f), new Vector3(10.0f, 3.2f, 14.1f));
+                yield return CaptureWorldView("campus-ap05-emergency-B", new Vector3(3.65f, 1.62f, 17.15f), new Vector3(6.8f, 1.45f, 20.5f));
+                yield return CaptureWorldView("campus-kb-maingate-B", new Vector3(-28.5f, 2.2f, -37.5f), new Vector3(-27.0f, 3.8f, -8.0f));
+                yield return CaptureWorldView("campus-kd-ambulance-B", new Vector3(54.5f, 2.4f, 4.0f), new Vector3(43.5f, 3.4f, 22.5f));
+                yield return CaptureWorldView("campus-aerial-SW-B", new Vector3(-56f, 38f, -48f), new Vector3(8f, 3f, 24f), 260f);
+                yield return CaptureWorldView("campus-aerial-NE-B", new Vector3(70f, 40f, 88f), new Vector3(4f, 3f, 20f), 260f);
+            }
+            finally
+            {
+                player.SetTorchEnabled(false);
+                camera.transform.localPosition = prevLocalPos;
+                camera.transform.localRotation = prevLocalRot;
+                camera.farClipPlane = prevFar;
+                camera.enabled = prevCamEnabled;
+                transaction.Present(restoreState);
+                rt.Release();
+                Destroy(rt);
+            }
         }
 
         private IEnumerator CaptureHospitalFrame(string name, Transform pose, float yaw)

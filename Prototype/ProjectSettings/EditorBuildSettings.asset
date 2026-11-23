@@ -21,11 +21,17 @@ EditorBuildSettings:
     path: Assets/CTCC/Scenes/LOC04_Emergency.unity
     guid: d178d36f2b2b9384b8aa19636a7cf559
   - enabled: 1
+    path: Assets/CTCC/Scenes/Campus_Grounds.unity
+    guid: 12554bc8c8c60804ea9dff6864bcaa73
+  - enabled: 1
     path: Assets/CTCC/Scenes/LOC05_ArchiveWing.unity
     guid: 4b8e3da5c45dc064fbe7bf9924b044e9
   - enabled: 1
     path: Assets/CTCC/Scenes/LOC09_ServiceWing.unity
     guid: 813273fb10d03674e9358f35a190d906
+  - enabled: 1
+    path: Assets/CTCC/Scenes/Campus_Interiors.unity
+    guid: d856b7f4e1ecd364b8a4cab51f949a1e
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

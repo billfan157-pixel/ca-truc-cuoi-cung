@@ -129,7 +129,7 @@ namespace CTCC
         public AudioSource GatekeeperVoiceAnchor { get; private set; }
         public AudioSource AnVoiceAnchor { get; private set; }
 
-        [SerializeField] private Bounds navigationBounds = new(new Vector3(9, 3.6f, 13), new Vector3(56, 19, 78));
+        [SerializeField] private Bounds navigationBounds = new(new Vector3(8, 3.6f, 20), new Vector3(92, 22, 108));
         [NonSerialized] public bool smoothPresentation;
 
         private readonly List<ZoneRegion> registeredZones = new();
@@ -172,6 +172,43 @@ namespace CTCC
 
         public bool IsAdditiveMode => additiveZoneScenes != null && additiveZoneScenes.Length > 0;
         public int LoadedZoneCount => registeredZones.Count;
+        public int GameplayZoneCount
+        {
+            get
+            {
+                int count = 0;
+                for (int i = 0; i < registeredZones.Count; i++)
+                    if (registeredZones[i] != null && !registeredZones[i].isBackgroundCampus) count++;
+                return count;
+            }
+        }
+
+        public bool HasConfiguredRegionalScene(string sceneName)
+        {
+            if (regionalStreamZoneScenes == null || string.IsNullOrEmpty(sceneName)) return false;
+            for (int i = 0; i < regionalStreamZoneScenes.Length; i++)
+                if (string.Equals(regionalStreamZoneScenes[i], sceneName, StringComparison.Ordinal))
+                    return true;
+            return false;
+        }
+
+        public ZoneRegion ResolveZoneAt(Vector3 worldPos)
+        {
+            ZoneRegion best = null;
+            int bestPriority = int.MinValue;
+            for (int i = 0; i < registeredZones.Count; i++)
+            {
+                var z = registeredZones[i];
+                if (z == null || !z.isActiveAndEnabled) continue;
+                if (!z.ContainsPoint(worldPos)) continue;
+                if (best == null || z.zonePriority > bestPriority)
+                {
+                    best = z;
+                    bestPriority = z.zonePriority;
+                }
+            }
+            return best;
+        }
 
         public void PresentCasework(Investigation state)
         {
@@ -280,7 +317,7 @@ namespace CTCC
             }
             finally { smoothPresentation = restoreSmooth; }
             foreach (var region in registeredZones)
-                if (region.gameObject.scene == sc) region.RefreshRegionalNavMesh();
+                if (region.gameObject.scene == sc && region.participatesInNavMesh) region.RefreshRegionalNavMesh();
             ZoneReloaded?.Invoke();
         }
 
@@ -1007,7 +1044,7 @@ namespace CTCC
                 RenderSettings.ambientEquatorColor = new Color(0.32f, 0.25f, 0.16f);
                 RenderSettings.ambientGroundColor = new Color(0.16f, 0.12f, 0.08f);
                 RenderSettings.fogColor = new Color(0.28f, 0.21f, 0.14f);
-                RenderSettings.fogDensity = 0.0115f;
+                RenderSettings.fogDensity = 0.0095f;
             }
             else if (layerB)
             {
@@ -1015,16 +1052,16 @@ namespace CTCC
                 RenderSettings.ambientEquatorColor = new Color(0.25f, 0.30f, 0.26f);
                 RenderSettings.ambientGroundColor = new Color(0.13f, 0.14f, 0.12f);
                 RenderSettings.fogColor = new Color(0.20f, 0.28f, 0.24f);
-                RenderSettings.fogDensity = 0.0095f;
+                RenderSettings.fogDensity = 0.0056f;
             }
             else
             {
-                // Calibrated R (2012) moonlight bounce — preserves deep shadow tension while keeping clues & walls readable!
+                // Calibrated R (2012) moonlight bounce — preserves deep shadow tension while keeping multi-wing campus readable!
                 RenderSettings.ambientSkyColor = new Color(0.17f, 0.24f, 0.29f);
                 RenderSettings.ambientEquatorColor = new Color(0.115f, 0.155f, 0.175f);
                 RenderSettings.ambientGroundColor = new Color(0.068f, 0.064f, 0.055f);
                 RenderSettings.fogColor = new Color(0.068f, 0.105f, 0.132f);
-                RenderSettings.fogDensity = 0.0155f;
+                RenderSettings.fogDensity = 0.0082f;
             }
 
             // Mode 2: Dual-Scenario Pre-Baked LightProbes SH L2 (atomic 0.05 ms swap on R<->B!)
@@ -1075,7 +1112,7 @@ namespace CTCC
             if (registeredZones.Count > 0)
             {
                 foreach (var z in registeredZones)
-                    if (z != null && z.isActiveAndEnabled)
+                    if (z != null && z.isActiveAndEnabled && z.participatesInNavMesh)
                         z.CollectRegionalSources(navigationSources);
             }
             else
@@ -1106,7 +1143,7 @@ namespace CTCC
                 bool allOk = true;
                 foreach (var z in registeredZones)
                 {
-                    if (z != null && z.isActiveAndEnabled && !z.RefreshRegionalNavMesh())
+                    if (z != null && z.isActiveAndEnabled && z.participatesInNavMesh && !z.RefreshRegionalNavMesh())
                         allOk = false;
                 }
                 return allOk && NavMesh.SamplePosition(landing, out _, 0.36f, NavMesh.AllAreas);
@@ -1156,7 +1193,7 @@ namespace CTCC
         {
             if (registeredZones.Count == 0) return TryRefreshNavigation(landing);
             foreach (var zone in registeredZones.ToArray())
-                if (zone == null || !zone.isActiveAndEnabled || !await zone.RefreshRegionalNavMeshAsync())
+                if (zone == null || !zone.isActiveAndEnabled || (zone.participatesInNavMesh && !await zone.RefreshRegionalNavMeshAsync()))
                     return false;
             return NavMesh.SamplePosition(landing, out _, 0.36f, NavMesh.AllAreas);
         }

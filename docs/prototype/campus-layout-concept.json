@@ -1,6 +1,6 @@
 {
-  "revision": "Campus-v0",
-  "status": "Blockout seed; not measured geometry or canon bed count",
+  "revision": "Campus-v1",
+  "status": "Implemented 3D Unity multi-scene campus (8 additive scenes, 6 blocks K-A..K-F, 14 Blender 4.5 modular assets); nominal bed count remains non-canon planning seed",
   "source": "Core 03 and De an mo rong Benh vien An Sinh, 23/11/2026",
   "coordinates": {
     "units": "m",
@@ -78,8 +78,8 @@
     "rooms": {"LOC09": [4.5, 31.1, 10.5, 45.5], "LOC10": [-1.5, 36, 4.5, 42], "LOC11": [10.5, 39, 14.5, 45], "LOC12": [14.5, 35, 34.5, 49]},
     "doorC": [14.5, 42],
     "sealedRear": [34.5, 42],
-    "e05bObservationConcept": [[12.5, 44], [12.5, 50.5], [36.5, 50.5], [36.5, 42]],
-    "observationStatus": "Model the accessible face in R before G06. This perimeter gallery is a blockout option, not an implemented route."
+    "e05bObservationConcept": [[12.5, 45.0], [12.5, 50.1], [35.8, 50.1], [35.8, 42.0]],
+    "observationStatus": "Implemented in HospitalAuthoring.Expansion.cs (LOC09_ServiceWing): accessible B1 north/east exterior observation gallery from LOC11 facing CTCC_ENV_B1SealedDoorE05b at (34.62, -3.4, 42.0) before G06; LOC12 remains solid and NavMesh-sealed."
   },
   "referenceOnly": "docs/prototype/layout.json defines the tested original rooms, openings, beds and pads. Do not import this campus concept into the runtime or overwrite tested anchors without gate QA."
 }

@@ -33,22 +33,34 @@ namespace CTCC.Editor
             var courtAsphalt = Box("Courtyard wet concrete apron", new Vector3(4.0f, -0.092f, -14.0f),
                 new Vector3(17.8f, 0.20f, 11.8f), Mat("WetAsphalt"), perm, solid: false, tile: 3.6f, isStatic: true);
 
-            // Hero 3-Story 1987 Vietnamese Hospital Exterior Facade rising above the lobby entrance (z = -8.02, y = 3.60)
-            var facade = PlaceBlenderModel("CTCC_ENV_HospitalFacade", perm, new Vector3(4.0f, 3.60f, -8.02f), 0f, pairRB: false);
-            staticArchitecture.Add(facade);
+            // Note: Full 3-story grounded K-A 1987 hospital elevation (33m wide x 11.7m tall + roof) is built
+            // in Campus_Grounds (HospitalAuthoring.Campus.cs) so it never floats above the courtyard canopy!
 
             // Brick Security Gatehouse flanking east side of outer gate (strictly outside walking lane x in [2.8..5.2]!)
             var gatehouse = PlaceBlenderModel("CTCC_ENV_Gatehouse", perm, new Vector3(8.55f, 0f, -18.55f), 0f, pairRB: false);
             Box("Gatehouse collider", new Vector3(8.55f, 1.35f, -18.55f), new Vector3(2.85f, 2.70f, 2.55f),
                 Mat("WeatheredBrick"), perm, solid: true).GetComponent<Renderer>().enabled = false;
             staticArchitecture.Add(gatehouse);
-            // Warm tungsten security gatehouse porch spill illuminating the wet entrance gate
-            Lamp("Gatehouse warm porch light", LightType.Point, new Vector3(7.05f, 2.38f, -18.85f), 2.4f, 8.5f,
+            // Warm tungsten security gatehouse porch spill illuminating the wet entrance gate (pulled off plaster to avoid glare!)
+            Lamp("Gatehouse warm porch light", LightType.Point, new Vector3(6.62f, 2.32f, -19.55f), 2.1f, 9.0f,
                 new Color(0.98f, 0.72f, 0.40f), perm);
 
-            // Authentic An Sinh 1987 Enamel Gate Plaque on west gate pillar
+            // Authentic An Sinh 1987 Enamel Gate Plaque on west gate pillar + Night Gate subtitle on east pillar
             Sign("Hospital gate plaque", "Sign_HospitalGate", new Vector3(2.58f, 1.48f, -20.19f), Vector3.back,
                 new Vector2(0.76f, 0.34f), perm, metalBacking: true);
+            Sign("Night gate notice plaque", "Sign_NightGate", new Vector3(5.38f, 1.50f, -20.19f), Vector3.back,
+                new Vector2(0.74f, 0.24f), perm, metalBacking: true);
+
+            // Freestanding An Sinh Hospital 6-Block Campus Wayfinding Directory Board on west courtyard flank
+            // Placed cleanly at x=-3.65, z=-14.8 (well outside walking axis x=[1.5..6.5] and clear of terrazzo benches at x=-1.35!)
+            var mapBoard = Group("Campus wayfinding directory board", perm, new Vector3(-3.65f, 0f, -14.8f));
+            mapBoard.localRotation = Quaternion.Euler(0f, 55f, 0f);
+            Box("Map post L", new Vector3(-0.78f, 0.96f, 0f), new Vector3(0.08f, 1.92f, 0.08f), Mat("MetalOld"), mapBoard, solid: true, isStatic: true);
+            Box("Map post R", new Vector3(0.78f, 0.96f, 0f), new Vector3(0.08f, 1.92f, 0.08f), Mat("MetalOld"), mapBoard, solid: true, isStatic: true);
+            Box("Map backing", new Vector3(0f, 1.38f, 0f), new Vector3(1.66f, 1.24f, 0.06f), Mat("MetalOld"), mapBoard, solid: true, isStatic: true);
+            Box("Map rain cap", new Vector3(0f, 2.02f, -0.04f), new Vector3(1.80f, 0.08f, 0.34f), Mat("CorrugatedRoofR"), mapBoard, isStatic: true);
+            Flat("Campus directory graphic", "Sign_CampusMap", new Vector3(0f, 1.38f, -0.036f), Vector3.back, new Vector2(1.56f, 1.16f), mapBoard);
+            staticArchitecture.Add(mapBoard.gameObject);
 
             // Perimeter Iron Fence Bays atop low courtyard brick walls (west x=-5, east x=13, front z=-20)
             foreach (float z in new[] { -18.0f, -14.0f, -10.0f })
