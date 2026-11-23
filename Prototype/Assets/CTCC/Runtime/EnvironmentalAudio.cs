@@ -59,7 +59,15 @@ namespace CTCC
         private float signatureGain = 1f;
         private AudioClip signaturePen;
         private AudioClip cradleClick, enamelPedal, ceramicContact;
+        private AudioClip signKnock, keyTurn, latchClick, gateSlam, bagZip, clipSnap;
         private AudioSource handset;
+        private AudioSource penWriteLoop;
+        private bool penWriteActive;
+        private float penWriteGain;
+        private float tensionDipUntil;
+        private float tensionDipFloor = 1f;
+        private float tensionGain = 1f;
+        private float returnWalkRainScale = 1f;
         internal Transform Listener => listener;
 
         public string DirectionTo(Vector3 position)
@@ -129,6 +137,47 @@ namespace CTCC
 
         internal void LeaveSilenceAfterStamp(float seconds) => signatureQuietUntil = Time.unscaledTime + seconds;
 
+        /// <summary>
+        /// Walkthrough III mix discipline: brief tension ambience dip that never cuts master/footsteps to 0 dBFS.
+        /// </summary>
+        internal void PulseAmbienceDip(float seconds, float floor = 0.18f)
+        {
+            tensionDipUntil = Mathf.Max(tensionDipUntil, Time.unscaledTime + Mathf.Clamp(seconds, 0.2f, 4.5f));
+            tensionDipFloor = Mathf.Clamp(floor, 0.12f, 0.85f);
+        }
+
+        internal void SetReturnWalkRainScale(float scale) =>
+            returnWalkRainScale = Mathf.Clamp(scale, 0.42f, 1f);
+
+        internal void SetPenWriting(bool active, Vector3 worldPos)
+        {
+            penWriteActive = active;
+            if (active && penWriteLoop == null)
+            {
+                var clip = Resources.Load<AudioClip>("CTCC/CH01_PenWrite");
+                if (clip == null) return;
+                var go = new GameObject("Lan Desk Pen Loop");
+                go.transform.SetParent(transform, false);
+                go.transform.position = worldPos;
+                penWriteLoop = go.AddComponent<AudioSource>();
+                penWriteLoop.clip = clip;
+                penWriteLoop.loop = true;
+                penWriteLoop.playOnAwake = false;
+                penWriteLoop.dopplerLevel = 0f;
+                penWriteLoop.rolloffMode = AudioRolloffMode.Linear;
+                penWriteLoop.minDistance = 1.1f;
+                penWriteLoop.maxDistance = 8.5f;
+                penWriteLoop.volume = 0f;
+                if (propCue != null) penWriteLoop.outputAudioMixerGroup = propCue.outputAudioMixerGroup;
+                penWriteLoop.Play();
+            }
+            if (penWriteLoop != null)
+            {
+                penWriteLoop.transform.position = worldPos;
+                if (active && !penWriteLoop.isPlaying) penWriteLoop.Play();
+            }
+        }
+
         internal static float DistanceGain(AudioSource source, Transform ear)
         {
             if (ear == null) return 1f;
@@ -150,8 +199,10 @@ namespace CTCC
             if (listener == null && Camera.main != null) listener = Camera.main.transform;
             float dt = Time.unscaledDeltaTime;
             duckGain = Mathf.MoveTowards(duckGain, duckTarget, dt * (duckTarget < duckGain ? 4f : 0.95f));
-            float signatureTarget = Time.unscaledTime < signatureQuietUntil ? 0.08f : 1f;
+            float signatureTarget = Time.unscaledTime < signatureQuietUntil ? 0.14f : 1f;
             signatureGain = Mathf.MoveTowards(signatureGain, signatureTarget, dt * (signatureTarget < signatureGain ? 9f : 1.8f));
+            float tensionTarget = Time.unscaledTime < tensionDipUntil ? tensionDipFloor : 1f;
+            tensionGain = Mathf.MoveTowards(tensionGain, tensionTarget, dt * (tensionTarget < tensionGain ? 6.5f : 1.3f));
             bool checkOcclusion = Time.unscaledTime >= nextWallCheck;
             if (checkOcclusion) nextWallCheck = Time.unscaledTime + 0.1f;
 
@@ -187,7 +238,18 @@ namespace CTCC
                     };
                     source.pitch = Mathf.MoveTowards(source.pitch, pitch, dt * 0.6f);
                 }
-                source.volume = loop.level * envelope * ambienceScale * duckGain * signatureGain * distance * (1f - 0.36f * loop.obstruction);
+                float rainFactor = !loop.report && loop.exteriorOccluded ? returnWalkRainScale : 1f;
+                source.volume = loop.level * envelope * ambienceScale * duckGain * signatureGain * tensionGain * rainFactor * distance * (1f - 0.36f * loop.obstruction);
+            }
+
+            if (penWriteLoop != null)
+            {
+                float targetPen = penWriteActive && ReportLayer ? 1f : 0f;
+                penWriteGain = Mathf.MoveTowards(penWriteGain, targetPen, dt * (targetPen < penWriteGain ? 5.5f : 1.8f));
+                penWriteLoop.spatialBlend = mono ? 0f : 1f;
+                float penDist = mono ? DistanceGain(penWriteLoop, listener) : 1f;
+                penWriteLoop.volume = 0.42f * penWriteGain * sfxScale * duckGain * penDist;
+                if (penWriteGain <= 0.001f && penWriteLoop.isPlaying) penWriteLoop.Stop();
             }
 
             double now = AudioSettings.dspTime;
@@ -284,10 +346,16 @@ namespace CTCC
                 "distantSteps" => distantSteps != null ? distantSteps : stepCorridor,
                 "chairScrape" => chairScrape != null ? chairScrape : cabinetRoll,
                 "partitionKnock" => partitionKnock != null ? partitionKnock : doorLatch,
+                "signKnock" => signKnock != null ? signKnock : signKnock = Resources.Load<AudioClip>("CTCC/CH01_SignKnock"),
+                "keyTurn" => keyTurn != null ? keyTurn : keyTurn = Resources.Load<AudioClip>("CTCC/CH01_KeyTurn"),
+                "latchClick" => latchClick != null ? latchClick : latchClick = Resources.Load<AudioClip>("CTCC/CH01_LatchClick"),
+                "gateSlam" => gateSlam != null ? gateSlam : gateSlam = Resources.Load<AudioClip>("CTCC/CH01_GateSlam"),
+                "bagZip" => bagZip != null ? bagZip : bagZip = Resources.Load<AudioClip>("CTCC/CH01_BagZip"),
+                "clipSnap" => clipSnap != null ? clipSnap : clipSnap = Resources.Load<AudioClip>("CTCC/CH01_ClipSnap"),
                 _ => null
             };
             if (sound == null || propCue == null) return;
-            bool directionCue = cue is "keyJingle" or "slippers" or "trolleyRoll" or "distantSteps" or "chairScrape" or "partitionKnock";
+            bool directionCue = cue is "keyJingle" or "slippers" or "trolleyRoll" or "distantSteps" or "chairScrape" or "partitionKnock" or "signKnock" or "gateSlam";
             bool transition = cue is "switch" or "switchToB" or "switchToR";
             double now = AudioSettings.dspTime;
             var voice = AcquireCue(directionCue ? 2 : transition ? 1 : 0, now);
@@ -298,13 +366,14 @@ namespace CTCC
             voice.source.maxDistance = cue switch
             {
                 "distantThunder" => 36f,
+                "gateSlam" => 26f,
                 "trolleyRoll" or "keyJingle" or "distantSteps" => 23f,
-                "chairScrape" or "partitionKnock" => 15f,
+                "chairScrape" or "partitionKnock" or "signKnock" => 15f,
                 "slippers" or "clockTick" => 11f,
                 _ => propCue.maxDistance
             };
             voice.source.priority = directionCue ? 110 : 135;
-            voice.reverbSend = transition || cue == "paperFlip" ? 0f : 0.62f;
+            voice.reverbSend = transition || cue is "paperFlip" or "bagZip" or "clipSnap" ? 0f : 0.62f;
             voice.importance = directionCue ? 2 : transition ? 1 : 0;
             voice.checkWalls = directionCue || cue is "distantThunder" or "paStatic" or "clockTick";
             voice.obstruction = voice.checkWalls && IsObstructed(at) ? 1f : 0f;
@@ -320,6 +389,12 @@ namespace CTCC
                 "distantSteps" => 0.50f,
                 "chairScrape" => 0.54f,
                 "partitionKnock" => 0.66f,
+                "signKnock" => 0.56f,
+                "keyTurn" => 0.64f,
+                "latchClick" => 0.52f,
+                "gateSlam" => 0.80f,
+                "bagZip" => 0.46f,
+                "clipSnap" => 0.56f,
                 "curtainSlide" => 0.52f,
                 "keyJingle" => 0.72f,
                 "trolleyRoll" => 0.62f,
