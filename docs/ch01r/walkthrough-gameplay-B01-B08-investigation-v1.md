@@ -439,6 +439,37 @@ Người chơi vừa chọn tin, để ngỏ hoặc phản đối một con số
 5. Người chơi tới **sổ trực vật lý tại AN01**, tự giở trang để bàn giao. Hành động này kích **CH01-T08** và transaction B→R ngay vị trí an toàn; không bắt đem F101 gốc từ phòng 101 về đặt lên sổ. Dữ liệu chữ ký đã tồn tại trong history và giấy signed nằm tại lớp B.
 6. Khi về R, đèn/quạt của ca 2005 nhường cho mưa và sự xuống cấp. **Các tờ giấy vật lý chỉ thuộc B**, dù đang nằm trên bàn, cầm trên tay hay cất trong ba lô, phải được trả về nơi B có thể phục hồi; ba lô giữ **ghi nhớ nguồn đã kiểm**, không cho Minh rút bản gốc giấy B ra sử dụng trong R.
 
+#### Cách quay lại một nơi đã trở thành quen thuộc
+
+**Cảnh đầu B06:** sau chữ ký F101, người chơi không bị kéo về AN01 bằng một transition. HALL vẫn đi được, tiếng đèn và xe đẩy có thể giống lần đến nhưng đã mất sự chắc chắn. Nếu quay đầu nhìn cửa Phòng 101, sự khác nhau do A/B/C vẫn có mặt để kiểm. Nếu player xem lại thẻ trong túi, dấu đã thấy vẫn rõ; **sự thay đổi của giấy ký không được xóa dấu người chơi đã chứng kiến**.
+
+**Điểm đảo cảm xúc:** trước đó Minh đi về phía có Lan như một nơi an toàn. Bây giờ cùng một trục hành lang kéo anh quay về một người có vẻ cần sự giúp đỡ. Người chơi nhìn thấy quầy từ xa, không có tiếng gọi, không có tiếng bút, nhưng ánh sáng, sổ và ghế còn chỗ quen thuộc. Thiết kế phải cho người chơi ít nhất một cơ hội tự quay camera tìm Lan trước khi một thoại/caption nhận xét vắng mặt xuất hiện.
+
+**Đến quầy theo nhiều cách:**
+- Nếu đi thẳng tới AN01, thấy ghế trống ngay nhưng không có camera tự pan xác nhận. Người chơi có thể đứng và nhìn vị trí mắt Lan ở B03; không hù bằng bóng Lan xuất hiện sau vai.
+- Nếu ghé DRAWER-DESK hoặc xem đồng hồ B, có thể nhận một bất thường âm thanh rất nhỏ: chiếc bút không còn viết, đồng hồ vẫn giữ vai trò mốc nhưng **không** phát kết luận giờ chết.
+- Nếu gọi/tương tác vị trí LAN_TALK khi Lan đã vắng, không mở cinematic hay dialogue cùng lời chào. Chỉ có câu phản hồi ngắn đúng thời điểm, hoặc im lặng có nghĩa.
+- Nếu tới quầy trước khi hoàn thành G01, lối T08 chưa hợp lệ; cần hướng player về F101 tại 101, không tự cho chuyển R và làm mất cơ hội ký.
+- Nếu quay về sau khi ký nhưng muốn sửa, người chơi có thể bước lại LOC03. Không đổi layer khi chỉ đến gần quầy; **chỉ giở AN01** mới bắt đầu giao dịch bàn giao.
+
+**Hành động bàn giao:** một trang sổ trực vật lý mở trước mặt Minh, trên đó có thể thấy dòng trạng thái công việc nhưng không phải bản F101 gốc. Minh đặt tay lên mép trang, giở và xác nhận bàn giao; camera vẫn FPS với thời điểm chuyển lớp gắn vào động tác. Đây là phản chiếu của lần giở sổ B03: hành động y hệt, người ghi ở quầy đã biến mất. Nếu người chơi đang cầm AS-05B trong tay, không để tờ giấy “bay qua thời gian”: preflight chuyển món đó về anchor B và preserve memory reference trước khi đổi lớp R.
+
+#### Trước và sau T08 — ba kịch bản vật phẩm
+
+| Tình trạng AS-05B trước bàn giao | Lúc AN01 bắt đầu transition | Khi player mở ba lô ở R |
+| --- | --- | --- |
+| Thẻ còn ở giá kẹp giường 4 | Không cần chuyển owner, chỉ đóng quyền tương tác lớp B | Có bản nhớ nếu đã xem; không có physical thẻ |
+| Thẻ đã được cất ở túi | Thu quyền sử dụng item B, trả vật về fixture B khi transaction commit | Ngăn giấy không còn thẻ như món cầm được; nguồn đã đọc vẫn tra được |
+| Thẻ đang trong tay hoặc đặt ở bàn so | Khóa interact ngắn, reconcile về đúng anchor B; rollback nếu swap thất bại | Không cho Equip/Use giấy B ở R; báo bằng trạng thái nguồn, không tự xóa ký ức |
+
+Cả ba đường phải giữ nguyên **OBS101A/B đã Examined, EX01 nếu có, first/current/history F101**. Nếu swap thất bại, mọi thứ trở lại B đúng trạng thái trước đó (kể cả thẻ trên bàn); không lấy mất giấy rồi hiển thị lỗi. Đường đi R cho CH02 không đổi theo ký A/B/C và không thừa một vách deniedBay từ lớp B.
+
+#### Điểm kết nhịp trong quầy
+
+Sau khi B→R, giữ vài giây cho âm mưa lấp đầy không gian, tiếng bút không quay lại. Cùng vị trí camera ở quầy, người chơi có thể nhìn từ nơi Lan từng ngồi ra hành lang trống. Đây là lúc game cho phép câu hỏi “mình đã gặp ai?” tồn tại mà không trả lời. Nếu phát DREAD_B06_CLOCK_TICK, chỉ dùng **một nhịp tích tắc khô** sau khoảng yên; không biến nó thành lời giải thích thời gian và không chồng cùng PA04.
+
+**Gợi hướng B07:** khi player quay từ quầy ra cửa sảnh, hướng cổng phụ hiện rõ. Sau một cuộc gặp không thể giải thích, việc muốn thoát là phản ứng hợp lý, không phải nhiệm vụ HUD vô duyên. Pocket Note có thể chỉ ghi “Thử ra ngoài” rồi người chơi tự quyết định chân mình đi đâu.
+
 #### Đạo diễn âm thanh
 
 Sự thay đổi nằm ở ba chất âm: **R 2012** là mưa và tòa nhà bỏ hoang; **B 2005** có quạt, giấy, bút và con người; **R sau bàn giao** trở lại tiếng sân nhưng thiếu hoàn toàn một giọng nói đã trở nên quen thuộc. Sự im lặng của chiếc ghế là payoff của cuộc gặp B03.
@@ -460,6 +491,26 @@ Minh chưa giải thích được vì sao Lan ở B nhưng không còn ở quầ
 2. Tới cổng, Minh tự **nắm và kéo cánh sắt**. Không cần lục túi tìm chìa khu C hoặc món đồ thần bí; đây không phải puzzle chìa khóa. Khi kéo đủ mức, transaction **CH01-T09** chuyển qua vòng lặp không gian một lần, đặt player ở safe pad hợp lệ để nhận ra mình lại đang ở trong khuôn viên.
 3. **Scare chủ đạo thứ hai:** một khoảng hụt âm mưa ngắn, cú đập kim loại bên ngoài cổng và bóng phản chiếu lướt ngang khung. Không đưa khuôn mặt, không cho nhân vật tấn công và không biến cổng thành boss. Âm/camera có phiên bản giảm jumpscare. Nếu người chơi đã gặp scare mạnh ở B05 quá gần, hạ cường độ âm hoặc để khoảng hồi nhịp phù hợp.
 4. Khi Minh nhìn lại, cổng không cung cấp lối thoát. Lời thoại CH01-D14 chỉ phát đúng điều kiện. Lần thử thứ hai không tạo thêm vòng loop; thay bằng phản hồi ngắn cho thấy hiện tại đường ra không mở được.
+
+#### Dựng seam bằng một hành động người chơi có thật
+
+**Trước khi thử:** sân R vẫn là sân B01. Xe, bảng phá dỡ, cột đèn, rãnh nước và cổng cũ phải giữ tương quan không gian. Nếu player nhìn lại xe, món trong túi vẫn còn và xe vẫn là xe; **không** tráo thành một con đường khác ngay khi vừa ra cửa sảnh. Giữ người chơi có quyền đi qua một quãng ngắn để tự quyết định “mình muốn ra ngoài”.
+
+**Chạm cổng:** player đưa tay về tay nắm; nút E hoặc giữ-kéo đều làm cánh cổng chuyển động có thể nhận biết. Vượt ngưỡng authored mới kích CH01-T09; không để chỉ click từ xa qua collider phát seam. Nếu người chơi buông khi cổng chưa tới ngưỡng, cánh cổng có thể trở về chốt mà không consume loop; bấm lại vẫn được.
+
+**Cú từ chối:** âm mưa hạ ngắn, tiếng kim loại đập có hướng **từ bên ngoài**. Khung nhìn dịch chuyển theo một transition ngắn/continuity seam chứ không làm toàn cảnh xoay 180 độ khiến người dễ say chuyển động. Player thấy mình vẫn ở trong khuôn viên, đường về quầy nằm ở phía có thể nhận ra. Nếu dùng crossfade mềm khi reducedMotion, trạng thái logic không khác; lời CH01-D14 chỉ một lần theo guard.
+
+**Lần thử thứ hai:** cánh cổng phản hồi đã không thể thoát. Không cho player lặp cùng seam vô hạn; không phát lại cú gõ giật. Nếu người chơi nhấn dùng chìa phụ đang equip, Game không tịch thu item hay mở đường tắt; có thể trả cảm giác chìa không thay được tình thế này. Chìa khu C không là phép mở khóa cổng hoặc làm phát thoại nơi cấm.
+
+**Sự kiện ở biên thế giới:** hiện tượng cổng không phải vật thể thuộc ba lô, cũng không cấp observation mới để giải F101 đã ký. Nó đặt ra một vấn đề khác: bệnh viện đang giữ Minh ở lại, nhưng cơ chế đó chưa được giải thích trong CH01. Không cho NPC/ma xuất hiện để diễn giải cho player.
+
+#### Âm thanh và trạng thái an toàn
+
+- Nếu vừa thấy P-SC05 quá gần, hạ cú đập cổng xuống một nhịp nhỏ và dành chỗ cho cảm giác bị trả về; **nỗi sợ do không thể thoát** phải còn ngay cả khi không có âm lớn.
+- Với mono/caption, người chơi biết tiếng đập phát từ phía cổng; không cần khả năng định vị stereo tốt mới hiểu sự việc.
+- Khi giảm camera motion, safe pad được chọn trước khi thay trình bày. Không đẩy người chơi vào khe cổng, không rơi khỏi sân, không đặt họ quay vào bức tường tối.
+- Khi lưu sau CH01-T09, seamConsumed không bị reset; load tại sân có lối về AN01. Khi lưu trước ngưỡng kéo, cổng còn có thể thử lại một lần theo luật.
+- Không che đường về quầy bằng bóng tối tuyệt đối. Đèn bàn trong sảnh có thể là mục tiêu nhìn thấy, nhưng các đường mép sân/bậc cửa vẫn cần độ tương phản đủ dùng.
 
 #### Ý nghĩa
 
@@ -486,6 +537,36 @@ CH01-T09 được lưu once; đường từ cổng về AN01 luôn mở. Ba lô 
 3. Nếu player từng **thực sự nhấc/soi hoặc cất AS-05B ở B**, khi mở ngăn giấy trong R có thể xuất hiện một **hình bóng thoáng qua của mép thẻ hoặc dấu ô bàn giao trên lớp trình bày của túi**. Khi đưa tay tới, đó không phải vật thật có thể equip: nó chỉ dẫn tới **ghi nhớ đã đọc tại LOC03/B**. Sự kiện thị giác này là **P-BAG08_ECHO**, một hiệu ứng biểu đạt ký ức, không phải item mới, không là chứng cứ vật lý 2012 và không xuất hiện nếu người chơi chưa hề thấy thẻ.
 4. Nếu người chơi không mở ba lô, câu chuyện vẫn hoàn chỉnh. Pocket Note có thể giữ một câu hỏi ngắn về thứ đã thấy trong Phòng 101, dựa trên chính những nguồn player đã thực sự kiểm. Không được tự tóm tắt rằng Minh đã gặp bệnh nhân, phát hiện thủ phạm hoặc biết giờ tử vong.
 5. Minh có thể lấy **E10a thực ở R** ra đọc lại: một lời hẹn bị hoãn, một mẩu tin cũ và lý do anh đã tự bước vào. Đối chiếu cảm giác với trải nghiệm ở B là suy nghĩ của người chơi, không phải thông báo “đã giải xong vụ án”.
+
+#### Sự kiện trong ba lô được xây từ trí nhớ của chính người chơi
+
+**Nguồn của cảm giác lạ:** hồi B04, player có thể đã chạm thẻ AS-05B bằng tay, lật, thấy chỗ chữ ký và cất vào một ngăn cụ thể. Ở B08, họ quay lại **đúng ngăn ấy**, một thao tác quen thuộc bỗng không nhận được kết quả quen thuộc. Kinh dị đến từ quan hệ giữa vật thật lúc trước và khoảng trống lúc này, không phải vì game phát một ảnh ma được đặt tùy ý trong túi.
+
+**Điều kiện để xuất hiện P-BAG08_ECHO:**
+1. T08 đã commit về R, và giấy gốc B đã reconcile thành nguồn tham khảo phi vật chất.
+2. Player **đã thật sự cầm/soi hoặc cất** AS-05B trong B; chỉ thấy giá kẹp từ xa hoặc xem cinematic B03 không đủ.
+3. Player chủ động mở ngăn giấy hoặc mở lại memory reference, không bị game tự bật túi ở giữa đường.
+4. Sự kiện chưa từng chạy; nếu trước đó đã hiện, lần tiếp theo chỉ còn danh sách reference bình thường.
+
+**Choreography rất ngắn:** khi ngăn giấy mở, trên vải túi có một mép giấy/ô trống chữ ký trông giống ký ức thị giác hơn vật hiện hữu. Khi Minh tới gần hoặc chọn xem, nét đó chậm mất đi, chỉ còn mô tả nguồn đã kiểm **LOC03 / B / 17-11-2005**. Không phát tiếng scream, không rung camera mạnh, không cho tờ giấy bay ra khỏi túi. Nếu player chọn “Lấy ra”, hệ thống phải chuyển sang **xem lại nội dung đã ghi nhớ**, không đặt mesh giấy gốc trên tay.
+
+**Nếu chưa xem thẻ B:** túi không invent một kỷ niệm để hù. Player có thể chỉ thấy BOARD, E10a và một dòng ghi chú tùy những gì đã tự xem. B08 vẫn phải có tác động nhờ hành lang vắng, cổng không thoát được và việc sổ trực chuẩn bị mở CH02.
+
+**Nếu đã chọn A/B/C:** hiệu ứng echo không khẳng định nhánh nào “đúng”. A có thể mang nỗi bất an vì một dấu đã bị vách che, B còn mắc ở sự lửng lơ, C chưa biết vì sao giấy và dấu sàn chống nhau. Nếu có một dòng Pocket Note đi cùng, nó phản ánh **trạng thái tri thức của player** chứ không diễn đạt “Minh đã quyết định không bao giờ ký nữa”, vì người chơi A có thể đã ký xác nhận.
+
+#### Chuỗi tâm lý kết chương theo mức độ hiểu của người chơi
+
+| Người chơi đã làm gì? | Minh có thể nhớ về điều gì? | Trò chơi tuyệt đối không được khẳng định |
+| --- | --- | --- |
+| Chỉ ký A/B, không xem hốc 4 | Đã ký một phiếu và chứng kiến căn phòng thay đổi kỳ lạ; Lan biến mất khi về R | “Bạn đã phát hiện giường 4 là có bệnh nhân” |
+| Xem dấu sàn nhưng bỏ thẻ | Có một vị trí từng sử dụng mà chưa có giấy đối chiếu | “Có ai cố tình giả số 0” |
+| So cả OBS101A/B và ký C | Dấu sử dụng khớp với thẻ chưa bàn giao, nên số 0 không đủ căn cứ | “Một nạn nhân vẫn còn trong bệnh viện” |
+| Hoàn tất EX01 | Nhiều nguồn đều nhắc tới 03:17, nhưng chưa rõ lý do | “03:17 là giờ chết/cháy” |
+| Đã soi thẻ, giờ nhìn echo | Nhớ đã cầm giấy ở ca B mà hiện tại không có bản vật lý | “Minh mang được chứng cứ năm 2005 về 2012” |
+
+**Câu hỏi cuối:** người chơi có thể chọn nhìn về Phòng 101 R từ quầy, hoặc mở E10a một lần nữa và thấy mẩu tin cũ. Cả hai con đường cùng dẫn tới ý nghĩ cần kiểm hiện trường vật lý năm 2012; không cần một màn hình “Giải thích Chương 1”. Chỉ có thao tác giở sổ AN01 mới commit T10, cho phép người chơi tự lựa chọn khoảnh khắc chuyển tiếp.
+
+**Dư vị về Minh:** một ký ức liên quan đến **cánh cửa từng không mở** có thể hiện trong một dòng nội tâm ngắn đã được duyệt, nhưng không vẽ cửa Khu C, không phát tiếng cầu cứu CH07, không cho người chơi trông thấy nhân dạng thuộc chương sau. Chi tiết này phải gợi day dứt, không chiếm chỗ của câu hỏi về 101 R.
 
 #### Kết chương
 
