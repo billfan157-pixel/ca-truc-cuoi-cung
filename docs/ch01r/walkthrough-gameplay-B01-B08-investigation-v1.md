@@ -605,6 +605,8 @@ Một tiếng giấy lật khô tại quầy trống. Không có Lan, không có
 
 ---
 
+## III. NHỊP KINH DỊ VÀ CHỖ DỪNG CHO NGƯỜI CHƠI
+
 ### Nhịp tổng thể, không đánh đồng sự kiện với jumpscare
 
 | Giai đoạn | Âm nền chủ đạo | Điểm gây bất an | Khoảng nghỉ cần có |
@@ -622,8 +624,6 @@ Một tiếng giấy lật khô tại quầy trống. Không có Lan, không có
 **Ba lớp âm được giữ liên tục:** R trước cuộc gặp là mưa và không gian đã đóng; B có hum đèn/quạt/giấy của ca trực; R sau T08 mang lại mưa nhưng thiếu hoàn toàn tiếng bút/giọng Lan. Đối lập này phải rõ cả khi người chơi dùng mono hoặc nghe caption, không phụ thuộc đúng loại tai nghe.
 
 **Nguồn âm vật lý:** tiếng khóa ở tay, tiếng ray ở rèm, tiếng bánh theo dấu sàn, tiếng bút ở quầy và tiếng gõ ngoài cổng đều có hướng/độ vọng phù hợp. Không dùng âm scream toàn màn hình nếu không có đối tượng mà người chơi có thể liên hệ. Khi không có âm, visual vẫn truyền sự kiện bắt buộc (vách mới, cổng seam, quầy trống).
-
-## III. NHỊP KINH DỊ VÀ CHỖ DỪNG CHO NGƯỜI CHƠI
 
 Kinh dị trong chương phải có **nguồn**, **thời điểm**, **hậu quả**. Ưu tiên tạo cảm giác bị nhìn, những âm thanh có chỗ phát cụ thể, và các thay đổi diễn ra sau hành động của Minh. Không nhầm số lượng jumpscare với độ sâu kinh dị.
 
@@ -679,6 +679,8 @@ Không phát một scare lớn khi player đang mở ba lô, soi 3D, nghe thoạ
 
 ---
 
+## VI. ĐIỀU KIỆN HOÀN THÀNH CHO BẢN GAMEPLAY
+
 ### Bản đồ commit, checkpoint và recovery trong tám beat
 
 | Beat | Đầu vào bắt buộc | Sự kiện commit | Dữ liệu phải còn khi load | Đường phục hồi nếu bị gián đoạn |
@@ -695,8 +697,6 @@ Không phát một scare lớn khi player đang mở ba lô, soi 3D, nghe thoạ
 **Thứ tự kiểm nghiệm:** thử tuyến A và B trước để chắc có đường ngắn, sau đó thử tuyến C đầy đủ, C thiếu từng nguồn/mark/link/claim, rồi thử quay lại sửa A→C→B. Trộn tiếp các trường hợp mở ba lô lúc đang cầm giấy B, skip cinematic, save khi đổi lớp và load tại cổng. Không coi một đường walkthrough “đi thẳng” là đủ nghiệm thu khi các nhánh khác có thể làm mất vật.
 
 **Đường sau chương:** R của CH02 phải vẫn cho quan sát LIST, SOCKETS, WHEELS độc lập, mở PZ01/E12 và thu E11 theo gate CH02. Việc có/không có P-BAG08_ECHO và lựa chọn A/B/C không được đưa những vật này vào túi sớm. C01, E08 và các thoại/hồi tưởng khóa về sau phải giữ nguyên điều kiện nêu trong Core.
-
-## VI. ĐIỀU KIỆN HOÀN THÀNH CHO BẢN GAMEPLAY
 
 Bản walkthrough chỉ được coi là vận hành đúng khi các đường chơi và trạng thái sau được kiểm trong Unity:
 
