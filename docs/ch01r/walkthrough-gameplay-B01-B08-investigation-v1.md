@@ -1,9 +1,12 @@
-# CH01 — NGƯỜI TRỞ VỀ: Walkthrough gameplay B01–B08 (Investigation-First Proposal v1.2)
+# CH01 — NGƯỜI TRỞ VỀ: Walkthrough gameplay B01–B08 (Investigation-First + Physical Interaction Proposal v1.3)
 
 > **TRẠNG THÁI: ĐỀ XUẤT THIẾT KẾ ĐỂ REVIEW, CHƯA TRIỂN KHAI / CHƯA PHÊ DUYỆT CANON.**
-> Ngày: 23/11/2026. Phạm vi: CH01 B01–B08 của *Ca trực cuối cùng*, trên CH01-R hiện hành. **v1.2: tích hợp có chọn lọc phản biện từ báo cáo kiểm toán v1.1 người dùng cung cấp**; vẫn là đề xuất, chưa có build hoặc phê duyệt canon.
+> Ngày: 23/11/2026. Phạm vi: CH01 B01–B08 của *Ca trực cuối cùng*, trên CH01-R hiện hành. **v1.3: bổ sung hệ Ba lô điều tra và 3D item use; kế thừa phản biện v1.2; vẫn là đề xuất, chưa có build hoặc phê duyệt canon.**
 > Tài liệu này là một walkthrough **được chỉ đạo bởi hành động của người chơi**, không phải chuỗi cutscene thuần tuyến tính. **Ngoại lệ có chủ đích tại B03:** Lan nhận biết Minh qua Scripted Event trong thế giới, rồi người chơi chủ động kích hoạt một Cinematic Dialogue Scene ngắn, liền mạch với FPS; sau đó trở lại khám phá tự do. Cách kể mới chỉ là phương án dàn dựng; thoại chính thức vẫn do Core 07/Dialogue sở hữu. Các trigger mới gắn tiền tố **P-SC / P-INT / P-NOTE** chỉ tồn tại trong đề xuất, KHÔNG phải event ID đã đăng ký.
 > Mục đích: tăng chiều sâu điều tra và nỗi sợ trong khi KHÔNG thay đổi canon, các gate và dữ liệu bằng chứng hiện hành trước khi được duyệt.
+
+
+> **QUY TẮC ƯU TIÊN v1.3:** các chỗ bên dưới còn mô tả “Sổ trực/Sổ điều tra” như menu/tabs là **baseline v1.2 để đối chiếu**, không còn là UX mặc định. **Tab/J mở BA LÔ ĐIỀU TRA** (đồ vật, giấy tờ, dụng cụ, vật chứng, ghi chú phụ); **AN01/sổ trực ở quầy** vẫn là **đối tượng vật lý** làm mốc R→B, bàn giao B→R, chuyển CH02. So tài liệu từ túi diễn ra trên bàn vật lý/khung inspector 3D. Cụ thể xem [Backpack & Physical Investigation Proposal](../gameplay/backpack-physical-investigation-proposal.md). Phần bổ sung v1.3 từng beat và §9 **thay thế hướng dẫn tương tác/UI cũ khi xung đột**, nhưng không thay canon/gate đã chốt.
 
 ## 0. Định hướng trải nghiệm
 
@@ -28,8 +31,8 @@
 
 ### 0.2. Nhịp mục tiêu và phạm vi
 
-- **Tuyến chính v1.2:** mục tiêu **18–24 phút** cho người chơi mới; tổng các dải thời lượng B01–B08 ở §4 cộng **đúng 18–24 phút**. Đây là giả thuyết pacing để playtest, không phải số liệu thực nghiệm. Tuyến chơi lại có thể nhanh hơn và phải đo riêng; nếu người mới cần lâu hơn để hiểu F101, không được ép thời gian bằng cách bỏ manh mối. 
-- **Tuyến khám phá sâu:** thêm khoảng 6–10 phút tại STAFF, hồ sơ phụ, EX01 và ghi chú cá nhân; tổng thiết kế **24–34 phút**. Tất cả khám phá sâu là tùy chọn, không là điều kiện ký A/B hoặc qua G01.
+- **Tuyến chính v1.3:** mục tiêu **20,5–30 phút** cho người chơi mới khi cầm/nhặt/cất/lấy ra/soi 3D và sử dụng đồ thật; cộng đúng bảng §4 mới. Đây là giả thuyết pacing chưa playtest, không đặt giới hạn để ép người chơi bỏ khám phá. v1.2 từng đặt 18–24 phút cho route thiên về UI, hiện **không còn là target chính**. 
+- **Tuyến khám phá sâu:** thêm khoảng 6–10 phút tại STAFF, hồ sơ phụ, EX01 và việc đặt vật lên bàn đối chiếu; tổng thiết kế **26,5–40 phút**. Tất cả khám phá sâu vẫn tùy chọn, không được ép người chơi ký A/B/C theo một route vật phẩm duy nhất.
 - **Nấc cảm xúc:** B01 tò mò có lỗi → B02 có người đang chờ → B03 thời gian trở nên không đáng tin → B04 hồ sơ và hiện trường bất đồng → B05 trách nhiệm của chữ ký → B06 hậu quả và vắng mặt → B07 không thể bỏ đi → B08 quyết tâm kiểm lại thế giới thật.
 - **Scare mix dự kiến:** 2 điểm authored có trọng lượng (B05/B07), một silhouette có thể bỏ lỡ nhưng không làm mất thông tin cốt truyện, và 4–6 micro-dread có ngữ cảnh. Không dùng cooldown 45–60 giây cứng cho *mọi* cue nhỏ: hệ nền hiện có global cooldown seed khoảng 16 giây; riêng scare lớn cần hồi nhịp riêng, theo hành động thay vì chỉ timer. Cấm cú giật ở inspector, sổ, thoại, cinematic, menu, save/load hoặc đổi lớp; xê dịch sau tờ giấy chỉ xảy ra khi trở lại 3D an toàn. Không ép xoay camera. Duyệt ngưỡng âm, chuyển động, caption với TASK028.
 
@@ -69,6 +72,8 @@
 
 **Nén nhịp v1.2:** thư E10a, chìa và cổng nằm trên tuyến tự nhiên từ xe. Quan sát xe/biển tháo dỡ vẫn có ý nghĩa nhưng không bị biến thành thủ tục bắt buộc. Người chơi có thể mở cổng nhanh sau khi đọc SMS; hành động tự bước vào vẫn là một quyết định của Minh.
 
+**Balo/3D v1.3 — không bỏ động cơ cốt truyện:** Người chơi **cầm phong bì E10a** ngay cạnh xe, xoay/lật xem thư và SMS như các thành phần của một prop tương tác; tự **cất phong bì vào ngăn Hồ sơ giấy**. Từ ba lô có thể rút lại bì thư để đọc, hoặc cầm chìa được ủy quyền (nếu item con được author) đưa tới cổng. Tuy nhiên `GATE-CONG` vẫn xét sự kiện đọc SMS/nhận chìa canon; không tự mở chỉ vì tồn tại item. Với save legacy `Investigation.New()` đã seed E10a, **không add E10a một lần nữa** khi nhặt vào ba lô. Những dòng tin và giấy đọc được phải có transcript và large print.
+
 **Output:** E10a acquired + SMSRead; CH01-T02; Q1 mở, AP/rollback cổng hợp lệ. **Fallback:** đọc theo thứ tự ngược nhau không thất lạc E10a; bỏ qua thông báo không khóa cổng; mute vẫn có ánh sáng cổng/đồ vật.
 
 ## B02 — Người đứng sau ô kính (LOC01 sân → LOC02, R, 1–1,5 phút tuyến chính)
@@ -86,6 +91,8 @@
 **Scare medium có điều kiện:** Khi người chơi tự nhìn xuyên qua kính lần thứ hai, một chiếc bóng thấp thoáng qua **phía sau**, kèm hai bước chân (không bật ngay sát tai); khi xoay lại chỉ là khoảng sân trống. Giữ khả năng lờ nó đi; không ảnh hưởng gate. Thứ tự với DREAD_B02 phải được điều phối, **không phát hai cue trong cùng 45 giây**. Đây là phương án dàn cảnh, chưa có trong build.
 
 **Nén nhịp v1.2:** bóng người qua kính đã đủ là hook; P-SC02 chỉ là phần thưởng phụ, không buộc đứng chờ hoặc soi kính hai lần để qua. Bước vào sảnh là tiếp cận ngay AN01. Bóng ngoài kính trong R **không** kích hoạt cinematic của B03.
+
+**Balo/3D v1.3:** Giữ người chơi tập trung vào môi trường, không hướng dẫn mở ba lô khi bóng Lan xuất hiện. Không biến bóng người, chiếc kính hay âm thanh thành vật phẩm. Người chơi có thể chạm kính/quan sát từ góc khác, nhưng việc đó chỉ phát một cue và/hoặc ghi nhận **quan sát có nguồn**. Vào AN01 mới gặp Lan trong lớp B, **không được auto cinematic** từ B02.
 
 **Output:** tới điểm AN01/LOC02; được tiếp cận sổ trực. **Handoff sang B03:** bóng người ngoài kính là setup nhìn-thấy; chỉ sau CH01-T03/R→B Lan mới nhận diện Minh bằng Scripted Event. Tuyệt đối không tự cắt sang cinematic ngay khi bóng người xuất hiện. **Fallback:** nếu người chơi sprint qua sân không nhìn kính, câu CH01-D02 và hiện diện Lan vẫn được setup tại quầy; không yêu cầu nhìn scare để tiến.
 
@@ -131,6 +138,8 @@
 - **Cinematic là diễn xuất có dụng ý, không showreel camera:** ưu tiên khuôn mặt Lan, phản ứng Minh và một dấu thời gian tinh tế; tránh cắt bốn góc máy cứng nhắc. Từ quầy trở lại FPS ngay sau take hoặc Skip; người chơi tự cầm BOARD. Không khóa nhân vật ở bên kia quầy hoặc phát jumpscare khi vừa thoát cinematic.
 - **Đừng biến góc máy thành vật chứng:** người chơi mới có thể nhận ra sự lệch thời gian từ thoại; nhưng muốn EX01 vẫn phải tự kiểm đồng hồ B, thẻ AS-05B và nguồn ca. Không auto ghi sự kiện chỉ vì cinematic có một shot.
 - **Acceptance thêm:** test trường hợp Lan đã thấy Minh nhưng Minh bỏ đi, quay lại, spam E/K, Skip, load trước/sau/giữa thoại; cảnh phát tối đa một lần, các dòng canonical guard đúng; không mất BOARD, không auto-credit EX01; B06 không replay cinematic. Đo tỷ lệ người chơi tự nhận ra năm 2005, không mặc định 4/6 là chuẩn chất lượng tuyệt đối.
+
+**Balo/3D v1.3 — sau hybrid cinematic:** `CH01-T03` vẫn qua **cuốn sổ trực vật lý trên quầy**, nhưng **Tab/J không còn mở nó như một menu**. Khi Lan kết thúc cảnh, Minh **tự nhấc BOARD** và cất vào ngăn Hồ sơ giấy của ba lô; `T05` chỉ commit sau cầm đúng món. Minh có thể rút BOARD để xem yêu cầu Phòng 101 trong FPS. `LAN_TALK` và Timeline không tự thu đồ, không làm nhiệm vụ thay người chơi. Lịch/đồng hồ/quầy là world observations, không “nhặt đồng hồ cho vào ba lô”.
 
 **Output:** CH01-T03/T04 (theo contract hiện hành), AP02, cue Lan/biên bản thoại đúng guard, người chơi tự kích `CH01-T05` bằng BOARD; Q2 mở, Q4 tùy chọn. **Fallback:** bỏ ngăn kéo/điện thoại vẫn hiểu mâu thuẫn thời gian; mất cinematic do skip/load vẫn có transcript/tóm tắt và BOARD; nếu người chơi bỏ đi trước khi bắt chuyện, hệ thống không tự nhảy qua nhiệm vụ.
 
@@ -182,6 +191,14 @@ Hai micro-task **đề xuất** cho phép người chơi tự kiểm không gian
 
 **Kiểm chống spoiler:** chơi lại CH02 sau đủ mọi micro-task, `LIST/SOCKETS/WHEELS → PZ01/E12 → E11` vẫn là một phát hiện độc lập trong R. Mute, alternate E, large print, save tại AP04 và các góc nhìn đều phải tương đương.
 
+**Balo/3D v1.3 — chuyển suy luận từ UI ra thế giới:** Dùng raycast và `PhysicalInspector` hiện có cho 3D:
+1. Hé `DOOR-101`, kéo `CURTAIN-101`, bước tới dấu bánh/giường 4 để **xem hiện trường OBS101A tại chỗ**. Vết bánh/ổ cắm/dấu sàn **không vào ba lô**.
+2. Nhấc thẻ **AS-05B (OBS101B)** khỏi kẹp, soi mặt trước/mặt sau, nghiêng đón sáng, chỉ vào ô chữ ký còn trống; tùy chọn **cất tạm giấy B vào ngăn “Giấy trong ca trực”** (đánh dấu nguồn B, không phải evidence).
+3. Có thể lấy OBS101C/D ở vị trí nguồn rồi đặt **hai tờ** cạnh nhau trên bàn STAFF hoặc vị trí có mặt phẳng hợp lệ, lật giấy để đối chiếu. Không cho phép cất một bản gốc của B rồi đem thành giấy thật trong R.
+4. Tập ghi chú **nằm trong ba lô** ghi đúng `ObservationRecord` đã khám phá, không tự giải F101; người chơi vẫn cần soi dấu vật lý và nguồn AS-05B độc lập để có quyền chọn C. Nếu bỏ các tài liệu phụ, A/B và route CH01 vẫn hợp lệ.
+
+**Fallback:** Nếu người chơi cất AS-05B vào túi và bỏ quên hoặc đặt trên bàn, có đường lấy lại/tìm vị trí đã đặt trước khi cần soi; trường hợp giảm chuyển động/bàn phím có action list tương đương. Không làm mất props/chứng cứ vì bag đầy.
+
 **Output:** ít nhất đường cho OBS101A, OBS101B và khả năng nộp F101; hồ sơ đối chiếu C/D/STAFF tùy chọn; Q3 hình thành; CH01-T06. **Fallback:** nếu dùng E không kéo analog, tương tác vẫn tương đương; người chơi có thể quay lại các nguồn chưa đọc; cửa luôn có lối mở; mất nguồn âm không làm mất một dấu bắt buộc; save ở ngưỡng phục hồi toàn bộ trạng thái ngăn/rèm/giấy.
 
 ## B05 — Chữ ký làm biến dạng căn phòng (LOC03 B, 4–5 phút tuyến chính; choice climax)
@@ -215,6 +232,8 @@ Hai micro-task **đề xuất** cho phép người chơi tự kiểm không gian
 
 **Đối lập cảm xúc:** sau khi ký, bổ sung **một ghi chú nội tâm ngắn** (đề xuất nội dung, không phải thoại canon, cần 07/Dialogue phê duyệt) để người chơi cảm nhận Minh đang nhớ một cánh cửa từng không mở. Không đưa hình ảnh cánh cửa khu C hay mô tả hành động CH07; không phán xét hoặc chấm đạo đức lựa chọn A. Sổ trực giữ hai cột rõ ràng: **đã thấy** và **cảm giác/điều day dứt**.
 
+**Balo/3D v1.3 — F101 phải là một quyết định bằng tay:** F101 vẫn nằm trên **bảng kẹp tại AN02**; Minh có thể đưa giấy từ ba lô ra cạnh phiếu, cầm bút/đánh dấu hotspot `F101_ZERO` và `OBS101B_SIGN`, nối dấu sàn `OBS101A_TRACES` bằng hành động đối chiếu có xác thực. Người chơi tự ký trên bảng kẹp; `HypothesisService` kiểm lại **đúng nguồn đã Examined trong B** và claim, không chấp nhận kéo item ID tùy tiện. **A/B luôn ký được** không cần nhặt bất kỳ thẻ nào. Ba nhánh giữ F101 first/current/revision, G01 và hậu quả hiện thực B như cũ. Hiệu ứng hồ sơ bị mực trắng xóa ở nhánh A chỉ tác động **lớp hiển thị của bản sao**, không xóa object/item/note/evidence.
+
 **Output:** CH01-T07, G01 true, first/current/revision và variant B theo F101, không thay R. **Fallback:** thiếu A/B không khóa đường A hoặc B; lỗi save không chiếu hậu quả trước commit; có thể phục hồi phiếu & quan sát qua load.
 
 ## B06 — Người đã nhận phiếu biến mất (LOC03 → HALL → LOC02, B→R, 1,5–2,5 phút tuyến chính)
@@ -236,6 +255,8 @@ B03: quầy có Lan, đèn bàn ấm, bút đang viết; B06: **đúng quầy đ
 
 **Nén nhịp:** quay về AN01 là hành động duy nhất bắt buộc; đối chiếu bản F101 với ghi chú trong sổ **tùy chọn**. Không buộc mở cùng tài liệu lần thứ hai chỉ để cho T08 chạy. Giữ một khoảng **10–15 giây không jumpscare** sau khi Lan vắng, vì cảm giác mất mát cần thời gian tự hình thành.
 
+**Balo/3D v1.3 — khoảnh khắc tách “vật lý” và “ký ức”:** Nếu Minh đang cầm một tờ giấy thuộc B hoặc đã cất AS-05B trong túi, khi `T08` chuyển B→R hệ thống phải **trả B-original về fixture/anchor cũ** và giữ một **reference nhớ lại đã đọc** trong tập ghi chú của ba lô (không phải item cầm dùng ở R). Reconcile ở thời điểm preflight/commit nguyên tử; rollback khi thất bại, không tự xóa ObservationRecord. Sau chuyển lớp, Minh có thể kiểm tra ba lô và nhận ra không có “bản giấy thật từ 2005” trong tay, làm nỗi bất an B06 hữu hình. **Không bắt người chơi xem túi để mới được sang B07**.
+
 **Output:** CH01-T08 và R phục hồi, Lan vắng mặt. **Fallback:** nếu người chơi quay lại khi chưa bàn giao, được sửa F101 ở B theo contract; khi hoàn tất T08 không làm A/B/C phá OBS của R. Checkpoint trước/sau swap, không mất firstDecision.
 
 ## B07 — Cánh cổng dẫn về cùng một nơi (LOC02 → LOC01 → LOC02, R, 1–1,5 phút tuyến chính)
@@ -254,6 +275,8 @@ B03: quầy có Lan, đèn bàn ấm, bút đang viết; B06: **đúng quầy đ
 ### The Uncanny Walk — khoảng nghẹt thở B07→B08 (v1.2)
 
 Sau T09, không cắt màn hình hoặc xuất thêm vòng lặp: để Minh **tự đi từ cổng về quầy** trên tuyến thực. Tiếng mưa/xe ở lớp R được duck nhẹ, nghe như không gian đang thu nhỏ trong một khoảng **15–30 giây tùy tốc độ di chuyển**, rồi âm trở lại khi gần AN01. Đèn quầy trở thành điểm nhìn, một vệt sáng yếu ở hướng Phòng 101 tạo câu hỏi chưa giải; **không tắt toàn bộ đèn sân nếu phá landmark/đường đi hoặc trợ năng**. Đường đi ngắn đủ để người chơi thấy mình đã chọn quay lại, không dài chỉ để tăng thời lượng. Nếu P-SC07 không được kích hoạt ở chế độ giảm jumpscare, loop và Uncanny Walk vẫn diễn ra hoàn chỉnh.
+
+**Balo/3D v1.3:** Người chơi **tự kéo/thử cổng bằng tay**. Không giải `SEAM` bằng chìa/bùa/đồ bất ngờ trong túi; đây là biến cố không gian đã có `T09`. Sau một lần loop, ba lô vẫn giữ đồ R theo đúng thứ tự; giấy B không tự trở thành physical. `Uncanny Walk` được giữ, không sinh các vật phẩm rơi trên sân chỉ để kéo dài thời gian.
 
 **Output:** CH01-T09, seamConsumed=true, objective trở về sổ. **Fallback:** seam không lặp vô hạn, không gây mắc trong collider ở cửa; người chơi luôn có đường tới AN01 sau load; disable jumpscare không đổi T09.
 
@@ -278,6 +301,8 @@ Giữ nguyên các trang Sổ trực phản ánh **sự kiện / nguồn / suy l
 - Không dùng câu tuyên ngôn “tôi sẽ không ký...” nếu người chơi thực tế đã chọn **Affirmed**. A không bị tước khả năng tiếp tục điều tra; B và C không bị gắn danh hiệu “đúng đắn”. Người chơi có thể bỏ dòng viết tay mà vẫn khởi CH02.
 
 **Kết bằng hành động:** Minh tự giở sổ tại AN01. Cảnh kết ngắn; người chơi muốn trở lại Phòng 101 năm 2012 do **một nghi vấn vẫn nhói**, không do cinematic phát đáp án.
+
+**Balo/3D v1.3 — chuẩn bị CH02 bằng một hành động đồ vật:** Người chơi mở ngăn giấy của ba lô thấy **E10a thật** và tập ghi chú về sự khác biệt ở 101; *không* thấy vật chứng R của CH02 đã chưa lấy. Có thể rút bì thư ra xem lại, ghi câu hỏi cảm xúc rồi cất; cuối cùng tự giở **sổ trực vật lý tại AN01** để `T10` chuyển CH02. Không bắt thêm một menu suy luận năm tab; Timeline/Decisions là các trang phụ trong tập ghi chú, và `T10` không được khóa sau khi mở ba lô.
 
 **Output:** CH01-T10/CP04, CH02 bắt đầu, CH01 evidence count vẫn 1; FIRST/Current F101 và sự kiện dread lưu bền vững. **Fallback:** người chơi bỏ hết optional vẫn được tóm tắt tri thức tối thiểu, không nhận những chi tiết chưa từng quan sát; transcript từ skip ghi theo dữ liệu đã được trình bày, không sinh thoại bị lock.
 
@@ -307,24 +332,24 @@ Giữ nguyên các trang Sổ trực phản ánh **sự kiện / nguồn / suy l
 - Điều chỉnh độ tương phản, mức đỉnh SFX, tần số flicker, caption không gian, chế độ mono/reduceMotion/giảm jumpscare; âm thanh là thưởng cảm giác, không là kênh thông tin duy nhất.
 - Dùng *sự biến dạng có nghĩa*: vách xuất hiện sau Affirmed = xóa khỏi biên bản; rèm còn đó sau Unverified = chưa chốt; vết bánh rõ sau Refuted = một bất nhất được công nhận. Không áp dụng random biến dạng lên props CH02 R.
 
-## 4. Pacing & ngân sách điều tra — v1.2 đã đối soát số học
+## 4. Pacing & ngân sách điều tra — v1.3 với thao tác vật lý
 
-**Lỗi v1.1 đã xác nhận:** dù §0.2 ghi mục tiêu 21–27 phút, bảng v1.1 thực tế cộng min/max thành **28–38 phút** (3+2+5+6+5+3+2+2 = 28; 4+3+6+8+7+4+3+3 = 38). Báo cáo kiểm toán phát hiện đúng lỗi này. Không lấy “16–20 phút chắc chắn hơn” hay “top indie 9.2+” từ báo cáo làm bằng chứng: đó chỉ là giả thuyết pacing và tiêu chuẩn chủ quan chưa có playtest.
+**Không lấy target 18–24 phút của v1.2 làm chuẩn cứng**: vòng chơi mới cần thời gian cầm, cất, lấy, soi 3D và đặt đồ lên bàn; nếu ép về 18 phút, người chơi sẽ bị lùa qua hành động quan trọng. Target chính **20,5–30 phút**, khám phá sâu thêm 6–10 → **26,5–40 phút**; chỉ là **giả thuyết thiết kế** chờ TASK010.
 
-| Beat | Mục tiêu chính (phút) | Hành động/giá trị chính | Bỏ bớt gì để giữ nhịp? |
+| Beat | Thời lượng mainline (phút) | Tương tác vật lý có ý nghĩa | Có thể bỏ qua |
 | --- | ---: | --- | --- |
-| B01 | **1,5–2** | mở E10a/SMS → tự mở cổng | xe, thông báo vẫn tùy chọn; không đọc bảng bắt buộc |
-| B02 | **1–1,5** | theo bóng qua kính → tới AN01 | không buộc đứng chờ scare |
-| B03 | **3–4** | R→B, Lan nhận diện, E/K bắt đầu **cinematic 60–90 s**, tự lấy BOARD | không ép đọc lịch/đồng hồ lần hai, không NPC đứng chờ |
-| B04 | **5–6** | mở cửa/rèm, quan sát `OBS101A/B`, so vị trí 3D | STAFF, OBS101C/D, EX01 là chiều sâu tùy chọn |
-| B05 | **4–5** | dựng kết luận A/B/C, ký, chứng kiến hậu quả | không buộc xem meta-effect hoặc đọc lại cả hồ sơ |
-| B06 | **1,5–2,5** | backtrack có hệ quả, tự bàn giao ở quầy, Lan biến mất | không bắt đối chiếu nhật ký lại lần hai |
-| B07 | **1–1,5** | tự thử cổng/SEAM một lần | không tạo vòng lặp thứ hai |
-| B08 | **1–1,5** | quay lại sổ, ghi nhận câu hỏi, sang CH02 | không làm tutorial tổng kết dài |
+| B01 | **1,5–2,5** | nhặt/soi/cất E10a; dùng chìa/cổng | prop xe/biển |
+| B02 | **1–1,5** | kiểm bóng qua kính; tới AN01 | scare phụ |
+| B03 | **3–4,5** | T03, Lan nhận diện→cinematic, tự nhặt/cất BOARD | đọc lịch/tài liệu bên quầy |
+| B04 | **6–8** | mở/kéo/soi dấu, nhấc AS-05B, lật, raking, cất | C/D/STAFF/EX01/đặt hai giấy |
+| B05 | **5–7** | lấy giấy ra/đối chiếu, đánh dấu F101, ký A/B/C | overprint/so hồ sơ phụ |
+| B06 | **2–3** | về quầy, B→R, giấy B thành reference | mở túi xem note |
+| B07 | **1–1,5** | kéo cổng, một seam, đi về | scare phụ |
+| B08 | **1–2** | xem lại E10a/note hoặc giở sổ để T10 | tự ghi nhật ký dài |
 
-**Tổng min = 1,5+1+3+5+4+1,5+1+1 = 18 phút. Tổng max = 2+1,5+4+6+5+2,5+1,5+1,5 = 24 phút.** Tuyến phụ 6–10 phút → tổng khoảng **24–34 phút**. Các khoảng này là **mục tiêu cho phiên mới**, không phải thời gian đã xác minh. Nếu người mới thấy quá nhanh/khó theo cốt truyện, kéo dài **hoạt động có nghĩa**, không kéo dài đi bộ vô ích.
+**Tính lại:** Min = 1,5+1+3+6+5+2+1+1 = **20,5**; Max = 2,5+1,5+4,5+8+7+3+1,5+2 = **30**. **Những bước “cất và lấy ra” nếu không có mục đích điều tra có thể được bỏ qua**, ví dụ A/B không cần rút AS-05B từ ba lô; đổi qua lại menu không được trở thành time sink.
 
-**Đo bắt buộc theo TASK010:** từ AP00 đến E10a, T03, T05, T06, first F101 draft/sign, T08, T09, T10; thời gian đọc/soi/đứng yên/đi bộ phải tách riêng, phân vị từng người và mức độ hiểu F101. Tránh áp trần thời gian làm hỏng exploration hoặc áp đặt “18 phút là chuẩn thế giới”. Với B04–B05, đếm **hành động vật lý có mục đích** và suy luận tự phát, không dùng số interaction thô để làm chỉ số chất lượng. Tùy chọn STAFF/EX01 không tính vào mainline bắt buộc.
+**Telemetry cần thu:** `time_to_first_pickup`, `time_to_first_inspect_3D`, `bag_open_count`, `item_equipped_use_attempts`, `successful_world_item_uses`, `documents_reexamined`, `world_observations`, `F101_reasoning_confidence`, `time_in_modal` vs `time_in_world`, những lỗi bế tắc do item không ở vị trí dự kiến. **Không dùng số lần bấm làm chỉ số chất lượng**; hỏi người chơi hành động lấy món đó ra giúp họ kiểm điều gì.
 
 ## 5. Acceptance walkthrough & trạng thái QA cần có
 
@@ -355,7 +380,7 @@ Giữ nguyên các trang Sổ trực phản ánh **sự kiện / nguồn / suy l
 
 **P0 — Story/UX, không cần tạo event mới:** thay objective/hint theo câu hỏi; journal ghi “biết/suy/không biết” mà không auto đáp án; staging lại các beat trên NPC/props hiện hữu; ánh sáng quay lại phòng; làm rõ ba hành động ký A/B/C; đảm bảo có thể xem lại nguồn và phản hồi đúng thiếu căn cứ.
 
-**P1 — Hybrid encounter B03, Spatial Deduction, biểu hiện hồ sơ:** refactor LanDirector/Hub để CH01-T03 chỉ khởi động Lan nhận diện in-world, còn E/K tại LAN_TALK mới bắt đầu Cinematic Dialogue Scene; bổ sung Timeline/Cinemachine shot, input/camera restore, skip/transcript và once guards (chưa triển khai). Làm prototype `P-INT04_SPATIAL_ALIGN/FLOOR_RAKE` theo `OBS101A` (không động CH02 R), P-META05 chỉ làm lớp rendering và dòng note Minh chỉ khi đã review Dialogue; thêm đối chiếu ký với observation ở B06 theo dữ liệu đã lưu; optional lựa chọn bước kế ở B08 không thêm gate; tinh chỉnh khoảng lặng và priority giữa các DREAD đã có. Giữ nguyên observation IDs và schema trừ khi migrations & test đầy đủ.
+**P1 — Hybrid encounter B03, Spatial Deduction, biểu hiện hồ sơ (baseline v1.2); sau quyết định mới phải ưu tiên các stage BP-01..BP-07 trong tài liệu Ba lô:** refactor LanDirector/Hub để CH01-T03 chỉ khởi động Lan nhận diện in-world, còn E/K tại LAN_TALK mới bắt đầu Cinematic Dialogue Scene; bổ sung Timeline/Cinemachine shot, input/camera restore, skip/transcript và once guards (chưa triển khai). Làm prototype `P-INT04_SPATIAL_ALIGN/FLOOR_RAKE` theo `OBS101A` (không động CH02 R), P-META05 chỉ làm lớp rendering và dòng note Minh chỉ khi đã review Dialogue; thêm đối chiếu ký với observation ở B06 theo dữ liệu đã lưu; optional lựa chọn bước kế ở B08 không thêm gate; tinh chỉnh khoảng lặng và priority giữa các DREAD đã có. Giữ nguyên observation IDs và schema trừ khi migrations & test đầy đủ.
 
 **P2 — Audio-led horror authored:** trước tiên greybox `P-SC05` có audio-led framing + bản giảm jumpscare; thêm `P-SC07` và khoảng đi bộ B07–B08 có điều kiện; chỉ thêm `P-SC02/P-SC04` khi playtest chứng minh tăng tò mò chứ không gây mệt. Dùng âm thanh có hướng, ducking an toàn và caption, không hạ toàn bộ mix xuống một giá trị dB mơ hồ; không cần quái vật mới.
 
@@ -410,3 +435,15 @@ Giữ nguyên các trang Sổ trực phản ánh **sự kiện / nguồn / suy l
 - **TASK010/026/027/028:** playtest mới 0/6 và specialist review còn mở theo tài liệu nghiệm thu hiện hành; không suy diễn “world-class” từ một bản phân tích HTML hay từ việc cập nhật Markdown.
 
 **Nguyên tắc xét thành công:** người chơi vừa có thể tự nói *vì sao số 0 trên F101 thiếu căn cứ*, vừa mang về **một hình ảnh/âm thanh riêng khiến họ bất an** và có động lực tự quay lại hiện trường R ở CH02. Nếu chỉ nhớ jumpscare hoặc chỉ nhớ bảng suy luận, thiết kế chưa cân bằng.
+
+---
+
+## 9. Gameplay v1.3 — Ba lô điều tra 3D thay UI Sổ Trực chính
+
+**Nơi sở hữu đặc tả:** [`docs/gameplay/backpack-physical-investigation-proposal.md`](../gameplay/backpack-physical-investigation-proposal.md). Bản này ưu tiên hợp đồng system-wide: world physical item → backpack possession → 3D inspector → world item use / placement → observation/deduction → authoritative F101 / canon gate. Mỗi beat đã có hướng tương tác mới ở phía trên; không còn “đi mở menu Sổ trực” như vòng chơi chính.
+
+**Giữ lại một sự phân biệt quyết định:** `AN01` vẫn là một **cuốn sổ vật lý ở quầy** để Minh giở và kích `T03/T08/T10`; **ba lô** mới thay **UI Sổ Trực toàn màn hình**. Tập ghi chú phụ trong ba lô lưu `JournalNote`, timeline, observations và decisions; các đồ có thể mang theo mới là `BackpackItem`. Cánh cửa/vết bánh/ổ cắm/đồng hồ là **WorldObservation**, không phải thứ để nhét vào túi.
+
+**Trạng thái:** Proposal v1.3, **chưa sửa code**. Các thao tác item-use, save schema v7, bag UI, B→R item reconciliation và spatial placement là yêu cầu triển khai mới. Đường code hiện `Journal()` qua Tab/J, `PhysicalInspector`, `Casework` và `Protocol.Schema = 6` phải được review từng stage; không tự ghi PASS.
+
+**Canon QA:** `E10a` là 1 evidence seeded; `OBS101A/B` vẫn là cặp suy luận C; A/B mở G01 khi chưa nhặt gì; giấy B không export vật lý R; `LIST/SOCKETS/WHEELS/PZ01/E12/E11` chỉ được CH02 xác thực; `CH01-D16b/CH04-D06` không lộ sớm; `E08` nonexport; end states giữ nguyên. Save/load, rollback, keyboard/alternate, large print và giảm chuyển động là cổng nghiệm thu bắt buộc.
