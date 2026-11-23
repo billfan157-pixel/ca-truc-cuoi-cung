@@ -10,6 +10,8 @@ namespace CTCC
         private Camera eye;
         private Transform torchPivot;
         private Light torch;
+        private Light torchFlood;
+        private Light torchSpill;
         private AudioSource footfalls;
         private EnvironmentalAudio audioBus;
         private VisitSettings settings;
@@ -24,6 +26,8 @@ namespace CTCC
         public Vector3 Feet => transform.position;
         public Camera Eye => eye;
         public bool IsTorchOn => torchOn && battery > 0f;
+        public float TorchIntensity => torch != null && torch.enabled ? torch.intensity : 0f;
+        public float TorchRange => torch != null ? torch.range : 0f;
         public bool CanPlay { get; set; }
         public bool LookSuppressed { get; set; }
         public bool ExternalCameraControl { get; set; }
@@ -89,18 +93,44 @@ namespace CTCC
 
             torch = torchPivot.gameObject.AddComponent<Light>();
             torch.type = LightType.Spot;
-            torch.spotAngle = 52f;
-            torch.innerSpotAngle = 24f;
-            torch.color = new Color(1.0f, 0.92f, 0.78f);
-            torch.range = 15.5f;
-            torch.intensity = 5.4f;
-            // Real soft shadows from the player's flashlight — huge atmospheric horror upgrade!
+            torch.spotAngle = 68f;
+            torch.innerSpotAngle = 36f;
+            torch.color = new Color(1.0f, 0.96f, 0.88f);
+            torch.range = 32.0f;
+            torch.intensity = 34.0f;
+            // Real soft shadows from the player's flashlight — crisp, powerful beam down dark corridors
             torch.shadows = LightShadows.Soft;
-            torch.shadowStrength = 0.90f;
+            torch.shadowStrength = 0.86f;
             torch.shadowBias = 0.03f;
             torch.shadowNormalBias = 0.25f;
             torch.shadowNearPlane = 0.15f;
             torch.enabled = false;
+
+            // Wide reflector flood cone (no shadows) for natural halo around the hotspot
+            var floodGo = new GameObject("Flashlight Wide Flood");
+            floodGo.transform.SetParent(torchPivot, false);
+            floodGo.transform.localPosition = Vector3.zero;
+            torchFlood = floodGo.AddComponent<Light>();
+            torchFlood.type = LightType.Spot;
+            torchFlood.spotAngle = 92f;
+            torchFlood.innerSpotAngle = 48f;
+            torchFlood.color = new Color(1.0f, 0.95f, 0.86f);
+            torchFlood.range = 18.0f;
+            torchFlood.intensity = 8.5f;
+            torchFlood.shadows = LightShadows.None;
+            torchFlood.enabled = false;
+
+            // Soft close-range bounce spill light so nearby walls/floors stay clearly readable when flashlight is ON
+            var spillGo = new GameObject("Flashlight Bounce Spill");
+            spillGo.transform.SetParent(torchPivot, false);
+            spillGo.transform.localPosition = new Vector3(0f, 0.04f, 0.22f);
+            torchSpill = spillGo.AddComponent<Light>();
+            torchSpill.type = LightType.Point;
+            torchSpill.color = new Color(1.0f, 0.95f, 0.86f);
+            torchSpill.range = 7.2f;
+            torchSpill.intensity = 2.4f;
+            torchSpill.shadows = LightShadows.None;
+            torchSpill.enabled = false;
 
             footfalls = gameObject.AddComponent<AudioSource>();
             footfalls.playOnAwake = false;
@@ -120,8 +150,23 @@ namespace CTCC
         public void SetTorchEnabled(bool on)
         {
             torchOn = on;
+            bool active = on && battery > 0f;
+            float vis = settings != null ? settings.visibility : 0f;
             if (torch != null)
-                torch.enabled = on && battery > 0f;
+            {
+                torch.enabled = active;
+                if (active) torch.intensity = 34.0f + vis * 8.0f;
+            }
+            if (torchFlood != null)
+            {
+                torchFlood.enabled = active;
+                if (active) torchFlood.intensity = 8.5f + vis * 2.5f;
+            }
+            if (torchSpill != null)
+            {
+                torchSpill.enabled = active;
+                if (active) torchSpill.intensity = 2.4f + vis * 0.7f;
+            }
         }
 
         public void Teleport(Transform target) => Teleport(target.position, target.rotation);
@@ -229,11 +274,22 @@ namespace CTCC
                 audioBus?.From("doorLatch", eye.transform.position);
             }
             if (torchOn && battery > 0f) battery = Mathf.Max(0f, battery - dt);
-            torch.enabled = torchOn && battery > 0f;
+            bool activeTorch = torchOn && battery > 0f;
+            torch.enabled = activeTorch;
             float flicker = (!settings.reduceMotion && battery < 45f)
                 ? 0.72f + 0.28f * Mathf.PerlinNoise(Time.unscaledTime * 14f, 2.3f)
                 : 1.0f;
-            torch.intensity = (5.2f + settings.visibility * 1.6f) * flicker;
+            torch.intensity = (34.0f + settings.visibility * 8.0f) * flicker;
+            if (torchFlood != null)
+            {
+                torchFlood.enabled = activeTorch;
+                torchFlood.intensity = (8.5f + settings.visibility * 2.5f) * flicker;
+            }
+            if (torchSpill != null)
+            {
+                torchSpill.enabled = activeTorch;
+                torchSpill.intensity = (2.4f + settings.visibility * 0.7f) * flicker;
+            }
 
             if (!settings.reduceMotion)
             {
