@@ -258,6 +258,13 @@ Hai micro-task **đề xuất** cho phép người chơi tự kiểm không gian
 
 **Balo/3D v1.3 — F101 phải là một quyết định bằng tay:** F101 vẫn nằm trên **bảng kẹp tại AN02**; Minh có thể đưa giấy từ ba lô ra cạnh phiếu, cầm bút/đánh dấu hotspot `F101_ZERO` và `OBS101B_SIGN`, nối dấu sàn `OBS101A_TRACES` bằng hành động đối chiếu có xác thực. Người chơi tự ký trên bảng kẹp; `HypothesisService` kiểm lại **đúng nguồn đã Examined trong B** và claim, không chấp nhận kéo item ID tùy tiện. **A/B luôn ký được** không cần nhặt bất kỳ thẻ nào. Ba nhánh giữ F101 first/current/revision, G01 và hậu quả hiện thực B như cũ. Hiệu ứng hồ sơ bị mực trắng xóa ở nhánh A chỉ tác động **lớp hiển thị của bản sao**, không xóa object/item/note/evidence.
 
+### Học từ Backpack v2.0 — B05 (v1.4; **cử chỉ kẹp nguồn không tự giải đố**)
+
+- **Giữ F101 anchored ở bảng kẹp Phòng 101 tại AN02**. Đưa `AS-05B` từ ba lô lên **kẹp so cạnh F101** là một hành động vật lý có chủ đích: nhìn hai tờ cạnh nhau, di chuyển con trỏ/bút để *đánh dấu* số `0` và ô nhận thiếu. Không dời F101 từ quầy B03 vào túi rồi đến AP04; quầy chỉ bàn giao BOARD/T05.
+- **Luật C không giảm sâu:** Bản v2.0 đề nghị có thẻ trong túi + đã thấy `OBS101A` là có thể kẹp và ký C. Điều này **chưa đủ**. Người chơi phải Examined cả `OBS101A`/ `OBS101B` trong đúng layer B, mark đúng `F101_ZERO` và `OBS101B_SIGN`, biểu thị quan hệ từ thẻ qua `OBS101A_TRACES` (*cử chỉ chỉ tay vào dấu sàn hoặc lựa chọn trợ năng theo nguồn đã xem*) và chọn phát biểu **“Số 0 chưa đủ đáng tin”**. Mapping vào `HypothesisService` độc lập UI, không auto-pass. Nếu sai, Minh tự nhận mình chưa có căn cứ; **A/B vẫn có thể ký ngay**, không cần nhặt thẻ.
+- **Dùng tay ký, không dùng menu chấm điểm:** lựa chọn được hiện trên **phiếu F101 đang giữ tại AN02**; chữ ký/đóng dấu theo tình trạng, sau commit mới đổi không gian B. Không biến thao tác ký thành minigame nét bút chính xác gây khó vận động. `F101_SignedA/B/C` thuộc B; B06 không bắt mang bản gốc đó về R.
+- **Scare theo nhận thức:** giữ audio-led framing ở rèm nhưng không khóa 2,5 giây tắt hết tiếng nền hoặc âm 0 dBFS. Nếu người chơi không quay đầu, dấu sàn/logic vẫn kiểm được. Một lớp mực mờ trên **bản trình bày** có thể theo A/B/C, không sửa scan/ObservationRecord/firstDecision.
+
 **Output:** CH01-T07, G01 true, first/current/revision và variant B theo F101, không thay R. **Fallback:** thiếu A/B không khóa đường A hoặc B; lỗi save không chiếu hậu quả trước commit; có thể phục hồi phiếu & quan sát qua load.
 
 ## B06 — Người đã nhận phiếu biến mất (LOC03 → HALL → LOC02, B→R, 1,5–2,5 phút tuyến chính)
@@ -281,6 +288,10 @@ B03: quầy có Lan, đèn bàn ấm, bút đang viết; B06: **đúng quầy đ
 
 **Balo/3D v1.3 — khoảnh khắc tách “vật lý” và “ký ức”:** Nếu Minh đang cầm một tờ giấy thuộc B hoặc đã cất AS-05B trong túi, khi `T08` chuyển B→R hệ thống phải **trả B-original về fixture/anchor cũ** và giữ một **reference nhớ lại đã đọc** trong tập ghi chú của ba lô (không phải item cầm dùng ở R). Reconcile ở thời điểm preflight/commit nguyên tử; rollback khi thất bại, không tự xóa ObservationRecord. Sau chuyển lớp, Minh có thể kiểm tra ba lô và nhận ra không có “bản giấy thật từ 2005” trong tay, làm nỗi bất an B06 hữu hình. **Không bắt người chơi xem túi để mới được sang B07**.
 
+### Học từ Backpack v2.0 — B06 (v1.4)
+
+Nguồn v2.0 đề xuất lấy **F101 đã ký khỏi túi**, đặt lên sổ quầy rồi T08. Trong implementation hiện có `WorldF101` ký tại **AN02 Phòng 101** và `Hub()/AtHubAsync` kích **AN01**; việc chuyển một bản gốc F101 theo người không thể chấp nhận chỉ bằng một câu trong walkthrough. **Giữ sổ trực vật lý tại AN01** làm hành động bàn giao: Minh đặt tay/giở sổ, xem dòng đã ghi (theo state first/current), B→R xảy ra tại chỗ; F101 bản signed còn trong lớp B. Sau T08 túi cất `AS-05B` không còn tờ giấy B dùng được trong R, chỉ còn **reference đã xem**. Đây là nỗi bất an có nguyên nhân, không làm rơi hoặc xóa observation. Không cinematic B06; ánh đèn và chỗ ghế Lan trống là payoff của B03.
+
 **Output:** CH01-T08 và R phục hồi, Lan vắng mặt. **Fallback:** nếu người chơi quay lại khi chưa bàn giao, được sửa F101 ở B theo contract; khi hoàn tất T08 không làm A/B/C phá OBS của R. Checkpoint trước/sau swap, không mất firstDecision.
 
 ## B07 — Cánh cổng dẫn về cùng một nơi (LOC02 → LOC01 → LOC02, R, 1–1,5 phút tuyến chính)
@@ -301,6 +312,10 @@ B03: quầy có Lan, đèn bàn ấm, bút đang viết; B06: **đúng quầy đ
 Sau T09, không cắt màn hình hoặc xuất thêm vòng lặp: để Minh **tự đi từ cổng về quầy** trên tuyến thực. Tiếng mưa/xe ở lớp R được duck nhẹ, nghe như không gian đang thu nhỏ trong một khoảng **15–30 giây tùy tốc độ di chuyển**, rồi âm trở lại khi gần AN01. Đèn quầy trở thành điểm nhìn, một vệt sáng yếu ở hướng Phòng 101 tạo câu hỏi chưa giải; **không tắt toàn bộ đèn sân nếu phá landmark/đường đi hoặc trợ năng**. Đường đi ngắn đủ để người chơi thấy mình đã chọn quay lại, không dài chỉ để tăng thời lượng. Nếu P-SC07 không được kích hoạt ở chế độ giảm jumpscare, loop và Uncanny Walk vẫn diễn ra hoàn chỉnh.
 
 **Balo/3D v1.3:** Người chơi **tự kéo/thử cổng bằng tay**. Không giải `SEAM` bằng chìa/bùa/đồ bất ngờ trong túi; đây là biến cố không gian đã có `T09`. Sau một lần loop, ba lô vẫn giữ đồ R theo đúng thứ tự; giấy B không tự trở thành physical. `Uncanny Walk` được giữ, không sinh các vật phẩm rơi trên sân chỉ để kéo dài thời gian.
+
+### Học từ Backpack v2.0 — B07 (v1.4)
+
+Chấp nhận cơ chế **Minh tự nắm và kéo cổng** trước một cú gõ/SEAM (một lần) vì rất phù hợp đối xứng B01 tự mở vào/B07 không thể ra. Chìa cổng phụ không mở được đường tắt làm skip `CH01-T09`, còn chìa khu C không can thiệp vào cổng. Giữ âm có hướng, cue bóng phản xạ ngắn và khoảng lặng được mix an toàn; không tắt hết sân/wayfinding, đặc biệt lúc reduceMotion hoặc người chơi chưa bật đèn pin.
 
 **Output:** CH01-T09, seamConsumed=true, objective trở về sổ. **Fallback:** seam không lặp vô hạn, không gây mắc trong collider ở cửa; người chơi luôn có đường tới AN01 sau load; disable jumpscare không đổi T09.
 
@@ -327,6 +342,12 @@ Giữ nguyên các trang Sổ trực phản ánh **sự kiện / nguồn / suy l
 **Kết bằng hành động:** Minh tự giở sổ tại AN01. Cảnh kết ngắn; người chơi muốn trở lại Phòng 101 năm 2012 do **một nghi vấn vẫn nhói**, không do cinematic phát đáp án.
 
 **Balo/3D v1.3 — chuẩn bị CH02 bằng một hành động đồ vật:** Người chơi mở ngăn giấy của ba lô thấy **E10a thật** và tập ghi chú về sự khác biệt ở 101; *không* thấy vật chứng R của CH02 đã chưa lấy. Có thể rút bì thư ra xem lại, ghi câu hỏi cảm xúc rồi cất; cuối cùng tự giở **sổ trực vật lý tại AN01** để `T10` chuyển CH02. Không bắt thêm một menu suy luận năm tab; Timeline/Decisions là các trang phụ trong tập ghi chú, và `T10` không được khóa sau khi mở ba lô.
+
+### Học từ Backpack v2.0 — B08 (v1.4; **ký ức ba lô, không phải bản gốc xuyên lớp**)
+
+**Cú gợi sợ đáng lấy:** ở cuối Uncanny Walk, người chơi tự mở ba lô và nhìn vào đúng ngăn giấy nơi từng cất `AS-05B` trong B. **`P-BAG08_ECHO` (mới, presentation-only, chưa đăng ký):** trong khoảng ngắn, lớp render gợi hình mép giấy/ô chữ ký như đã còn ở đó; khi người chơi bấm soi/cầm, giao diện chỉ hiển thị **“Đã xem ở lớp B — ghi nhớ nguồn”**, không cầm được bản giấy vật lý 2005. Nếu lúc B player **chưa hề cầm/soi AS-05B**, không tạo echo gian lận. Giấy B luôn đã được reconcile về fixture sau T08 và có thể được xem như transcript/reference, **không dùng trong R, không export, không tăng `evidence.Count`**.
+
+**Đối chứng với bản nguồn:** câu “F101 và AS-05B vẫn nằm nguyên trong ba lô năm 2012” có sức mạnh điện ảnh, nhưng làm lẫn layer/đồ vật/chứng cứ và dễ phủ định trục CH02 R. Chỉ cho giấy thực sự xuyên lớp nếu có **quyết định canon riêng** cùng transaction/save/plot integration, chưa làm v1.4. Nhóm người chơi không mở ba lô vẫn sang CH02 bằng cách giở sổ tại AN01; cảnh quầy trống và câu hỏi “Phòng 101 ở 2012 còn gì?” là payoff dự phòng. Không auto mở túi để cưỡng bức scare, không tắt sạch đèn sân làm mất đường.
 
 **Output:** CH01-T10/CP04, CH02 bắt đầu, CH01 evidence count vẫn 1; FIRST/Current F101 và sự kiện dread lưu bền vững. **Fallback:** người chơi bỏ hết optional vẫn được tóm tắt tri thức tối thiểu, không nhận những chi tiết chưa từng quan sát; transcript từ skip ghi theo dữ liệu đã được trình bày, không sinh thoại bị lock.
 
