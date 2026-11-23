@@ -265,14 +265,14 @@ Minh đã trải nghiệm ca trực B năm 2005, gặp Lan và nhận BOARD. Q v
 4. Người chơi **hé DOOR-101** bằng E hoặc giữ-kéo rồi bước qua ngưỡng; CH01-T06 và checkpoint AP04 được ghi. Cửa mở vừa đủ để thấy rèm và quạt, không tự phơi hết hốc giường 4.
 5. Minh đi giữa những vị trí giường hiện hữu, tự so khoảng cách đầu giường, mặt tường, chỗ đặt đồ và dấu mòn trên sàn. Phần không gian sau rèm có hình học cho thấy **một vị trí từng được sử dụng**, nhưng chưa chứng minh ai ở đó.
 6. Người chơi kéo **CURTAIN-101**. Rèm có sức cản nhẹ và âm vải/kim loại trên thanh ray; một lần nhấn E vẫn mở đạt mức có thể nhìn đầy đủ. Đừng biến mức “60% kéo rèm” thành thử thách kỹ năng làm người chơi mắc kẹt.
-7. Sau rèm là **OBS101A**: vệt bánh quanh chỗ kê giường, chăn gấp vội, dép nhựa nhỏ. Người chơi tự nhìn từ nhiều góc, có thể cúi xuống hoặc dùng ánh đèn để thấy chỗ mòn. Khi quan sát tại chỗ, ghi observation có provenance lớp B/LOC03; **không cất dấu sàn hay đôi dép thành evidence xuất** trong Chương 1.
+7. Sau rèm là **OBS101A**: vệt bánh quanh chỗ kê giường, chăn gấp vội, dép nhựa nhỏ. Người chơi tự nhìn từ nhiều góc, có thể cúi xuống hoặc dùng ánh đèn để thấy chỗ mòn. Khi người chơi **tự kiểm dấu tại chỗ**, hệ thống mới ghi `OBS101A` ở mức `Examined` với provenance **B / LOC03 / CH01**. Pocket Note lưu một **tham chiếu hiện trường** để Minh có thể gọi lại khi đối chiếu F101; đây không phải ảnh chụp hay vật chứng cầm được. **Không cất dấu sàn hoặc đôi dép thành evidence xuất** trong Chương 1. Người chơi chưa kiểm sẽ không có tham chiếu đủ dùng để liên kết.
 8. Người chơi có thể quay nhìn ba giường còn lại rồi trở lại hốc 4. Đây là **Spatial Deduction**: tự so tương quan không gian, không kéo một biểu tượng “dấu bánh giường” sang biểu tượng “giường 4” trong menu.
 
 #### Thẻ AS-05B — sự bất thường có chữ ký
 
 9. Trên giá kẹp tại vị trí thứ tư, người chơi nhấc **AS-05B (OBS101B)**. PhysicalInspector mở trên chính chiếc thẻ được cầm: mặt trước, mặt sau, ô bàn giao và chữ ký nhận còn thiếu.
 10. Người chơi lật thẻ, nghiêng đón sáng hoặc dùng lệnh trợ năng tương đương để khám phá vết hằn **“03g17 · CHƯA CHỐT SỔ”** ở mặt sau. Chi tiết này là câu hỏi về mốc giao ca, **không cho phép kết luận một người chết lúc 03:17**.
-11. Người chơi có thể **cất tạm AS-05B vào ngăn giấy thuộc B**, lấy ra kiểm lại khi cần hoặc đặt nó ở một điểm so tài liệu hợp lệ. Hệ thống vẫn giữ nguồn và trạng thái đã Examined. Cầm thẻ rồi quên kiểm ô chữ ký sẽ không tự cho phép ký Refuted.
+11. Người chơi có thể **cất tạm AS-05B vào ngăn giấy thuộc B**, lấy ra kiểm lại khi cần hoặc đặt nó ở một điểm so tài liệu hợp lệ. Hệ thống vẫn giữ nguồn và trạng thái đã Examined. Cầm thẻ rồi quên kiểm ô chữ ký sẽ không tự cho phép ký Refuted. Khi người chơi focus/đọc ô nhận còn trống, `OBS101B` trở thành nguồn đã kiểm; **việc cất vào túi không tự đánh dấu ô ký hoặc tạo liên kết**. B04 phải đặt được câu hỏi “vì sao giấy báo không còn tồn đọng nhưng hồ sơ bàn giao còn thiếu người nhận?” mà chưa phát đáp án chính thức.
 
 #### Điều tra phụ có ý nghĩa
 
@@ -356,17 +356,22 @@ Có một vị trí sử dụng khác với cách phiếu mô tả; thẻ bàn g
 **Thời lượng:** 5–7 phút nếu tự kiểm và lựa chọn; tuyến A/B có thể ngắn hơn.  
 **Cảm xúc:** Người chơi hiểu rằng đặt bút cũng là một hành động gây hậu quả.
 
-#### Trở lại bảng kẹp
+#### Bảng kẹp biến thành nơi người chơi tự làm công việc điều tra
 
-1. Người chơi đi tới F101 tại **AN02** và nhìn trực tiếp các trường trên tờ phiếu. Giấy hiện hữu ở bảng kẹp; không lấy F101 gốc từ BOARD ở quầy hay đem gốc F101 đi khỏi Phòng 101.
-2. Nếu muốn đối chiếu, mở ba lô, **lấy AS-05B ra**, đặt vào **kẹp so tài liệu cạnh F101**, tự lật/soi hai vùng in. Đây là vị trí vật lý để người chơi không phải ghép hai biểu tượng trong một màn hình suy luận giả lập.
-3. Người chơi có thể tháo thẻ, đi nhìn lại OBS101A trên sàn rồi quay về. Không reset tiến độ quan sát đã commit vì thẻ đang trong túi hay được đặt ở bàn.
+1. **Trở lại AN02:** F101 vẫn ở bảng kẹp Phòng 101/B. Người chơi đọc trường **“Chưa bàn giao: 0”** bằng chính mắt, có thể nhấc mép/lật xem rồi đặt trở lại. Không có một màn tutorial nói “Hãy tìm 2 manh mối” và không biến F101 thành vật phẩm di động bị mất khỏi hiện trường. Nếu Minh muốn ký **A** hoặc **B**, có thể chọn ngay mà không phải giải phần so sánh.
+2. **Mở nơi đối chiếu:** chọn hành động **“Đối chiếu tại đây”** ở mép kẹp. Camera đến gần vừa đủ thấy giấy F101 ở giữa, kẹp phụ bên cạnh và một **tờ nháp nhỏ của Minh** dưới đáy. Bàn không phải một menu sơ đồ suy luận trừu tượng; người chơi có thể ngẩng nhìn hốc giường, đóng và quay về FPS. Tờ nháp chỉ dùng để tổ chức lập luận, không được đưa vào hệ \`evidence\`.
+3. **Đưa thẻ thật tới kẹp:** mở ba lô, chọn AS-05B đã nhặt, **lấy ra**, đặt bên cạnh F101; âm kẹp và hình giấy đổi đúng trạng thái tay/túi/bàn. Nếu không cất thẻ mà còn ở giá, người chơi quay lại lấy nó; việc đặt giấy không tạo bản sao. Kẹp đúng thẻ **không tự xác nhận đúng**, không thêm mark hay link.
+4. **Đánh dấu điều F101 khẳng định:** bật chế độ bút, nhìn vùng tổng hợp và khoanh/gạch con số **0 (F101_ZERO)**. Một nét mực thật xuất hiện, với Undo/tẩy. Nếu khoanh bảng kê khác, vẫn thấy mực đã khoanh — thao tác thành công **không đồng nghĩa kết luận đúng**. Bàn phím/chữ lớn cho phép chọn tên vùng giấy thay vì phải nhắm pixel.
+5. **Đánh dấu điều AS-05B bỏ ngỏ:** nhìn thẻ, chọn **ô người nhận bàn giao chưa ký (OBS101B_SIGN)** và đánh dấu. Người chơi có thể lật lại hoặc zoom chi tiết. Nếu mark mục tình trạng khác, không tự sửa sang ô ký.
+6. **Liên hệ với hiện trường, có hai cách điều khiển cùng một kết quả:**
+   - **Ngay tại kẹp:** tờ nháp hỏi **“Điều gì trong phòng khiến ô nhận này đáng nghi?”** Người chơi mở phần nguồn đã kiểm của Pocket Note và tự chọn một ghi nhận: có thể là **dấu sử dụng hốc 4**, hồ sơ giường 3 hoặc đồng hồ nếu các nguồn ấy đã thực sự được xem. Chọn **dấu sử dụng hốc 4** để ghi vào tờ nháp. Chỉ các nguồn ở stage Examined/provenance hợp lệ mới được dùng như quan sát hỗ trợ.
+   - **Tại nơi có vết thật:** người chơi cầm/nhớ thẻ AS-05B, quay về vùng \`OBS101A_TRACES\`, nhìn dấu và chọn **“Đối chiếu với ô nhận trên AS-05B”**. Khi quay lại bàn, liên hệ đã được Minh ghi trên nháp. Không buộc quay đi quay lại nếu người chơi đã quan sát dấu trước đó.
+   
+   Dù chọn cách nào, hành động đều phải được player chủ động xác nhận, rồi lưu \`OBS101B_SIGN → OBS101A_TRACES\`. **Không auto-link chỉ vì đặt hai tờ cạnh nhau.** Nếu chọn sai nguồn, tờ nháp vẫn ghi nhận lựa chọn nhưng không được validator coi là liên hệ chứng minh con số 0.
+7. **Tự chọn sức mạnh của lời ghi:** trên tờ nháp, player chọn mức phát biểu. Lời hẹp có thể bảo vệ là **“Số 0 trên F101 chưa đủ căn cứ xác nhận.”** Các suy đoán mạnh hơn như “có bệnh nhân còn trong phòng” hay “đã có người cố tình làm giả” không thể trở thành C hợp lệ chỉ nhờ hai nguồn này.
+8. **Xem lại căn cứ rồi ký:** người chơi có thể chọn **“Đọc lại căn cứ”**, xem hai nét mark, nguồn vật lý và mối liên hệ do chính mình tạo. Sau đó đặt bút ký. Hệ thống mới đánh giá tổng thể \`OBS101A+B\` đã Examined ở B, marks \`F101_ZERO / OBS101B_SIGN\`, link \`OBS101B_SIGN → OBS101A_TRACES\` và claim giới hạn; thiếu bất cứ phần nào thì không cho ký **C**, nhưng A/B luôn mở. Nếu lỗi, Minh phản hồi về *loại thiếu sót* (nguồn chưa xem, vùng mark, link, claim vượt chứng cứ), không báo chính xác pixel đúng hoặc cho ✓ từng bước.
 
-#### Lập luận bằng cử chỉ, không bằng dây nối UI
-
-4. Trên F101, người chơi có thể **đánh dấu con số 0**. Trên thẻ AS-05B, chỉ vào **ô người nhận chưa ký**. Khi đã thực sự Examined OBS101A trong phòng, có thể quay/điểm nhìn về dấu bánh/nhóm dấu tại hốc 4 rồi chọn hành động ngắn **“Liên hệ với dấu hiện trường”**; hỗ trợ bàn phím/chữ lớn làm được cùng thao tác.
-5. Sau đó Minh chọn giới hạn của phát biểu: **“Chưa đủ căn cứ xác nhận số 0.”** Không đưa lựa chọn “có bệnh nhân còn sống trong phòng” hoặc “ai đó cố tình làm giả” thành đáp án đúng.
-6. Các thao tác vật lý trên chỉ tạo đầu vào cho hệ đánh giá: **OBS101A và OBS101B đã Examined ở B, đúng mark F101_ZERO và OBS101B_SIGN, link tới OBS101A_TRACES, cùng claim giới hạn**. Hệ thống mới được phép xác nhận nhánh Refuted. Kẹp đúng thẻ lên bảng mà chưa xem dấu sàn **không** đủ. Nếu thiếu bước, Minh giải thích điều chưa biết, không hiện tiếng chuông “SAI”.
+**Điều cần người chơi tự hiểu:** tờ giấy đang khẳng định “0”, thẻ đi cùng còn thiếu ký nhận, còn mặt sàn cho thấy chỗ giường thứ tư có dấu sử dụng. Sự kết hợp đủ để **từ chối xác nhận 0**, chứ chưa đủ để xác nhận thủ phạm, nạn nhân còn sống hoặc giờ tử vong. Gameplay phải dẫn đến cảm giác **mình tự chỉ ra một mâu thuẫn có thật**, không phải thử đủ bốn lệnh để được cho qua.
 
 #### Ba chữ ký đều hợp lệ
 
@@ -380,25 +385,15 @@ Có một vị trí sử dụng khác với cách phiếu mô tả; thẻ bàn g
 8. **G01 mở ở cả A/B/C** ngay sau commit bền vững CH01-T07. Người chơi có thể đứng lại quan sát và sửa quyết định trước khi chuyển B→R. Lần ký đầu lưu firstDecision; mỗi sửa đổi hợp lệ cập nhật current/revision/history; bấm lặp cùng lựa chọn không nhân số lần.
 9. Nếu EX01 đã hoàn tất, khi rời Phòng 101 người chơi có thể nghe CH01-D19 đúng điều kiện; không tự kích cho người bỏ qua nhánh phụ.
 
-#### F101 từ giấy hành chính trở thành một việc phải tự làm
+#### Cách các nét mực và tờ nháp phản hồi hành động
 
-**Điểm vào:** F101 ở bảng kẹp AN02 trong LOC03/B, ngay trong vùng người chơi có thể quay lại sau khi soi giường 4. Trước khi ký, player được tự do cúi nhìn các trường, cầm cạnh phiếu để nghiêng và đọc mặt sau rồi trả vào kẹp. F101 không phải một đồ vật được tự phát trao ở quầy và không thể bị vứt ra khỏi bản đồ, vì nó là nơi nhận quyết định của beat.
+**Hai vị trí có trọng lượng:** bảng F101 là nguồn gốc của con số 0, còn AS-05B là nguồn của ô nhận. Hai tờ có thể nằm cạnh nhau nhưng không biến thành một ảnh UI cố định; Minh có thể cầm, lật, rút khỏi kẹp, lấy lại và xem bản chữ lớn. Trên F101, vùng “Bảng kê” và “Tổng hợp 0” là hai vùng khác nhau; trên AS-05B, mục “Tình trạng” và ô “Người nhận” cũng khác nhau. Nét mực chỉ đi theo hotspot được người chơi chọn, **không tự tìm ô đúng**.
 
-**Dàn dựng của bàn đối chiếu:** cạnh F101 có một chỗ đủ để kẹp tạm thẻ AS-05B hoặc giấy đối chứng. Người chơi mở ba lô 3 ngăn, chọn thẻ, nhấn “Lấy ra” và đưa tới điểm so; sau một âm kẹp nhỏ, hai bề mặt giấy có thể đọc cùng lúc. Nếu chỉ dùng bàn phím, hành động “Đặt làm nguồn đối chiếu” tạo đúng anchor và đưa các field cần soi vào một danh sách theo thứ tự nguồn; không buộc kéo thẻ pixel-perfect. Đặt giấy cạnh phiếu **không tự làm nổi vùng số 0, không hiện khung xanh báo đã ghép đúng**.
+**Tờ nháp hiện đúng bốn dòng**: “Trên phiếu” (mark F101), “Trên thẻ” (mark AS-05B), “Tại hiện trường” (một reference đã xem do player chọn), và “Tôi có thể khẳng định” (claim do player chọn). Các dòng chưa được chọn để trống; việc nhìn thấy dấu sàn trong game không tự điền liên hệ. Nét liên kết có thể là một đường bút nhỏ trên **giấy nháp** với tên nguồn, không phải dây đỏ xuất hiện trong không khí. Nếu người chơi chọn nhầm nguồn, gỡ liên kết phải trả lại đúng trạng thái trước đó.
 
-**Trình tự bằng tay cho người muốn bác bỏ số 0:**
+**Không thử độ chính xác chuột:** click phải vào vùng giấy hoặc chọn hotspot qua menu + phím M đều là cùng một thao tác. Undo làm biến mất nét mark tương ứng và cập nhật nháp, không xóa bản giấy gốc hay observation. Đối chiếu giữa một giấy và một dấu cố định không buộc vật lý dấu sàn phải “lấy ra khỏi ba lô”. Nếu người chơi đi lại từ kẹp tới hốc 4, nháp vẫn giữ những gì đã đánh dấu.
 
-| Hành động | Thao tác 3D cụ thể | Hệ thống thật sự xác minh | Điều người chơi phải hiểu |
-| --- | --- | --- | --- |
-| 1. Đọc yêu cầu của F101 | Cầm mép giấy/lật xem, nhìn trường tổng số | Phiếu đang yêu cầu ký trên số 0 | Đây là một lời tuyên bố từ hồ sơ |
-| 2. Đưa AS-05B tới kẹp phụ | Rút thẻ từ túi hoặc lấy lại tại giá; xoay đúng mặt ô nhận | OBS101B đã Examined đúng nguồn B, không chỉ nằm trong ba lô | Bàn giao của chỗ thứ tư chưa được xác nhận |
-| 3. Đánh dấu số 0 | Nhấn bút vào vùng F101_ZERO trên phiếu | Một vùng mark hợp lệ, không phải click vào mép kẹp | Điểm bất nhất nằm ở tổng số ghi trên giấy |
-| 4. Đánh dấu ô nhận | Tương tác hotspot OBS101B_SIGN | Một vùng mark hợp lệ trên nguồn thẻ | Vì sao có một thẻ bàn giao chưa hoàn tất? |
-| 5. Chỉ trở lại dấu sàn | Rời bảng, quay nhìn chỗ giường 4 hoặc chọn nguồn đã kiểm qua fallback | OBS101A đã Examined tại LOC03/B và liên hệ OBS101B_SIGN → OBS101A_TRACES | Thẻ không phải giấy sót lại vô căn cứ; hiện trường có dấu sử dụng |
-| 6. Chọn giới hạn phát biểu | Chọn câu “Số 0 chưa đủ đáng tin” trên phiếu, không ở màn đố trừu tượng | Claim F101_CLAIM_UNRELIABLE_ZERO; validator kiểm toàn bộ | Căn cứ đủ để không xác nhận số 0, chưa đủ để buộc tội |
-| 7. Ký | Người chơi chủ động bấm/giữ bút vào ô ghi quyết định | Commit CH01-T07 nếu đánh giá hợp lệ, lưu dấu và history | Minh chịu trách nhiệm với điều mình vừa kết luận |
-
-Vị trí các vùng trên giấy phải có hình thức thật: trường tổng số in, khu chữ ký, con dấu và hai ô bút đánh dấu. Cảm giác ký đến từ việc tay/bút dừng trên giấy, **không** đòi trace chữ ký tự do hay một trò giữ lực bút đúng phần trăm. Người chơi có thể rút giấy nguồn khỏi kẹp so và xem lại trước khi ký; thông tin Examined và những mark đã commit không biến mất, nhưng nếu người chơi hủy draft chưa commit, bản giấy thật phải trả về chỗ cũ.
+**Không giải bằng feedback từng slot:** sau một mark, âm bút hoặc dòng ghi trên giấy chỉ xác nhận thao tác. Trước khi ký C, tùy chọn xem lại căn cứ cho biết các loại nguồn/mối liên hệ còn thiếu. Khi submit không hợp lệ, phản hồi chọn đúng nhóm \`HypothesisOutcome\` và một câu hỏi nghề nghiệp giúp thử tiếp; không hiển thị chấm điểm đạo đức hoặc làm khóa mất lựa chọn B.
 
 #### Ranh giới giữa nhận định hợp lý và suy đoán vượt chứng cứ
 
