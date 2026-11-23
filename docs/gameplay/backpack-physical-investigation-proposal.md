@@ -136,6 +136,8 @@ Investigation (existing state)
 
 ## 6. Tương tác 3D chi tiết & quy tắc cho puzzle
 
+**Hệ thống suy luận khi đối chiếu chứng cứ** được đặc tả tại [Physical Evidence & Reasoning](physical-evidence-reasoning-system.md). Ba lô giữ vật phẩm và nguồn đã quan sát; bảng kẹp ở thế giới tiếp nhận marks/link/claim; việc xem 2 giấy cạnh nhau không auto tạo một quan hệ đúng. Luồng CH01 F101 mẫu cần có mark hai field và tự gắn observation của dấu sàn bằng một trong hai cách điều khiển tương đương, với authoritative validator và Undo/save/load.
+
 **World prompt theo ngữ cảnh, không chồng nút:**
 - Nhìn giấy/đồ ở gần: `E xem` → `Giữ/cất` (nếu được stow) hoặc `Đặt lại`; lấy vào túi chỉ khi người chơi xác nhận. Ngoài phạm vi tầm tay không có thu thập từ xa.
 - Mở túi: `Tab` → chọn món → `Soi 3D` hoặc `Cầm ra`; nhấn phải/Space lật giấy, WASD/chuột xoay, cuộn zoom, T nghiêng đón sáng. Trợ năng giống inspector hiện tại.
