@@ -42,6 +42,32 @@ Người chơi có thể quay lại các điểm chưa kiểm, đọc giấy the
 
 ---
 
+### 4. Mạch câu hỏi mà người chơi tự mang theo
+
+Để người chơi không thấy mình đang đi theo một bảng checklist, mỗi câu hỏi phải bắt đầu từ một sự kiện đã được tự chứng kiến. Các câu hỏi này có thể ở **Pocket Note** dưới dạng câu ngắn, còn bảng chi tiết nguồn chỉ xem khi mở phần ghi chép sâu; tuyệt đối không hiện hộ kết luận.
+
+| Mốc nhận thức | Điều Minh được chứng kiến | Điều Minh *có thể* nghi | Điều còn thiếu, dẫn tới hành động sau |
+| --- | --- | --- | --- |
+| Sau B01 | Bảy hoãn hẹn, thư Lan cũ, bệnh viện sắp tháo dỡ | Có lý do khiến Bảy vẫn để lại tài liệu | Muốn kiểm nơi chính Minh vẫn quyết định vào |
+| Sau B02 | Bóng người trong quầy R bỏ hoang | Có người đang ở đây hoặc hình ảnh không đúng | Tới tận quầy và tự kiểm |
+| Sau B03 | Lan nói chuyện trong ca 2005, BOARD giao nhiệm vụ | Mình đang nhìn thấy một thời điểm khác | Tới 101 xem con số trên giấy |
+| Giữa B04 | Dấu sử dụng ở một vị trí giường thứ tư | Số liệu ghi “0” có thể không phản ánh thực trạng đã xảy ra | Kiểm thẻ bàn giao và những trường nào còn trống |
+| Sau B04, có đủ nguồn | Thẻ AS-05B thiếu xác nhận khớp với dấu vật lý đã nhìn | Không đủ cơ sở để chốt số 0 | Ký một mức độ chắc chắn phù hợp, không cáo buộc thêm |
+| Sau B05 | Chữ ký đổi hình dạng lớp B | Tờ phiếu đang ảnh hưởng cách nơi này “hiện ra” | Kiểm lại một nơi không lệ thuộc bản giấy |
+| Sau B06 | Lan không còn, lớp R trở lại, giấy B không có tính vật lý R | Cuộc gặp và việc ký không thể được xác minh dễ dàng trong 2012 | Muốn rời đi, hoặc phải tiếp tục tìm sự thật |
+| Sau B07/B08 | Cổng không cho thoát, câu hỏi phòng 101 vẫn còn | Chỉ còn cách tự đối chiếu hiện trường năm 2012 | Bắt đầu CH02 ở R |
+
+Câu hỏi của mỗi beat được phép bỏ qua trong phần UI, nhưng **không được tự ghi người chơi đã biết một thông tin mà họ chưa quan sát**. Người chọn A/B rất sớm vẫn hiểu rằng mình đã ký và không gian đổi, nhưng không được tự nhận ghi chú mô tả AS-05B như đã đọc. Các quyết định không thay số **13 người chết** của thông tin công khai, không thay quá khứ và không đặt nhãn thiện/ác lên HUD.
+
+### 5. Phản hồi thao tác phải có nguyên nhân
+
+- **Trước mỗi E/K**: vật tương tác phải có dấu hình học, vị trí ánh sáng hoặc hướng nhìn cho người chơi quyết định chạm. Không rải outline sáng lên mọi món từ xa.
+- **Khi cầm vật**: nguồn vật, ngăn chứa và trạng thái “đã xem/chưa kiểm chi tiết” phải thống nhất. Một thẻ trong túi có thể được mở lại ở 3D, nhưng không tự cho quyền ký C nếu chưa xem dấu sàn.
+- **Khi dùng sai món**: phát phản hồi tại chính target hoặc tự vấn ngắn của Minh, không khóa menu, không tiêu hao món trọng yếu; người chơi biết điều gì cần kiểm thêm.
+- **Khi người chơi đọc chậm**: scene không sinh scare mạnh, không để thời gian đọc biến thành thua vì stamina/AI trong CH01.
+- **Khi vật không thể mang**: cho phép quan sát và ghi nguồn tại chỗ, có cách quay lại khi cần. Đừng tạo một “mẫu vật ma” trong túi chỉ để tăng số món.
+- **Khi không có chứng cứ đủ**: vẫn có đường A/B và tiến trình chính; C có thể được thử lại sau khi người chơi quay hiện trường.
+
 ## II. WALKTHROUGH CHI TIẾT
 
 ### B01 — BỨC THƯ KHÔNG CÒN LỜI HẸN
@@ -579,6 +605,24 @@ Một tiếng giấy lật khô tại quầy trống. Không có Lan, không có
 
 ---
 
+### Nhịp tổng thể, không đánh đồng sự kiện với jumpscare
+
+| Giai đoạn | Âm nền chủ đạo | Điểm gây bất an | Khoảng nghỉ cần có |
+| --- | --- | --- | --- |
+| B01–B02 | Mưa sân R, tiếng gió, phản xạ kính | Tự mở cổng rồi thấy có người ở nơi bỏ hoang | Giữa tiếng gõ biển và kính có đủ không gian chỉ nghe chân Minh |
+| B03 | Quạt, đèn, giấy bút và giọng Lan ở B | Sự ấm áp trái với mốc 2012/2005 | Cảnh hội thoại không kèm âm hù; sau cinematic ít nhất một nhịp an toàn |
+| B04 | Gió rèm, ray kéo, xe đẩy xa, tiếng giấy hai mặt | Dấu vật lý không khớp hồ sơ | Không đánh lạc hướng khi player đang đọc chi tiết nguồn |
+| B05 | Quạt hạ, một tiếng móc rèm có hướng, im lặng sau mực ký | Bóng thoáng qua; căn phòng phản ứng với chữ ký | P-SC05 và hậu quả F101 không phát chồng nhau |
+| B06 | Thiếu tiếng bút, nền quầy trống rồi mưa R | Mất sự hiện diện của Lan | Giữ khoảng trống nhìn ghế và sổ trước cue đồng hồ |
+| B07 | Mưa/sắt/cổng; âm thiếu hụt ngắn | Cổng từ chối cho đi | Nếu scare B05 gần quá, giảm âm gõ và ưu tiên seam |
+| B08 | Bước chân và sân có âm xa | Hình giấy thoáng trong túi hoặc chỉ còn ký ức | Không thêm đỉnh hù thứ ba ở ngay thẻ chương |
+
+**Quản lý scare:** các cue do môi trường điều phối chỉ chạy một lần theo state và không lấy “người chơi vừa mở modal” làm lý do phát bù một cú hù. Nếu đã có DREAD_SHIFT_TUBE_BLACKOUT, P-SC05 không được cộng thêm một blackout nữa. Một số micro-dread có thể bị bỏ lỡ hoàn toàn, còn hậu quả ký F101 và seam cổng là các sự kiện cốt lõi nhìn/nghe được qua phản hồi an toàn.
+
+**Ba lớp âm được giữ liên tục:** R trước cuộc gặp là mưa và không gian đã đóng; B có hum đèn/quạt/giấy của ca trực; R sau T08 mang lại mưa nhưng thiếu hoàn toàn tiếng bút/giọng Lan. Đối lập này phải rõ cả khi người chơi dùng mono hoặc nghe caption, không phụ thuộc đúng loại tai nghe.
+
+**Nguồn âm vật lý:** tiếng khóa ở tay, tiếng ray ở rèm, tiếng bánh theo dấu sàn, tiếng bút ở quầy và tiếng gõ ngoài cổng đều có hướng/độ vọng phù hợp. Không dùng âm scream toàn màn hình nếu không có đối tượng mà người chơi có thể liên hệ. Khi không có âm, visual vẫn truyền sự kiện bắt buộc (vách mới, cổng seam, quầy trống).
+
 ## III. NHỊP KINH DỊ VÀ CHỖ DỪNG CHO NGƯỜI CHƠI
 
 Kinh dị trong chương phải có **nguồn**, **thời điểm**, **hậu quả**. Ưu tiên tạo cảm giác bị nhìn, những âm thanh có chỗ phát cụ thể, và các thay đổi diễn ra sau hành động của Minh. Không nhầm số lượng jumpscare với độ sâu kinh dị.
@@ -634,6 +678,23 @@ Không phát một scare lớn khi player đang mở ba lô, soi 3D, nghe thoạ
 **Các tình huống dự phòng:** người chơi bỏ qua bóng kính; không trò chuyện ngay với Lan; skip cinematic; bỏ tài liệu B trên bàn; xem thẻ nhưng không hiểu; không đủ nguồn để chọn C; giảm jumpscare; dùng chế độ chữ lớn; load ngay trước/sau swap; quay lại cổng lần hai. Mỗi tình huống đều phải có tiến trình hợp lệ và phương thức tiếp cận tài liệu/đường thoát phù hợp, không cần teleport cheat trong gameplay.
 
 ---
+
+### Bản đồ commit, checkpoint và recovery trong tám beat
+
+| Beat | Đầu vào bắt buộc | Sự kiện commit | Dữ liệu phải còn khi load | Đường phục hồi nếu bị gián đoạn |
+| --- | --- | --- | --- | --- |
+| B01 | Người chơi tự kiểm E10a/tin nhắn và dùng cổng | E10a.SMSRead; CH01-T02 | E10a đúng một evidence, hai chìa không nhân đôi, cổng đã mở | Nhặt/đọc lại đúng trạng thái, không reset SMS hoặc cấp chìa mới |
+| B02 | Vượt sân vào sảnh | Setup CH01-D02 / dread once nếu đủ guard | Thứ tự cue đã xem, vị trí/player inventory | Người không nhìn bóng vẫn tiếp cận AN01 |
+| B03 | Giở AN01, T03/T04 xong; trò chuyện rồi tự lấy BOARD | AP02, Lan noticed/dialogue, CH01-T05 | Lan once/VO transcript, BOARD thuộc về player nếu đã nhặt | Skip/load trả camera; chưa T05 thì BOARD vẫn ở quầy |
+| B04 | Đã có BOARD/T05, vào 101 | CH01-T06/AP04, observation stages, optional EX01 | Vị trí rèm/ngăn, thẻ nằm đâu, những mặt đã soi | Bất kỳ nguồn nào còn chưa xem đều tìm lại được |
+| B05 | Player tới F101 và chọn A/B/C | CH01-T07, F101 first/current/revision, G01 | Hình học B theo chữ ký cuối, lập luận và marks/link, once scare | Save fail không ký nửa chừng; được quay lại sửa trước T08 |
+| B06 | G01 có, player giở AN01 | CH01-T08 / B→R | Giấy B không physical trong R, memory reference và decisions còn | Swap fail rollback lớp/item/camera, không mất hồ sơ |
+| B07 | Sau T08, player thử cổng SEAM | CH01-T09 once | Seam đã tiêu thụ, vị trí hợp lệ, đường về | Load không lặp vô hạn hoặc kẹt collider |
+| B08 | Sau T09, player giở AN01 | CH01-T10 / CP04 | CH02-R độc lập, evidence CH01 đúng 1, echo đã xem/không xem | Không mở túi vẫn chuyển CH02; không tự cho E11/E12 |
+
+**Thứ tự kiểm nghiệm:** thử tuyến A và B trước để chắc có đường ngắn, sau đó thử tuyến C đầy đủ, C thiếu từng nguồn/mark/link/claim, rồi thử quay lại sửa A→C→B. Trộn tiếp các trường hợp mở ba lô lúc đang cầm giấy B, skip cinematic, save khi đổi lớp và load tại cổng. Không coi một đường walkthrough “đi thẳng” là đủ nghiệm thu khi các nhánh khác có thể làm mất vật.
+
+**Đường sau chương:** R của CH02 phải vẫn cho quan sát LIST, SOCKETS, WHEELS độc lập, mở PZ01/E12 và thu E11 theo gate CH02. Việc có/không có P-BAG08_ECHO và lựa chọn A/B/C không được đưa những vật này vào túi sớm. C01, E08 và các thoại/hồi tưởng khóa về sau phải giữ nguyên điều kiện nêu trong Core.
 
 ## VI. ĐIỀU KIỆN HOÀN THÀNH CHO BẢN GAMEPLAY
 
