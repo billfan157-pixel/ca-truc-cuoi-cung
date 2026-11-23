@@ -697,7 +697,7 @@ Bản walkthrough chỉ được coi là vận hành đúng khi các đường c
 
 1. **Vật phẩm 3D:** lấy E10a và chìa không nhân bản; cầm/soi/lật/cất/lấy ra/đặt AS-05B không làm mất nguồn, với cả chuột và phím thay thế.
 2. **Lan:** Scripted Event nhận biết diễn ra sau CH01-T03, cinematic chỉ bắt đầu khi Minh chủ động trò chuyện; skip/save/load không nhân thoại, không tự nhặt BOARD hoặc auto-credit quan sát đồng hồ.
-3. **F101:** A và B ký được từ tuyến thẳng; C thiếu OBS101A/B, mark/link/claim sai thì bị từ chối; C đầy đủ thì thành công; mọi nhánh mở G01 và cho sửa trước T08.
+3. **F101 — điều tra bằng tay và lập luận:** A/B ký được ngay, không yêu cầu nguồn. Với C, người chơi tự soi `OBS101A/B`, khoanh `F101_ZERO` và `OBS101B_SIGN`, **tự chọn nguồn nối `OBS101B_SIGN → OBS101A_TRACES`** ở bảng kẹp hoặc ngay tại dấu sàn, rồi chọn claim giới hạn. Kẹp đúng giấy không auto-pass; link sai, mark sai, nguồn chưa Examined hoặc claim quá mức phải nhận phản hồi khác nhau. Bản nháp/Undo/source reference phục hồi sau save/load, `annotationVersion` mới không được lợi dụng đường legacy version 0; mọi nhánh vẫn mở G01 và cho sửa trước T08.
 4. **R/B và ba lô:** giấy B đang cầm, cất hoặc đặt trên bàn đều không biến thành giấy vật lý R sau T08; ghi chú nguồn vẫn còn; echo ở B08 chỉ là hiển thị có điều kiện, không thể dùng/export.
 5. **Cốt truyện và dữ liệu:** CH01 evidence vẫn chỉ có E10a; không làm lộ C01, E11/E12 hoặc thoại/hồi tưởng bị khóa; CH02-R giữ LIST/SOCKETS/WHEELS và các gate độc lập.
 6. **Điều hướng, trợ năng và sợ:** vòng lặp cổng chỉ một lần, không kẹt collider/không mất đường về AN01; mute, caption, mono, large print, reduced motion, giảm jumpscare đều dùng được; các scare không cướp quyền kiểm tra vật chứng.
