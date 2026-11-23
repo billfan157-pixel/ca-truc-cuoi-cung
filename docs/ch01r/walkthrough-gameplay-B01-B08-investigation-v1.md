@@ -202,6 +202,19 @@ Hai micro-task **đề xuất** cho phép người chơi tự kiểm không gian
 
 **Scare hậu ký:** Đừng phủ thêm ồn sau P-SC05. DREAD_F101_* phải luôn xảy ra đúng **sau phản hồi bút/dấu**, có khoảng ngắt để nhận ra là **phản hồi của lựa chọn**. Với A có tiếng vách; B có im lặng và quạt; C có nét nứt và bánh xe — không trao thưởng “chân lý” cho C bằng jump lớn vượt A/B.
 
+### Scare dẫn bằng vật lý và hiện tượng “văn bản chống lại ký ức” (v1.2)
+
+**Audio-led framing của `P-SC05_BED4_SHAPE` (đề xuất):** khi hạ tờ AS-05B và camera đã trở lại gameplay an toàn, giảm từ từ tiếng quạt và hum đèn trong khoảng **0,8–1,5 giây**, rồi cho một tiếng móc rèm/khung kim loại vang **có hướng từ hốc 4** để người chơi có lý do tự quay nhìn; silhouette xuất hiện chừng 0,8–1,2 giây. **Không xoay camera cưỡng bức, không bảo đảm “90% người chơi nhìn thấy”.** Tiếng nền vẫn đủ làm mốc không gian; giảm mức đỉnh âm theo review, đồng thời caption có hướng. `0 dBFS` nghĩa là mức tham chiếu cực đại của tín hiệu số chứ **không phải im lặng**; không thực hiện nguyên văn yêu cầu “ngắt về 0 dB” của báo cáo. Người không nhìn vẫn tiếp tục điều tra; F101 hậu ký là payoff **không thể bỏ lỡ** trong cả ba nhánh. Tránh xếp chồng với deferred tube blackout, giao thoại, save/load và cinematic.
+
+**P-META05_OFFICIAL_OVERPRINT (đề xuất, hiển thị B-only, không sửa provenance):** khi người chơi đã ký và chủ động mở trang **bản sao biểu mẫu của cơ sở trong lớp B**, một lớp phủ diễn xuất như mực trắng/nhòe xuất hiện trên vùng **bản trình bày của hồ sơ**:
+- **Affirmed:** số 0 trông quá rõ, lấn phần chú thích mô tả hốc giường; người chơi nhìn thấy văn bản hành chính đang cố làm phần đó “không tồn tại”.
+- **Unverified:** chỗ chưa xác nhận giữ nét mực lửng, không biến trạng thái giữ lại thành một hình phạt.
+- **Refuted:** nét gạch xác nhận bất nhất hiện lên, không biến thành lời thú nhận làm giả.
+
+**Quan trọng:** đó chỉ là lớp rendering/presentation, có thể tắt và xem bản gốc ngay. **Không thay đổi `ObservationRecord`, dữ liệu `OBS101A/B`, provenance, first/current F101, transcript, bản scan nguồn, save hoặc nội dung ghi tay “Đã thấy” của Minh.** Không phát âm giật khi đang đọc; chỉ là uncanny visual chậm, có bản không chuyển động và large print nguyên vẹn. Không buộc mở nhật ký để qua G01.
+
+**Đối lập cảm xúc:** sau khi ký, bổ sung **một ghi chú nội tâm ngắn** (đề xuất nội dung, không phải thoại canon, cần 07/Dialogue phê duyệt) để người chơi cảm nhận Minh đang nhớ một cánh cửa từng không mở. Không đưa hình ảnh cánh cửa khu C hay mô tả hành động CH07; không phán xét hoặc chấm đạo đức lựa chọn A. Sổ trực giữ hai cột rõ ràng: **đã thấy** và **cảm giác/điều day dứt**.
+
 **Output:** CH01-T07, G01 true, first/current/revision và variant B theo F101, không thay R. **Fallback:** thiếu A/B không khóa đường A hoặc B; lỗi save không chiếu hậu quả trước commit; có thể phục hồi phiếu & quan sát qua load.
 
 ## B06 — Người đã nhận phiếu biến mất (LOC03 → HALL → LOC02, B→R, 1,5–2,5 phút tuyến chính)
@@ -216,6 +229,12 @@ Hai micro-task **đề xuất** cho phép người chơi tự kiểm không gian
 5. Câu hỏi nhật ký được cập nhật: “Lan đã ở đây trong trải nghiệm vừa rồi; nhưng sảnh R không có ai. Mình có thể kiểm lại Phòng 101 khi đang ở R hay không?” Điều này dẫn lý do sang CH02, không phải mệnh lệnh đi nhặt E11.
 
 **Đạo diễn sợ:** Cú sợ là **sự thiếu vắng** sau khi đã quen với Lan. Âm quạt ngừng và đèn bàn tắt chậm thay cho tiếng hú. Người chơi được đứng tại quầy 10–15 giây hoàn toàn yên, có thể xem lại lời trong transcript.
+
+### Payoff đối xứng B03/B06 và thiết kế âm ba lớp (v1.2)
+
+B03: quầy có Lan, đèn bàn ấm, bút đang viết; B06: **đúng quầy đó**, cuốn sổ vẫn ở đây nhưng giọng Lan/tiếng bút đã mất. B06 **không có cinematic mới**; người chơi tự lia camera tìm cô. Hệ âm ba lớp diễn giải điều đã mất: **R** là mưa/sân bỏ hoang; **B** là quạt, hum đèn, giọng người, tiếng giấy; **R sau bàn giao T08** trở lại âm ngoài trời nhưng thiếu tiếng công việc quen của Lan. Caption/mono truyền sự khác biệt, không giấu manh mối bắt buộc trong stereo.
+
+**Nén nhịp:** quay về AN01 là hành động duy nhất bắt buộc; đối chiếu bản F101 với ghi chú trong sổ **tùy chọn**. Không buộc mở cùng tài liệu lần thứ hai chỉ để cho T08 chạy. Giữ một khoảng **10–15 giây không jumpscare** sau khi Lan vắng, vì cảm giác mất mát cần thời gian tự hình thành.
 
 **Output:** CH01-T08 và R phục hồi, Lan vắng mặt. **Fallback:** nếu người chơi quay lại khi chưa bàn giao, được sửa F101 ở B theo contract; khi hoàn tất T08 không làm A/B/C phá OBS của R. Checkpoint trước/sau swap, không mất firstDecision.
 
@@ -232,11 +251,15 @@ Hai micro-task **đề xuất** cho phép người chơi tự kiểm không gian
 
 **Ý nghĩa:** Cổng đầu B01 là lựa chọn **đi vào**; cổng B07 cho thấy **chưa thể đi ra bằng cách phủi bỏ**. Đây là đối xứng hành động, không là mini-game mới.
 
+### The Uncanny Walk — khoảng nghẹt thở B07→B08 (v1.2)
+
+Sau T09, không cắt màn hình hoặc xuất thêm vòng lặp: để Minh **tự đi từ cổng về quầy** trên tuyến thực. Tiếng mưa/xe ở lớp R được duck nhẹ, nghe như không gian đang thu nhỏ trong một khoảng **15–30 giây tùy tốc độ di chuyển**, rồi âm trở lại khi gần AN01. Đèn quầy trở thành điểm nhìn, một vệt sáng yếu ở hướng Phòng 101 tạo câu hỏi chưa giải; **không tắt toàn bộ đèn sân nếu phá landmark/đường đi hoặc trợ năng**. Đường đi ngắn đủ để người chơi thấy mình đã chọn quay lại, không dài chỉ để tăng thời lượng. Nếu P-SC07 không được kích hoạt ở chế độ giảm jumpscare, loop và Uncanny Walk vẫn diễn ra hoàn chỉnh.
+
 **Output:** CH01-T09, seamConsumed=true, objective trở về sổ. **Fallback:** seam không lặp vô hạn, không gây mắc trong collider ở cửa; người chơi luôn có đường tới AN01 sau load; disable jumpscare không đổi T09.
 
 ## B08 — Điều còn ở phía bên kia cánh cửa (LOC02, R, 1–1,5 phút tuyến chính)
 
-**Mục tiêu kịch:** CH01 kết bằng một **cam kết phương pháp**, không phải một lời khẳng định vụ án. Người chơi chuyển sang CH02 vì muốn kiểm nghiệm hiện trường R độc lập với thứ họ vừa thấy ở B.
+**Mục tiêu kịch:** CH01 kết bằng **một vết thương riêng của Minh chưa khép lại**, đồng thời mở một việc điều tra rất cụ thể: kiểm tra xem hiện trường R có còn những dấu nào không lệ thuộc phiếu F101. Không đọc như tuyên ngôn phương pháp hay bài thi đạo đức. Bất kể A/B/C, người chơi vẫn muốn biết những gì mình vừa thấy có thể bị phủ nhận hay không.
 
 **Walkthrough:**
 1. Trở về sổ tại AN01. Trang Timeline chỉ hiển thị những sự kiện đã thực sự ghi: 18/11/2005 vụ cháy/13 người chết theo công khai; 2012 lời hẹn Bảy bị hoãn; cuộc gặp Lan trong trải nghiệm B; Phòng 101 có dấu giường 4/thẻ thiếu xác nhận nếu người chơi đã xem; kết luận F101 **của chính người chơi** và mức độ chắc chắn.
@@ -245,7 +268,16 @@ Hai micro-task **đề xuất** cho phép người chơi tự kiểm không gian
 4. Khi giở sổ, CH01-T10; card **CHƯƠNG 02 — PHÒNG BỆNH TRỐNG**, CP04, R. Đường CH02 sử dụng **LIST + SOCKETS + WHEELS → PZ01/E12 → E11 → G02**, không được phát sẵn đáp án/hình C01.
 5. Kết cảnh bằng một nhịp đơn giản: tiếng giấy lật ở quầy R, không sử dụng scare nữa. Người chơi chủ động bước sang một không gian quen mà giờ mang ý nghĩa khác.
 
-**Payoff tầng:** Ở B05, Minh chọn cách xử lý hồ sơ. Ở B08, người chơi chọn **tiếp tục kiểm chứng dù lựa chọn vừa rồi vẫn có thể sai**. Phần thưởng là có một phương pháp đáng tin, không phải lời giải do game đọc hộ.
+**Payoff tầng:** Ở B05, Minh ký một bản báo cáo; ở B08, anh tự hỏi vì sao một cánh cửa trong ký ức vẫn không chịu mở. Người chơi đi sang CH02 **vì bất an và vì muốn kiểm chứng hiện trường thật**, không phải vì game chấm phương pháp đúng. Câu nội tâm ngắn phải được duyệt Dialogue, giữ câu hỏi về cánh cửa ở mức chưa hồi tưởng (không tiết lộ CH07).
+
+### Ghi chú tay: nỗi sợ không phải một trường dữ liệu (v1.2)
+
+Giữ nguyên các trang Sổ trực phản ánh **sự kiện / nguồn / suy luận có thể chứng minh / điều chưa biết**. Ở lề trang, thêm **một dòng “Minh tự ghi”** như thể chữ viết chưa thật đều (P-NOTE08, đề xuất copy cần review) để tách cảm xúc khỏi hồ sơ:
+- Dòng **dữ kiện** luôn rõ ràng: có thư Bảy, đã thấy/không thấy OBS101A/B tùy save, đã ký A/B/C và chưa biết thêm.
+- Dòng **nội tâm** chỉ gợi *một lần Minh từng không mở cửa*; không trích lời cầu cứu, không hiện ô kính/cửa khu C, không nói ai đứng ngoài hay còn sống.
+- Không dùng câu tuyên ngôn “tôi sẽ không ký...” nếu người chơi thực tế đã chọn **Affirmed**. A không bị tước khả năng tiếp tục điều tra; B và C không bị gắn danh hiệu “đúng đắn”. Người chơi có thể bỏ dòng viết tay mà vẫn khởi CH02.
+
+**Kết bằng hành động:** Minh tự giở sổ tại AN01. Cảnh kết ngắn; người chơi muốn trở lại Phòng 101 năm 2012 do **một nghi vấn vẫn nhói**, không do cinematic phát đáp án.
 
 **Output:** CH01-T10/CP04, CH02 bắt đầu, CH01 evidence count vẫn 1; FIRST/Current F101 và sự kiện dread lưu bền vững. **Fallback:** người chơi bỏ hết optional vẫn được tóm tắt tri thức tối thiểu, không nhận những chi tiết chưa từng quan sát; transcript từ skip ghi theo dữ liệu đã được trình bày, không sinh thoại bị lock.
 
@@ -313,9 +345,9 @@ Thời gian chỉ là **target thiết kế**; không phải kết quả playtes
 
 **P0 — Story/UX, không cần tạo event mới:** thay objective/hint theo câu hỏi; journal ghi “biết/suy/không biết” mà không auto đáp án; staging lại các beat trên NPC/props hiện hữu; ánh sáng quay lại phòng; làm rõ ba hành động ký A/B/C; đảm bảo có thể xem lại nguồn và phản hồi đúng thiếu căn cứ.
 
-**P1 — Hybrid encounter B03 & hệ tương tác/ngữ cảnh:** refactor LanDirector/Hub để CH01-T03 chỉ khởi động Lan nhận diện in-world, còn E/K tại LAN_TALK mới bắt đầu Cinematic Dialogue Scene; bổ sung Timeline/Cinemachine shot, input/camera restore, skip/transcript và once guards (chưa triển khai); thêm đối chiếu ký với observation ở B06 theo dữ liệu đã lưu; optional lựa chọn bước kế ở B08 không thêm gate; tinh chỉnh khoảng lặng và priority giữa các DREAD đã có. Giữ nguyên observation IDs và schema trừ khi migrations & test đầy đủ.
+**P1 — Hybrid encounter B03, Spatial Deduction, biểu hiện hồ sơ:** refactor LanDirector/Hub để CH01-T03 chỉ khởi động Lan nhận diện in-world, còn E/K tại LAN_TALK mới bắt đầu Cinematic Dialogue Scene; bổ sung Timeline/Cinemachine shot, input/camera restore, skip/transcript và once guards (chưa triển khai). Làm prototype `P-INT04_SPATIAL_ALIGN/FLOOR_RAKE` theo `OBS101A` (không động CH02 R), P-META05 chỉ làm lớp rendering và dòng note Minh chỉ khi đã review Dialogue; thêm đối chiếu ký với observation ở B06 theo dữ liệu đã lưu; optional lựa chọn bước kế ở B08 không thêm gate; tinh chỉnh khoảng lặng và priority giữa các DREAD đã có. Giữ nguyên observation IDs và schema trừ khi migrations & test đầy đủ.
 
-**P2 — Scare authored:** thử P-SC05 trước ở greybox có spectator + reduced jumpscare, sau đó P-SC07, chỉ thêm P-SC02/P-SC04 nếu playtest chứng tỏ tăng tò mò chứ không gây mệt. Không dựng đủ bốn scare chỉ vì có tên trong tài liệu. Ưu tiên art/audio hiện có; không dựng “quái vật mới” ở CH01.
+**P2 — Audio-led horror authored:** trước tiên greybox `P-SC05` có audio-led framing + bản giảm jumpscare; thêm `P-SC07` và khoảng đi bộ B07–B08 có điều kiện; chỉ thêm `P-SC02/P-SC04` khi playtest chứng minh tăng tò mò chứ không gây mệt. Dùng âm thanh có hướng, ducking an toàn và caption, không hạ toàn bộ mix xuống một giá trị dB mơ hồ; không cần quái vật mới.
 
 **P3 — Content polish:** chỉ sửa Dialogue/prop text sau khi được duyệt trong 07/Decisions, kiểm 07/Dialogue, timeline/reveal, core narrative và test V22-Q03. Không thay trực tiếp Core 02, 04, 07 hoặc build trong PR đề xuất này.
 
