@@ -146,12 +146,12 @@
 - Lối C: Quầy → hành lang, kiểm OBS101C/D trước → dấu giường 4 → STAFF bổ trợ.
 Mọi đường dẫn tới F101; không khóa C theo một lối, không cần CH01-EX01 để ký.
 
-**Walkthrough bắt buộc tối thiểu:**
+**Walkthrough khám phá theo tình huống (giữ thứ tự linh hoạt; chỉ nhánh Refuted mới cần đủ OBS101A/B):**
 1. Khi vào HALL, Minh thấy lối đi sạch quá mức so với R, mùi ẩm cũ dưới lớp thuốc sát trùng và F101 treo tại GATE-101. Bấm bảng kẹp trước khi khảo sát được phép: phiếu ghi số 0; sổ có câu hỏi “Số này dựa trên đâu?” Không cho một câu “giải đố bằng hai dấu” hiện ra như chỉ dẫn.
 2. Đẩy hé DOOR-101 bằng giữ/kéo hoặc nhấn E. **Không tự mở hết**: khe cửa cung cấp âm quạt và góc nhìn thấp của rèm. Khi qua ngưỡng, commit CH01-T06 / checkpoint AP04.
 3. Cầm/quan sát **OBS101A**: vết bánh giường thành vùng sử dụng, chăn gấp vội, dép lệch. Phần suy luận tối đa: “Một vị trí đã có sử dụng”; không tự kết luận “người bệnh bị chuyển đi lúc 03:17”. Nếu người chơi đã đọc F101 trước, UI cho thấy câu hỏi quan hệ nhưng không tick đáp án.
 4. Kéo **CURTAIN-101** bằng tay để tìm **OBS101B** trên giá kẹp đầu giường 4. Đọc mặt trước và **mặt sau** của AS-05B: trường ký bàn giao thiếu; vết hằn có thể soi nghiêng 25°–40°, phím T hoặc bản Chữ lớn. Mặt sau chỉ có dấu **03g17 · CHƯA CHỐT SỔ**; không hiện tên An/C01/Khu C. Để rõ đạo đức của thao tác, bút tích nhòe được mô tả là “không đọc đủ” nếu chưa soi, chứ không thay bằng phán đoán.
-5. Đọc **OBS101C** (giường 2 chuyển đúng quy cách, hai chữ ký/đích nội B) để biết một chuyển giao hoàn tất thường để lại dấu gì. Tài liệu này **hỗ trợ hiểu**, không bắt buộc để Refuted. Đọc **OBS101D** (giường 3, thuốc/xuất viện) để cho thấy giấy có thể khớp hiện trường nhưng không liên hệ giường 4. Nếu người chơi đưa D làm căn cứ, F101 trả “nguồn này nói về giường khác”.
+5. **Tùy chọn**, đọc **OBS101C** (giường 2 chuyển đúng quy cách, hai chữ ký/đích nội B) để biết một chuyển giao hoàn tất thường để lại dấu gì. Tài liệu này **hỗ trợ hiểu**, không bắt buộc để Refuted. Cũng có thể đọc **OBS101D** (giường 3, thuốc/xuất viện) để cho thấy giấy có thể khớp hiện trường nhưng không liên hệ giường 4. Nếu người chơi đưa D làm căn cứ, F101 trả “nguồn này nói về giường khác”.
 6. Tùy chọn nhưng khuyến khích: rời Phòng 101, vòng qua **STAFF**, mở DRAWER-NURSE đọc **OBS_SHIFT_LOG** (quy chế AS-05) và **OBS_CORRIDOR_NOTICE** (kê giường tạm). Phòng STAFF là nơi giải thích “vì sao chuyện thiếu chữ ký có ý nghĩa nghiệp vụ” chứ không cung cấp mã khóa. Người chơi quay về phòng để xem lại dấu bánh đã thấy với một giả thuyết rõ hơn.
 7. Trong Sổ trực, người chơi có thể kẹp F101 bên OBS101B rồi thay bằng OBS101C. Chọn quan sát và ghi câu “Phiếu chốt 0 nhưng chỗ thứ tư có dấu sử dụng; thẻ bàn giao chưa có xác nhận”, **với nhãn giả thuyết**, không tự chốt sự kiện. Gỡ một giấy khỏi bàn so sánh không xóa tiến độ Examination.
 
@@ -307,20 +307,24 @@ Giữ nguyên các trang Sổ trực phản ánh **sự kiện / nguồn / suy l
 - Điều chỉnh độ tương phản, mức đỉnh SFX, tần số flicker, caption không gian, chế độ mono/reduceMotion/giảm jumpscare; âm thanh là thưởng cảm giác, không là kênh thông tin duy nhất.
 - Dùng *sự biến dạng có nghĩa*: vách xuất hiện sau Affirmed = xóa khỏi biên bản; rèm còn đó sau Unverified = chưa chốt; vết bánh rõ sau Refuted = một bất nhất được công nhận. Không áp dụng random biến dạng lên props CH02 R.
 
-## 4. Pacing & ngân sách điều tra
+## 4. Pacing & ngân sách điều tra — v1.2 đã đối soát số học
 
-| Beat | Thời lượng chính | Kiểu thử thách | Thay đổi hiểu biết | Khoảng nghỉ sau căng thẳng |
-| --- | ---: | --- | --- | --- |
-| B01 | 3–4' | đọc nguồn/ý chí mở cổng | Bảy hẹn–hoãn; 13 tử vong công khai | 15–25 s sau thư |
-| B02 | 2–3' | tiếp cận bóng người | Có bất nhất về sự hiện diện | 20 s trước bước vào sảnh |
-| B03 | 5–6' | Lan nhận diện Minh trong gameplay → tự bắt chuyện → cinematic ngắn → tự lấy BOARD; sau đó đối chiếu thời gian | Lan/2005 vs 2012; giờ chưa rõ | 10–15 s sau cinematic |
-| B04 | 6–8' | phi tuyến, mở/kéo/so hai nguồn | OBS101A/B khiến số 0 đáng nghi | 45–60 s giữa scare |
-| B05 | 5–7' | suy luận và ký A/B/C | Trách nhiệm chữ ký; B biến dạng | 20–35 s sau scare cao |
-| B06 | 3–4' | quay lại kiểm hậu quả | R khác B; Lan vắng | 10–15 s quầy trống |
-| B07 | 2–3' | thử thoát, một seam | Không thể bỏ cuộc điều tra bằng cách bước ra | 20 s trước sổ |
-| B08 | 2–3' | tổng hợp và chọn tiếp tục | Chấp nhận chưa biết, sẽ đối chiếu R | Không scare |
+**Lỗi v1.1 đã xác nhận:** dù §0.2 ghi mục tiêu 21–27 phút, bảng v1.1 thực tế cộng min/max thành **28–38 phút** (3+2+5+6+5+3+2+2 = 28; 4+3+6+8+7+4+3+3 = 38). Báo cáo kiểm toán phát hiện đúng lỗi này. Không lấy “16–20 phút chắc chắn hơn” hay “top indie 9.2+” từ báo cáo làm bằng chứng: đó chỉ là giả thuyết pacing và tiêu chuẩn chủ quan chưa có playtest.
 
-Thời gian chỉ là **target thiết kế**; không phải kết quả playtest. Khi benchmark với CH01-R hiện tại, phải đo TTFF (time-to-first-factual-clue), thời gian tới hiểu F101, tỷ lệ chọn Unverified vì tự tin hay vì bối rối, số người khám phá STAFF và số người tự chủ động quay lại phòng.
+| Beat | Mục tiêu chính (phút) | Hành động/giá trị chính | Bỏ bớt gì để giữ nhịp? |
+| --- | ---: | --- | --- |
+| B01 | **1,5–2** | mở E10a/SMS → tự mở cổng | xe, thông báo vẫn tùy chọn; không đọc bảng bắt buộc |
+| B02 | **1–1,5** | theo bóng qua kính → tới AN01 | không buộc đứng chờ scare |
+| B03 | **3–4** | R→B, Lan nhận diện, E/K bắt đầu **cinematic 60–90 s**, tự lấy BOARD | không ép đọc lịch/đồng hồ lần hai, không NPC đứng chờ |
+| B04 | **5–6** | mở cửa/rèm, quan sát `OBS101A/B`, so vị trí 3D | STAFF, OBS101C/D, EX01 là chiều sâu tùy chọn |
+| B05 | **4–5** | dựng kết luận A/B/C, ký, chứng kiến hậu quả | không buộc xem meta-effect hoặc đọc lại cả hồ sơ |
+| B06 | **1,5–2,5** | backtrack có hệ quả, tự bàn giao ở quầy, Lan biến mất | không bắt đối chiếu nhật ký lại lần hai |
+| B07 | **1–1,5** | tự thử cổng/SEAM một lần | không tạo vòng lặp thứ hai |
+| B08 | **1–1,5** | quay lại sổ, ghi nhận câu hỏi, sang CH02 | không làm tutorial tổng kết dài |
+
+**Tổng min = 1,5+1+3+5+4+1,5+1+1 = 18 phút. Tổng max = 2+1,5+4+6+5+2,5+1,5+1,5 = 24 phút.** Tuyến phụ 6–10 phút → tổng khoảng **24–34 phút**. Các khoảng này là **mục tiêu cho phiên mới**, không phải thời gian đã xác minh. Nếu người mới thấy quá nhanh/khó theo cốt truyện, kéo dài **hoạt động có nghĩa**, không kéo dài đi bộ vô ích.
+
+**Đo bắt buộc theo TASK010:** từ AP00 đến E10a, T03, T05, T06, first F101 draft/sign, T08, T09, T10; thời gian đọc/soi/đứng yên/đi bộ phải tách riêng, phân vị từng người và mức độ hiểu F101. Tránh áp trần thời gian làm hỏng exploration hoặc áp đặt “18 phút là chuẩn thế giới”. Với B04–B05, đếm **hành động vật lý có mục đích** và suy luận tự phát, không dùng số interaction thô để làm chỉ số chất lượng. Tùy chọn STAFF/EX01 không tính vào mainline bắt buộc.
 
 ## 5. Acceptance walkthrough & trạng thái QA cần có
 
@@ -338,6 +342,12 @@ Thời gian chỉ là **target thiết kế**; không phải kết quả playtes
 10. Guard narrative: CH01 không hé Bé An/C01/Khu C trong OBS101B, không có E11/E12, E10b, M hay thoại CH04-D06/CH01-D16b. Tổng evidence CH01 vẫn 1.
 11. Test cue: ghi event once, ưu tiên hiệu ứng ký F101 **bất kể budget nền đã dùng hết 7**, không double-fire khi mở/đóng inspector nhanh; các scare P-SC mới chỉ được tích hợp sau khi có registration & QA.
 12. TASK010 playtest mù 6 người mới và TASK026–028 review người thật **chưa được coi là pass** chỉ vì tài liệu hoàn thành.
+13. **Pacing v1.2:** cộng dải min/max chính xác 18–24 phút; timer đo theo `T02/T03/T05/T06/T07/T08/T09/T10`. Phân biệt tuyến A/B nhanh với C cần suy luận; nếu 6 người mới không hiểu câu hỏi F101 hoặc cảm xúc Lan dù đi rất nhanh, tính là thất bại thiết kế chứ không là thành công về thời lượng.
+14. **B03 hybrid:** Lan nhìn/đáp trước E/K nhưng không auto cinematic; sau lời chào vẫn có việc tự nhiên để làm, không freeze “đợi nút”; bỏ đi quay lại/spam E/K/skip/load không nhân thoại hoặc commit T05. Giữ cinematic theo quyết định thiết kế đã chọn. Camera không cho auto-OBS_CLOCK_0317/EX01.
+15. **B04 Spatial Deduction:** thử cả nhìn so từ giường 1–3 và soi vệt sàn sau rèm; thiếu một nguồn chính thì Refuted vẫn không hợp lệ; A/B vẫn đi tiếp; trong CH02-R, `LIST/SOCKETS/WHEELS/PZ01/E12/E11` chưa hề bị ghi trước. Không thêm 4 công tắc khi Core03/04 chưa duyệt. Mute/large-print/không soi đèn phải có đường thay thế.
+16. **B05 cue âm và meta journal:** directional cue không ép camera, không trùm lên thoại/đọc; trong A/B/C `ObservationRecord` và chữ viết Minh không mất; xem bản gốc phục hồi ngay không phụ thuộc save. Reload A→B→C, giảm jumpscare, caption mono, reducedMotion và chọn xem/không xem journal đều giữ G01 và first/current history.
+17. **B06–B08 cảm xúc:** B06 không replay cinematic và không jumpscare tức thì; B07 chỉ seam một lần với path nhìn rõ ngay khi giảm sáng; B08 lời ghi tay chưa duyệt phải bị chặn cho đến khi đưa vào Dialogue với guard. Không có lời buộc tội, CH07 hồi tưởng, C01/Bé An lộ sớm.
+18. **Behavioral & emotional playtest (đề nghị, không coi là KPI chắc chắn):** tự nhìn đồng hồ/lịch trong B03; tự bước tới nói chuyện; do dự trước rèm hoặc ký (thời gian ước lượng, không coi 3–5 giây là chuẩn phổ quát); tự quay tìm Lan tại B06; mức độ nêu đúng điều F101 chứng minh; trả lời “cảnh nào làm bạn bất an nhất và vì sao?” và “bạn muốn quay lại phòng 101 ở CH02 để kiểm cái gì?”. **Không áp đặt chỉ tiêu 4/6** từ báo cáo trước khi có dữ liệu nền; hỏi lại sau 10–15 phút để xem hình ảnh nào còn đọng lại.
 
 **Các câu hỏi phỏng vấn playtest đề nghị:** “Vì sao bạn vào bệnh viện dù Bảy báo hoãn?”, “Bạn tin mình thực sự biết gì về giường 4?”, “Bạn chọn A/B/C vì lý do gì?”, “03:17 có nghĩa gì theo bạn và bạn dựa vào nguồn nào?”, “Cảnh đáng sợ nhất có khiến bạn quan sát/khiếu nghi nhiều hơn không?”, “Bạn có biết điều gì vẫn chưa được chứng minh?” Một câu trả lời “người chết ở 03:17 / An là người ở giường 4” ngay sau CH01 là **dấu hiệu spoiler design**, không phải chiến thắng.
 
@@ -370,3 +380,33 @@ Thời gian chỉ là **target thiết kế**; không phải kết quả playtes
 **B06:** Hồ sơ thay đổi, nhưng ký ức về điều đã thấy không biến mất.  
 **B07:** Tôi không thể rời khỏi việc mình chưa đối mặt.  
 **B08:** Tôi sẽ đối chiếu lại thế giới thật — và chưa vội gọi suy đoán là sự thật.
+---
+
+## 8. Kiểm toán thiết kế độc lập v1.1 → quyết định v1.2
+
+**Đầu vào:** báo cáo HTML “Kiểm Toán Thiết Kế Proposal v1.1 — Nâng Tầm Chương 1 Ca Trực Cuối Cùng Lên Chuẩn Thế Giới” do người dùng cung cấp ngày 23/11/2026. Phân loại dưới đây là **đánh giá thiết kế đối chiếu repo/contract**, không phải kết quả thực nghiệm. Điểm **8.1/10**, “top 5%”, mốc “9.2+”, so sánh trực tiếp với các game nổi tiếng và dự đoán “90% người chơi nhìn” là diễn giải của tác giả báo cáo, **không có dữ liệu playtest chứng minh**. Ghi rõ ý nào có ích, ý nào sửa và ý nào không dùng nguyên bản.
+
+| Kiểm toán nêu | Kết luận | Thay đổi v1.2 / lý do |
+| --- | --- | --- |
+| “Bẫy kiểm toán viên lý trí” làm khô cảm xúc | **Chấp nhận phần lớn** | B05 giữ tính nghiêm cẩn nhưng thêm ghi chú nội tâm; B08 từ “cam kết phương pháp” sang ký ức cánh cửa chưa mở. Không biến cảm xúc thành chứng cứ hoặc kết án. |
+| “Ma sát hybrid B03”: Lan ngẩng lên rồi đứng đợi E/K và cinematic quá máy móc | **Chấp nhận vấn đề, không chấp nhận bỏ hybrid** | Lan tiếp tục hành động tự nhiên, đẩy BOARD ra như cử chỉ, tự thoại khi player chủ động E/K; cinematic 60–90 s có shot tối thiểu. Free-look FPS 100% chỉ là phương án A/B test sau này. |
+| Beat budget lệch số học, quá nhiều thời gian đi bộ | **Chấp nhận hoàn toàn lỗi số học; chỉnh mục tiêu** | Từ 28–38 phút *theo bảng v1.1* về **18–24 phút tuyến chính mục tiêu**, 24–34 phút khám phá; §4 cộng rõ ràng. Không khẳng định 16–20 hoặc 18–22 là “chuẩn” khi chưa có dữ liệu. |
+| Scare “quá lịch sự”, dễ bị lướt qua | **Chấp nhận có điều kiện** | Audio-led framing ở B05, soundscape R/B, Uncanny Walk B07–B08; vẫn không cướp camera, không chạy jumpscare khi đọc/cinematic/save, không đo hiệu quả bằng số lần hù hoặc dB đỉnh. |
+| Investigation quá thiên về chữ/UI | **Chấp nhận mạnh** | B04 thêm quan sát tương quan hình học và raking-floor dưới `OBS101A`, dùng camera/đi bộ/kéo rèm, duy trì provenance và giới hạn tiết lộ CH02. |
+| Thay cinematic bằng FPS ±35°, sau 6 s tự đẩy BOARD | **Chỉ lấy phần actor agency** | Không áp góc xoay ±35°/không xóa cinematic; Lan có cử chỉ chủ động nhưng E/K vẫn cần để bắt thoại, người chơi tự cầm BOARD. |
+| Bốn công tắc, một công tắc bị dán | **Chưa chấp nhận** | Repo có 4 **ổ cắm**; cần review kiến trúc điện và Core03/04 trước khi thêm công tắc. Spatial deduction triển khai trước bằng dấu sàn, rèm, so vị trí giường; không đụng điện. |
+| “Acoustic vacuum về 0 dB”, hướng nhìn 90% | **Chỉnh kỹ thuật** | Ducking âm nền ngắn, cue đúng vị trí, tuân âm lượng an toàn và caption; không đồng nhất 0 dBFS với im lặng, không khẳng định tỷ lệ nhìn. |
+| Sổ Trực tự xóa chữ trên phiếu sau A | **Chấp nhận cách kể, bác bỏ sửa dữ liệu gốc** | B05 dùng **overlay mực trắng trên bản sao trình bày trong B**, bảo toàn nguyên `ObservationRecord`, provenance, nhật ký viết tay, bản scan và lưu. |
+| Ghi chú viết tay, câu kết chạm ký ức cánh cửa | **Chấp nhận có guard** | B05/B08 phân biệt **dữ kiện và nỗi day dứt**, chưa viết câu thoại canon khi chưa được duyệt. Không bộc lộ CH07 hoặc chấm người chọn A là xấu. |
+| R/B audio ba lớp và Uncanny Walk | **Chấp nhận có điều chỉnh** | B03 ấm và sống, B06 R trống thiếu tiếng bút, B07→B08 nhịp đi bộ căng; không tắt hết đèn làm mất định hướng/trợ năng. |
+| Playtest 4/6 nhìn đồng hồ, ngập ngừng 3–5 s | **Chấp nhận tín hiệu hành vi, không nhận ngưỡng như chân lý** | Ghi telemetry quan sát và câu hỏi động lực CH02, phỏng vấn không mớm câu. Chỉ điều chỉnh threshold sau playtest mù và căn cứ mẫu. |
+
+### Tác động đến hệ thống hiện tại, không được bỏ qua
+
+- **`LanDirector`, `HospitalGame.Hub`, `VoiceDirector`:** code hiện tự `StartEncounter` sau T03, còn hybrid v1.2 đòi nhận diện rồi E/K mới vào Timeline. **Mới là thiết kế**, cần refactor và chạy VO/skip/load QA trước khi gọi là xong.
+- **`ObservationRegistry` / `HypothesisService`:** spatial task gợi mở quan sát, không sửa luật F101 hoặc các `E11/E12` CH02. R/B có cùng landmark nhưng B không được âm thầm trao chứng cứ R; QA `LOG06-Q01`.
+- **`AmbientDreadDirector`, `EnvironmentalAudio`:** cue mới cần ID registry, persistent once, mix/caption và trạng thái giảm jumpscare. Overprint nhật ký là lớp presentational độc lập với model dữ liệu; không sửa schema save một cách tùy tiện.
+- **`07/Dialogue` và CH04/CH07 guard:** các ghi chú nội tâm/câu kết mới là *đề xuất copy*, không được đưa vào bản thoại đang chạy trước khi kiểm narrative, V22-Q03, CH01-D16b/CH04-D06, `LOCK-V22-02`.
+- **TASK010/026/027/028:** playtest mới 0/6 và specialist review còn mở theo tài liệu nghiệm thu hiện hành; không suy diễn “world-class” từ một bản phân tích HTML hay từ việc cập nhật Markdown.
+
+**Nguyên tắc xét thành công:** người chơi vừa có thể tự nói *vì sao số 0 trên F101 thiếu căn cứ*, vừa mang về **một hình ảnh/âm thanh riêng khiến họ bất an** và có động lực tự quay lại hiện trường R ở CH02. Nếu chỉ nhớ jumpscare hoặc chỉ nhớ bảng suy luận, thiết kế chưa cân bằng.
