@@ -159,7 +159,7 @@ namespace CTCC
         public bool IsDoorOpen(string id) =>
             !string.IsNullOrEmpty(id) && doors.TryGetValue(id, out var ch) && Mathf.Abs(ch.targetAngle) > 12f;
 
-        public bool ToggleDrawer(string id, EnvironmentalAudio audioBus, bool instant = false)
+        public bool ToggleDrawer(string id, EnvironmentalAudio audioBus, bool instant = false, bool quiet = false)
         {
             if (string.IsNullOrEmpty(id) || !drawers.TryGetValue(id, out var ch) || ch.transform == null)
                 return false;
@@ -175,8 +175,16 @@ namespace CTCC
             {
                 ch.moving = true;
             }
-            audioBus?.From(id == "CHAIR-STAFF" ? "chairScrape" : "drawerSlide", ch.transform.position,
-                ch.targetOpen > 0.5f ? 0.82f : 0.64f);
+            if (quiet && id == "DRAWER-NURSE")
+            {
+                audioBus?.From("latchClick", ch.transform.position, 0.58f);
+                audioBus?.From("drawerSlide", ch.transform.position, 0.34f);
+            }
+            else
+            {
+                audioBus?.From(id == "CHAIR-STAFF" ? "chairScrape" : "drawerSlide", ch.transform.position,
+                    ch.targetOpen > 0.5f ? (id == "DRAWER-NURSE" ? 0.94f : 0.82f) : 0.64f);
+            }
             return ch.targetOpen > 0.5f;
         }
 
@@ -184,7 +192,8 @@ namespace CTCC
         {
             if (string.IsNullOrEmpty(id) || !doors.TryGetValue(id, out var ch) || ch.pivot == null)
                 return false;
-            bool open = Mathf.Abs(ch.targetAngle) < 12f;
+            float ratio = Mathf.Abs(ch.targetAngle) / Mathf.Max(1f, Mathf.Abs(ch.maxOpenAngle));
+            bool open = ratio < 0.35f;
             MoveDoor(id, ch.pivot, open ? ch.maxOpenAngle : 0f, instant, audioBus);
             return open;
         }

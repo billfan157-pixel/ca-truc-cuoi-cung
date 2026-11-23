@@ -147,7 +147,7 @@ namespace CTCC
         private bool lastLayerB, lastLayerM;
         private int lastForm;
         private bool lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate, lastThirdGate;
-        private bool lastServiceGate;
+        private bool lastServiceGate, lastB07GateLatched;
         private bool seamClosed, spareTaken;
         public event Action<ZoneRegion> ZoneUnregistering;
         public event Action ZoneReloaded;
@@ -275,7 +275,7 @@ namespace CTCC
             try
             {
                 Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate,
-                    lastLayerM, lastThirdGate, lastServiceGate);
+                    lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched);
                 PresentCheckpointProps(seamClosed, spareTaken);
             }
             finally { smoothPresentation = restoreSmooth; }
@@ -334,7 +334,47 @@ namespace CTCC
             if (Application.isPlaying) RegisterChapterOneFieldObjects(region);
 
             // Bind zone-owned doors, dynamic rigs, characters, audio anchors and motion
-            if (region.outerGate != null && region.outerGate.pivot != null) outerGate = region.outerGate;
+            if (region.outerGate != null && region.outerGate.pivot != null)
+            {
+                outerGate = region.outerGate;
+                ConfigureInteractiveDoor("GATE-CONG", outerGate);
+                if (Application.isPlaying)
+                {
+                    Collider gateSolid = null;
+                    foreach (var col in outerGate.pivot.GetComponentsInChildren<Collider>())
+                    {
+                        if (col.gameObject.layer == SolidLayer && !col.isTrigger) { gateSolid = col; break; }
+                    }
+                    foreach (var st in region.GetComponentsInChildren<SceneTarget>(true))
+                    {
+                        if (st.id == "SEAM")
+                        {
+                            // Keep SEAM target reachable from inside the courtyard even when the iron gate is shut in B07.
+                            st.transform.position = new Vector3(4f, 1.22f, -19.88f);
+                            if (st.TryGetComponent<BoxCollider>(out var bc))
+                                bc.size = new Vector3(1.65f, 1.45f, 0.36f);
+                            st.visibilitySurface = gateSolid;
+                            st.handhold = st.transform;
+                        }
+                        else if (st.id == "GATE-CONG" && gateSolid != null)
+                        {
+                            st.visibilitySurface = gateSolid;
+                        }
+                    }
+                }
+            }
+            if (Application.isPlaying && region.zoneId == "LOC02")
+            {
+                bool hasEmptyDesk = false;
+                foreach (var st in region.GetComponentsInChildren<SceneTarget>(true))
+                    if (st.id == "LAN_EMPTY_DESK") { hasEmptyDesk = true; break; }
+                if (!hasEmptyDesk)
+                {
+                    var emptyDesk = AddTarget(region.transform, "LAN_EMPTY_DESK", "Bàn trực trống của Lan",
+                        new Vector3(2.42f, 1.14f, -3.52f), new Vector3(0.68f, 0.62f, 0.56f));
+                    emptyDesk.focusPriority = -1;
+                }
+            }
             if (region.roomDoor != null && region.roomDoor.pivot != null)
             {
                 roomDoor = region.roomDoor;
@@ -752,7 +792,7 @@ namespace CTCC
 
         public void Present(bool layerB, int form, bool entered, bool acceptedBoard, bool closetOpen, bool secondGate,
             bool layerM = false, bool thirdGate = false, bool serviceGate = false, bool deferF101Visuals = false,
-            float? roomDoorOpenness = null)
+            float? roomDoorOpenness = null, bool b07GateLatched = false)
         {
             lastLayerB = layerB;
             lastLayerM = layerM;
@@ -763,6 +803,7 @@ namespace CTCC
             lastSecondGate = secondGate;
             lastThirdGate = thirdGate;
             lastServiceGate = serviceGate;
+            lastB07GateLatched = b07GateLatched;
             foreach (var zone in registeredZones)
             {
                 foreach (var connector in zone.upperConnectors)
@@ -821,20 +862,36 @@ namespace CTCC
                 }
             }
 
-            outerGate?.Set(entered);
+            bool wantGateOpen = entered && !b07GateLatched;
+            if (outerGate != null)
+            {
+                if (smoothPresentation && interactables != null && Application.isPlaying && outerGate.pivot != null)
+                {
+                    outerGate.isOpen = wantGateOpen;
+                    interactables.MoveDoor("GATE-CONG", outerGate.pivot, wantGateOpen ? outerGate.openAngle : 0f, false,
+                        wantGateOpen ? atmosphere : null);
+                }
+                else
+                {
+                    outerGate.Set(wantGateOpen);
+                    if (outerGate.pivot != null)
+                        interactables?.ConfigureDoor("GATE-CONG", outerGate.pivot, wantGateOpen ? outerGate.openAngle : 0f, outerGate.openAngle);
+                }
+            }
             bool wantRoomOpen = acceptedBoard || !layerB;
             if (roomDoor != null)
             {
+                float targetRatio = roomDoorOpenness ?? 1f;
                 if (smoothPresentation && interactables != null && Application.isPlaying && roomDoor.pivot != null)
                 {
-                    roomDoor.isOpen = wantRoomOpen && (roomDoorOpenness ?? 1f) > 0.15f;
-                    float angle = wantRoomOpen ? roomDoor.openAngle * (roomDoorOpenness ?? 1f) : 0f;
+                    roomDoor.isOpen = wantRoomOpen && targetRatio > 0.15f;
+                    float angle = wantRoomOpen ? roomDoor.openAngle * targetRatio : 0f;
                     interactables.MoveDoor(roomDoor.pivot, angle, false, atmosphere);
                 }
                 else
                 {
-                    roomDoor.Set(wantRoomOpen);
-                    interactables?.ConfigureDoor("DOOR-101", roomDoor.pivot, wantRoomOpen ? roomDoor.openAngle : 0f, roomDoor.openAngle);
+                    roomDoor.Set(wantRoomOpen && targetRatio > 0.15f);
+                    interactables?.ConfigureDoor("DOOR-101", roomDoor.pivot, wantRoomOpen ? roomDoor.openAngle * targetRatio : 0f, roomDoor.openAngle);
                     if (wantRoomOpen && roomDoorOpenness.HasValue)
                     {
                         roomDoor.isOpen = roomDoorOpenness.Value > 0.15f;

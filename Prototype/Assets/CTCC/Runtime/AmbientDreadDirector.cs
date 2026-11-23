@@ -6,14 +6,23 @@ namespace CTCC
 {
     public static class DreadCatalog
     {
+        public const string B01SignKnock = "DREAD_B01_SIGN_KNOCK";
         public const string B02GlassShadow = "DREAD_B02_GLASS_SHADOW";
+        public const string B02GlassStudied = "DREAD_B02_GLASS_STUDIED";
+        public const string B03LanDrawerLook = "DREAD_B03_LAN_DRAWER_LOOK";
         public const string B04TrolleyStop = "DREAD_B04_TROLLEY_STOP";
+        public const string B04TrolleyNear = "DREAD_B04_TROLLEY_NEAR";
+        public const string B04TrolleyClose = "DREAD_B04_TROLLEY_CLOSE";
+        public const string B04StaffTrolleyHalt = "DREAD_B04_STAFF_TROLLEY_HALT";
         public const string B04CurtainBreath = "DREAD_B04_CURTAIN_BREATH";
         public const string B05FanDecelerate = "DREAD_B05_FAN_DECELERATE";
         public const string B05DistantSteps = "DREAD_B05_DISTANT_STEPS";
+        public const string B05CurtainSilhouette = "DREAD_B05_CURTAIN_SILHOUETTE";
         public const string B06PaInterference = "DREAD_B06_PA_INTERFERENCE";
         public const string B06ClockTick = "DREAD_B06_CLOCK_TICK";
         public const string B07GateRainHush = "DREAD_B07_GATE_RAIN_HUSH";
+        public const string B07GateSlam = "DREAD_B07_GATE_SLAM";
+        public const string Bag08Echo = "P_BAG08_ECHO";
 
         // Upgrade #2: "Shift Behind the Paper" DeferredMicroShift events & F101-branch dread variants
         public const string ShiftCurtainCreep = "DREAD_SHIFT_CURTAIN_CREEP";
@@ -25,14 +34,23 @@ namespace CTCC
 
         private static readonly HashSet<string> AllIds = new(StringComparer.Ordinal)
         {
+            B01SignKnock,
             B02GlassShadow,
+            B02GlassStudied,
+            B03LanDrawerLook,
             B04TrolleyStop,
+            B04TrolleyNear,
+            B04TrolleyClose,
+            B04StaffTrolleyHalt,
             B04CurtainBreath,
             B05FanDecelerate,
             B05DistantSteps,
+            B05CurtainSilhouette,
             B06PaInterference,
             B06ClockTick,
             B07GateRainHush,
+            B07GateSlam,
+            Bag08Echo,
             ShiftCurtainCreep,
             ShiftTubeBlackout,
             ShiftHallChair,
@@ -91,13 +109,25 @@ namespace CTCC
         private bool hasLastPos;
         private string lastZone = "";
         private float trolleyFlashTimer;
+        private float trolleyFlashDuration;
         private readonly Queue<DeferredMicroShift> deferredShifts = new();
         private DeferredMicroShift? armedShift;
         private float armedShiftTimer;
 
+        // Walkthrough Peak Horror #1 (P-SC05 Bed-4 silhouette) & Peak Horror #2 (B07 gate slam) coordination
+        private GameObject bed4SilhouetteRoot;
+        private Material bed4SilhouetteMat;
+        private float bed4LureWindow;
+        private float bed4SilhouetteTimer;
+        private float bed4SilhouetteDuration;
+        private GameObject gateBarShadow;
+        private Material gateBarShadowMat;
+        private float gateShadowTimer;
+        public float LastPeakScareUnscaledTime { get; private set; } = -999f;
+
         private const float DefaultGlobalCooldown = 16f;
         private const float DefaultQuietWindow = 8f;
-        private const int MaxSessionBudget = 7;
+        private const int MaxSessionBudget = 8;
 
         internal bool AmbientBudgetExhausted => EventsFiredThisSession >= MaxSessionBudget;
 
@@ -143,7 +173,73 @@ namespace CTCC
             armedShift = null;
             armedShiftTimer = 0f;
             trolleyFlashTimer = 0f;
+            trolleyFlashDuration = 0f;
+            bed4LureWindow = 0f;
+            bed4SilhouetteTimer = 0f;
+            gateShadowTimer = 0f;
+            LastPeakScareUnscaledTime = -999f;
+            if (bed4SilhouetteRoot != null) bed4SilhouetteRoot.SetActive(false);
+            if (gateBarShadow != null) gateBarShadow.SetActive(false);
             hasLastPos = false;
+        }
+
+        public bool TryTriggerB01SignKnock()
+        {
+            var state = stateGetter?.Invoke();
+            if (state == null || state.chapter != "CH01" || state.layer != Reality.R ||
+                !state.Happened("CH01-T02") || state.Happened("CH01-T03") ||
+                !CanFire(state, DreadCatalog.B01SignKnock))
+                return false;
+            Fire(state, DreadCatalog.B01SignKnock, persistent: true, () =>
+            {
+                audioBus?.From("signKnock", new Vector3(6.76f, 1.22f, -20.22f), 0.72f);
+                onCaption?.Invoke("[Tấm biển tôn tháo dỡ ngoài cổng khẽ va một tiếng khô khốc trong gió.]");
+            });
+            return true;
+        }
+
+        public bool NotifyStaffDrawerForcePull()
+        {
+            var state = stateGetter?.Invoke();
+            if (state == null || state.chapter != "CH01" || state.layer != Reality.B ||
+                !state.Happened("CH01-T05") || state.Happened("CH01-T08") ||
+                !state.HasDreadEvent(DreadCatalog.B04TrolleyStop) ||
+                !CanFire(state, DreadCatalog.B04StaffTrolleyHalt))
+                return false;
+            if (suppressionCheck != null && suppressionCheck()) return false;
+            Fire(state, DreadCatalog.B04StaffTrolleyHalt, persistent: true, () =>
+            {
+                audioBus?.From("trolleyRoll", new Vector3(2.9f, 0.65f, 7.6f), 0.44f);
+                onCaption?.Invoke("[Tiếng bánh xe đẩy ngoài hành lang khựng lại ngay sát lối thông nhân viên.]");
+            });
+            return true;
+        }
+
+        public bool PlayPeakGateSlam(bool reducedMotion)
+        {
+            var state = stateGetter?.Invoke();
+            if (state == null || !CanFire(state, DreadCatalog.B07GateSlam)) return false;
+            bool recentlyPeaked = (Time.unscaledTime - LastPeakScareUnscaledTime) < 45f;
+            float vol = recentlyPeaked ? 0.62f : 0.88f;
+            float dip = recentlyPeaked ? 0.24f : 0.15f;
+            LastPeakScareUnscaledTime = Time.unscaledTime;
+            Fire(state, DreadCatalog.B07GateSlam, persistent: true, () =>
+            {
+                audioBus?.PulseAmbienceDip(1.4f, dip);
+                audioBus?.From("gateSlam", new Vector3(4.0f, 1.35f, -20.65f), vol);
+                onCaption?.Invoke("[Một cú đập kim loại nặng nề vang dội từ phía ngoài cánh cổng sắt!]");
+                if (!reducedMotion)
+                {
+                    EnsureGateBarShadow();
+                    if (gateBarShadow != null)
+                    {
+                        gateBarShadow.SetActive(true);
+                        gateBarShadow.transform.position = new Vector3(3.15f, 1.15f, -20.52f);
+                        gateShadowTimer = 0.58f;
+                    }
+                }
+            });
+            return true;
         }
 
         public void NotifyInteraction(float weight = 0.35f)
@@ -162,6 +258,7 @@ namespace CTCC
             NotifyMajorBeatQuietWindow(10f);
             deferredShifts.Clear();
             armedShift = null;
+            bed4LureWindow = 0f;
         }
 
         /// <summary>
@@ -329,21 +426,68 @@ namespace CTCC
                 return;
             }
 
-            // 2. B04: Interrupted trolley roll down far end of main corridor after taking clipboard
-            if (layerB && tookBoard && !g01Done && zone == "HALL" && feet.z > 2.0f && feet.z < 9.5f &&
-                GazeAlignment(new Vector3(4.0f, 1.0f, 14.5f)) > 0.35f &&
+            // 2. B04 Unified 3-Stage Trolley Dread (Far -> Near -> Close, strictly non-overlapping!)
+            if (layerB && tookBoard && !g01Done && zone == "HALL" && feet.z > 1.8f && feet.z < 9.5f &&
+                GazeAlignment(new Vector3(4.0f, 1.0f, 15.0f)) > 0.30f &&
                 CanFire(state, DreadCatalog.B04TrolleyStop))
             {
                 Fire(state, DreadCatalog.B04TrolleyStop, persistent: true, () =>
                 {
-                    if (scene.TrolleyShadowProp != null && !reducedMotion)
+                    if (scene.TrolleyShadowProp != null)
                     {
                         scene.TrolleyShadowProp.SetActive(true);
-                        trolleyFlashTimer = 1.85f;
+                        scene.TrolleyShadowProp.transform.position = new Vector3(1.2f, 0f, 17.2f);
+                        trolleyFlashDuration = reducedMotion ? 0.55f : 2.8f;
+                        trolleyFlashTimer = trolleyFlashDuration;
                     }
-                    audioBus?.From("trolleyRoll", new Vector3(4.0f, 0.7f, 15.2f), 0.42f);
-                    onCaption?.Invoke("[Tiếng bánh xe đẩy lăn nhanh ở cuối hành lang... rồi đột ngột khựng lại.]");
+                    audioBus?.From("trolleyRoll", new Vector3(4.0f, 0.7f, 15.6f), 0.44f);
+                    onCaption?.Invoke("[Tiếng bánh xe đẩy cáng lăn sau cửa kính mờ Cấp cứu... rồi đột ngột khựng lại.]");
                 });
+                return;
+            }
+
+            bool examinedWardClue = HypothesisService.HasExaminedInLayerB(state, ObservationRegistry.Bed4Traces) ||
+                                    HypothesisService.HasExaminedInLayerB(state, ObservationRegistry.Bed4Card) ||
+                                    HypothesisService.HasExaminedInLayerB(state, ObservationRegistry.Bed2Transfer) ||
+                                    HypothesisService.HasExaminedInLayerB(state, ObservationRegistry.Bed3Meds);
+            if (layerB && tookBoard && state.Happened("CH01-T06") && !g01Done && examinedWardClue &&
+                state.HasDreadEvent(DreadCatalog.B04TrolleyStop) &&
+                (zone == "LOC03" || (zone == "HALL" && feet.z > 2.5f && feet.z < 7.5f)) &&
+                CanFire(state, DreadCatalog.B04TrolleyNear))
+            {
+                Fire(state, DreadCatalog.B04TrolleyNear, persistent: true, () =>
+                {
+                    audioBus?.From("trolleyRoll", new Vector3(4.5f, 0.65f, 5.1f), 0.54f);
+                    onCaption?.Invoke("[Tiếng bánh xe đẩy vọng lại gần hơn dọc hành lang, rồi dừng hẳn ngoài cửa Phòng 101.]");
+                });
+                return;
+            }
+
+            if (layerB && tookBoard && !g01Done && zone == "LOC03" && stillnessSeconds > 1.2f &&
+                state.HasDreadEvent(DreadCatalog.B04TrolleyNear) &&
+                CanFire(state, DreadCatalog.B04TrolleyClose))
+            {
+                Fire(state, DreadCatalog.B04TrolleyClose, persistent: true, () =>
+                {
+                    audioBus?.From("trolleyRoll", new Vector3(5.45f, 0.62f, 4.75f), 0.36f);
+                    onCaption?.Invoke("[Ngay ngoài ngưỡng cửa Phòng 101 khẽ có tiếng khung kim loại chạm nhẹ rồi im bặt.]");
+                });
+                return;
+            }
+
+            // 2b. Peak Horror #1 (P-SC05): Bed-4 Alcove Seated Silhouette (<1.8s, never forces camera turn!)
+            if (layerB && tookBoard && !collapsedToR && zone == "LOC03" &&
+                HypothesisService.HasExaminedInLayerB(state, ObservationRegistry.Bed4Card) &&
+                (scene.deniedBay == null || !scene.deniedBay.activeInHierarchy) &&
+                bed4LureWindow <= 0f && bed4SilhouetteTimer <= 0f &&
+                CanFire(state, DreadCatalog.B05CurtainSilhouette))
+            {
+                // Subtle acoustic lure first; silhouette only manifests if Minh turns toward Bed 4 naturally.
+                audioBus?.PulseAmbienceDip(2.2f, 0.24f);
+                audioBus?.From("curtainSlide", new Vector3(11.75f, 1.38f, 3.85f), 0.32f);
+                onCaption?.Invoke("[Từ góc Giường 4 khẽ vang lên tiếng móc rèm rung rất nhẹ.]");
+                bed4LureWindow = 6.5f;
+                globalCooldown = Mathf.Max(globalCooldown, 12f);
                 return;
             }
 
@@ -401,9 +545,9 @@ namespace CTCC
                 return;
             }
 
-            // 7. B05/B06: Single crisp tick from the stopped 03:17 Reception wall clock!
-            if (tookBoard && zone == "LOC02" &&
-                (BacktrackCount >= 1 || g01Done || collapsedToR) &&
+            // 7. B05/B06: Single crisp tick from the stopped 03:17 Reception wall clock — STRICTLY LAYER B ONLY!
+            if (layerB && !collapsedToR && tookBoard && zone == "LOC02" &&
+                (BacktrackCount >= 1 || g01Done) &&
                 GazeAlignment(new Vector3(1.2f, 2.0f, -5.8f)) > 0.20f &&
                 CanFire(state, DreadCatalog.B06ClockTick))
             {
@@ -519,6 +663,17 @@ namespace CTCC
             var state = stateGetter?.Invoke();
             if (state == null || !CanFire(state, dreadId)) return false;
             if (suppressionCheck != null && suppressionCheck()) return false;
+            if (dreadId == DreadCatalog.B06ClockTick && (state.layer != Reality.B || state.Happened("CH01-T08")))
+                return false;
+            if (dreadId == DreadCatalog.B05CurtainSilhouette)
+            {
+                if (state.layer != Reality.B || state.Happened("CH01-T08") ||
+                    !HypothesisService.HasExaminedInLayerB(state, ObservationRegistry.Bed4Card) ||
+                    (scene.deniedBay != null && scene.deniedBay.activeInHierarchy))
+                    return false;
+                TriggerBed4Silhouette(state);
+                return true;
+            }
             if (dreadId is DreadCatalog.ShiftCurtainCreep or DreadCatalog.ShiftTubeBlackout or DreadCatalog.ShiftHallChair)
             {
                 ExecuteDeferredShift(state, dreadId, state.settings.reduceMotion);
@@ -539,9 +694,154 @@ namespace CTCC
             if (trolleyFlashTimer > 0f)
             {
                 trolleyFlashTimer -= dt;
-                if (trolleyFlashTimer <= 0f && scene.TrolleyShadowProp != null)
-                    scene.TrolleyShadowProp.SetActive(false);
+                if (scene.TrolleyShadowProp != null)
+                {
+                    float progress = trolleyFlashDuration > 0.01f
+                        ? Mathf.Clamp01(1f - trolleyFlashTimer / trolleyFlashDuration)
+                        : 1f;
+                    scene.TrolleyShadowProp.transform.position = Vector3.Lerp(
+                        new Vector3(1.2f, 0f, 17.2f), new Vector3(7.2f, 0f, 17.2f), progress);
+                    if (trolleyFlashTimer <= 0f)
+                        scene.TrolleyShadowProp.SetActive(false);
+                }
             }
+
+            if (bed4LureWindow > 0f)
+            {
+                bed4LureWindow -= dt;
+                var state = stateGetter?.Invoke();
+                bool validContext = state != null && state.layer == Reality.B && !state.Happened("CH01-T08") &&
+                                    (scene.deniedBay == null || !scene.deniedBay.activeInHierarchy) &&
+                                    (suppressionCheck == null || !suppressionCheck());
+                if (!validContext)
+                {
+                    bed4LureWindow = 0f;
+                }
+                else if (GazeAlignment(new Vector3(11.82f, 1.05f, 3.68f)) > 0.66f &&
+                         CanFire(state, DreadCatalog.B05CurtainSilhouette))
+                {
+                    bed4LureWindow = 0f;
+                    TriggerBed4Silhouette(state);
+                }
+            }
+
+            if (bed4SilhouetteTimer > 0f)
+            {
+                bed4SilhouetteTimer -= dt;
+                if (bed4SilhouetteRoot != null && bed4SilhouetteMat != null)
+                {
+                    float u = 1f - Mathf.Clamp01(bed4SilhouetteTimer / Mathf.Max(0.01f, bed4SilhouetteDuration));
+                    // Gentle bell curve: appear quickly, hold briefly, dissolve before 1.7s
+                    float alpha = u < 0.22f ? Mathf.Lerp(0f, 0.56f, u / 0.22f)
+                        : u < 0.58f ? 0.56f
+                        : Mathf.Lerp(0.56f, 0f, (u - 0.58f) / 0.42f);
+                    bed4SilhouetteMat.SetColor("_BaseColor", new Color(0.03f, 0.04f, 0.045f, alpha));
+                    if (bed4SilhouetteTimer <= 0f)
+                        bed4SilhouetteRoot.SetActive(false);
+                }
+            }
+
+            if (gateShadowTimer > 0f)
+            {
+                gateShadowTimer -= dt;
+                if (gateBarShadow != null && gateBarShadowMat != null)
+                {
+                    float u = 1f - Mathf.Clamp01(gateShadowTimer / 0.58f);
+                    gateBarShadow.transform.position = Vector3.Lerp(
+                        new Vector3(3.15f, 1.15f, -20.52f), new Vector3(4.95f, 1.15f, -20.52f), u);
+                    float a = Mathf.Sin(u * Mathf.PI) * 0.52f;
+                    gateBarShadowMat.SetColor("_BaseColor", new Color(0.02f, 0.025f, 0.03f, a));
+                    if (gateShadowTimer <= 0f)
+                        gateBarShadow.SetActive(false);
+                }
+            }
+        }
+
+        private void TriggerBed4Silhouette(Investigation state)
+        {
+            EnsureBed4Silhouette();
+            LastPeakScareUnscaledTime = Time.unscaledTime;
+            Fire(state, DreadCatalog.B05CurtainSilhouette, persistent: true, () =>
+            {
+                if (bed4SilhouetteRoot != null)
+                {
+                    bed4SilhouetteRoot.SetActive(true);
+                    bed4SilhouetteDuration = state.settings.reduceMotion ? 1.25f : 1.62f;
+                    bed4SilhouetteTimer = bed4SilhouetteDuration;
+                }
+                onCaption?.Invoke("[Trong góc Giường 4 thoáng hiện một bóng người ngồi lặng rồi tan hẳn vào khoảng tối.]");
+            });
+        }
+
+        private void EnsureBed4Silhouette()
+        {
+            if (bed4SilhouetteRoot != null) return;
+            var lit = Shader.Find("Universal Render Pipeline/Lit");
+            bed4SilhouetteMat = CreateTransparentShadowMat(lit, "CTCC_Bed4SilhouetteMat");
+
+            bed4SilhouetteRoot = new GameObject("P_SC05_Bed4Silhouette");
+            bed4SilhouetteRoot.transform.position = new Vector3(11.82f, 0f, 3.68f);
+            bed4SilhouetteRoot.transform.rotation = Quaternion.LookRotation(new Vector3(-1f, 0f, 0.25f));
+
+            // Restrained seated human silhouette (no facial detail, no collider, vanishes <1.8s)
+            AddShadowPart(bed4SilhouetteRoot, "Torso", PrimitiveType.Capsule, new Vector3(0f, 0.86f, 0f), new Vector3(0.36f, 0.34f, 0.24f), bed4SilhouetteMat);
+            AddShadowPart(bed4SilhouetteRoot, "Shoulders", PrimitiveType.Sphere, new Vector3(0f, 1.04f, 0f), new Vector3(0.42f, 0.18f, 0.24f), bed4SilhouetteMat);
+            AddShadowPart(bed4SilhouetteRoot, "Head", PrimitiveType.Sphere, new Vector3(0f, 1.26f, 0.03f), new Vector3(0.20f, 0.23f, 0.21f), bed4SilhouetteMat);
+            AddShadowPart(bed4SilhouetteRoot, "SeatedLap", PrimitiveType.Cube, new Vector3(0f, 0.52f, 0.14f), new Vector3(0.34f, 0.18f, 0.36f), bed4SilhouetteMat);
+            bed4SilhouetteRoot.SetActive(false);
+        }
+
+        private void EnsureGateBarShadow()
+        {
+            if (gateBarShadow != null) return;
+            var lit = Shader.Find("Universal Render Pipeline/Lit");
+            gateBarShadowMat = CreateTransparentShadowMat(lit, "CTCC_GateSlamShadowMat");
+            gateBarShadow = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            gateBarShadow.name = "B07_GateSlamShadow";
+            var col = gateBarShadow.GetComponent<Collider>();
+            if (col != null) Destroy(col);
+            gateBarShadow.transform.localScale = new Vector3(0.52f, 0.92f, 0.22f);
+            var mr = gateBarShadow.GetComponent<MeshRenderer>();
+            mr.sharedMaterial = gateBarShadowMat;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            gateBarShadow.SetActive(false);
+        }
+
+        private static Material CreateTransparentShadowMat(Shader lit, string name)
+        {
+            var m = new Material(lit) { name = name };
+            m.SetFloat("_Surface", 1f);
+            m.SetFloat("_Blend", 0f);
+            m.SetFloat("_ZWrite", 0f);
+            m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            m.renderQueue = 3000;
+            m.SetColor("_BaseColor", new Color(0.03f, 0.04f, 0.045f, 0f));
+            m.SetFloat("_Smoothness", 0.02f);
+            return m;
+        }
+
+        private static void AddShadowPart(GameObject parent, string name, PrimitiveType type, Vector3 pos, Vector3 scale, Material mat)
+        {
+            var go = GameObject.CreatePrimitive(type);
+            go.name = name;
+            var col = go.GetComponent<Collider>();
+            if (col != null) Destroy(col);
+            go.transform.SetParent(parent.transform, false);
+            go.transform.localPosition = pos;
+            go.transform.localScale = scale;
+            var mr = go.GetComponent<MeshRenderer>();
+            mr.sharedMaterial = mat;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        private void OnDestroy()
+        {
+            if (bed4SilhouetteRoot != null) Destroy(bed4SilhouetteRoot);
+            if (gateBarShadow != null) Destroy(gateBarShadow);
+            if (bed4SilhouetteMat != null) Destroy(bed4SilhouetteMat);
+            if (gateBarShadowMat != null) Destroy(gateBarShadowMat);
         }
     }
 }

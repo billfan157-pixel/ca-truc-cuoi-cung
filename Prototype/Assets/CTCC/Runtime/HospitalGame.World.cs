@@ -8,20 +8,64 @@ namespace CTCC
         private float dragStartPose;
         private float observeWardAgainAt;
         private float wardVisibleSeconds;
+        private bool b07GateAttemptRunning;
         private const string WheelTrace = "BED4_WHEELS", BlanketTrace = "BED4_BLANKET", SlipperTrace = "BED4_SLIPPERS";
+
+        private bool CanSpatialLinkBed4() =>
+            State.layer == Reality.B &&
+            casework.CanRevise &&
+            State.f101Annotations.MarkedHotspot(ObservationRegistry.Bed4Card) == F101Annotations.Receiver &&
+            HypothesisService.HasExaminedInLayerB(State, ObservationRegistry.Bed4Traces) &&
+            !State.f101Annotations.HasLink;
 
         private string WorldPrompt(SceneTarget target)
         {
             if (target == null) return null;
+
+            if (target.id == "GATE-CONG")
+            {
+                var eq = InventoryService.GetEquipped(State);
+                if (eq?.itemDefId == BackpackCatalog.GateKey)
+                    return "[" + UseKey + "]  Mở khóa cổng phụ bằng chìa đồng";
+                if (eq?.itemDefId == BackpackCatalog.WingCKey)
+                    return "[" + UseKey + "]  Thử chìa khu C trên ổ khóa cổng phụ";
+                if (State.Happened("E10a.SMSRead") && InventoryService.HasPhysical(State, BackpackCatalog.GateKey))
+                    return "[" + UseKey + "]  Mở khóa cổng phụ (dùng chìa cổng phụ)";
+                return "[" + UseKey + "]  Kiểm tra ổ khóa cổng phụ";
+            }
+
+            if (target.id == "SEAM")
+            {
+                if (State.chapter == "CH01" && State.Happened("CH01-T08") && !State.Happened("CH01-T09"))
+                    return "[" + UseKey + "]  Kéo mở cánh cổng phụ   ·   Giữ chuột trái để kéo";
+                var eq = InventoryService.GetEquipped(State);
+                if (eq != null && eq.itemDefId is (BackpackCatalog.GateKey or BackpackCatalog.WingCKey))
+                    return "[" + UseKey + "]  Thử mở cổng bằng " + (BackpackCatalog.Get(eq.itemDefId)?.ShortLabel ?? "chìa khóa");
+                return "[" + UseKey + "]  Kiểm tra cánh cổng phụ";
+            }
+
+            if (target.id == "COMPARE_CLIP_AN02")
+            {
+                var eq = InventoryService.GetEquipped(State);
+                var eqDef = eq != null ? BackpackCatalog.Get(eq.itemDefId) : null;
+                if (eqDef != null && eqDef.CanPlace && eqDef.Kind == ItemKind.LayerBoundPaper)
+                    return "[" + UseKey + "]  Kẹp " + eqDef.ShortLabel + " cạnh F101";
+                var placed = InventoryService.GetPlacedAt(State, WorldAnchors.An02CompareClip);
+                if (placed != null)
+                    return "[" + UseKey + "]  Xem / rút " + (BackpackCatalog.Get(placed.itemDefId)?.ShortLabel ?? "tài liệu") + " cạnh F101";
+                return "[" + UseKey + "]  Kẹp đối chiếu cạnh F101";
+            }
+
             string label = target.id switch
             {
                 "AN01" when State.chapter == "CH01" && NeedsHub() =>
                     GateService.G01(State) && !State.Happened("CH01-T08") ? "Bàn giao phiếu tại sổ trực" : "Giở sổ trên quầy",
                 "AN01" => "Mở sổ trực",
-                "BOARD" => "Nhận bảng kẹp",
+                "BOARD" => State.Happened("CH01-T04") ? "Xem & nhận bảng kẹp Phòng 101" : "Xem bảng kẹp trên quầy",
                 "F101" when State.chapter == "CH02" => "Bảng kẹp 101   ·   Q Đổi lớp",
                 "F101" => "Nhấc phiếu trên bảng kẹp",
-                "LAN_TALK" => "Nói với Lan",
+                "LAN_TALK" => !State.Happened("CH01-T04") ? "Nói chuyện với Lan" : "Hỏi thêm Lan",
+                "LAN_EMPTY_DESK" => "Nhìn quầy trực trống",
                 "OBS_CLOCK_0317" => "Xem kim đồng hồ",
                 "OBS101B" => "Cầm thẻ đầu giường",
                 "OBS101C" => "Xem tờ kẹp ở giường 02",
@@ -29,9 +73,15 @@ namespace CTCC
                 Ch01FieldObjects.BinPedal when scene.PedalBin?.HeldOpen == true => "Nhả bàn đạp",
                 _ => target.title
             };
+
+            if (target.id is ("OBS101A" or "OBS101A_BLANKET" or "OBS101A_SLIPPERS") && CanSpatialLinkBed4())
+                return "[" + UseKey + "]  " + label + "   ·   [Q] Liên hệ AS-05B với dấu hiện trường";
+
             if (IsDraggablePhysicalRig(target.id) && scene.interactables != null)
             {
                 bool open = scene.interactables.IntendedOpenness(target.id) > 0.5f;
+                if (target.id == "DRAWER-NURSE" && !open)
+                    return "[" + UseKey + "]  Kéo mạnh ngăn tủ   ·   [Q] Mở êm chốt   ·   Giữ chuột trái để kéo";
                 string action = target.id == "CHAIR-STAFF" ? (open ? "Đẩy ghế vào" : "Kéo ghế ra") :
                     (open ? "Khép " : "Mở ") + label.ToLowerInvariant();
                 return "[" + UseKey + "]  " + action + (target.id == "CURTAIN-101"
@@ -40,7 +90,7 @@ namespace CTCC
             return "[" + UseKey + "]  " + label;
         }
 
-        private void ToggleWorldProp(string id)
+        private void ToggleWorldProp(string id, bool quietNurseDrawer = false)
         {
             var rig = scene.interactables;
             if (rig == null) return;
@@ -49,7 +99,8 @@ namespace CTCC
             {
                 // Keep the leaf from ending over Minh if he is on the jamb or in its swing.
                 float current = rig.GetDragOpenness01(id);
-                rig.RestorePose(id, before > 0.15f ? 0f : 1f);
+                float threshold = id == "CHAIR-STAFF" ? 0.15f : 0.35f;
+                rig.RestorePose(id, before > threshold ? 0f : 1f);
                 bool blocked = HospitalScene.Occupied(player.Feet) || id == "CHAIR-STAFF" && !rig.StaffChairClear();
                 rig.RestorePose(id, current);
                 if (blocked)
@@ -61,9 +112,36 @@ namespace CTCC
                 else rig.ToggleDoor(id, scene.atmosphere);
             }
             else if (id == "CURTAIN-101") rig.ToggleCurtain(scene.atmosphere);
-            else rig.ToggleDrawer(id, scene.atmosphere);
+            else rig.ToggleDrawer(id, scene.atmosphere, quiet: quietNurseDrawer);
+
+            float after = rig.IntendedOpenness(id);
             SaveWorldPose(id, before);
-            if (Options.captions && id == "CHAIR-STAFF") ui.Caption("[Chân ghế cọ nhẹ trên nền gạch]", 2f);
+
+            if (Options.captions && id == "CHAIR-STAFF")
+                ui.Caption("[Chân ghế cọ nhẹ trên nền gạch]", 2f);
+            else if (id == "DRAWER-NURSE" && after > 0.5f && before <= 0.5f)
+            {
+                if (quietNurseDrawer)
+                    ui.Caption("[Chốt ngăn tủ bật nhẹ, trượt ra êm]", 2.2f);
+                else
+                    dreadDirector?.NotifyStaffDrawerForcePull();
+            }
+            else if (id == "DRAWER-DESK" && after > 0.5f && before <= 0.5f)
+            {
+                TryTriggerLanDrawerLook();
+            }
+        }
+
+        private void TryTriggerLanDrawerLook()
+        {
+            if (State == null || State.chapter != "CH01" || State.layer != Reality.B ||
+                !State.Happened("CH01-T03") || GateService.G01(State) || State.Happened("CH01-T08"))
+                return;
+            if (State.HasDreadEvent(DreadCatalog.B03LanDrawerLook)) return;
+            if (lanDirector == null || lanDirector.IsCinematicActive || lanDirector.IsEncounterRunning) return;
+
+            lanDirector.ReactToReceptionDrawer();
+            SaveCheckpoint(() => casework.RecordDreadEventAsync(DreadCatalog.B03LanDrawerLook));
         }
 
         private void CancelWorldDrag()
@@ -97,6 +175,30 @@ namespace CTCC
 
         private void SpeakAtReception()
         {
+            if (lanDirector == null || lanDirector.IsCinematicActive || busy || ui.IsModal || inspector.IsInspecting)
+                return;
+
+            // Pha 3: Player-initiated active cinematic dialogue scene before CH01-T04!
+            if (!State.Happened("CH01-T04"))
+            {
+                if (lanDirector.StartCinematicEncounter(
+                    LanEncounterLine,
+                    skipOpeningGreeting: State.Happened("CH01-LAN-NOTICED"),
+                    reducedMotion: Options.reduceMotion,
+                    onComplete: () =>
+                    {
+                        SaveCheckpoint(() => casework.CompleteLanCinematicAsync(), () =>
+                        {
+                            dreadDirector?.NotifyMajorBeatQuietWindow(8f);
+                            RefreshControls();
+                        });
+                    }))
+                {
+                    RefreshControls();
+                }
+                return;
+            }
+
             string next = NextLanReflection();
             if (next != null) lanDirector.PlayOptionalLine(next, "Lan", Line(next), 0.25f, 0.5f, 0.22f);
         }
@@ -105,7 +207,8 @@ namespace CTCC
 
         private string NextLanReflection()
         {
-            if (lanDirector == null || lanDirector.IsEncounterRunning || voice == null || voice.IsSpeaking) return null;
+            if (lanDirector == null || lanDirector.IsEncounterRunning || lanDirector.IsCinematicActive || voice == null || voice.IsSpeaking)
+                return null;
             var transcript = voice.Transcript;
             foreach (string id in LanReflections)
             {
@@ -114,6 +217,101 @@ namespace CTCC
                 if (i == transcript.Count) return id;
             }
             return null;
+        }
+
+        private void TriggerSpatialBed4Link()
+        {
+            if (!CanSpatialLinkBed4()) return;
+            var from = new EvidenceAnnotation(ObservationRegistry.Bed4Card, F101Annotations.Receiver);
+            var to = new EvidenceAnnotation(ObservationRegistry.Bed4Traces, F101Annotations.TraceGroup);
+            SaveCheckpoint(() => casework.SetF101LinkAsync(from, to), () =>
+            {
+                scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.52f);
+                ui.Toast("ĐÃ LIÊN HỆ NGUỒN TẠI HIỆN TRƯỜNG",
+                    "Ô chữ ký trống trên thẻ AS-05B ↔ dấu sử dụng quanh hốc Giường 4. Có thể quay lại bảng kẹp F101 để lập luận.", 5.8f);
+            });
+        }
+
+        private void TryUnlockOuterGate()
+        {
+            var equipped = InventoryService.GetEquipped(State);
+            string eqId = equipped?.itemDefId ?? "";
+            var res = WorldUseResolver.Resolve(State, eqId, "GATE-CONG");
+
+            switch (res.Outcome)
+            {
+                case WorldUseOutcome.UnlockOuterGate:
+                    SaveCheckpoint(() => casework.OpenGateAsync(player.Feet), () =>
+                    {
+                        handPresenter?.TriggerUseAnimation();
+                        scene.atmosphere?.From("keyTurn", new Vector3(4f, 1.24f, -20.0f), 0.85f);
+                        scene.atmosphere?.From("doorCreak", new Vector3(4f, 1.2f, -20.0f), 0.78f);
+                        scene.atmosphere?.From("distantThunder", new Vector3(4f, 6f, -15f), 0.65f);
+                        ui.Caption("Ổ khóa bật chốt, cánh cổng sắt nặng nề mở ra. [Tiếng mưa nặng hạt trên sân xi măng]", 4.2f);
+                        // Schedule restrained demolition-sign wind knock a few seconds after entering courtyard
+                        b01SignKnockAt = Time.unscaledTime + 3.4f;
+                    });
+                    break;
+
+                case WorldUseOutcome.WrongKeyForOuterGate:
+                    scene.atmosphere?.From("doorLatch", new Vector3(4f, 1.24f, -20.0f), 0.72f);
+                    ui.Caption(res.Feedback, 4.4f, true);
+                    break;
+
+                case WorldUseOutcome.NeedSmsBeforeGate:
+                    scene.atmosphere?.From("doorLatch", new Vector3(4f, 1.24f, -20.0f), 0.62f);
+                    ui.Caption(res.Feedback, 4.2f, true);
+                    break;
+
+                default:
+                    scene.atmosphere?.From("doorLatch", new Vector3(4f, 1.24f, -20.0f), 0.60f);
+                    ui.Caption("Ổ khóa cổng phụ đang cài chặt. Kiểm tra bì thư của Bảy đặt cạnh xe.", 3.6f, true);
+                    break;
+            }
+        }
+
+        private void ExecuteB07GateAttempt()
+        {
+            if (b07GateAttemptRunning || busy) return;
+            var equipped = InventoryService.GetEquipped(State);
+            if (State.Happened("CH01-T09"))
+            {
+                if (equipped != null && equipped.itemDefId is (BackpackCatalog.GateKey or BackpackCatalog.WingCKey))
+                {
+                    var res = WorldUseResolver.Resolve(State, equipped.itemDefId, "SEAM");
+                    scene.atmosphere?.From("doorLatch", new Vector3(4f, 1.24f, -20.0f), 0.72f);
+                    ui.Caption(res.Feedback, 4.2f, true);
+                }
+                else
+                {
+                    scene.atmosphere?.From("doorLatch", new Vector3(4f, 1.24f, -20.0f), 0.60f);
+                    ui.Caption("Cánh cổng sắt đã khóa chặt phía ngoài. Không tìm được đường ra — trở lại sổ trực.", 4.6f, true);
+                }
+                return;
+            }
+
+            StartCoroutine(RunB07PeakGateSeam());
+        }
+
+        private IEnumerator RunB07PeakGateSeam()
+        {
+            b07GateAttemptRunning = true;
+            try
+            {
+                // Peak Horror #2: Metal slam outside gate + brief rain/ambience dip + bar shadow (safe under Reduced Motion)
+                dreadDirector?.PlayPeakGateSlam(Options.reduceMotion);
+                if (scene.outerGate?.pivot != null)
+                    scene.interactables?.MoveDoor("GATE-CONG", scene.outerGate.pivot, 0f, Options.reduceMotion, null);
+                yield return new WaitForSecondsRealtime(Options.reduceMotion ? 0.14f : 0.46f);
+                TransitionAsync(() => casework.OutsideAttemptAsync(player.Feet), true, () =>
+                {
+                    voice?.Speak("CH01-D14", "Minh", Line("CH01-D14"));
+                });
+            }
+            finally
+            {
+                b07GateAttemptRunning = false;
+            }
         }
 
         private void WorldF101(Transform source)
@@ -167,7 +365,24 @@ namespace CTCC
                             inspector.Close();
                         });
                 }
-                else ui.Toast(spec.Title, spec.FactSummary, 4.6f);
+                else
+                {
+                    string summary = spec.FactSummary;
+                    // B01 Flashlight glare / oblique light response on exterior enamel plaque & demolition notice (always readable!)
+                    if (spec.Id == "CH01_GATE_PLAQUE")
+                    {
+                        summary += player.IsTorchOn
+                            ? " Dưới ánh đèn pin chiếu thẳng, lớp men ướt loá nhẹ nhưng vẫn rõ từng chữ «BỆNH VIỆN AN SINH»."
+                            : " Dưới ánh đèn đường ngoài cổng, mặt men cũ vẫn đọc rõ tên viện.";
+                    }
+                    else if (spec.Id == "CH01_DEMOLITION")
+                    {
+                        summary += player.IsTorchOn
+                            ? " Ánh đèn rọi nghiêng làm nổi rõ dòng ngày bàn giao 18/11/2012 trên mặt giấy mới."
+                            : " Mép giấy ẩm mưa khẽ phập phồng theo từng đợt gió ngoài đường.";
+                    }
+                    ui.Toast(spec.Title, summary, 5.2f);
+                }
             });
         }
 

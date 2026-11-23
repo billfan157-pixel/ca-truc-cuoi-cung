@@ -239,11 +239,17 @@ namespace CTCC
             bool restoreProps = resetProps || snapshot.layer != Current.layer;
             if (restoreProps) scene.interactables?.ResetSessionProps();
             var roomPose = snapshot.FindPropPose("DOOR-101", snapshot.layer);
+            float? effectiveRoomPose = roomPose?.openness;
+            if (!effectiveRoomPose.HasValue && Application.isPlaying && scene.smoothPresentation &&
+                snapshot.chapter == "CH01" && snapshot.layer == Reality.B &&
+                snapshot.Happened("CH01-T05") && !snapshot.Happened("CH01-T06"))
+                effectiveRoomPose = 0.13f; // Unlocked ajar after BOARD pickup — Minh pushes/drags DOOR-101 to step inside!
+            bool b07GateLatched = snapshot.chapter == "CH01" && snapshot.Happened("CH01-T08");
             scene.Present(snapshot.layer == Reality.B, (int)snapshot.f101.current,
                 snapshot.Happened("CH01-T02"), snapshot.Happened("CH01-T05"),
                 snapshot.Has("E12"), GateService.G02(snapshot),
                 snapshot.layer == Reality.M, GateService.G03(snapshot), snapshot.chapter == "CH04", deferF101Visuals,
-                roomPose?.openness);
+                effectiveRoomPose, b07GateLatched);
             if (restoreProps && scene.interactables != null)
             {
                 foreach (var pose in snapshot.sceneProps)

@@ -23,14 +23,49 @@ namespace CTCC
         private float battery = 360f;
         public Vector3 Feet => transform.position;
         public Camera Eye => eye;
+        public bool IsTorchOn => torchOn && battery > 0f;
         public bool CanPlay { get; set; }
         public bool LookSuppressed { get; set; }
+        public bool ExternalCameraControl { get; set; }
         public bool IsCrouching => capsule != null && capsule.height < 1.35f;
         public bool IsRunning => currentVelocity.sqrMagnitude > 9.0f;
         public bool IsMoving => currentVelocity.sqrMagnitude > 0.05f;
         private readonly Collider[] nearby = new Collider[64];
         private SceneTarget focusedTarget;
         internal SceneTarget BeyondReach { get; private set; }
+
+        public struct CameraPoseSnapshot
+        {
+            public Vector3 WorldPosition;
+            public Quaternion WorldRotation;
+            public Vector3 LocalPosition;
+            public Quaternion BodyRotation;
+            public float Pitch;
+            public float Fov;
+        }
+
+        public CameraPoseSnapshot CaptureCameraPose() => new()
+        {
+            WorldPosition = eye != null ? eye.transform.position : transform.position + Vector3.up * 1.62f,
+            WorldRotation = eye != null ? eye.transform.rotation : transform.rotation,
+            LocalPosition = eye != null ? eye.transform.localPosition : Vector3.up * 1.62f,
+            BodyRotation = transform.rotation,
+            Pitch = pitch,
+            Fov = eye != null ? eye.fieldOfView : 68f
+        };
+
+        public void RestoreCameraPose(CameraPoseSnapshot snap)
+        {
+            ExternalCameraControl = false;
+            transform.rotation = snap.BodyRotation;
+            pitch = Mathf.Clamp(snap.Pitch, -86f, 86f);
+            if (eye != null)
+            {
+                eye.transform.localPosition = snap.LocalPosition;
+                eye.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+                eye.fieldOfView = Mathf.Clamp(settings != null ? settings.fov : snap.Fov, 55f, 82f);
+            }
+        }
 
         public void Initialize(Camera camera, EnvironmentalAudio bus)
         {
@@ -109,7 +144,7 @@ namespace CTCC
         {
             bool focusedOrIgnored = Application.isFocused ||
                 InputSystem.settings.backgroundBehavior == InputSettings.BackgroundBehavior.IgnoreFocus;
-            if (!CanPlay || eye == null || !focusedOrIgnored)
+            if (!CanPlay || ExternalCameraControl || eye == null || !focusedOrIgnored)
                 return;
             var k = Keyboard.current;
             var m = Mouse.current;
