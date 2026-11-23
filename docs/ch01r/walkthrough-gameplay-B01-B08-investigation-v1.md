@@ -68,6 +68,14 @@ Câu hỏi của mỗi beat được phép bỏ qua trong phần UI, nhưng **kh
 - **Khi vật không thể mang**: cho phép quan sát và ghi nguồn tại chỗ, có cách quay lại khi cần. Đừng tạo một “mẫu vật ma” trong túi chỉ để tăng số món.
 - **Khi không có chứng cứ đủ**: vẫn có đường A/B và tiến trình chính; C có thể được thử lại sau khi người chơi quay hiện trường.
 
+### 6. Phản hồi tích lũy mà không tạo thêm nhiệm vụ
+
+Người chơi phải thấy bệnh viện **nhớ được một vài thao tác thật của Minh**: hướng đèn giúp nhìn bề mặt khác nhau, Lan chú ý khi Minh mở ngăn kéo, tiếng xe ở hành lang chuyển chỗ theo việc người chơi kiểm hốc giường 4, và chiếc ghế Lan bỏ trống khiến phản hồi trước đó trở nên đáng nhớ. Các phản ứng này **không có điểm thiện/ác, không sinh manh mối mới và không thay yêu cầu F101**.
+
+Cường độ được điều phối qua **ba trạng thái trình bày**, không dùng giờ trên đồng hồ để đo tiến độ: (1) ca trực còn ổn định ở B03, (2) bất thường xuất hiện quanh B04, (3) sự căng thẳng ngắt quãng tại B05 rồi mất tiếng bút ở B06. Chuyển mức dựa trên **mốc chơi đã commit và vị trí**, không cộng điểm sau từng vật quan sát. Người tìm tòi nhiều không bị game “phạt” bằng scare dày hơn; một số cue tùy chọn được bỏ qua khi bận đọc hoặc ngân sách ambience đã đầy.
+
+Những quyết định có hậu quả quy tắc vẫn tập trung ở F101: **A/B/C đều được ký**, C cần căn cứ, và hậu quả nhìn thấy trong B chứ không làm biến đổi hiện trường R ở Chương 2. Phản ứng của Lan, tủ STAFF và tiếng xe là **độ sâu tương tác**, không phải một nhánh puzzle thứ hai. Đồng hồ B vẫn đứng ở **03:17** và không chạy theo số manh mối.
+
 ## II. WALKTHROUGH CHI TIẾT
 
 ### B01 — BỨC THƯ KHÔNG CÒN LỜI HẸN
@@ -668,14 +676,27 @@ Một tiếng giấy lật khô tại quầy trống. Không có Lan, không có
 
 ## III. NHỊP KINH DỊ VÀ CHỖ DỪNG CHO NGƯỜI CHƠI
 
+### Ba trạng thái âm thanh theo hành động thay vì đồng hồ đếm ngược
+
+| Lớp âm | Thời điểm trải nghiệm chính | Điều được giữ / giảm / gợi lại | Phản hồi khi người chơi không nghe |
+| --- | --- | --- | --- |
+| **Ca trực ổn định** | B03 sau khi giở sổ AN01 | Tiếng bút Lan, giấy, quạt và đèn tạo cảm giác ca trực vẫn tiếp tục; giọng thoại luôn ưu tiên | Chuyển ánh sáng lớp B, Lan ngồi trực và làm việc trong tầm nhìn |
+| **Một điều không khớp** | B04, sau khi người chơi tự tiếp cận 101 và kiểm nguồn | Hum/quạt có thể dịu đi, tiếng xe đổi khoảng cách theo nấc tùy chọn, rèm ma sát có nguồn; giữa các cue trở lại nền ổn định | Bóng rèm, dấu sàn và vật thể có thể kiểm bằng hình ngay cả khi mute |
+| **Đứng trước chữ ký** | B05 khi rời thao tác soi giấy, tiến tới ký và nhận hậu quả | Duck ambience ngắn theo nhịp, **không tắt mất bước chân/thao tác/đối thoại**; sau đó chỉ một cue phù hợp nhánh A/B/C, rồi trả tiếng nền | Giấy signed đổi, vùng hốc 4 biến hình hoặc ánh sáng, caption hướng |
+| **Mất mát sau ca trực** | B06 về quầy, sau T08 trở R | Tiếng bút/giọng Lan không còn, âm mưa R trở lại. Tick đồng hồ B là cue riêng rất ngắn nếu player tự quay lại nhìn khi còn B | Quầy trống, vị trí sổ/ghế quen và ánh sáng R |
+
+Quy tắc mix: không dùng `0 dBFS` làm “im lặng tuyệt đối”, không cắt toàn bộ master bus hay âm bước chân, không làm người chơi tưởng game mất tiếng. Một tham số mức căng thẳng có thể điều phối snapshot/ducking, nhưng các nguồn âm có hướng, thoại, caption và giới hạn tổng số scare vẫn cần thiết kế riêng. Khi player đang đọc F101/AS-05B, ở cinematic Lan, save/load, swap lớp hoặc lựa chọn trợ năng, **không chạy các drop-out mạnh**; kết thúc modal rồi mới xét cue còn hợp bối cảnh, không phát bù bằng mọi giá.
+
+**Khoảng thở là bắt buộc:** sau bóng kính B02, sau cinematic B03, giữa các nấc xe B04 và trước/sau chữ ký B05 phải có khoảng không bị cue khác chen vào. Khi người chơi đi thẳng A/B, không ép chuỗi âm dài tới tận nấc cuối. Âm gần hốc 4 và tín hiệu hậu ký phải phối như **một cao trào có nguyên nhân**, không hai jumpscare liên tiếp.
+
 ### Nhịp tổng thể, không đánh đồng sự kiện với jumpscare
 
 | Giai đoạn | Âm nền chủ đạo | Điểm gây bất an | Khoảng nghỉ cần có |
 | --- | --- | --- | --- |
 | B01–B02 | Mưa sân R, tiếng gió, phản xạ kính | Tự mở cổng rồi thấy có người ở nơi bỏ hoang | Giữa tiếng gõ biển và kính có đủ không gian chỉ nghe chân Minh |
 | B03 | Quạt, đèn, giấy bút và giọng Lan ở B | Sự ấm áp trái với mốc 2012/2005 | Cảnh hội thoại không kèm âm hù; sau cinematic ít nhất một nhịp an toàn |
-| B04 | Gió rèm, ray kéo, xe đẩy xa, tiếng giấy hai mặt | Dấu vật lý không khớp hồ sơ | Không đánh lạc hướng khi player đang đọc chi tiết nguồn |
-| B05 | Quạt hạ, một tiếng móc rèm có hướng, im lặng sau mực ký | Bóng thoáng qua; căn phòng phản ứng với chữ ký | P-SC05 và hậu quả F101 không phát chồng nhau |
+| B04 | Gió rèm, ray kéo, xe đẩy xa rồi có thể gần hơn, tiếng giấy hai mặt | Dấu vật lý không khớp hồ sơ; âm gần lên khi tự kiểm | Không đánh lạc hướng khi player đang đọc; không nhân đôi HE01 và DREAD_B04 |
+| B05 | Hum hạ nhẹ, tiếng kim loại có nguồn từ hốc 4 hoặc phản ứng đúng nhánh ký | Người chơi nhận ra căn phòng phản ứng sau khi tự ký | Cue hậu ký thay cho scare trùng nguồn; không phát trong inspector |
 | B06 | Thiếu tiếng bút, nền quầy trống rồi mưa R | Mất sự hiện diện của Lan | Giữ khoảng trống nhìn ghế và sổ trước cue đồng hồ |
 | B07 | Mưa/sắt/cổng; âm thiếu hụt ngắn | Cổng từ chối cho đi | Nếu scare B05 gần quá, giảm âm gõ và ưu tiên seam |
 | B08 | Bước chân và sân có âm xa | Hình giấy thoáng trong túi hoặc chỉ còn ký ức | Không thêm đỉnh hù thứ ba ở ngay thẻ chương |
@@ -692,9 +713,9 @@ Kinh dị trong chương phải có **nguồn**, **thời điểm**, **hậu qu�
 | --- | --- | --- | --- |
 | B01 | Biển gió gõ sau khi tự mở cổng | Cảm giác bệnh viện phản ứng với quyết định bước vào | Cue nhẹ, có nguồn; không chồng vào đọc thư |
 | B02 | Bóng sau kính thay đổi theo góc nhìn | Nghi ngờ không gian | Có thể bỏ lỡ; không khóa tiến trình |
-| B03 | Lan tự nhận ra Minh và đối thoại bình thường | Căng thẳng tâm lý qua sự quen thuộc sai thời gian | Không jumpscare, không auto thoại cinematic |
-| B04 | Xe đẩy dừng, rèm cọ thanh ray | Buộc chú ý dấu sử dụng vật lý | Không chặn cửa, không che quan sát |
-| B05 | Tiếng từ hốc 4, silhouette thoáng rồi F101 biến dạng | Đỉnh kinh dị thứ nhất gắn với điều tra và ký | Một lần; ngoài inspector/menu; không ép camera |
+| B03 | Lan tự nhận ra Minh; nhìn khi Minh mở ngăn kéo trước mặt cô | Cảm giác một nhân vật nhận ra hành động của mình | Phản ứng không lời once, không thay cinematic hoặc thoại |
+| B04 | Xe đẩy đổi khoảng cách theo 2–3 nấc; chốt tủ STAFF có hai cách mở | Tension tích lũy và phần thưởng từ thao tác vật lý | Không buộc mở STAFF, không dựng trolley/hunter, không thêm chứng cứ |
+| B05 | Mực ký → thay đổi ánh sáng/không gian → một âm có nguồn → tự quay nhìn | Đỉnh kinh dị có nguyên nhân và người chơi hiểu hậu quả | Không ép camera; silhouette tùy chọn không chồng cue hậu ký |
 | B06 | Quầy trống và tiếng bút biến mất | Hụt hẫng, mất một điểm tựa | Cho khoảng lặng, không phát cú giật ngay |
 | B07 | Cổng bị đập, seam một lần | Đỉnh kinh dị thứ hai, không còn lối trốn | Giảm cường độ khi scare gần nhau; không lặp loop |
 | B08 | Ngăn giấy B chỉ còn ký ức; bước chân về quầy | Dư âm nhận thức thay vì cú hù cuối | Không auto mở ba lô; không trao vật chứng B vào R |
@@ -714,7 +735,7 @@ Không phát một scare lớn khi player đang mở ba lô, soi 3D, nghe thoạ
 | **OBS101A** | B04, dấu hốc 4/B | Tự nhìn, đổi góc, soi sàn/rèm | Observation tại chỗ; không cất vào ba lô |
 | **AS-05B / OBS101B** | B04, giá kẹp B | Cầm/lật/soi/chọn điểm chữ ký/cất tạm | LayerBound B; sang R chỉ còn memory reference |
 | **OBS101C/D** | B04, giường 2/3 B | Xem/cất tạm/so đối chiếu | Nguồn phụ, không thay được OBS101A/B |
-| **OBS_SHIFT_LOG, OBS_CORRIDOR_NOTICE** | STAFF/HALL B | Mở ngăn, đọc, soi | Giải thích quy trình, không bắt buộc mở G01 |
+| **OBS_SHIFT_LOG, OBS_CORRIDOR_NOTICE** | STAFF/HALL B | Kéo mạnh DRAWER-NURSE hoặc soi chốt để mở êm; đọc, soi | Vẫn là nguồn cũ, không có nửa carbon; không bắt buộc mở G01 |
 | **OBS_CLOCK_0317** | B03/B B | Tự kiểm đồng hồ sau cinematic | Foreshadowing; không là giờ chết |
 | **Ba lô và Pocket Note** | Xuyên chương | Cất/lấy/soi, nhớ nguồn, kiểm câu hỏi | Không tự sinh evidence; không chấm đạo đức |
 
@@ -729,6 +750,8 @@ Không phát một scare lớn khi player đang mở ba lô, soi 3D, nghe thoạ
 ---
 
 ## V. ĐƯỜNG ĐI HỢP LỆ VÀ KHẢ NĂNG PHỤC HỒI
+
+**Ngân sách thời lượng không đổi:** tuyến chính vẫn gồm B01 **1,5–2,5**, B02 **1–1,5**, B03 **3–4,5**, B04 **6–8**, B05 **5–7**, B06 **2–3**, B07 **1–1,5**, B08 **1–2** phút; cộng thành **20,5–30 phút**. Phản ứng ánh sáng, Lan, tiếng xe và cue hậu ký nằm **trong các thao tác người chơi vốn đã làm**; không thêm thời gian chờ đồng hồ, đoạn cinematic mới hay vòng bắt mở tủ. STAFF và việc soi tài liệu phụ vẫn tùy chọn; thời lượng khám phá sâu cao hơn tuyến chính và cần playtest để xác nhận.
 
 **Tuyến thẳng:** B01 đọc E10a → mở cổng → B02 tới quầy → B03 chuyển B, nói chuyện Lan, lấy BOARD → B04 vào 101 → B05 ký A hoặc B → B06 về AN01/R → B07 thử cổng → B08 về AN01/CH02. Tuyến này không cần xem STAFF, OBS101C/D, EX01 hoặc lấy AS-05B.
 
@@ -754,6 +777,21 @@ Không phát một scare lớn khi player đang mở ba lô, soi 3D, nghe thoạ
 | B06 | G01 có, player giở AN01 | CH01-T08 / B→R | Giấy B không physical trong R, memory reference và decisions còn | Swap fail rollback lớp/item/camera, không mất hồ sơ |
 | B07 | Sau T08, player thử cổng SEAM | CH01-T09 once | Seam đã tiêu thụ, vị trí hợp lệ, đường về | Load không lặp vô hạn hoặc kẹt collider |
 | B08 | Sau T09, player giở AN01 | CH01-T10 / CP04 | CH02-R độc lập, evidence CH01 đúng 1, echo đã xem/không xem | Không mở túi vẫn chuyển CH02; không tự cho E11/E12 |
+
+### Kiểm thử riêng cho phản hồi tích lũy, chưa thay bằng chứng gameplay
+
+Các trường hợp dưới đây là **tiêu chí cần chạy sau khi implement**, chưa phải kết quả build hay nghiên cứu hành vi người chơi:
+
+1. **B01 ánh đèn:** bật/tắt/đổi góc soi, vẫn đọc được biển tháo dỡ và bảng tên cũ; không xuất hiện gate hay vật chứng mới, chi tiết quan trọng không bị khóa bởi lóa.
+2. **B02 kính:** tiến sát và quan sát kỹ hoặc chạy lướt qua; chỉ nhánh đầu có thể dẫn tới một nhịp ánh mắt dài hơn ở B03. Không cấp Evidence, không xác nhận bóng là Lan; save/load/skip không gây lặp animation.
+3. **B03 ngăn kéo:** khi Lan đang ở quầy, mở DRAWER-DESK một lần → Lan dừng bút nhìn rồi viết tiếp, không phát câu thoại mới. Nếu mở trong cinematic, khi Lan không còn hoặc mở lần hai → không phát lặp; T05 vẫn cần tự nhặt BOARD.
+4. **B04 nhịp xe:** tuyến nhanh chỉ nghe cue xa và vẫn ký A/B; tuyến sâu có thể nghe cue gần theo đúng thứ tự/zone. HE01 + DREAD_B04_TROLLEY_STOP không phát chồng; đọc trong inspector/large-print không bị scare chen vào.
+5. **STAFF hai cách mở:** kéo mạnh hoặc xem chốt để mở nhẹ cùng lấy được OBS_SHIFT_LOG cũ; không thêm nửa carbon, không thay OBS101A/B hoặc luật Refuted. Âm mạnh nếu trùng lúc xe gần chỉ làm xe khựng **một lần** và giữ cooldown.
+6. **N6 ký A/B/C:** cả ba có chữ ký đã commit, giấy đổi trạng thái và hậu quả dễ nhận mà **không xoay camera**; người đứng nhìn bảng kẹp, người quay đi và người mute/reducedMotion đều nhận ra có thay đổi; nếu save fail trước commit, không có vật thể đã biến dạng.
+7. **03:17:** đồng hồ tại AN01/B đứng ở 03:17 trước và sau kiểm nguồn, không nhảy khi ký F101/AN02. Quay lại B06 có thể nghe tick một lần; ở R hiện đúng đồng hồ R, không tự cấp EX01 hoặc tuyên bố giờ tử vong.
+8. **Pocket Note ở B08:** A/B/C hiển thị đúng dòng tự ghi từ currentDecision; ký A rồi sửa C trước T08 thì dòng chính là C, lịch sử giữ A. Không làm thêm evidence, không thay Room101/R hoặc G02; người không mở túi vẫn vào CH02.
+9. **Ngân sách:** so tuyến 20,5–30 phút với bản baseline trên cùng cách chơi; nếu cue buộc player dừng/chờ hoặc thêm lối khám phá chính quá dài, cắt cue/điều chỉnh vị trí, **không nới mục tiêu mặc định lên 35 phút**.
+10. **Đường phụ và trợ năng:** bỏ lỡ kính, không mở STAFF, chọn A/B không soi AS-05B, dùng mono/mute/large-print/keyboard/reduceMotion, load ở mỗi beat đều có thể tiếp tục và hiểu hậu quả mà không cần nghe một âm từ xa.
 
 **Thứ tự kiểm nghiệm:** thử tuyến A và B trước để chắc có đường ngắn, sau đó thử tuyến C đầy đủ, C thiếu từng nguồn/mark/link/claim, rồi thử quay lại sửa A→C→B. Trộn tiếp các trường hợp mở ba lô lúc đang cầm giấy B, skip cinematic, save khi đổi lớp và load tại cổng. Không coi một đường walkthrough “đi thẳng” là đủ nghiệm thu khi các nhánh khác có thể làm mất vật.
 
