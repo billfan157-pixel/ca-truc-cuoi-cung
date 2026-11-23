@@ -165,6 +165,52 @@ Người chơi hiểu rằng tại quầy có một điều cần kiểm tra, nh
 12. Người chơi tự **nhấc BOARD** khỏi quầy, kiểm tra giấy trong 3D và cất vào ngăn giấy của ba lô. Chỉ lúc này **CH01-T05** commit và việc vào Phòng 101 mới được mở. **BOARD tại quầy là đồ bàn giao nhiệm vụ; F101 là phiếu được kiểm tra, đánh dấu và ký ở Phòng 101**, không phải một món đã ký được Lan trao tại đây.
 13. Khám phá tùy chọn tại quầy: kéo **DRAWER-DESK** xem OBS_RECEPTION_DRAWER, soi lịch, quay lên đồng hồ 03:17 trong B để kiểm bằng chính camera của mình. Người chơi có thể dùng đèn/đổi góc và ghi nhớ nguồn; không cần phải hoàn thành tất cả để đi Phòng 101.
 
+#### Bảng dàn dựng encounter: thời điểm, camera và âm thanh
+
+Các mốc dưới đây tính từ lúc CH01-T03 đã commit và sảnh B sẵn sàng; người chơi không bị yêu cầu đạt tốc độ cụ thể. Không ép cinematic bắt đầu chỉ vì hết một bộ đếm.
+
+| Pha | Điều kiện kích hoạt | Diễn xuất và bố cục | Âm thanh | Tiến trình |
+| --- | --- | --- | --- | --- |
+| 0. Chuyển lớp | Minh tự giở AN01 ở R; preflight safe pad thành công | Hình học quầy giữ nguyên landmark, biểu hiện ánh đèn/quạt/giấy thay lớp; player ở đúng vị trí | Mưa R hạ dần, hum B và tiếng bút lên theo lớp; không tạo “nổ điện” | T03/T04, AP02; chưa gọi thoại Lan trước commit |
+| 1. Lan chú ý | Player nằm trong vùng phát hiện hợp lý phía trước quầy sau T03 | Animation từ viết sang khựng bút → ngẩng → nhìn theo giới hạn; tối đa một lần “nhận ra” | Tiếng bút dừng, Lan dùng đúng line được guard | Ghi noticed once, chưa bắt thoại chính, chưa T05 |
+| 2. Người chơi định hướng | Player ở quầy, chưa nhấn LAN_TALK | Lan chỉnh ghế/giấy/nhìn lại việc trực; không đứng bất động hàng chục giây | Roomtone B và âm giấy trở lại | Có thể soi lịch, nhìn đồng hồ, đi ra rồi quay vào |
+| 3. Bắt chuyện | Player nhấn E/K trên LAN_TALK, đúng B, không inspector hay swap | Camera blend khoảng 0,6–1,0 giây sang shot medium không cắt đen, giữ hướng không gian | Tắt/duck cue dread, đặt VO và subtitles vào nhịp thoại | Đặt dialogue-start once, ngăn double-input |
+| 4. Thoại chính | Dialogue start hợp lệ | Shot medium Lan → phản ứng Minh → giữ ánh mắt/đôi tay → rộng nhẹ về BOARD; không cắt liên tiếp chỉ để phô máy | Giọng nói rõ, môi trường nhẹ sau tiếng bút; khoảng lặng ngay sau thông tin năm 2005 | Chỉ ghi những line đã được phép trình bày; không tự ghi observation |
+| 5. Trả FPS | Hoàn thành hoặc skip | Camera về yaw/pitch/FOV đã bảo vệ, input/cursor khôi phục, không đẩy capsule xuyên quầy | Âm giấy/đèn trở lại, không xếp hù ngay | Dialogue hoàn tất/skip có transcript; BOARD còn trên mặt quầy |
+| 6. Minh nhận BOARD | Player tự nhấn E trên prop | Tay nâng BOARD, người chơi có thể nhìn nhiệm vụ và cất | Tiếng kẹp giấy/giấy sột, Lan không đọc lặp toàn cảnh | T05 commit, cửa 101 được phép tiếp cận |
+| 7. Hậu gặp | Player quay về quầy hoặc đi ra HALL | Lan tiếp tục công việc vừa đủ, không bám đuôi Minh; khung cảnh B giữ dấu ấn ấm | Tiếng bút nhẹ trở lại | Có thể mở nhánh DRAWER-DESK/đồng hồ nhưng không bắt buộc |
+
+#### Chỉ đạo diễn xuất điện ảnh
+
+**Shot mở (~6–10 giây):** vào từ FPS, camera mượt đi từ mép quầy tới góc medium nhìn thấy Lan ngồi trước sổ. Nền sau vẫn thấy cửa, lịch và không gian trực. Minh không đột nhiên xuất hiện thành một mô hình 3D trọn người nếu rig hiện hành chưa bảo đảm continuity; có thể dựng over-the-desk thay vì over-the-shoulder.
+
+**Shot nhận ra nhau (~10–20 giây):** Lan nhìn vào vị trí mắt Minh lâu hơn một câu giao việc thông thường, sau đó bớt căng khi nói. Chuyển động tinh tế của ngón tay giữ bút có ý nghĩa hơn một cảnh máy zoom sát mặt. Nếu thoại canonical không mô tả Lan vui, diễn xuất chỉ cho thấy **quen thuộc và một điều chưa nói**, không tự viết thêm động cơ.
+
+**Shot lệch thời gian (~20–55 giây):** khi Lan nhắc ca 17/11/2005, camera không làm công việc giải đố. Đồng hồ B 03:17 nằm trong khung hoặc ở nền qua một chuyển góc hợp lý; player chỉ nhận OBS_CLOCK_0317 khi **đã chủ động tương tác kiểm sau cảnh**. Không dùng tiếng “xác nhận manh mối”, không cắt thẳng từ 03:17 sang hình bệnh nhân chết hoặc tường cháy.
+
+**Shot giao việc (~55–90 giây):** thay vì một close-up F101 mà player chưa tới 101, dùng **BOARD** trên quầy. Lan có thể đưa mắt hoặc đẩy nhẹ bảng kẹp về phía gần Minh; nhân vật chính không bị camera cầm món thay người chơi. Khi cảnh kết, BOARD vẫn ở đúng chỗ có collider tương tác và prompt dễ thấy. Thời lượng là mục tiêu biên tập, không phải timer buộc câu thoại tự chạy nếu người chơi còn ở ngoài vùng.
+
+**Nét mặt và khuôn miệng:** lip-sync dùng chính độ dài VO đã duyệt; cử động tay/bút không loop vô hạn trong shot tĩnh. Tránh ánh mắt tracking 360 độ khiến Lan trông như thiết bị an ninh. Chỉ có một vùng nhìn theo ngắn trong scripted lead-in, khóa hướng khi vào take điện ảnh, rồi trở lại hoạt động bình thường.
+
+#### Luồng người chơi lệch tuyến
+
+- **Đã giở sổ nhưng không tiến đến Lan:** Lan nhận biết khi Minh đi gần chứ không xuyên cửa. Player có thể ghé DRAWER-DESK, xem đồng hồ trước; câu thoại chính vẫn đợi họ chủ động tới.
+- **Lan vừa ngẩng lên, player bỏ đi:** bút và ghế về idle có lý do, noticed once không phát lại lời chào. Khi quay về có prompt nói chuyện, không bị mất BOARD hoặc gate.
+- **Player tiến quá nhanh qua trigger:** sự kiện phát hiện được xử lý once, nhưng không tự đóng cửa chặn lối để ép nghe. Người chơi vẫn có thể quay lại E/K.
+- **Player đứng nhìn Lan rất lâu:** sau một vòng eye-contact, Lan hạ mắt làm việc; nếu cần cue, một ánh nhìn lại từ cô chỉ nhắc tương tác, không lặp cùng line.
+- **Player nhìn vật ở sau quầy trong cinematic:** việc hiện hình đồng hồ/lịch trên màn ảnh **không cấp observation**, vì đó không phải hành động kiểm của Minh. Có thể mở inspector từng prop sau khi điều khiển được trả lại.
+- **Bấm E/K liên tục hoặc mở ba lô đúng lúc thoại bắt đầu:** chỉ một hệ thống giữ quyền input tại một thời điểm. Nếu modal đang mở, từ chối start và cho thử lại sau khi đóng; không phát hai VoiceDirector sequence.
+- **Skip ngay câu đầu hoặc load khi take chưa kết:** điều khiển, cursor, vị trí và camera luôn về trạng thái hợp lệ tại quầy; những thông tin cốt lõi đã được phép phát có đường đọc tóm tắt/transcript. Không phát lại toàn take thành một cảnh thứ hai, không đẩy T05 trước thao tác nhặt.
+- **Chọn giảm chuyển động:** dùng góc tĩnh, cut mềm hoặc blend ít hơn thay vì cú camera sweep dài. Đảm bảo phụ đề/VO không bị rút ngắn theo tốc độ transition.
+
+#### Giao dịch trạng thái và khóa tri thức
+
+**Nhận diện Lan và cuộc trò chuyện là hai giao dịch riêng.** Chỉ sau khi RealityTransaction đưa player tới B an toàn mới cho LanActor hoạt động. Hệ gameplay phải chặn gọi StartEncounter tự động trong Hub nếu đường cinematic chủ động chưa sẵn; cờ nhận diện không được thay cờ hội thoại, cờ hội thoại không được tự thay CH01-T05. Việc nhận BOARD commit theo tương tác vật phẩm độc lập; nếu save tại quầy sau thoại nhưng trước khi lấy, load lên vẫn thấy BOARD và cửa Phòng 101 chưa được nhận nhiệm vụ.
+
+Thứ tự trạng thái tối thiểu: **T03/T04 → Lan noticed → LAN_TALK completed/skipped → T05**. Nếu thiết kế cho phép lấy BOARD không xem trọn thoại vì Skip, nó vẫn phải bảo đảm nội dung cốt yếu được truy cập qua transcript mà không tiết lộ các line khóa. CH01-D03/D04/D05/D07 và các line tùy chọn phải tuân Context hiện hành; CH01-D16b/CH04-D06 không thuộc cuộc gặp này.
+
+**Những điều người chơi được biết khi rời quầy:** Lan có vẻ tiếp tục sống trong ca 2005, Minh thấy năm 2012, nhiệm vụ là kiểm một phiếu ở 101. Những điều chưa được khẳng định: Lan là gì, ai ở giường 4, 03:17 nghĩa là gì. Cảm xúc được xây trên ký ức Minh về Lan; tri thức vẫn phải được kiểm tra bằng thế giới.
+
 #### Nhịp kinh dị và giá trị cảm xúc
 
 Lan **không** làm mặt quỷ, biến mất trong tiếng chói, hay bị hệ thống gọi là một hồn ma. Điều đáng sợ là sự bình thường quá thuyết phục của cô. Có thể thử một phản xạ mặt kính chậm hoặc bị lóa trong nhánh quan sát phụ, nhưng không đưa bằng chứng chắc chắn “Lan không có bóng” vào canon.
