@@ -1,8 +1,8 @@
-# CH01 — NGƯỜI TRỞ VỀ: Walkthrough gameplay B01–B08 (Investigation-First Proposal v1.0)
+# CH01 — NGƯỜI TRỞ VỀ: Walkthrough gameplay B01–B08 (Investigation-First Proposal v1.1)
 
 > **TRẠNG THÁI: ĐỀ XUẤT THIẾT KẾ ĐỂ REVIEW, CHƯA TRIỂN KHAI / CHƯA PHÊ DUYỆT CANON.**
 > Ngày: 23/11/2026. Phạm vi: CH01 B01–B08 của *Ca trực cuối cùng*, trên CH01-R hiện hành.
-> Tài liệu này là một walkthrough **được chỉ đạo bởi hành động của người chơi**, không phải kịch bản cutscene. Cách kể mới chỉ là phương án dàn dựng; thoại chính thức vẫn do Core 07/Dialogue sở hữu. Các trigger mới gắn tiền tố **P-SC / P-INT / P-NOTE** chỉ tồn tại trong đề xuất, KHÔNG phải event ID đã đăng ký.
+> Tài liệu này là một walkthrough **được chỉ đạo bởi hành động của người chơi**, không phải chuỗi cutscene thuần tuyến tính. **Ngoại lệ có chủ đích tại B03:** Lan nhận biết Minh qua Scripted Event trong thế giới, rồi người chơi chủ động kích hoạt một Cinematic Dialogue Scene ngắn, liền mạch với FPS; sau đó trở lại khám phá tự do. Cách kể mới chỉ là phương án dàn dựng; thoại chính thức vẫn do Core 07/Dialogue sở hữu. Các trigger mới gắn tiền tố **P-SC / P-INT / P-NOTE** chỉ tồn tại trong đề xuất, KHÔNG phải event ID đã đăng ký.
 > Mục đích: tăng chiều sâu điều tra và nỗi sợ trong khi KHÔNG thay đổi canon, các gate và dữ liệu bằng chứng hiện hành trước khi được duyệt.
 
 ## 0. Định hướng trải nghiệm
@@ -83,23 +83,46 @@
 
 **Scare medium có điều kiện:** Khi người chơi tự nhìn xuyên qua kính lần thứ hai, một chiếc bóng thấp thoáng qua **phía sau**, kèm hai bước chân (không bật ngay sát tai); khi xoay lại chỉ là khoảng sân trống. Giữ khả năng lờ nó đi; không ảnh hưởng gate. Thứ tự với DREAD_B02 phải được điều phối, **không phát hai cue trong cùng 45 giây**. Đây là phương án dàn cảnh, chưa có trong build.
 
-**Output:** tới điểm AN01/LOC02; được tiếp cận sổ trực. **Fallback:** nếu người chơi sprint qua sân không nhìn kính, câu CH01-D02 và hiện diện Lan vẫn được setup tại quầy; không yêu cầu nhìn scare để tiến.
+**Output:** tới điểm AN01/LOC02; được tiếp cận sổ trực. **Handoff sang B03:** bóng người ngoài kính là setup nhìn-thấy; chỉ sau CH01-T03/R→B Lan mới nhận diện Minh bằng Scripted Event. Tuyệt đối không tự cắt sang cinematic ngay khi bóng người xuất hiện. **Fallback:** nếu người chơi sprint qua sân không nhìn kính, câu CH01-D02 và hiện diện Lan vẫn được setup tại quầy; không yêu cầu nhìn scare để tiến.
 
-## B03 — Ca trực ở một ngày khác (LOC02, AN01, R→B, 4–5 phút)
+## B03 — Ca trực ở một ngày khác (LOC02, AN01, R→B, khoảng 5–6 phút; **Hybrid Cinematic Encounter**)
 
-**Mục tiêu kịch:** Giới thiệu sổ trực như **công cụ phán đoán**, không chỉ menu chuyển cảnh. Lan làm sống lại ngữ cảnh 17/11/2005, trong khi người chơi vừa đứng ở bệnh viện năm 2012. Câu hỏi Q2 và Q4 chồng lên nhau.
+**Mục tiêu kịch:** Vừa dạy sổ trực như **công cụ phán đoán**, vừa tạo một cuộc gặp có trọng lượng cảm xúc. Scripted Event làm Lan có vẻ là một con người đang sống, *chủ động nhận ra Minh*; Cinematic Dialogue Scene bảo vệ nhịp diễn xuất, mâu thuẫn thời gian và cảm giác từng quen biết; gameplay tự do trả lại quyền điều tra cho người chơi. Q2 (Lan) và Q4 (03:17) cùng mở, nhưng không giải đáp hộ.
 
-**Walkthrough:**
-1. Trong quầy R, người chơi có thể nhìn CH01_TELEPHONE, ghế chờ, lịch cũ, ngăn kéo trực. Không khóa tương tác vì chưa đọc các props, nhưng điểm chính được chiếu bởi đèn bàn và cuốn sổ thật đặt tại AN01.
-2. **Giở sổ trực** để xác nhận tham gia ca, kích CH01-T03 / swap R→B **tại chỗ**: vị trí camera và hướng nhìn giữ nguyên; cột, quầy, cửa, đường đi không dịch. Tín hiệu là tiếng giấy, ánh đèn bàn, tiếng ồn giao ca và sự sạch hơn của đồ vật. Không dùng full-screen teleport.
-3. Gặp **Lan bằng diễn xuất trong thế giới**, không camera cưỡng bức: người chơi có thể nhìn quanh, lùi lại rồi trở vào. Dùng thoại CH01-D03/D04/D05/D07 và các câu bổ sung đã có trong Dialogue; không thay canonical copy. Minh nhớ Lan đã mất; Lan nói như đêm 17/11/2005 đang diễn ra và nói đồng hồ vừa dừng (CH01-D04c). Điều tra ở đây là **nhận ra hai dòng thời gian không hòa nhau**, không cần trả lời “Lan là gì?”.
-4. Lan trao **BOARD/phiếu đi kiểm Phòng 101**; người chơi **phải tự cầm BOARD** để commit CH01-T05. Người chơi hiểu đây là việc làm nghề nghiệp: đọc hồ sơ trước khi ký, không chỉ làm giúp một nhân vật ma.
-5. Sau khi nhận BOARD, sổ trực mở giao diện 4 trường tri thức. Không tự ghi “người chết nói chuyện với mình”; chỉ ghi “Tôi thấy/nghe Lan tại quầy B; điều này trái với thông tin Minh biết về Lan”. Người chơi có thể thử kiểm chứng bằng **lịch 2005**, **OBS_CLOCK_0317** ở B, **OBS_RECEPTION_DRAWER** về phân ca, so với ảnh quầy 2012 đã thấy.
-6. Tùy chọn: kéo DRAWER-DESK, đọc sổ phân ca và đánh dấu **nguồn bối cảnh**. Khi đối chiếu kim đồng hồ B 03:17 với ghi chép ca, mở hướng Q4 nhưng chưa ra kết luận. Điện thoại bàn có nhiễu — không có cuộc gọi mang đáp án. Có thể trò chuyện thêm với Lan bằng LAN_TALK đúng giới hạn cue hiện hành, không cho bà hé lộ CH04.
+**Nguyên tắc đạo diễn đã chọn cho bản proposal:** **Scripted Event nhận biết → tiếp cận chủ động → cinematic đối thoại trong cùng scene → quay về FPS và tự lấy BOARD.** Không dùng màn hình đen, không tải scene mới, không auto-teleport người chơi, không khóa camera trước khi người chơi chấp nhận bắt chuyện. Vẫn giữ thứ tự **CH01-T03 (giở sổ trực, R→B) → encounter Lan → CH01-T05 (người chơi tự cầm BOARD)**; không thay gate hay ID canon.
 
-**Thiết kế nỗi sợ:** Lan tỏ ra **không sợ điều kỳ lạ**, còn Minh phải tự kiểm lại thời gian. Một âm báo cũ bị cắt trước từ cuối câu khi người chơi chú ý đồng hồ; không phát khi đang thoại. Sau cuộc gặp, một ghế chờ có tiếng nhích nhẹ **khi không nhìn thẳng**, nhưng nếu người chơi quay lại sẽ chỉ thấy nó thay đổi tư thế rất ít (sử dụng deferred micro-shift đã có, không thêm bằng chứng về người ngồi). Đây là sợ từ điều thường nhật có hành động không giải thích.
+### Walkthrough chi tiết theo thời điểm / hành vi người chơi
 
-**Output:** CH01-T03/T04/T05, sổ trực và cơ chế so nguồn đã học, Q2 mở, Q4 tùy chọn, save tại AP02. **Fallback:** bỏ toàn bộ nhánh ngăn kéo/điện thoại vẫn hiểu và đi tiếp; thoại Lan có transcript/caption, skip không làm lộ CH04 và không cản BOARD.
+| Phase | Điều kiện và thao tác người chơi | Dàn dựng hình/âm/thái độ Lan | Điều tra / state |
+| --- | --- | --- | --- |
+| **0 · Quầy năm 2012** (tùy tốc độ) | Minh bước vào quầy R; tùy ý xem điện thoại, ghế chờ, lịch, DRAWER-DESK nếu có thể tương tác. **Tự giở sổ tại AN01.** | Ánh đèn bàn và sổ trực dẫn mắt, không HUD cưỡng ép. CH01-T03 kích R→B ngay tại AN01, giữ vị trí/hướng nhìn/landmark và safe pad; sau transition mới khởi động dàn dựng Lan. | Người chơi xác nhận đang vào một *ca trực*; checkpoint AP02. Không đăng ký OBS tùy chọn chỉ vì camera lia qua prop. |
+| **1 · Lan nhận ra Minh** (~0:00–0:12 sau T03, *scripted gameplay*) | Minh đi đến gần quầy, nhìn Lan hoặc tiếp cận từ bên cạnh. Có thể dừng, lùi lại, quay đi, xem lịch/đồng hồ. | Lan đang ghi sổ, tay bút khựng lại, ngẩng lên, nhận ra Minh và chào bằng giọng gần gũi. Dùng animation nhìn theo góc có giới hạn, micro-blink và cử chỉ đặt bút thật; không stare khóa cổ hoặc jump-face. **Không khóa điều khiển.** | Chỉ ghi `P-INT03_LAN_NOTICED` (ID **đề xuất**, once), không tự chốt đã hội thoại. Nếu Minh đứng xa, Lan tiếp tục ghi, không phát lại câu chào mỗi lần ra/vào trigger. |
+| **2 · Minh chủ động bắt chuyện** (~0:12–0:18, *player-initiated*) | Đến vị trí an toàn trước quầy và nhấn E/K vào `LAN_TALK` hoặc ngữ cảnh trò chuyện tương đương; prompt rõ `Nói chuyện với Lan`. | Cử chỉ Lan dừng ở tư thế hợp logic, camera **blend 0,6–1,0 s** từ FPS sang góc medium từ phía quầy; ưu tiên thấy biểu cảm Lan và phản ứng Minh. Chỉ dùng over-the-shoulder có mô hình Minh nếu rig/continuity thực sự hỗ trợ, không tự lộ body/camera clipping. | Chỉ bắt đầu nếu `CH01-T03` đã commit, lớp B, không busy/swap/read modal, vị trí player hợp lệ. Có thể lùi khỏi trigger trước khi ấn mà không bị khóa story. |
+| **3 · Cinematic Dialogue Scene** (~0:18–1:18, 60–90 s tổng khi không skip) | Trong thoại chính, người chơi nghe/đọc; cho phép **Skip** và tùy thiết kế lựa chọn đóng/mở phụ đề, nhưng không kéo người chơi ra khỏi vùng đã khóa vào giữa take. | Dùng góc medium/close-up nhẹ, ánh đèn bàn ấm sau vai Lan, reaction shots Minh, khoảng dừng trước câu thời gian. Lan nhắc về đêm **17/11/2005** như hiện tại; Minh biết cô đã mất. Có thể dùng **insert shot** vào đồng hồ B dừng **03:17** khi phù hợp `CH01-D04c`, nhưng tuyệt đối **không biến nó thành thông tin kết luận về tử vong**. Camera không phô danh tính C01, Khu C hay nguồn hồi tưởng CH04/CH07. Giữ nguyên VO và copy trong `07/Dialogue` (`CH01-D03/D04/D05/D07` + cue đã có theo đúng Context/guard). Không thêm lời mới chưa duyệt. | Thông tin nhận được: Lan đang ở một ngữ cảnh năm 2005 trái với thời điểm Minh quay về; người chơi **không được auto-credit** `OBS_CLOCK_0317`, `CH01-EX01` hoặc tài liệu chưa tự xem. Script/skip chỉ đánh dấu chính những câu thoại đã được cấp quyền phát theo hệ thống hiện hữu. |
+| **4 · Trả lại camera, trả lại trách nhiệm** (~1:18–1:30) | Kết cảnh, blend về **đúng góc nhìn FPS khả dụng** ở quầy; Minh có thể tự lấy `BOARD` trên mặt quầy và rời đi. | Lan đặt/nhìn về BOARD hoặc dùng gesture hướng về Phòng 101, không “đưa qua” cho player bằng cutscene rồi âm thầm commit. Sau thoại, không phát jumpscare tức thì; khoảng lặng 10–15 s để người chơi hấp thụ và bắt đầu tìm hiểu. | **CH01-T05 chỉ commit khi người chơi tự tương tác BOARD**, đúng baseline. Nếu không lấy, có nhắc bằng bố cục/nhìn chứ không ép cutscene thứ hai. `LAN_TALK` về sau chỉ phát cue phản hồi bổ sung phù hợp, không replay đoạn cinematic. |
+| **5 · Hậu đối thoại / điều tra tự do** (tùy chọn) | Minh đối chiếu lịch 2005, đồng hồ B, `OBS_RECEPTION_DRAWER`, điện thoại; có thể rời quầy rồi quay lại. | Lan tiếp tục một vòng công việc nhẹ, không thành NPC đuổi theo player; âm môi trường trở lại bình thường. Nếu người chơi nhìn lâu, Lan có thể ngừng viết một nhịp; không thêm bằng chứng ma quỷ. | Sổ trực tách **“điều Minh biết về Lan” / “điều đã chứng kiến trong B” / “điều chưa thể kết luận”**. Nhánh 03:17 tiếp tục tùy chọn; không tác động G01. |
+
+### Kịch bản quay và tâm lý
+
+- **Shot A — Establishing medium:** vào cinematic từ gameplay không cắt đen, giữ các mốc quầy/kính/sổ. Lan là trung tâm, không phải gương mặt hù dọa.
+- **Shot B — Phản ứng con người:** giữ một khoảnh khắc nhìn nhau đủ dài để thấy Minh nhận ra người quen. Tránh close-up liên tục, camera rung, zoom ma quái hoặc môi trường đỏ loè.
+- **Shot C — Lệch thời gian:** khi thoại nhắc thời điểm 2005, dùng cắt cảnh thận trọng sang lịch hoặc đồng hồ, nhưng chỉ như *chi tiết để người chơi nhớ về sau*; không nhấn hướng dẫn giải đố, không hiện toast `03:17 confirmed`.
+- **Shot D — F101 như giao phó:** Lan hướng mắt đến BOARD, Minh nhìn về phòng 101. **Cú cắt/điểm trả quyền điều khiển là lựa chọn nghề nghiệp**: lời nói của Lan tạo động lực, nhưng người chơi tự quyết định có cầm hồ sơ hay không.
+- **Ám ảnh trì hoãn:** Lan phải đủ ấm và tự nhiên để ở B06, một **quầy trống không cinematic** trở nên đáng sợ. Không làm Lan bật ra mặt quỷ ở B03, không xác nhận cô là ma, không cố tạo shock lúc camera trở lại.
+
+### Contract tương tác, đồng bộ thoại và phục hồi
+
+1. **Trigger tách đôi:** `P-INT03_LAN_NOTICED` (đề xuất, once khi Lan phát hiện) **không** tự kích cinematic. `P-INT03_DIALOGUE_START` (đề xuất, tương tác E/K) mới vào cinematic. Bất cứ lúc nào trước START, player tự do đi lại; sự kiện nhận biết không lặp khi ra/vào trigger. Không tự cộng CH01-T05.
+2. **Thời điểm bắt đầu:** sau R→B commit an toàn tại AN01. Nếu người chơi chưa tới quầy, Lan idle/nhìn theo có giới hạn; tuyệt đối không kéo camera từ xa. Cảnh được kích hoạt một lần, ngăn bấm nhanh nhiều lần, không bật khi inspector/sổ/swap/voice khác đang mở.
+3. **Camera:** Unity Timeline + Cinemachine là lựa chọn kỹ thuật đề xuất; vẫn dùng scene/actor/ánh sáng hiện tại (`LanDirector`, `CharacterActor`, `VoiceDirector`). Trước cinematic chụp yaw/pitch/FOV, vị trí hợp lệ, input focus; không làm dịch player capsule qua vật chắn; blend về FPS và phục hồi camera/input trong cả normal end, skip, lỗi và load. Với `reduceMotion`: dùng góc cố định hoặc dissolve/nhảy thẳng tới khung an toàn, không cinematic camera sweep; bật phụ đề đầy đủ.
+4. **Tiến trình và skip:** `P-INT03_CINEMATIC_COMPLETED` / `SKIPPED` là **cờ đề xuất, chưa có runtime**. Skip luôn trả FPS, cho xem transcript/tóm tắt đúng những đoạn cốt lõi được phép biết; **không** tự hoàn tất quan sát 03:17/EX01 hay nhặt BOARD. Khi quay lại không replay toàn cảnh. Nếu save/load khi đã commit lời thoại, không phát trùng VO hoặc mark T05; nếu load giữa take, resume từ checkpoint nhất quán (hoặc trở lại trước START) chứ không kẹt cinematic.
+5. **Không khóa mềm:** phòng sảnh vẫn đi được, `LAN_TALK`/BOARD trong tầm tương tác E/K/kích thước chữ lớn; player bỏ đi trước START vẫn có thể quay lại hội thoại. Nếu người chơi sprint qua hoặc không nhìn Lan, vẫn có prompt gặp Lan/nhận BOARD khi trở lại; không bắt phải xem animation phát hiện. Cảnh giữa thoại không có scare background; các `DREAD_*` được chặn/hoãn hoặc bỏ như luật hiện hành, không phát bù một cú giật bất ngờ ngay khi kết thúc.
+6. **Tri thức & canon:** không dùng cinematic như chứng cứ xuất, chỉ E10a trong CH01; `CH01-D16b`/`CH04-D06` tuyệt đối không phát; không đổi ngữ nghĩa `CH01-D04c`; lời thoại chính xác lấy từ `07/Dialogue`. Hãy rà xem `LanDirector.StartEncounter()` hiện được gọi tự động từ `HospitalGame.Hub()` sau T03: **triển khai hybrid buộc phải refactor đường tự phát thoại đó** thành `Lan notices → E/K conversation`; đây là thay đổi **chưa làm trong code**.
+7. **Dấu ấn cho B06:** nhớ staging tương phản — lúc gặp, quầy có đèn ấm/bút/lời nói; lúc về, sổ vẫn còn mà không có Lan. Không lặp Timeline, không dùng hiệu ứng biến Lan trước camera để hù dọa.
+
+**Output:** CH01-T03/T04 (theo contract hiện hành), AP02, cue Lan/biên bản thoại đúng guard, người chơi tự kích `CH01-T05` bằng BOARD; Q2 mở, Q4 tùy chọn. **Fallback:** bỏ ngăn kéo/điện thoại vẫn hiểu mâu thuẫn thời gian; mất cinematic do skip/load vẫn có transcript/tóm tắt và BOARD; nếu người chơi bỏ đi trước khi bắt chuyện, hệ thống không tự nhảy qua nhiệm vụ.
+
+**Trạng thái:** toàn bộ thay đổi dàn dựng hybrid và các `P-INT03_*` là **đề xuất cần triển khai + QA**; baseline hiện có Lan encounter in-world tự động, không phải cinematic.
 
 ## B04 — Phòng có giường thứ tư (HALL ↔ STAFF ↔ LOC03 B, 6–8 phút; trục điều tra chính)
 
@@ -160,13 +183,13 @@ Những từ chối này phải là tự vấn có lời giải thích ngắn, k
 
 ## B06 — Người đã nhận phiếu biến mất (LOC03 → HALL → LOC02, B→R, 3–4 phút)
 
-**Mục tiêu kịch:** Cho người chơi trải nghiệm hậu quả của điều mình **đã ký**, sau đó nhận ra người giao việc không còn ở đó. Biến tuyến backtrack thành một lần **đọc lại môi trường**.
+**Mục tiêu kịch:** Cho người chơi trải nghiệm hậu quả của điều mình **đã ký**, sau đó nhận ra người giao việc không còn ở đó. **Đối trọng với cinematic ấm áp ở B03:** B06 giữ camera FPS tự do, không dựng một cutscene Lan biến mất; chính việc người chơi tìm Lan ở đúng góc quầy trước đây tạo khoảng trống đáng sợ. Biến tuyến backtrack thành một lần **đọc lại môi trường**.
 
 **Walkthrough:**
 1. Rời phòng 101. HALL phản chiếu F101 trong chi tiết đã tồn tại: slip/hồ sơ hành lang theo lựa chọn, lời PA méo/sai nhịp **CH01-PA04**, quạt chậm (HE04). Người chơi có thể quay vào buồng để kiểm xem hậu quả có khớp quyết định hay không.
 2. Một đối chiếu nhỏ **P-INT06 “Dấu ký vs căn phòng” (đề xuất, không bắt buộc):** tại cuối hành lang, trang Sổ trực đặt song song bản F101_SignedX với ghi nhận OBS101A/B cũ. Người chơi nhận ra **tài liệu ký đã đổi, quan sát cũ không bị xóa khỏi nhật ký**. Đây là một payoff điều tra: sự thật quan sát không thể bị viết lại chỉ bằng giấy.
 3. Nếu hoàn tất EX01, CH01-D19 phát tại khoảng nghỉ phù hợp, không chen vào thoại/hành động; nếu không, người chơi vẫn nghe nhiễu PA theo nhịp. Hiện tượng DREAD_B06_PA_INTERFERENCE và DREAD_B06_CLOCK_TICK có ngân sách; không làm clock trở thành câu trả lời.
-4. Về AN01, **tự tay giở sổ để bàn giao**, commit CH01-T08. B→R swap tại chỗ với preflight/rollback. Khi ngẩng lên, Lan không còn ở quầy; đồ vật lại lão hóa, ánh đèn trả về 2012; cuốn sổ vẫn ở đó. Không dùng Lan biến mất trong một cú dựng hình jump khi đang nhìn mặt bà — tránh biến Lan thành trò hù dọa rẻ.
+4. Về AN01, người chơi nhìn lại cùng quầy đã từng được dàn dựng ở B03: bút, ghế, sổ và ánh đèn còn đó nhưng **không có Lan**. **Tự tay giở sổ để bàn giao**, commit CH01-T08. B→R swap tại chỗ với preflight/rollback. Khi ngẩng lên, Lan không còn ở quầy; đồ vật lại lão hóa, ánh đèn trả về 2012; cuốn sổ vẫn ở đó. Không dùng Lan biến mất trong một cú dựng hình jump khi đang nhìn mặt bà — tránh biến Lan thành trò hù dọa rẻ.
 5. Câu hỏi nhật ký được cập nhật: “Lan đã ở đây trong trải nghiệm vừa rồi; nhưng sảnh R không có ai. Mình có thể kiểm lại Phòng 101 khi đang ở R hay không?” Điều này dẫn lý do sang CH02, không phải mệnh lệnh đi nhặt E11.
 
 **Đạo diễn sợ:** Cú sợ là **sự thiếu vắng** sau khi đã quen với Lan. Âm quạt ngừng và đèn bàn tắt chậm thay cho tiếng hú. Người chơi được đứng tại quầy 10–15 giây hoàn toàn yên, có thể xem lại lời trong transcript.
@@ -235,7 +258,7 @@ Những từ chối này phải là tự vấn có lời giải thích ngắn, k
 | --- | ---: | --- | --- | --- |
 | B01 | 3–4' | đọc nguồn/ý chí mở cổng | Bảy hẹn–hoãn; 13 tử vong công khai | 15–25 s sau thư |
 | B02 | 2–3' | tiếp cận bóng người | Có bất nhất về sự hiện diện | 20 s trước bước vào sảnh |
-| B03 | 4–5' | nhận BOARD, so ngữ cảnh thời gian | Lan/2005 vs 2012; giờ chưa rõ | 10–15 s sau thoại |
+| B03 | 5–6' | Lan nhận diện Minh trong gameplay → tự bắt chuyện → cinematic ngắn → tự lấy BOARD; sau đó đối chiếu thời gian | Lan/2005 vs 2012; giờ chưa rõ | 10–15 s sau cinematic |
 | B04 | 6–8' | phi tuyến, mở/kéo/so hai nguồn | OBS101A/B khiến số 0 đáng nghi | 45–60 s giữa scare |
 | B05 | 5–7' | suy luận và ký A/B/C | Trách nhiệm chữ ký; B biến dạng | 20–35 s sau scare cao |
 | B06 | 3–4' | quay lại kiểm hậu quả | R khác B; Lan vắng | 10–15 s quầy trống |
@@ -247,6 +270,7 @@ Thời gian chỉ là **target thiết kế**; không phải kết quả playtes
 ## 5. Acceptance walkthrough & trạng thái QA cần có
 
 **Các đường bắt buộc để kiểm:**
+0. **Hybrid B03 (mới):** sau T03 vào B, Lan phát hiện Minh mà FPS vẫn tự do; tiến/lùi/quay đi không tự bật cutscene; E/K mới mở cinematic. Đảm bảo thoại có guard, camera blend, diễn xuất/lip-sync, phụ đề, không bấm trùng, skip, giảm chuyển động, bấm BOARD *sau* cảnh mới commit T05. Tải lại trước/sau/lúc đang thoại, không nhân đôi VO hay T05, không kẹt input/camera; quay lại B06 chỉ là quầy trống, không replay cinematic; kiểm CH01-EX01 không auto-unlock từ insert-shot đồng hồ.
 1. Từ AP00: đọc E10a → mở GATE-CONG → tới AN01 → lấy BOARD → 101 → chọn **A ngay** mà không có OBS101A/B → G01 mở → T08/T09/T10. Không mất CH02, D=1 ở 101 B, R độc lập.
 2. Cùng tuyến chọn **B ngay** → G01 mở, không phạt, không gọi là fail; kể cả không đọc STAFF/C/D/EX01; D=0.
 3. Chọn **C hợp lệ**: đánh dấu đúng số 0 và ô ký chưa xác nhận, OBS101A/B đã xem, link + claim UNRELIABLE_ZERO → ký C → hậu quả đúng B và G01 mở.
@@ -266,7 +290,7 @@ Thời gian chỉ là **target thiết kế**; không phải kết quả playtes
 
 **P0 — Story/UX, không cần tạo event mới:** thay objective/hint theo câu hỏi; journal ghi “biết/suy/không biết” mà không auto đáp án; staging lại các beat trên NPC/props hiện hữu; ánh sáng quay lại phòng; làm rõ ba hành động ký A/B/C; đảm bảo có thể xem lại nguồn và phản hồi đúng thiếu căn cứ.
 
-**P1 — Hệ tương tác/ngữ cảnh:** thêm đối chiếu ký với observation ở B06 theo dữ liệu đã lưu; optional lựa chọn bước kế ở B08 không thêm gate; tinh chỉnh khoảng lặng và priority giữa các DREAD đã có. Giữ nguyên observation IDs và schema trừ khi migrations & test đầy đủ.
+**P1 — Hybrid encounter B03 & hệ tương tác/ngữ cảnh:** refactor LanDirector/Hub để CH01-T03 chỉ khởi động Lan nhận diện in-world, còn E/K tại LAN_TALK mới bắt đầu Cinematic Dialogue Scene; bổ sung Timeline/Cinemachine shot, input/camera restore, skip/transcript và once guards (chưa triển khai); thêm đối chiếu ký với observation ở B06 theo dữ liệu đã lưu; optional lựa chọn bước kế ở B08 không thêm gate; tinh chỉnh khoảng lặng và priority giữa các DREAD đã có. Giữ nguyên observation IDs và schema trừ khi migrations & test đầy đủ.
 
 **P2 — Scare authored:** thử P-SC05 trước ở greybox có spectator + reduced jumpscare, sau đó P-SC07, chỉ thêm P-SC02/P-SC04 nếu playtest chứng tỏ tăng tò mò chứ không gây mệt. Không dựng đủ bốn scare chỉ vì có tên trong tài liệu. Ưu tiên art/audio hiện có; không dựng “quái vật mới” ở CH01.
 
@@ -277,7 +301,7 @@ Thời gian chỉ là **target thiết kế**; không phải kết quả playtes
 - **Sources đã đối chiếu để soạn đề xuất:** AGENTS.md; .agents/skills/ctcc-level/SKILL.md; ctcc-gameplay/SKILL.md; ctcc-narrative/SKILL.md; docs/agent/README.md; docs/ch01r/puzzle-dependency-graph.md; docs/ch01r/acceptance.md; docs/ch01r/human-review-checklist.md; Prototype/Assets/CTCC/Runtime/HospitalGame.cs; AmbientDreadDirector.cs; Ch01FieldObjects.cs.
 - **Sources cần reviewer đối chiếu/đồng bộ trước khi chốt:** Core 01 §2; Core 02 CAN/WR/Reveal; Core 03 LOC/continuity; Core 04 CH01 B01–B08 / CH01-T02–T10; Core 05 audio; Core 06 interaction and save; Core 07 sheets Dialogue, Events, Chapter gates, Decisions, QA, Changelog.
 - **Không tuyên bố:** “đã test Windows”, “đã cập nhật engine”, “đã thêm jumpscare”, “đã chốt canon”, “đã qua TASK010 hoặc expert reviews”.
-- **PR chỉ chứa tài liệu đề xuất;** việc triển khai phải mở task và gắn QA/build evidence riêng. Quyết định về cameo Lan, mức jumpscare, flow F101 phải qua review narrative/gameplay và review trợ năng trước khi merge vào canon.
+- **PR chỉ chứa tài liệu đề xuất;** việc triển khai phải mở task và gắn QA/build evidence riêng. **Đặc biệt B03 hybrid:** runtime hiện tự bắt đầu encounter từ Hub sau T03, nên camera, Timeline/Cinemachine và tương tác E/K chủ động là yêu cầu mới cần code, không được mô tả là đã có. Quyết định về cameo Lan, mức jumpscare, flow F101 phải qua review narrative/gameplay và review trợ năng trước khi merge vào canon.
 
 ---
 
