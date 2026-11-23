@@ -136,6 +136,9 @@ namespace CTCC
             handPresenter = gameObject.AddComponent<HandItemPresenter>();
             handPresenter.Initialize(player.Eye, Image);
 
+            backpackStage = gameObject.AddComponent<BackpackStage3D>();
+            backpackStage.Initialize(player.Eye, Image);
+
             ui = gameObject.AddComponent<HospitalUI>();
             ui.Initialize();
             ui.OpenChanged += RefreshControls;
@@ -277,8 +280,10 @@ namespace CTCC
                             (lanDirector != null && lanDirector.IsCinematicActive);
             handPresenter?.SetReducedMotion(current.settings.reduceMotion);
             handPresenter?.SyncState(current, scene, hideViewModel: hideHeld);
+            backpackStage?.SetReducedMotion(current.settings.reduceMotion);
             var equippedItem = InventoryService.GetEquipped(current);
             ui.SetHeldItemBadge(equippedItem != null ? BackpackCatalog.Get(equippedItem.itemDefId)?.ShortLabel : null);
+            RefreshQuickSlotHud(current);
 
             bool b08ReturnWalk = current.chapter == "CH01" && current.Happened("CH01-T09") && !current.Happened("CH01-T10");
             scene.atmosphere?.SetReturnWalkRainScale(b08ReturnWalk ? 0.62f : 1f);
@@ -347,6 +352,10 @@ namespace CTCC
                 });
                 return;
             }
+            if (keys.digit1Key.wasPressedThisFrame) { ActivateQuickSlot(0); return; }
+            if (keys.digit2Key.wasPressedThisFrame) { ActivateQuickSlot(1); return; }
+            if (keys.digit3Key.wasPressedThisFrame) { ActivateQuickSlot(2); return; }
+            if (keys.digit4Key.wasPressedThisFrame) { ActivateQuickSlot(3); return; }
             if (b01SignKnockAt > 0f && Time.unscaledTime >= b01SignKnockAt)
             {
                 b01SignKnockAt = 0f;
@@ -497,6 +506,11 @@ namespace CTCC
                 anchorPressed && CanSpatialLinkBed4())
             {
                 TriggerSpatialBed4Link();
+                return;
+            }
+            if (anchorPressed && State.quickSlots != null && State.quickSlots.Count > 0)
+            {
+                CycleQuickSlot();
                 return;
             }
 
@@ -710,6 +724,9 @@ namespace CTCC
                 (!State.Happened("CH01-T04") || NextLanReflection() != null),
             "LAN_EMPTY_DESK" => State.layer == Reality.B && State.chapter == "CH01" && GateService.G01(State) && !State.Happened("CH01-T08"),
             "COMPARE_CLIP_AN02" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02") && casework.CanRevise,
+            "COMPARE_DESK_STAFF" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02"),
+            "COMPARE_DESK_RECEPTION" => State.Happened("CH01-T02") && State.chapter is ("CH01" or "CH02"),
+            "COMPARE_DESK_101" => State.chapter is ("CH01" or "CH02") && (State.layer == Reality.B || State.layer == Reality.R),
             "BATTERY" => !State.Happened("CH01-BATTERY") && State.Happened("CH01-T02"),
             "F101" => casework.CanRevise && !F101SignaturePlaying && gatekeeperCameo?.IsActive != true,
             "AN02" => false,
@@ -778,7 +795,10 @@ namespace CTCC
                     ui.Caption("Ghế trực trống, cây bút đặt ngang mép sổ. Không còn tiếng viết hay bóng dáng Lan.", 4.6f, true);
                     break;
                 case "COMPARE_CLIP_AN02":
-                    InteractComparisonClipAn02();
+                case "COMPARE_DESK_STAFF":
+                case "COMPARE_DESK_RECEPTION":
+                case "COMPARE_DESK_101":
+                    InteractComparisonSurface(id);
                     break;
                 case "BOARD":
                     if (!State.Happened("CH01-T04"))
@@ -898,7 +918,7 @@ namespace CTCC
                     SaveCheckpoint(() => casework.CompleteCh03Async(player.Feet), Ch03EndOfChapter);
                     break;
                 case "AN04":
-                    Ch04DutyRoom();
+                    if (!TryUseHeldTapeOnAn04()) Ch04DutyRoom();
                     break;
                 case "CH04_POWER":
                     Ch04PowerBoard();

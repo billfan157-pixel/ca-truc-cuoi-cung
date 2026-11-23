@@ -122,8 +122,8 @@ namespace CTCC
             cue = FillText("Subtitle", subtitle, 21, Ink, TextAnchor.MiddleCenter);
             cueBacking.gameObject.SetActive(false);
 
-            // Non-blocking diegetic environmental observation toast (bottom-right, replaces modal popups for world clues!)
-            var toastBox = Fixed("ObservationToast", hud, new Vector2(1, 0), new Vector2(-580, 118), new Vector2(536, 134));
+            // Non-blocking diegetic environmental observation toast (bottom-right, cleanly above Caption & QuickSlotBar!)
+            var toastBox = Fixed("ObservationToast", hud, new Vector2(1, 0), new Vector2(-580, 158), new Vector2(536, 134));
             toastBacking = Graphic(toastBox, new Color(0.042f, 0.066f, 0.060f, 0.90f), false);
             Graphic(Rect("ToastRule", toastBox, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(4, 0)), Accent, false);
             toastTitle = MakeText(Rect("ToastTitle", toastBox, new Vector2(0, 0.64f), new Vector2(1, 1), new Vector2(20, 0), new Vector2(-16, -8)),
@@ -166,8 +166,8 @@ namespace CTCC
             toastTitle.fontSize = Scaled(20);
             toastBody.fontSize = Scaled(19);
             help.text = options.alternateBindings
-                ? "Mũi tên  Đi    K  Tương tác    L  Đèn pin    J  Ba lô    H  Cất đồ    Esc  Menu"
-                : "WASD  Đi    E  Tương tác    F  Đèn pin    Tab  Ba lô    H  Cất đồ    Esc  Menu";
+                ? "Mũi tên  Đi    K  Tương tác    L  Đèn pin    J  Ba lô    1-4  Ô nhanh    H  Cất đồ    Esc  Menu"
+                : "WASD  Đi    E  Tương tác    F  Đèn pin    Tab  Ba lô    1-4  Ô nhanh    H  Cất đồ    Esc  Menu";
         }
 
         public void Hud(string reality, string objective)

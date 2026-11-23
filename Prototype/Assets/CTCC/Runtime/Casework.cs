@@ -133,6 +133,14 @@ namespace CTCC
             return reality.CommitEvidenceAsync(next);
         }
 
+        public Task<CommitResult> ToggleQuickSlotAsync(string itemDefId)
+        {
+            var next = State.Copy();
+            if (!InventoryService.ToggleQuickSlot(next, itemDefId))
+                return Task.FromResult(CommitResult.PadRequired);
+            return reality.CommitEvidenceAsync(next);
+        }
+
         public Task<CommitResult> RecordLanNoticedAsync()
         {
             if (State.layer != Reality.B || !State.Happened("CH01-T03") || State.Happened("CH01-LAN-NOTICED"))
@@ -618,6 +626,7 @@ namespace CTCC
             if (State.Has(id)) return CommitResult.Applied;
             var proposal = State.Copy();
             if (!EvidenceRegistry.Grant(proposal, id, Reality.R, "LOC03")) return CommitResult.PadRequired;
+            InventoryService.SyncFromEvidence(proposal, id, "LOC03");
             next = proposal;
             return CommitResult.Applied;
         }
@@ -691,6 +700,7 @@ namespace CTCC
             var proposal = State.Copy();
             if (!EvidenceRegistry.Grant(proposal, id, Reality.R, location))
                 return CommitResult.PadRequired;
+            InventoryService.SyncFromEvidence(proposal, id, location);
             if (id == EvidenceRegistry.PatientRegister)
                 proposal.Remember("CH03-T02");
             else if (id == EvidenceRegistry.C12UnnamedBox)
@@ -793,6 +803,7 @@ namespace CTCC
                 next.layer = Reality.M;
                 next.checkpoint = GateService.G03(State) ? "CH03-CP03" : "CH03-CP02";
                 next.Remember("CH03-T04");
+                InventoryService.RecordMemoryRef(next, BackpackCatalog.MemVignetteC02, "LOC07");
             }
             else if (State.layer == Reality.M)
             {

@@ -40,6 +40,7 @@ namespace CTCC
             if (location == "LOC10" && !MorguePower(next.servicePower) ||
                 !EvidenceRegistry.Grant(next, id, Reality.R, location))
                 return Task.FromResult(CommitResult.PadRequired);
+            InventoryService.SyncFromEvidence(next, id, location);
             return transaction.CommitEvidenceAsync(next);
         }
 

@@ -1325,6 +1325,7 @@ namespace CTCC
             voice?.SetPaused(false);
             firstEscape = true;
             inspector?.Close();
+            backpackStage?.Close();
             ui.Close();
         }
 

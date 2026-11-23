@@ -9,7 +9,8 @@ namespace CTCC
         EquippableTool = 0,
         PersistentPhysical = 1,
         LayerBoundPaper = 2,
-        MemoryOnly = 3
+        AnchoredWorld = 3,
+        MemoryOnly = 4
     }
 
     public enum BackpackCompartment
@@ -30,24 +31,25 @@ namespace CTCC
     [Serializable]
     public sealed class BackpackEntry
     {
-        public string instanceId;
-        public string itemDefId;
-        public BackpackItemStatus status;
-        public Reality originLayer;
-        public string originLoc;
-        public string acquiredChapter;
-        public string placedAnchorId;
-        public List<string> viewedPages = new();
-        public int itemRevision;
+        public string instanceId = "";
+        public string itemDefId = "";
+        public BackpackItemStatus status = BackpackItemStatus.InBag;
+        public Reality originLayer = Reality.R;
+        public string originLoc = "";
+        public string acquiredChapter = "CH01";
+        public string placedAnchorId = "";
+        public List<string> viewedFlags = new();
+        public int itemRevision = 1;
 
-        public bool HasViewed(string page) =>
-            viewedPages != null && !string.IsNullOrEmpty(page) && viewedPages.Contains(page);
+        public bool HasViewed(string flag) =>
+            viewedFlags != null && !string.IsNullOrEmpty(flag) && viewedFlags.Contains(flag);
 
-        public bool MarkViewed(string page)
+        public bool MarkViewed(string flag)
         {
-            viewedPages ??= new();
-            if (string.IsNullOrEmpty(page) || viewedPages.Contains(page)) return false;
-            viewedPages.Add(page);
+            if (string.IsNullOrEmpty(flag)) return false;
+            viewedFlags ??= new();
+            if (viewedFlags.Contains(flag)) return false;
+            viewedFlags.Add(flag);
             itemRevision++;
             return true;
         }
@@ -64,10 +66,12 @@ namespace CTCC
         public readonly BackpackCompartment Compartment;
         public readonly bool CanEquip;
         public readonly bool CanPlace;
+        public readonly bool CanCombine;
         public readonly string LinkedObservationId;
         public readonly string LinkedEvidenceId;
         public readonly string FrontTexture;
         public readonly string BackTexture;
+        public readonly string InspectModelId;
 
         public BackpackItemDef(
             string id,
@@ -79,10 +83,12 @@ namespace CTCC
             BackpackCompartment compartment,
             bool canEquip,
             bool canPlace,
+            bool canCombine = false,
             string linkedObservationId = null,
             string linkedEvidenceId = null,
             string frontTexture = null,
-            string backTexture = null)
+            string backTexture = null,
+            string inspectModelId = null)
         {
             Id = id;
             Title = title;
@@ -93,31 +99,73 @@ namespace CTCC
             Compartment = compartment;
             CanEquip = canEquip;
             CanPlace = canPlace;
+            CanCombine = canCombine;
             LinkedObservationId = linkedObservationId;
             LinkedEvidenceId = linkedEvidenceId;
             FrontTexture = frontTexture;
             BackTexture = backTexture;
+            InspectModelId = inspectModelId;
         }
     }
 
     public static class WorldAnchors
     {
         public const string An02CompareClip = "AN02_CLIP";
-        public const string StaffDeskCompare = "STAFF_DESK_COMPARE";
+        public const string StaffDeskLeft = "STAFF_DESK_L";
+        public const string StaffDeskRight = "STAFF_DESK_R";
+        public const string StaffDeskCompare = StaffDeskLeft;
+        public const string ReceptionDeskLeft = "RECEPTION_SLOT_L";
+        public const string ReceptionDeskRight = "RECEPTION_SLOT_R";
+        public const string Ward101TableLeft = "WARD101_TABLE_L";
+        public const string Ward101TableRight = "WARD101_TABLE_R";
 
         public static bool Known(string anchorId) =>
-            anchorId is An02CompareClip or StaffDeskCompare;
+            anchorId is An02CompareClip or StaffDeskLeft or StaffDeskRight
+                or ReceptionDeskLeft or ReceptionDeskRight
+                or Ward101TableLeft or Ward101TableRight;
 
         public static string Label(string anchorId) => anchorId switch
         {
             An02CompareClip => "Kẹp đối chiếu cạnh F101 (Phòng 101)",
-            StaffDeskCompare => "Bàn điều dưỡng (Hốc STAFF)",
+            StaffDeskLeft => "Bàn điều dưỡng STAFF · Ô trái",
+            StaffDeskRight => "Bàn điều dưỡng STAFF · Ô phải",
+            ReceptionDeskLeft => "Quầy tiếp nhận · Ô trái",
+            ReceptionDeskRight => "Quầy tiếp nhận · Ô phải",
+            Ward101TableLeft => "Bàn đối chiếu Phòng 101 · Ô trái",
+            Ward101TableRight => "Bàn đối chiếu Phòng 101 · Ô phải",
             _ => ""
+        };
+
+        public static string ZoneOf(string anchorId) => anchorId switch
+        {
+            An02CompareClip or Ward101TableLeft or Ward101TableRight => "LOC03",
+            StaffDeskLeft or StaffDeskRight => "STAFF",
+            ReceptionDeskLeft or ReceptionDeskRight => "LOC02",
+            _ => ""
+        };
+
+        public static bool AllowedInLayer(string anchorId, Reality layer) => anchorId switch
+        {
+            An02CompareClip => layer == Reality.B,
+            StaffDeskLeft or StaffDeskRight => layer == Reality.B,
+            ReceptionDeskLeft or ReceptionDeskRight => layer is (Reality.R or Reality.B),
+            Ward101TableLeft or Ward101TableRight => layer is (Reality.R or Reality.B),
+            _ => false
+        };
+
+        public static string[] SlotsForSurface(string surfaceTargetId) => surfaceTargetId switch
+        {
+            "COMPARE_CLIP_AN02" => new[] { An02CompareClip },
+            "COMPARE_DESK_STAFF" => new[] { StaffDeskLeft, StaffDeskRight },
+            "COMPARE_DESK_RECEPTION" => new[] { ReceptionDeskLeft, ReceptionDeskRight },
+            "COMPARE_DESK_101" => new[] { Ward101TableLeft, Ward101TableRight },
+            _ => Array.Empty<string>()
         };
     }
 
     public static class BackpackCatalog
     {
+        // CH01 Tools & Papers
         public const string Flashlight = "FLASHLIGHT";
         public const string GateKey = "KEY_GATE";
         public const string WingCKey = "KEY_WING_C";
@@ -127,6 +175,28 @@ namespace CTCC
         public const string PaperObs101C = "PAPER_OBS101C";
         public const string PaperObs101D = "PAPER_OBS101D";
         public const string PaperShiftLog = "PAPER_SHIFT_LOG";
+
+        // CH02 Persistent Physical Evidence (Layer R)
+        public const string Ch02Draw1 = "CH02_DRAW1";
+        public const string Ch02Draw2 = "CH02_DRAW2";
+        public const string Ch02Draw3 = "CH02_DRAW3";
+        public const string Ch02DrawFull = "CH02_DRAW_FULL";
+        public const string Ch02Wristband = "CH02_WRISTBAND";
+        public const string Ch02Transfer = "CH02_TRANSFER";
+
+        // CH03 & CH04 Physical Evidence + MemoryOnly References
+        public const string Ch03Register = "CH03_REGISTER";
+        public const string Ch03C02Note = "CH03_C02_NOTE";
+        public const string Ch03C02Bag = "CH03_C02_BAG";
+        public const string Ch03C02Letter = "CH03_C02_LETTER";
+        public const string Ch03C12Box = "CH03_C12_BOX";
+        public const string Ch04Orders = "CH04_ORDERS";
+        public const string Ch04Log = "CH04_LOG";
+        public const string Ch04Tape = "CH04_TAPE";
+        public const string Ch04Morgue = "CH04_MORGUE";
+        public const string Ch04LanRecovery = "CH04_LAN_RECOVERY";
+        public const string MemVignetteC02 = "MEM_VIGNETTE_C02";
+        public const string MemE08Trace = "MEM_E08_TRACE";
 
         private static readonly BackpackItemDef[] Ordered =
         {
@@ -144,7 +214,7 @@ namespace CTCC
                 GateKey,
                 "Chìa cổng phụ An Sinh",
                 "Chìa cổng phụ",
-                "Chìa sắt đã sờn mép rút từ bì thư của Bảy. Khớp với ổ khóa cổng phụ phía trước chốt bảo vệ.",
+                "Chìa đồng cũ đã sờn mép rút từ bì thư của Bảy. Khớp với ổ khóa cổng phụ phía trước chốt bảo vệ.",
                 "Từ bì thư E10a · Lớp R · LOC01",
                 ItemKind.EquippableTool,
                 BackpackCompartment.Tools,
@@ -154,7 +224,7 @@ namespace CTCC
                 WingCKey,
                 "Chìa khu C (đã thay khóa)",
                 "Chìa khu C",
-                "Chìa đồng cũ có thẻ giấy nhỏ ghi ký hiệu khu C. Bảy chú thích ổ khóa khu C đã thay từ trước khi thanh lý — hiện chưa rõ dùng vào đâu trong đêm nay.",
+                "Chìa sắt sẫm màu có thẻ giấy nhỏ ghi ký hiệu khu C. Bảy chú thích ổ khóa khu C đã thay từ trước khi thanh lý — hiện chưa rõ dùng vào đâu trong đêm nay.",
                 "Từ bì thư E10a · Lớp R · LOC01",
                 ItemKind.EquippableTool,
                 BackpackCompartment.Tools,
@@ -190,7 +260,7 @@ namespace CTCC
                 PaperObs101B,
                 "Thẻ bàn giao giường 4 (AS-05B)",
                 "Thẻ AS-05B",
-                "Thẻ giường tạm ngày 17/11/2005 khoanh tròn 'CHƯA BÀN GIAO', trống ô chữ ký người nhận. Chỉ tồn tại vật lý trong lớp B; có thể kẹp cạnh F101 để đối chiếu.",
+                "Thẻ giường tạm ngày 17/11/2005 khoanh tròn 'CHƯA BÀN GIAO', trống ô chữ ký người nhận. Chỉ tồn tại vật lý trong lớp B; có thể đặt lên kẹp F101 hoặc bàn đối chiếu.",
                 "Giấy tạm lớp B · LOC03 · 17/11/2005",
                 ItemKind.LayerBoundPaper,
                 BackpackCompartment.Papers,
@@ -237,22 +307,235 @@ namespace CTCC
                 canPlace: true,
                 linkedObservationId: ObservationRegistry.ShiftGuide,
                 frontTexture: "Doc_ShiftGuide",
-                backTexture: "Doc_ShiftGuide_Back")
+                backTexture: "Doc_ShiftGuide_Back"),
+
+            // CH02 Persistent Physical Evidence (Kho giường 101 · Layer R)
+            new(
+                Ch02Draw1,
+                "Mảnh tranh 1 (Mái ngói)",
+                "Mảnh tranh 1",
+                "Nét mái ngói vẽ bằng sáp màu dừng ở mép giấy rách, tìm thấy trong tủ khô kho 101. Có thể ghép với 2 mảnh còn lại trên bàn đối chiếu hoặc trong ba lô.",
+                "Vật chứng lớp R · LOC03 (Kho 101)",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: true,
+                canPlace: true,
+                canCombine: true,
+                linkedEvidenceId: EvidenceRegistry.DrawingFragments[0],
+                frontTexture: "DrawingPiece1"),
+            new(
+                Ch02Draw2,
+                "Mảnh tranh 2 (Cửa xanh & ổ khóa)",
+                "Mảnh tranh 2",
+                "Nét cánh cửa màu xanh và ổ khóa bằng chì sẫm, tìm thấy trong tủ khô kho 101. Khớp mép rách với hai mảnh tranh còn lại.",
+                "Vật chứng lớp R · LOC03 (Kho 101)",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: true,
+                canPlace: true,
+                canCombine: true,
+                linkedEvidenceId: EvidenceRegistry.DrawingFragments[1],
+                frontTexture: "DrawingPiece2"),
+            new(
+                Ch02Draw3,
+                "Mảnh tranh 3 (Mặt trời & ô cửa)",
+                "Mảnh tranh 3",
+                "Ông mặt trời và một nửa ô cửa sổ nhỏ bằng sáp màu, tìm thấy trong tủ khô kho 101.",
+                "Vật chứng lớp R · LOC03 (Kho 101)",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: true,
+                canPlace: true,
+                canCombine: true,
+                linkedEvidenceId: EvidenceRegistry.DrawingFragments[2],
+                frontTexture: "DrawingPiece3"),
+            new(
+                Ch02DrawFull,
+                "Bức tranh đã ghép của An (E11)",
+                "Tranh ghép E11",
+                "Ba mảnh tranh sáp màu đã ghép khít mép: mái ngói, cánh cửa xanh có ổ khóa và ô cửa sổ nhỏ.",
+                "Vật chứng lớp R · LOC03 · Đã ghép hoàn chỉnh",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: true,
+                canPlace: true,
+                linkedEvidenceId: EvidenceRegistry.Drawing,
+                frontTexture: "Drawing"),
+            new(
+                Ch02Wristband,
+                "Vòng tay bệnh nhi C01",
+                "Vòng tay C01",
+                "Phiến giấy trong vòng nhựa mờ ghi mã C01, giữ trong túi đồ vải ở kho giường 101.",
+                "Vật chứng lớp R · LOC03 (Kho 101)",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Tools,
+                canEquip: true,
+                canPlace: true,
+                linkedEvidenceId: EvidenceRegistry.Wristband,
+                inspectModelId: "WRIST"),
+            new(
+                Ch02Transfer,
+                "Phiếu chuyển 101/4 → C01",
+                "Phiếu chuyển 101/4",
+                "17/11/2005 · An — Giường 4 phòng 101, khám sốt tạm. Trở lại C01. Bản lưu nội bộ cất trong tủ khô kho 101.",
+                "Vật chứng lớp R · LOC03 (Kho 101)",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: true,
+                canPlace: true,
+                linkedEvidenceId: EvidenceRegistry.Transfer,
+                frontTexture: "Transfer"),
+
+            // CH03 & CH04 Physical Evidence + MemoryOnly References
+            new(
+                Ch03Register,
+                "Sổ bàn giao lưu trữ (E03)",
+                "Sổ lưu trữ E03",
+                "Sổ bàn giao trên bàn đọc kho hồ sơ tầng 3 ghi các mã bệnh nhân còn lưu dấu.",
+                "Vật chứng lớp R · LOC07",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: false,
+                canPlace: false,
+                linkedEvidenceId: EvidenceRegistry.PatientRegister),
+            new(
+                Ch03C02Note,
+                "Ghi chú kẹp sợi len (K-02)",
+                "Ghi chú K-02",
+                "«B/2. Giữ khăn đan dở trong túi có thẻ K-02.»",
+                "Vật chứng lớp R · LOC07",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: true,
+                canPlace: false,
+                linkedEvidenceId: EvidenceRegistry.C02CareNote),
+            new(
+                Ch03C02Bag,
+                "Túi len gắn thẻ K-02 (C02)",
+                "Túi len K-02",
+                "Túi đồ vải giữ chiếc khăn đan dở gắn thẻ K-02 trong kho lưu trữ tầng 3.",
+                "Vật chứng lớp R · LOC07",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Tools,
+                canEquip: false,
+                canPlace: false,
+                linkedEvidenceId: EvidenceRegistry.C02YarnBag),
+            new(
+                Ch03C02Letter,
+                "Thư con gái gửi Bà Lành",
+                "Thư con gái C02",
+                "Lá thư tay tùy chọn xác thực tên thật của C02 là Bà Lành.",
+                "Vật chứng lớp R · LOC07",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: true,
+                canPlace: false,
+                linkedEvidenceId: EvidenceRegistry.C02DaughterLetter),
+            new(
+                Ch03C12Box,
+                "Ghi nhận hộp C/12 (vô danh)",
+                "Hồ sơ C/12",
+                "Xác nhận sự tồn tại của người bệnh C12 theo hộp giữ đồ vô danh — không tự đặt tên.",
+                "Ghi nhận hiện trường · LOC07",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: false,
+                canPlace: false,
+                linkedEvidenceId: EvidenceRegistry.C12UnnamedBox),
+            new(
+                Ch04Orders,
+                "Bản lệnh giao ca (E02)",
+                "Lệnh giao ca E02",
+                "Bản lệnh giao ca thu được tại phòng trực tầng 2 (LOC06).",
+                "Vật chứng lớp R · LOC06",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: false,
+                canPlace: false,
+                linkedEvidenceId: EvidenceRegistry.DutyOrders),
+            new(
+                Ch04Log,
+                "Sổ ca đêm (E09)",
+                "Sổ ca đêm E09",
+                "Sổ ca đêm gốc tại phòng trực tầng 2 (LOC06).",
+                "Vật chứng lớp R · LOC06",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: false,
+                canPlace: false,
+                linkedEvidenceId: EvidenceRegistry.DutyLog),
+            new(
+                Ch04Tape,
+                "Cuộn băng cuộc họp (E06a)",
+                "Băng họp E06a",
+                "Cuộn băng ghi âm cuộc họp phòng trực. Có thể cầm trên tay và đặt vào máy phát tại bàn phòng trực (AN04) khi đã đủ E02 + E09.",
+                "Vật chứng lớp R · LOC06",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Tools,
+                canEquip: true,
+                canPlace: false,
+                linkedEvidenceId: EvidenceRegistry.MeetingTape),
+            new(
+                Ch04Morgue,
+                "Hồ sơ tiếp nhận nhà xác (E04)",
+                "Hồ sơ E04",
+                "Hồ sơ tiếp nhận tìm thấy dưới tầng hầm B1 (LOC10).",
+                "Vật chứng lớp R · LOC10",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: false,
+                canPlace: false,
+                linkedEvidenceId: EvidenceRegistry.MorgueRegister),
+            new(
+                Ch04LanRecovery,
+                "Thẻ & phiếu thu hồi Lan (E07)",
+                "Phiếu E07",
+                "Thẻ nhân viên và phiếu thu hồi L-13 tại nhà xác B1 (LOC10).",
+                "Vật chứng lớp R · LOC10",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: false,
+                canPlace: false,
+                linkedEvidenceId: EvidenceRegistry.LanRecovery),
+            new(
+                MemVignetteC02,
+                "Ký ức kho hồ sơ · C02 (Lớp M)",
+                "Ký ức C02 (M)",
+                "Ghi nhớ phi vật chất từ lát cắt ký ức lớp M tại AN03. Tuyệt đối không phải vật chứng có thể xuất bản.",
+                "Ký ức lớp M · Không thể xuất chứng cứ",
+                ItemKind.MemoryOnly,
+                BackpackCompartment.Papers,
+                canEquip: false,
+                canPlace: false),
+            new(
+                MemE08Trace,
+                "Dấu ký ức E08 (Lớp M)",
+                "Ký ức E08 (M)",
+                "Vết ký ức phi vật chất thuộc lớp M — không tồn tại vật lý và không nằm trong gói vật chứng xuất.",
+                "Ký ức lớp M · Không thể xuất chứng cứ",
+                ItemKind.MemoryOnly,
+                BackpackCompartment.Papers,
+                canEquip: false,
+                canPlace: false)
         };
 
         private static readonly Dictionary<string, BackpackItemDef> ById;
         private static readonly Dictionary<string, BackpackItemDef> ByObservation;
+        private static readonly Dictionary<string, BackpackItemDef> ByEvidence;
 
         static BackpackCatalog()
         {
             ById = new Dictionary<string, BackpackItemDef>(StringComparer.Ordinal);
             ByObservation = new Dictionary<string, BackpackItemDef>(StringComparer.Ordinal);
+            ByEvidence = new Dictionary<string, BackpackItemDef>(StringComparer.Ordinal);
             for (int i = 0; i < Ordered.Length; i++)
             {
                 var def = Ordered[i];
                 ById[def.Id] = def;
                 if (!string.IsNullOrEmpty(def.LinkedObservationId) && def.Id != BoardAssignment)
                     ByObservation[def.LinkedObservationId] = def;
+                if (!string.IsNullOrEmpty(def.LinkedEvidenceId))
+                    ByEvidence[def.LinkedEvidenceId] = def;
             }
         }
 
@@ -261,14 +544,19 @@ namespace CTCC
         public static BackpackItemDef Get(string id) => !string.IsNullOrEmpty(id) && ById.TryGetValue(id, out var d) ? d : null;
         public static BackpackItemDef ForObservation(string obsId) =>
             !string.IsNullOrEmpty(obsId) && ByObservation.TryGetValue(obsId, out var d) ? d : null;
+        public static BackpackItemDef ForEvidence(string evidenceId) =>
+            !string.IsNullOrEmpty(evidenceId) && ByEvidence.TryGetValue(evidenceId, out var d) ? d : null;
     }
 
     public static class InventoryService
     {
+        public const int MaxQuickSlots = 4;
+
         public static void EnsureDefaultTools(Investigation state)
         {
             if (state == null) return;
             state.backpackItems ??= new();
+            state.quickSlots ??= new();
             if (FindByDef(state, BackpackCatalog.Flashlight) == null)
             {
                 state.backpackItems.Add(new BackpackEntry
@@ -308,8 +596,12 @@ namespace CTCC
             return null;
         }
 
-        public static BackpackEntry GetEquipped(Investigation state) =>
-            string.IsNullOrEmpty(state?.equippedInstanceId) ? null : FindByInstance(state, state.equippedInstanceId);
+        public static BackpackEntry GetEquipped(Investigation state)
+        {
+            if (state == null || string.IsNullOrEmpty(state.equippedInstanceId)) return null;
+            var entry = FindByInstance(state, state.equippedInstanceId);
+            return entry != null && entry.status == BackpackItemStatus.Equipped ? entry : null;
+        }
 
         public static BackpackEntry GetPlacedAt(Investigation state, string anchorId)
         {
@@ -324,31 +616,50 @@ namespace CTCC
             return null;
         }
 
+        public static List<BackpackEntry> GetAllPlaced(Investigation state)
+        {
+            var list = new List<BackpackEntry>();
+            if (state?.backpackItems == null) return list;
+            for (int i = 0; i < state.backpackItems.Count; i++)
+            {
+                var e = state.backpackItems[i];
+                if (e != null && e.status == BackpackItemStatus.Placed && WorldAnchors.Known(e.placedAnchorId))
+                    list.Add(e);
+            }
+            return list;
+        }
+
         public static bool HasPhysical(Investigation state, string itemDefId)
         {
             var e = FindByDef(state, itemDefId);
             return e != null && e.status != BackpackItemStatus.MemoryRef;
         }
 
-        public static bool TryAcquire(Investigation candidate, string itemDefId, Reality layer, string location, out BackpackEntry entry)
+        public static bool CanAssembleCh02Drawing(Investigation state) =>
+            state != null && state.chapter == "CH02" && state.layer == Reality.R &&
+            state.Has("E12") && EvidenceRegistry.HaveFragments(state) && !state.Has(EvidenceRegistry.Drawing);
+
+        public static bool TryAcquire(Investigation candidate, string itemDefId, Reality originLayer, string originLoc, out BackpackEntry entry)
         {
             entry = null;
             var def = BackpackCatalog.Get(itemDefId);
-            if (candidate == null || def == null) return false;
-            candidate.backpackItems ??= new();
-
-            // LayerBound papers cannot be physically acquired in Layer R!
-            if (def.Kind == ItemKind.LayerBoundPaper && layer != Reality.B)
+            if (candidate == null || def == null || def.Kind == ItemKind.AnchoredWorld)
+                return false;
+            if (def.Kind == ItemKind.MemoryOnly)
+                return RecordMemoryRef(candidate, itemDefId, originLoc);
+            if (def.Kind == ItemKind.LayerBoundPaper && originLayer != Reality.B)
                 return false;
 
+            EnsureDefaultTools(candidate);
             var existing = FindByDef(candidate, itemDefId);
             if (existing != null)
             {
-                if (existing.status == BackpackItemStatus.MemoryRef && def.Kind == ItemKind.LayerBoundPaper && layer == Reality.B)
+                if (existing.status == BackpackItemStatus.MemoryRef && def.Kind == ItemKind.LayerBoundPaper && originLayer == Reality.B)
                 {
                     existing.status = BackpackItemStatus.InBag;
                     existing.placedAnchorId = "";
                     existing.itemRevision++;
+                    AutoAssignQuickSlotIfRoom(candidate, itemDefId);
                 }
                 entry = existing;
                 return true;
@@ -359,14 +670,119 @@ namespace CTCC
                 instanceId = "ITEM_" + itemDefId,
                 itemDefId = itemDefId,
                 status = BackpackItemStatus.InBag,
-                originLayer = layer,
-                originLoc = location ?? "LOC01",
+                originLayer = originLayer,
+                originLoc = originLoc ?? "",
                 acquiredChapter = candidate.chapter ?? "CH01",
                 placedAnchorId = "",
                 itemRevision = 1
             };
             candidate.backpackItems.Add(entry);
+            AutoAssignQuickSlotIfRoom(candidate, itemDefId);
             return true;
+        }
+
+        public static bool RecordMemoryRef(Investigation candidate, string itemDefId, string originLoc)
+        {
+            var def = BackpackCatalog.Get(itemDefId);
+            if (candidate == null || def == null || def.Kind != ItemKind.MemoryOnly)
+                return false;
+            EnsureDefaultTools(candidate);
+            if (FindByDef(candidate, itemDefId) != null) return true;
+            candidate.backpackItems.Add(new BackpackEntry
+            {
+                instanceId = "ITEM_" + itemDefId,
+                itemDefId = itemDefId,
+                status = BackpackItemStatus.MemoryRef,
+                originLayer = Reality.M,
+                originLoc = originLoc ?? "",
+                acquiredChapter = candidate.chapter ?? "CH03",
+                placedAnchorId = "",
+                itemRevision = 1
+            });
+            return true;
+        }
+
+        public static void SyncFromEvidence(Investigation candidate, string evidenceId, string originLoc)
+        {
+            if (candidate == null || string.IsNullOrEmpty(evidenceId)) return;
+            var def = BackpackCatalog.ForEvidence(evidenceId);
+            if (def == null || def.Id == BackpackCatalog.E10aEnvelope) return;
+            TryAcquire(candidate, def.Id, Reality.R, originLoc, out _);
+            if (evidenceId == EvidenceRegistry.Drawing)
+            {
+                // Keep fragments clean if any were placed on the assembly table: return them to bag/tidy state.
+                foreach (string fragDef in new[] { BackpackCatalog.Ch02Draw1, BackpackCatalog.Ch02Draw2, BackpackCatalog.Ch02Draw3 })
+                {
+                    var frag = FindByDef(candidate, fragDef);
+                    if (frag != null && frag.status == BackpackItemStatus.Placed)
+                    {
+                        frag.status = BackpackItemStatus.InBag;
+                        frag.placedAnchorId = "";
+                        frag.itemRevision++;
+                    }
+                }
+            }
+        }
+
+        public static void AutoAssignQuickSlotIfRoom(Investigation candidate, string itemDefId)
+        {
+            if (candidate == null || string.IsNullOrEmpty(itemDefId)) return;
+            var def = BackpackCatalog.Get(itemDefId);
+            if (def == null || !def.CanEquip) return;
+            candidate.quickSlots ??= new();
+            if (candidate.quickSlots.Contains(itemDefId)) return;
+            if (candidate.quickSlots.Count < MaxQuickSlots)
+                candidate.quickSlots.Add(itemDefId);
+        }
+
+        public static bool ToggleQuickSlot(Investigation candidate, string itemDefId)
+        {
+            if (candidate == null || string.IsNullOrEmpty(itemDefId)) return false;
+            var def = BackpackCatalog.Get(itemDefId);
+            var entry = FindByDef(candidate, itemDefId);
+            if (def == null || !def.CanEquip || entry == null || entry.status == BackpackItemStatus.MemoryRef)
+                return false;
+            candidate.quickSlots ??= new();
+            if (candidate.quickSlots.Remove(itemDefId))
+                return true;
+            if (candidate.quickSlots.Count >= MaxQuickSlots)
+                candidate.quickSlots.RemoveAt(0);
+            candidate.quickSlots.Add(itemDefId);
+            return true;
+        }
+
+        public static void PruneQuickSlots(Investigation candidate)
+        {
+            if (candidate == null) return;
+            candidate.quickSlots ??= new();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = candidate.quickSlots.Count - 1; i >= 0; i--)
+            {
+                string id = candidate.quickSlots[i];
+                var def = BackpackCatalog.Get(id);
+                var entry = FindByDef(candidate, id);
+                bool valid = def != null && def.CanEquip && entry != null &&
+                             entry.status != BackpackItemStatus.MemoryRef &&
+                             !(def.Kind == ItemKind.LayerBoundPaper && candidate.layer != Reality.B) &&
+                             seen.Add(id);
+                if (!valid) candidate.quickSlots.RemoveAt(i);
+            }
+            while (candidate.quickSlots.Count > MaxQuickSlots)
+                candidate.quickSlots.RemoveAt(candidate.quickSlots.Count - 1);
+        }
+
+        public static string GetQuickSlotItem(Investigation state, int slotIndex)
+        {
+            if (state?.quickSlots == null || slotIndex < 0 || slotIndex >= state.quickSlots.Count)
+                return null;
+            string id = state.quickSlots[slotIndex];
+            var entry = FindByDef(state, id);
+            var def = BackpackCatalog.Get(id);
+            if (entry == null || def == null || !def.CanEquip || entry.status == BackpackItemStatus.MemoryRef)
+                return null;
+            if (def.Kind == ItemKind.LayerBoundPaper && state.layer != Reality.B)
+                return null;
+            return id;
         }
 
         public static bool TryEquip(Investigation candidate, string itemDefId)
@@ -400,7 +816,7 @@ namespace CTCC
                 if (e != null && e.status == BackpackItemStatus.Equipped)
                 {
                     e.status = BackpackItemStatus.InBag;
-                    e.placedAnchorId = "";
+                    e.itemRevision++;
                 }
             }
             candidate.equippedInstanceId = "";
@@ -409,13 +825,15 @@ namespace CTCC
         public static bool TryPlaceAtAnchor(Investigation candidate, string itemDefId, string anchorId)
         {
             if (candidate == null || !WorldAnchors.Known(anchorId)) return false;
+            if (!WorldAnchors.AllowedInLayer(anchorId, candidate.layer)) return false;
             var def = BackpackCatalog.Get(itemDefId);
             var entry = FindByDef(candidate, itemDefId);
-            if (def == null || entry == null || !def.CanPlace) return false;
-            if (entry.status == BackpackItemStatus.MemoryRef) return false;
-            if (def.Kind == ItemKind.LayerBoundPaper && candidate.layer != Reality.B) return false;
+            if (def == null || entry == null || !def.CanPlace || entry.status == BackpackItemStatus.MemoryRef)
+                return false;
+            if (def.Kind == ItemKind.LayerBoundPaper && candidate.layer != Reality.B)
+                return false;
 
-            // Return any previous occupant of the same anchor cleanly back to bag
+            // Return any previous item at this anchor cleanly to InBag (no duplication, no loss)
             var prev = GetPlacedAt(candidate, anchorId);
             if (prev != null && prev != entry)
             {
@@ -450,14 +868,15 @@ namespace CTCC
             if (def == null || entry == null || def.Kind != ItemKind.LayerBoundPaper) return false;
             if (candidate.equippedInstanceId == entry.instanceId)
                 candidate.equippedInstanceId = "";
+            candidate.quickSlots?.Remove(itemDefId);
             candidate.backpackItems.Remove(entry);
             return true;
         }
 
         /// <summary>
         /// Walkthrough B06 atomic B->R reconciliation:
-        /// Every LayerBoundPaper (in bag, held in hand, or placed on an AN02/STAFF anchor) is returned
-        /// to Layer B and preserved strictly as a non-physical MemoryRef (cannot be equipped/placed/exported in R).
+        /// Every LayerBoundPaper (in bag, held in hand, or placed on ANY AN02/STAFF/RECEPTION/WARD101 anchor)
+        /// is returned to Layer B and preserved strictly as a non-physical MemoryRef (cannot be equipped/placed/exported in R).
         /// </summary>
         public static void ReconcileLayerBoundToMemory(Investigation candidate)
         {
@@ -476,8 +895,6 @@ namespace CTCC
                 entry.itemRevision++;
             }
 
-            // If player examined AS-05B in B without stowing it, preserve a read-only memory reference so
-            // B08's conditional memory echo and provenance review remain accurate without inventing physical paper.
             if (candidate.layer == Reality.R && candidate.Happened("CH01-T08"))
             {
                 EnsureMemoryRefIfExamined(candidate, ObservationRegistry.Bed4Card, BackpackCatalog.PaperObs101B, "LOC03");
@@ -485,6 +902,7 @@ namespace CTCC
                 EnsureMemoryRefIfExamined(candidate, ObservationRegistry.Bed3Meds, BackpackCatalog.PaperObs101D, "LOC03");
                 EnsureMemoryRefIfExamined(candidate, ObservationRegistry.ShiftGuide, BackpackCatalog.PaperShiftLog, "STAFF");
             }
+            PruneQuickSlots(candidate);
         }
 
         private static void EnsureMemoryRefIfExamined(Investigation candidate, string obsId, string itemDefId, string loc)
@@ -538,8 +956,24 @@ namespace CTCC
                     });
                 }
             }
+            // Deterministically reconstruct CH02/CH03/CH04 physical BackpackEntries strictly from committed evidence
+            if (state.evidence != null)
+            {
+                for (int i = 0; i < state.evidence.Count; i++)
+                {
+                    string ev = state.evidence[i];
+                    if (ev == "E10a" || ev == "E12") continue;
+                    string loc = ev.StartsWith("E11", StringComparison.Ordinal) ? "LOC03"
+                        : ev.StartsWith("E03", StringComparison.Ordinal) || ev == "FS19" ? "LOC07"
+                        : ev is "E04" or "E07" ? "LOC10" : "LOC06";
+                    SyncFromEvidence(state, ev, loc);
+                }
+            }
+            if (state.Happened("CH03-T04"))
+                RecordMemoryRef(state, BackpackCatalog.MemVignetteC02, "LOC07");
             if (state.layer != Reality.B)
                 ReconcileLayerBoundToMemory(state);
+            PruneQuickSlots(state);
         }
 
         public static bool ValidState(Investigation state)
@@ -564,10 +998,17 @@ namespace CTCC
                 // LayerBound papers MUST NEVER be physically held, stowed, or placed in Layer R!
                 if (def.Kind == ItemKind.LayerBoundPaper && state.layer != Reality.B && e.status != BackpackItemStatus.MemoryRef)
                     return false;
+                // MemoryOnly items MUST strictly stay MemoryRef (never physical, never equipped/placed)!
+                if (def.Kind == ItemKind.MemoryOnly && e.status != BackpackItemStatus.MemoryRef)
+                    return false;
 
                 if (e.status == BackpackItemStatus.Placed)
                 {
-                    if (!def.CanPlace || !WorldAnchors.Known(e.placedAnchorId) || !usedAnchors.Add(e.placedAnchorId))
+                    Reality effectiveLayer = def.Kind == ItemKind.PersistentPhysical && state.layer == Reality.M
+                        ? Reality.R : state.layer;
+                    if (!def.CanPlace || !WorldAnchors.Known(e.placedAnchorId) ||
+                        !WorldAnchors.AllowedInLayer(e.placedAnchorId, effectiveLayer) ||
+                        !usedAnchors.Add(e.placedAnchorId))
                         return false;
                 }
                 else if (!string.IsNullOrEmpty(e.placedAnchorId))
@@ -580,6 +1021,21 @@ namespace CTCC
                     if (!def.CanEquip || !string.IsNullOrEmpty(equippedSeen))
                         return false;
                     equippedSeen = e.instanceId;
+                }
+            }
+
+            if (state.quickSlots != null)
+            {
+                if (state.quickSlots.Count > MaxQuickSlots) return false;
+                var qsSeen = new HashSet<string>(StringComparer.Ordinal);
+                for (int i = 0; i < state.quickSlots.Count; i++)
+                {
+                    string qid = state.quickSlots[i];
+                    var qdef = BackpackCatalog.Get(qid);
+                    var qentry = FindByDef(state, qid);
+                    if (qdef == null || !qdef.CanEquip || qentry == null ||
+                        qentry.status == BackpackItemStatus.MemoryRef || !qsSeen.Add(qid))
+                        return false;
                 }
             }
 
@@ -596,7 +1052,8 @@ namespace CTCC
         NeedSmsBeforeGate = 3,
         PlacePaperOnAnchor = 4,
         GateRefusedAfterCollapse = 5,
-        NotApplicableFeedback = 6
+        PlayTapeAtDutyDesk = 6,
+        NotApplicableFeedback = 7
     }
 
     public readonly struct WorldUseResolution
@@ -656,17 +1113,30 @@ namespace CTCC
                 }
             }
 
-            if (targetId == "COMPARE_CLIP_AN02" && state.layer == Reality.B)
+            if (targetId is ("COMPARE_CLIP_AN02" or "COMPARE_DESK_STAFF" or "COMPARE_DESK_RECEPTION" or "COMPARE_DESK_101"))
             {
                 if (!string.IsNullOrEmpty(equippedItemDefId))
                 {
                     var def = BackpackCatalog.Get(equippedItemDefId);
-                    if (def != null && def.CanPlace && def.Kind == ItemKind.LayerBoundPaper)
+                    bool layerMatches = def != null && def.CanPlace &&
+                        (def.Kind == ItemKind.PersistentPhysical || (def.Kind == ItemKind.LayerBoundPaper && state.layer == Reality.B));
+                    bool anchorAllowed = WorldAnchors.SlotsForSurface(targetId).Length > 0 &&
+                        WorldAnchors.AllowedInLayer(WorldAnchors.SlotsForSurface(targetId)[0], state.layer);
+                    if (layerMatches && anchorAllowed)
                         return new WorldUseResolution(WorldUseOutcome.PlacePaperOnAnchor);
                     return new WorldUseResolution(
                         WorldUseOutcome.NotApplicableFeedback,
-                        "Kẹp cạnh phiếu F101 chỉ dùng để ghim tài liệu ca trực đối chiếu.");
+                        "Mặt bàn đối chiếu dùng để đặt giấy tờ hoặc vật chứng kiểm tra trong lớp hiện tại.");
                 }
+            }
+
+            if (targetId == "AN04" && state.chapter == "CH04" && equippedItemDefId == BackpackCatalog.Ch04Tape)
+            {
+                if (!state.Has(EvidenceRegistry.DutyOrders) || !state.Has(EvidenceRegistry.DutyLog))
+                    return new WorldUseResolution(
+                        WorldUseOutcome.NotApplicableFeedback,
+                        "Cần có đủ bản lệnh giao ca (E02) và sổ ca đêm (E09) trước khi mở băng họp trên bàn trực.");
+                return new WorldUseResolution(WorldUseOutcome.PlayTapeAtDutyDesk);
             }
 
             return new WorldUseResolution(WorldUseOutcome.NoMatch);
@@ -690,7 +1160,7 @@ namespace CTCC
                     if (!state.Has("E12"))
                         return "Cần tự đối chiếu hiện trường Phòng 101 năm 2012 — bản kê, ổ cắm và dấu bánh trên nền.";
                     if (!GateService.G02(state))
-                        return "Kho giường phía sau tủ sắt đã lộ ra. Cần đối chiếu đủ các mảnh giấy và hồ sơ ở hiện trường R.";
+                        return "Kho giường phía sau tủ sắt đã lộ ra. Có thể đặt các mảnh tranh lên bàn Phòng 101 hoặc mở ba lô để ghép và đối chiếu hồ sơ.";
                     return "Cửa khu Cấp cứu đã mở. Tới sổ giao ca Cấp cứu.";
                 }
                 return "Theo dõi các ghi chép thực tế đã kiểm chứng trong sổ hồ sơ.";
@@ -733,7 +1203,6 @@ namespace CTCC
             if (!state.Happened("CH01-T09"))
                 return DecisionReflectionLine(state.f101.current) + "\nLan không còn ở quầy, lớp 2005 đã tắt. Thử ra cổng phụ xem sao.";
 
-            // B08: After outer gate refuses exit
             var sb = new StringBuilder();
             sb.Append(DecisionReflectionLine(state.f101.current));
             sb.Append("\nCổng phụ không cho rời đi. Chỉ còn cách tự kiểm chứng hiện trường Phòng 101 năm 2012 qua sổ trực.");
@@ -763,6 +1232,19 @@ namespace CTCC
                 {
                     sb.Append("Lần ký đầu tiên vẫn được lưu trong lịch sử: ");
                     sb.AppendLine(DecisionReflectionLine(state.f101.firstDecision));
+                }
+            }
+
+            var placed = InventoryService.GetAllPlaced(state);
+            if (placed.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine("Đồ đang đặt trên bàn/kẹp trong hiện trường:");
+                for (int i = 0; i < placed.Count; i++)
+                {
+                    var def = BackpackCatalog.Get(placed[i].itemDefId);
+                    sb.Append("• ").Append(def?.ShortLabel ?? placed[i].itemDefId)
+                      .Append(" — ").AppendLine(WorldAnchors.Label(placed[i].placedAnchorId));
                 }
             }
 

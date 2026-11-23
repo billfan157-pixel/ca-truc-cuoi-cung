@@ -108,6 +108,7 @@ namespace CTCC
         public TimelineConnection exception0317Link;
         public List<ScenePropPose> sceneProps = new();
         public List<BackpackEntry> backpackItems = new();
+        public List<string> quickSlots = new();
         public string equippedInstanceId = "";
         public int e10aLastTab;
         public List<string> dreadEventsSeen = new();

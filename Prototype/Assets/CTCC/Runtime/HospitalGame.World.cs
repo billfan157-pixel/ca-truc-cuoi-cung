@@ -26,7 +26,7 @@ namespace CTCC
             {
                 var eq = InventoryService.GetEquipped(State);
                 if (eq?.itemDefId == BackpackCatalog.GateKey)
-                    return "[" + UseKey + "]  Mở khóa cổng phụ bằng chìa đồng";
+                    return "★ [" + UseKey + "]  Mở khóa cổng phụ bằng chìa đồng";
                 if (eq?.itemDefId == BackpackCatalog.WingCKey)
                     return "[" + UseKey + "]  Thử chìa khu C trên ổ khóa cổng phụ";
                 if (State.Happened("E10a.SMSRead") && InventoryService.HasPhysical(State, BackpackCatalog.GateKey))
@@ -44,16 +44,45 @@ namespace CTCC
                 return "[" + UseKey + "]  Kiểm tra cánh cổng phụ";
             }
 
-            if (target.id == "COMPARE_CLIP_AN02")
+            if (target.id is ("COMPARE_CLIP_AN02" or "COMPARE_DESK_STAFF" or "COMPARE_DESK_RECEPTION" or "COMPARE_DESK_101"))
             {
                 var eq = InventoryService.GetEquipped(State);
                 var eqDef = eq != null ? BackpackCatalog.Get(eq.itemDefId) : null;
-                if (eqDef != null && eqDef.CanPlace && eqDef.Kind == ItemKind.LayerBoundPaper)
-                    return "[" + UseKey + "]  Kẹp " + eqDef.ShortLabel + " cạnh F101";
-                var placed = InventoryService.GetPlacedAt(State, WorldAnchors.An02CompareClip);
-                if (placed != null)
-                    return "[" + UseKey + "]  Xem / rút " + (BackpackCatalog.Get(placed.itemDefId)?.ShortLabel ?? "tài liệu") + " cạnh F101";
-                return "[" + UseKey + "]  Kẹp đối chiếu cạnh F101";
+                if (eqDef != null && WorldUseResolver.Resolve(State, eqDef.Id, target.id).Outcome == WorldUseOutcome.PlacePaperOnAnchor)
+                {
+                    string verb = target.id == "COMPARE_CLIP_AN02" ? "Kẹp" : "Đặt";
+                    return $"★ [{UseKey}]  {verb} {eqDef.ShortLabel} lên {target.title.ToLowerInvariant()}";
+                }
+                string[] slots = WorldAnchors.SlotsForSurface(target.id);
+                int count = 0;
+                string firstLabel = null;
+                for (int i = 0; i < slots.Length; i++)
+                {
+                    var p = InventoryService.GetPlacedAt(State, slots[i]);
+                    if (p != null)
+                    {
+                        count++;
+                        firstLabel ??= BackpackCatalog.Get(p.itemDefId)?.ShortLabel;
+                    }
+                }
+                if (target.id == "COMPARE_DESK_101" && InventoryService.CanAssembleCh02Drawing(State))
+                    return $"★ [{UseKey}]  Bàn Phòng 101 · Ghép 3 mảnh tranh (E11)";
+                if (target.id == "COMPARE_CLIP_AN02")
+                {
+                    return count > 0
+                        ? $"[{UseKey}]  Xem / rút {firstLabel ?? "tài liệu"} cạnh F101"
+                        : $"[{UseKey}]  Kẹp đối chiếu cạnh F101";
+                }
+                return count > 0
+                    ? $"[{UseKey}]  {target.title} ({count}/{slots.Length} đang đặt)"
+                    : $"[{UseKey}]  {target.title}";
+            }
+
+            if (target.id == "AN04" && State.chapter == "CH04")
+            {
+                var eq = InventoryService.GetEquipped(State);
+                if (eq?.itemDefId == BackpackCatalog.Ch04Tape)
+                    return $"★ [{UseKey}]  Đặt băng họp E06a vào máy phát tại bàn trực";
             }
 
             string label = target.id switch

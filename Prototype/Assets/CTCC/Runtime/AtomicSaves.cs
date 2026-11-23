@@ -128,6 +128,7 @@ namespace CTCC
                 decoded.f101History ??= new();
                 decoded.f101Argument ??= new();
                 decoded.backpackItems ??= new();
+                decoded.quickSlots ??= new();
                 decoded.equippedInstanceId ??= "";
                 decoded.dreadEventsSeen ??= new();
                 state = decoded;
@@ -160,6 +161,7 @@ namespace CTCC
             s.journalNotes ??= new();
             s.sceneProps ??= new();
             s.backpackItems ??= new();
+            s.quickSlots ??= new();
             s.equippedInstanceId ??= "";
             if (fromVersion < 4)
             {
