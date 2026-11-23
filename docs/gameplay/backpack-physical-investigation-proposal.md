@@ -1,4 +1,4 @@
-# Gameplay Redesign — BA LÔ ĐIỀU TRA & TƯƠNG TÁC VẬT THỂ 3D (Proposal V1.0)
+# Gameplay Redesign — BA LÔ ĐIỀU TRA & TƯƠNG TÁC VẬT THỂ 3D (Proposal V1.1)
 
 > **STATUS: DESIGN PROPOSAL / REVIEW REQUIRED — NOT IMPLEMENTED IN UNITY.**
 >
@@ -49,9 +49,9 @@ Không phải mọi prop cần nhặt: vết bánh trên nền, ổ cắm, cánh
 
 ### 3.1. Giao diện ba lô — diegetic nhưng nhanh
 
-- Nhấn **Tab** (hoặc J qua alternate binding đang có) để Minh đưa chiếc **ba lô vải cũ** lên; camera FPS không teleport. Một vùng 3D/2.5D chiếu túi mở, có bốn nhóm vật phẩm: **Đồ nghề**, **Vật phẩm**, **Hồ sơ giấy**, **Vật chứng gốc**. Nội dung theo **những thứ thật sự được giữ**, không phải toàn bộ quan sát.
-- **Bấm một món:** `Cầm ra`, `Soi 3D`, `Đặt lên bàn` (khi ở cạnh bàn), `Dùng với…`, `Xếp lại` và một số `Ghép` đã được tác giả thiết kế. Không có `Dùng` nếu không có target/công năng hợp lệ. `Esc` trả đồ và camera đúng trạng thái; shortcut tay cầm/quick-slot không cần mở ba lô liên tục.
-- **Túi tài liệu** có bì thư, thẻ, phiếu/bản sao đã cất; mỗi món có 3D hai mặt và transcript chữ lớn. **Tập ghi chú nhỏ** vẫn nằm trong túi để lưu observation/giả thuyết/mốc giờ và F101 history, nhưng chỉ là **một vật thể phụ có thể mở**, không là UI trung tâm. Người chơi có thể lưu ghi chú về dấu sàn mà không “nhét dấu sàn vào ba lô”.
+- Nhấn **Tab** (hoặc J qua alternate binding đang có) để Minh đưa chiếc **ba lô vải cũ** lên; camera FPS không teleport. Một vùng 3D/2.5D chiếu túi mở, có **ba ngăn hiển thị**: (1) **Dụng cụ & đồ vật**, (2) **Giấy tờ & vật chứng** (gắn nhãn rõ loại nguồn R/B/M, bản gốc/bản nhớ), (3) **Pocket Note** ghim bên trong nắp. **Backend vẫn giữ bốn loại dữ liệu vật lý/observation/evidence/note với provenance riêng**; giảm số nhóm UI không đồng nghĩa trộn dữ liệu. Nội dung theo **những thứ thật sự được giữ**, không phải toàn bộ quan sát.
+- **Bấm một món:** ưu tiên mở trực tiếp inspector 3D bằng một thao tác; `Cầm ra`, `Soi 3D`, `Đặt lên bàn` (khi ở cạnh bàn), `Dùng với…`, `Xếp lại` và một số `Ghép` đã được tác giả thiết kế. Không có `Dùng` nếu không có target/công năng hợp lệ. `Esc` trả đồ và camera đúng trạng thái; shortcut tay cầm/quick-slot không cần mở ba lô liên tục.
+- **Túi tài liệu** có bì thư, thẻ, phiếu/bản sao đã cất; mỗi món có 3D hai mặt và transcript chữ lớn. **Pocket Note** cho thấy 1–2 câu tay Minh viết về nghi vấn/dự định; khi cần, người chơi có thể mở tập ghi chú đầy đủ để xem observation/provenance/giả thuyết/mốc giờ và F101 history. Tập này vẫn là **vật thể phụ**, không còn là UI chính và không tự giải đố. Không xóa dữ liệu `JournalNote` đã có. Người chơi có thể lưu ghi chú về dấu sàn mà không “nhét dấu sàn vào ba lô”.
 - **Bàn đối chiếu vật lý:** ở quầy, bàn STAFF và mặt bàn thích hợp trong phòng 101, đặt tối đa hai tờ tài liệu (hoặc tài liệu và vật thể nhỏ) lên hai vị trí 3D; rút giấy ra, lật/soi/di chuyển, hướng về dấu thật ngoài sàn. Nếu không thể dùng kéo-thả, có `Chọn nguồn trái/phải`, phím số và bản chữ lớn cùng trạng thái. **Không bắt buộc bàn** cho ký A/B hoặc hoàn thành CH01.
 - **Không có giới hạn slot làm mất chứng cứ bắt buộc.** Giới hạn số món `đang cầm`/ô quick-slot để giữ sự hiện diện vật lý (ví dụ 1 món trên tay và tối đa 4 shortcut) nhưng giấy và vật chứng gốc tự được sắp theo ngăn. Nếu về sau thử giới hạn sức chứa cho vật dụng không trọng yếu, cần QA no-softlock trước.
 - **Đang đọc không có Hunter ở CH01**. Ở các chương nguy hiểm hơn, có thể chọn freeze thế giới khi xem bản chữ lớn/đối chiếu bắt buộc, hoặc safe volume/hint rõ; không dùng inventory-unpaused của game khác để trừng phạt người đọc chậm.
@@ -213,3 +213,24 @@ Không rollout đồng thời cả tám chương. Bắt đầu vertical slice **
 - **Nơi chủ quản cần đồng bộ khi approved:** Core 01 §2 loop/UX; Core 04 CH01 B01–B08 và CH02 item route; Core 06 schema/event/save contracts; Core 07 `Events`, `Puzzle specs`, `Assets`, `QA`, `Roadmap`, `Decisions`, `Changelog`; Core 02/05 nếu có text/asset mới. Đây là một quyết định gameplay lớn, **không tự cập nhật Core mà không chốt**.
 - Source baseline đọc trực tiếp từ GitHub: `AGENTS.md`, `docs/ch01r/puzzle-dependency-graph.md`, `docs/ch01r/acceptance.md`, `HospitalGame.Journal.cs`, `HospitalUI.Journal.cs`, `PhysicalInspector.cs`, `HospitalGame.Pages.cs`, `HospitalGame.cs`, `Casework.cs`, `DeductionFramework.cs`, `Protocol.cs`.
 - Không tuyên bố Unity code/build đã được cập nhật, test đã PASS, schema v7 hiện có hoặc task review đã đóng. **Bản này là đặc tả để duyệt và thực thi theo thứ tự, không phải gameplay vận hành.**
+
+## 12. Thẩm định Walkthrough Backpack & Exploration-First v2.0 do người dùng cung cấp (23/11/2026)
+
+**Kết quả:** có nhiều ý tưởng sáng về tương tác thật, ba ngăn UI, cầm chìa, phản ứng âm thanh với cử chỉ và bất thường trên vật phẩm. Không nên lấy nguyên bản vì có những chỗ trái luật F101/canon hiện tại.
+
+| Cơ chế v2.0 bên ngoài | Quyết định cho bản này | Contract triển khai |
+| --- | --- | --- |
+| Ba ngăn ba lô thay bốn nhóm | **Nhận** | Ba vùng hiển thị: Dụng cụ & đồ vật / Giấy tờ & vật chứng / Pocket Note. Metadata sở hữu/provenance/evidence vẫn tách ở backend; Pocket Note 1–2 dòng là lời nhắc, không xóa tập note đầy đủ. |
+| Rút hai chìa từ E10a | **Nhận có điều kiện** | `HospitalGame.Pages.cs::Letter()` đã ghi *chìa cổng phụ và chìa khu C đã thay khóa*. Cho người chơi rút chìa và dùng chìa **cổng phụ** trên `GATE-CONG`, nhưng T02 vẫn cần sự kiện đã đọc E10a/SMS; item thứ hai giữ cho chương sau. Không tạo E10a thứ hai (đã seeded). |
+| Thử chìa khu C ở cửa LOC04 ngay B04, nghe khóa không vừa | **Không áp dụng CH01** | CH01 không nên đưa người chơi tới cửa khu C hoặc tuyên bố ổ khóa đã thay **một lần nữa** trái với copy chìa khóa ở E10a; giữ bí ẩn cho CH02+. |
+| Cầm cả F101 từ quầy và cất vào túi | **Không đồng nhất BOARD và F101** | Runtime `BOARD` nhận ở AN01/T05, còn `F101` được ký trên bảng kẹp vật lý AN02 Phòng 101. Giữ F101 anchored; vật cầm/đặt chỉ hỗ trợ so sánh và đánh dấu, không dịch vị trí ký. |
+| Kẹp AS-05B lên F101 đủ để ký C | **Lấy cử chỉ, không auto-pass** | Kẹp giấy là thế giới 3D **biểu đạt một liên kết nguồn**; vẫn cần OBS101A đã Examined + OBS101B, mark số 0 và ô người nhận thiếu, link tới traces, claim “chưa đủ căn cứ xác nhận số 0” qua `HypothesisService`. Nhánh A/B không cần thẻ. |
+| Bốn công tắc và bóc băng | **Chưa duyệt** | Không suy ra bốn công tắc từ bốn **ổ cắm** CH02; cần Core 03/04 và kiểm nghiệm chuyên gia nếu làm. Dấu sàn/rèm/giường là spatial deduction ưu tiên. |
+| Lan không có bóng phản chiếu, chuyển B03 100% FPS | **Giữ mơ hồ và giữ hybrid** | Lan phát hiện Minh qua scripted event, player chủ động bắt chuyện, hội thoại điện ảnh ngắn, lại FPS. Có thể thử sai lệch phản chiếu **bị ánh sáng che**, không xác nhận ma; không auto-start 6 giây. |
+| Hai âm scare và “tắt về 0 dB 2,5 giây” | **Chỉnh kỹ thuật** | Dùng ducking theo cue và âm có hướng, không biến “0 dBFS” thành im lặng hoặc cố định mọi khoảng nghỉ, trợ năng caption/mono/reduceMotion. |
+| F101 và AS-05B vẫn là giấy **thật** trong ba lô ở R | **Không áp dụng vật lý xuyên lớp** | B→R trả giấy B về anchor, giữ **memory reference**. Thử `P-BAG08_ECHO`: hình bóng giấy thoáng trên vải túi hoặc hình lưu thị giác chậm biến mất khi mở lại; presentation-only, không equip/use/export, không evidence mới. Nếu muốn giấy B vật lý tồn tại ở R, cần một DEC/canon change riêng, không lén thay luật. |
+| Tính pacing “18–22” | **Không nhận như kết quả test** | Cộng bảng nguồn: min **21**, max **26,5** phút, không phải 18–22. Bản CTCC hiện giữ giả thuyết mainline **20,5–30** và chỉ sửa từ TASK010 thực tế. |
+
+**Ưu tiên mẫu triển khai sau review:** (1) E10a → rút chìa cổng → equip/use tại GATE-CONG và save/load idempotent. (2) OBS101B portable B → kẹp vào ô đối chiếu gần F101 anchored → đánh dấu/link/suy luận đúng qua solver → tại R chỉ còn reference + echo thị giác tùy chọn. **Chưa chạy build/test và chưa đăng ký P-BAG08_ECHO.**
+
+**Playtest bổ sung:** “Bạn lấy chìa ra nhằm kiểm chứng hay mở điều gì?”, “Tại B05, thao tác kẹp thẻ khiến bạn hiểu dấu sàn hơn hay chỉ thử mò?”, “Khi chỗ giấy trong túi trống đi ở B08, bạn nghĩ điều gì xảy ra?”. Không giả định người chơi phải sợ từ một hiệu ứng đồ vật.
