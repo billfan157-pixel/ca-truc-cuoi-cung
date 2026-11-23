@@ -1,12 +1,14 @@
-# CH01 — NGƯỜI TRỞ VỀ: Walkthrough gameplay B01–B08 (Investigation-First + Physical Interaction Proposal v1.3)
+# CH01 — NGƯỜI TRỞ VỀ: Walkthrough gameplay B01–B08 (Investigation-First + Physical Interaction Proposal v1.4)
 
 > **TRẠNG THÁI: ĐỀ XUẤT THIẾT KẾ ĐỂ REVIEW, CHƯA TRIỂN KHAI / CHƯA PHÊ DUYỆT CANON.**
-> Ngày: 23/11/2026. Phạm vi: CH01 B01–B08 của *Ca trực cuối cùng*, trên CH01-R hiện hành. **v1.3: bổ sung hệ Ba lô điều tra và 3D item use; kế thừa phản biện v1.2; vẫn là đề xuất, chưa có build hoặc phê duyệt canon.**
+> Ngày: 23/11/2026. Phạm vi: CH01 B01–B08 của *Ca trực cuối cùng*, trên CH01-R hiện hành. **v1.4: đánh giá và tiếp nhận có chọn lọc bản Backpack & Exploration-First v2.0 do người dùng cung cấp; kế thừa v1.3, chưa triển khai Unity/chưa phê duyệt canon.**
 > Tài liệu này là một walkthrough **được chỉ đạo bởi hành động của người chơi**, không phải chuỗi cutscene thuần tuyến tính. **Ngoại lệ có chủ đích tại B03:** Lan nhận biết Minh qua Scripted Event trong thế giới, rồi người chơi chủ động kích hoạt một Cinematic Dialogue Scene ngắn, liền mạch với FPS; sau đó trở lại khám phá tự do. Cách kể mới chỉ là phương án dàn dựng; thoại chính thức vẫn do Core 07/Dialogue sở hữu. Các trigger mới gắn tiền tố **P-SC / P-INT / P-NOTE** chỉ tồn tại trong đề xuất, KHÔNG phải event ID đã đăng ký.
 > Mục đích: tăng chiều sâu điều tra và nỗi sợ trong khi KHÔNG thay đổi canon, các gate và dữ liệu bằng chứng hiện hành trước khi được duyệt.
 
 
-> **QUY TẮC ƯU TIÊN v1.3:** các chỗ bên dưới còn mô tả “Sổ trực/Sổ điều tra” như menu/tabs là **baseline v1.2 để đối chiếu**, không còn là UX mặc định. **Tab/J mở BA LÔ ĐIỀU TRA** (đồ vật, giấy tờ, dụng cụ, vật chứng, ghi chú phụ); **AN01/sổ trực ở quầy** vẫn là **đối tượng vật lý** làm mốc R→B, bàn giao B→R, chuyển CH02. So tài liệu từ túi diễn ra trên bàn vật lý/khung inspector 3D. Cụ thể xem [Backpack & Physical Investigation Proposal](../gameplay/backpack-physical-investigation-proposal.md). Phần bổ sung v1.3 từng beat và §9 **thay thế hướng dẫn tương tác/UI cũ khi xung đột**, nhưng không thay canon/gate đã chốt.
+> **QUY TẮC ƯU TIÊN v1.4:** các chỗ bên dưới còn mô tả “Sổ trực/Sổ điều tra” như menu/tabs là **baseline v1.2 để đối chiếu**, không còn là UX mặc định. **Tab/J mở BA LÔ ĐIỀU TRA** (đồ vật, giấy tờ, dụng cụ, vật chứng, ghi chú phụ); **AN01/sổ trực ở quầy** vẫn là **đối tượng vật lý** làm mốc R→B, bàn giao B→R, chuyển CH02. So tài liệu từ túi diễn ra trên bàn vật lý/khung inspector 3D. Cụ thể xem [Backpack & Physical Investigation Proposal](../gameplay/backpack-physical-investigation-proposal.md). Phần bổ sung v1.3–v1.4 từng beat và §9–§10 **thay thế hướng dẫn tương tác/UI cũ khi xung đột**, nhưng không thay canon/gate đã chốt.
+
+> **Chốt UX v1.4:** ba lô có **3 ngăn hiển thị** (Dụng cụ & Đồ vật; Giấy tờ & Vật chứng; Pocket Note), nhưng backend vẫn phân biệt `BackpackItem`, `ObservationRecord`, `evidence`, provenance R/B/M. B03 giữ **Scripted Event → người chơi chủ động nói chuyện → Cinematic Dialogue Scene → FPS**. F101 C vẫn cần đủ phép đánh dấu/link/claim, không auto-pass chỉ bằng kẹp một tờ giấy. B08 chỉ thử `P-BAG08_ECHO` là *presentation-only*; không mang giấy B thật sang R. §10 ghi đối chiếu nguồn.
 
 ## 0. Định hướng trải nghiệm
 
@@ -74,6 +76,12 @@
 
 **Balo/3D v1.3 — không bỏ động cơ cốt truyện:** Người chơi **cầm phong bì E10a** ngay cạnh xe, xoay/lật xem thư và SMS như các thành phần của một prop tương tác; tự **cất phong bì vào ngăn Hồ sơ giấy**. Từ ba lô có thể rút lại bì thư để đọc, hoặc cầm chìa được ủy quyền (nếu item con được author) đưa tới cổng. Tuy nhiên `GATE-CONG` vẫn xét sự kiện đọc SMS/nhận chìa canon; không tự mở chỉ vì tồn tại item. Với save legacy `Investigation.New()` đã seed E10a, **không add E10a một lần nữa** khi nhặt vào ba lô. Những dòng tin và giấy đọc được phải có transcript và large print.
 
+### Học từ Backpack v2.0 — B01 (v1.4)
+
+**Động tác có giá trị:** mở mô hình phong bì `E10a` trong inspector 3D, **rút chìa cổng phụ** như item con, rồi cầm chìa ra tra vào ổ `GATE-CONG` bằng thao tác tay hoặc phím E/K tương đương. `Letter()` trong code hiện đã viết **có hai chìa**: chìa cổng phụ và **chìa khu C đã thay khóa**. Chiếc thứ hai có thể xem trong túi như một câu hỏi chưa giải, **không dùng để mở/tiếp cận khu C ngay CH01**. `T02` vẫn phải kiểm đã đọc E10a/SMS và vị trí; không tạo bản evidence E10a thứ hai (đã seed trong `Investigation.New()`).
+
+Đề xuất bản nguồn về **vết hằn “Kiểm tra kỹ trước khi ký” trên bì thư** có tiềm năng foreshadowing, nhưng **chưa thêm vào lời/texture canon**: phải qua Core 02/07 & narrative review. Hiệu ứng cầm/đọc/cất chìa không quá nhiều màn menu, còn cổng vẫn là lựa chọn tự bước vào.
+
 **Output:** E10a acquired + SMSRead; CH01-T02; Q1 mở, AP/rollback cổng hợp lệ. **Fallback:** đọc theo thứ tự ngược nhau không thất lạc E10a; bỏ qua thông báo không khóa cổng; mute vẫn có ánh sáng cổng/đồ vật.
 
 ## B02 — Người đứng sau ô kính (LOC01 sân → LOC02, R, 1–1,5 phút tuyến chính)
@@ -93,6 +101,10 @@
 **Nén nhịp v1.2:** bóng người qua kính đã đủ là hook; P-SC02 chỉ là phần thưởng phụ, không buộc đứng chờ hoặc soi kính hai lần để qua. Bước vào sảnh là tiếp cận ngay AN01. Bóng ngoài kính trong R **không** kích hoạt cinematic của B03.
 
 **Balo/3D v1.3:** Giữ người chơi tập trung vào môi trường, không hướng dẫn mở ba lô khi bóng Lan xuất hiện. Không biến bóng người, chiếc kính hay âm thanh thành vật phẩm. Người chơi có thể chạm kính/quan sát từ góc khác, nhưng việc đó chỉ phát một cue và/hoặc ghi nhận **quan sát có nguồn**. Vào AN01 mới gặp Lan trong lớp B, **không được auto cinematic** từ B02.
+
+### Học từ Backpack v2.0 — B02 (v1.4)
+
+Giữ một hành động xác minh *bằng góc nhìn*: lia đèn pin qua kính quầy, tự dịch ngang để nhìn bóng người bị che bởi phản xạ; tiến vào AN01 không cần chờ một sự kiện phụ. Bản nguồn gọi điện toàn khu “đã cắt” và có hộp cầu dao niêm phong — **chưa coi là fact** khi Core 03/asset chưa xác minh. Bất thường ánh đèn và bóng người được giữ mơ hồ; không bấm flash gắt nếu reduceMotion.
 
 **Output:** tới điểm AN01/LOC02; được tiếp cận sổ trực. **Handoff sang B03:** bóng người ngoài kính là setup nhìn-thấy; chỉ sau CH01-T03/R→B Lan mới nhận diện Minh bằng Scripted Event. Tuyệt đối không tự cắt sang cinematic ngay khi bóng người xuất hiện. **Fallback:** nếu người chơi sprint qua sân không nhìn kính, câu CH01-D02 và hiện diện Lan vẫn được setup tại quầy; không yêu cầu nhìn scare để tiến.
 
@@ -140,6 +152,12 @@
 - **Acceptance thêm:** test trường hợp Lan đã thấy Minh nhưng Minh bỏ đi, quay lại, spam E/K, Skip, load trước/sau/giữa thoại; cảnh phát tối đa một lần, các dòng canonical guard đúng; không mất BOARD, không auto-credit EX01; B06 không replay cinematic. Đo tỷ lệ người chơi tự nhận ra năm 2005, không mặc định 4/6 là chuẩn chất lượng tuyệt đối.
 
 **Balo/3D v1.3 — sau hybrid cinematic:** `CH01-T03` vẫn qua **cuốn sổ trực vật lý trên quầy**, nhưng **Tab/J không còn mở nó như một menu**. Khi Lan kết thúc cảnh, Minh **tự nhấc BOARD** và cất vào ngăn Hồ sơ giấy của ba lô; `T05` chỉ commit sau cầm đúng món. Minh có thể rút BOARD để xem yêu cầu Phòng 101 trong FPS. `LAN_TALK` và Timeline không tự thu đồ, không làm nhiệm vụ thay người chơi. Lịch/đồng hồ/quầy là world observations, không “nhặt đồng hồ cho vào ba lô”.
+
+### Học từ Backpack v2.0 — B03 (v1.4; **giữ Hybrid Cinematic Encounter**)
+
+Nguồn độc lập gợi ý tốt về **bố cục thoại ở trong chính không gian**: lịch năm 2005/đồng hồ B 03:17/tiếng bút Lan. Chuyển chúng thành *staging lead-in* và background của **cinematic ngắn 60–90 giây**, thay vì bỏ cinematic hoàn toàn. Lan phát hiện Minh bằng scripted event, ngẩng lên và nhích BOARD ra vị trí nhìn thấy; Minh **chủ động nhấn E/K** mới vào thoại chính; không bắt đầu sau 6 giây im lặng. Sau đó trả FPS, người chơi tự nhấc **BOARD** để commit T05. **BOARD tại quầy không phải phiếu F101 anchored tại AN02**, và player không lấy F101 + bút ký từ quầy.
+
+Một phản chiếu Lan bị kính lóa hoặc trễ một nhịp có thể thử như **P-SC03 giả định**, nhưng **không cho thấy rõ Lan hoàn toàn không có bóng**, vì như vậy dễ giải thích siêu nhiên thay người chơi. Góc máy không auto-credit `OBS_CLOCK_0317`/EX01.
 
 **Output:** CH01-T03/T04 (theo contract hiện hành), AP02, cue Lan/biên bản thoại đúng guard, người chơi tự kích `CH01-T05` bằng BOARD; Q2 mở, Q4 tùy chọn. **Fallback:** bỏ ngăn kéo/điện thoại vẫn hiểu mâu thuẫn thời gian; mất cinematic do skip/load vẫn có transcript/tóm tắt và BOARD; nếu người chơi bỏ đi trước khi bắt chuyện, hệ thống không tự nhảy qua nhiệm vụ.
 
@@ -198,6 +216,12 @@ Hai micro-task **đề xuất** cho phép người chơi tự kiểm không gian
 4. Tập ghi chú **nằm trong ba lô** ghi đúng `ObservationRecord` đã khám phá, không tự giải F101; người chơi vẫn cần soi dấu vật lý và nguồn AS-05B độc lập để có quyền chọn C. Nếu bỏ các tài liệu phụ, A/B và route CH01 vẫn hợp lệ.
 
 **Fallback:** Nếu người chơi cất AS-05B vào túi và bỏ quên hoặc đặt trên bàn, có đường lấy lại/tìm vị trí đã đặt trước khi cần soi; trường hợp giảm chuyển động/bàn phím có action list tương đương. Không làm mất props/chứng cứ vì bag đầy.
+
+### Học từ Backpack v2.0 — B04 (v1.4)
+
+**Giữ chất xúc giác:** người chơi tự kéo rèm, đổi vị trí để thấy vệt bánh/vị trí giường, nhấc `AS-05B`, lật thẻ, nghiêng đón sáng và cất tạm trong ngăn Giấy tờ B. Đặt thẻ lên bàn đối chiếu là chọn kiểm nguồn, không phải một bước bắt buộc của route A/B. Đừng ép rê rèm đến đúng mức 60% rồi phải giật lần hai; E/K và kéo analog cần đồng đẳng.
+
+**Không nhân bản canon mới:** bốn **công tắc** có băng dính chưa được xác nhận (hệ thống đã có bốn **ổ cắm CH02-R**, không giống công tắc B); “dép tổ ong trẻ con” chỉ nên giữ đúng mô tả asset hiện hành là **dép nhựa nhỏ**, không gán bệnh nhân cụ thể; vệt bánh dẫn tới hốc 4 không mặc nhiên chứng minh hành lang khu C. **Không thử chìa khu C/LOC04 trong CH01**. Nếu muốn thêm công tắc, phải review Core 03/04 và chuyên gia trước. Bản nền `OBS101A/B` và tuyến CH02 `LIST/SOCKETS/WHEELS` vẫn tách.
 
 **Output:** ít nhất đường cho OBS101A, OBS101B và khả năng nộp F101; hồ sơ đối chiếu C/D/STAFF tùy chọn; Q3 hình thành; CH01-T06. **Fallback:** nếu dùng E không kéo analog, tương tác vẫn tương đương; người chơi có thể quay lại các nguồn chưa đọc; cửa luôn có lối mở; mất nguồn âm không làm mất một dấu bắt buộc; save ở ngưỡng phục hồi toàn bộ trạng thái ngăn/rèm/giấy.
 
