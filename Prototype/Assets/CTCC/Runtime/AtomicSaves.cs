@@ -127,6 +127,8 @@ namespace CTCC
                 decoded.observationRecords ??= new();
                 decoded.f101History ??= new();
                 decoded.f101Argument ??= new();
+                decoded.backpackItems ??= new();
+                decoded.equippedInstanceId ??= "";
                 decoded.dreadEventsSeen ??= new();
                 state = decoded;
                 return SaveRead.Valid;
@@ -157,79 +159,86 @@ namespace CTCC
             s.f101Annotations ??= new();
             s.journalNotes ??= new();
             s.sceneProps ??= new();
-            if (fromVersion >= 4) return;
-            if (fromVersion <= 2)
+            s.backpackItems ??= new();
+            s.equippedInstanceId ??= "";
+            if (fromVersion < 4)
             {
-                s.forms?.Clear(); // Earlier releases only expose F101, stored separately.
-                if (s.evidence?.Remove(EvidenceRegistry.BayLockReceipt) == true)
-                    s.Remember("FS10");
-                if (s.evidence?.Contains(EvidenceRegistry.C12UnnamedBox) == true)
+                if (fromVersion <= 2)
                 {
-                    s.Remember("FS19");
-                    s.Remember("CH03-T05");
+                    s.forms?.Clear(); // Earlier releases only expose F101, stored separately.
+                    if (s.evidence?.Remove(EvidenceRegistry.BayLockReceipt) == true)
+                        s.Remember("FS10");
+                    if (s.evidence?.Contains(EvidenceRegistry.C12UnnamedBox) == true)
+                    {
+                        s.Remember("FS19");
+                        s.Remember("CH03-T05");
+                    }
                 }
-            }
-            // Schema v1/v2/v3 -> v4 migration: synthesize ObservationRecords, F101 revision history & argument cleanly.
-            s.observationRecords ??= new();
-            s.f101History ??= new();
-            s.f101Argument ??= new();
-            s.dreadEventsSeen ??= new();
-            if (s.dreadSeed == 0) s.dreadSeed = 20051118;
+                // Schema v1/v2/v3 -> v4 migration: synthesize ObservationRecords, F101 revision history & argument cleanly.
+                s.observationRecords ??= new();
+                s.f101History ??= new();
+                s.f101Argument ??= new();
+                s.dreadEventsSeen ??= new();
+                if (s.dreadSeed == 0) s.dreadSeed = 20051118;
 
-            if (s.observed != null)
-            {
-                for (int i = 0; i < s.observed.Count; i++)
+                if (s.observed != null)
                 {
-                    string obsId = s.observed[i];
-                    if (s.FindObservation(obsId) != null) continue;
-                    var spec = ObservationRegistry.Get(obsId);
-                    if (spec == null) continue;
-                    var defaultLayer = spec.AllowedLayers != null && spec.AllowedLayers.Length > 0 ? spec.AllowedLayers[0] : Reality.B;
-                    var defaultLoc = spec.AllowedLocations != null && spec.AllowedLocations.Length > 0 ? spec.AllowedLocations[0] : "LOC03";
-                    var defaultChap = spec.AllowedChapters != null && spec.AllowedChapters.Length > 0 ? spec.AllowedChapters[0] : "CH01";
-                    s.observationRecords.Add(new ObservationRecord
+                    for (int i = 0; i < s.observed.Count; i++)
                     {
-                        id = obsId,
-                        layer = defaultLayer,
-                        location = defaultLoc,
-                        chapter = defaultChap,
-                        stage = ObservationStage.Examined
-                    });
+                        string obsId = s.observed[i];
+                        if (s.FindObservation(obsId) != null) continue;
+                        var spec = ObservationRegistry.Get(obsId);
+                        if (spec == null) continue;
+                        var defaultLayer = spec.AllowedLayers != null && spec.AllowedLayers.Length > 0 ? spec.AllowedLayers[0] : Reality.B;
+                        var defaultLoc = spec.AllowedLocations != null && spec.AllowedLocations.Length > 0 ? spec.AllowedLocations[0] : "LOC03";
+                        var defaultChap = spec.AllowedChapters != null && spec.AllowedChapters.Length > 0 ? spec.AllowedChapters[0] : "CH01";
+                        s.observationRecords.Add(new ObservationRecord
+                        {
+                            id = obsId,
+                            layer = defaultLayer,
+                            location = defaultLoc,
+                            chapter = defaultChap,
+                            stage = ObservationStage.Examined
+                        });
+                    }
+                }
+
+                if (s.f101 != null && s.f101.revision > 0 && s.f101History.Count == 0)
+                {
+                    if (s.f101.current == FormStatus.Refuted && FormService.RefutationAvailable(s))
+                    {
+                        s.f101Argument = new DeductionSubmission
+                        {
+                            formId = "F101",
+                            selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
+                            claimId = HypothesisService.ClaimUnreliableZero
+                        };
+                        var recA = s.FindObservation(ObservationRegistry.Bed4Traces);
+                        var recB = s.FindObservation(ObservationRegistry.Bed4Card);
+                        if (recA != null) recA.stage = ObservationStage.Corroborated;
+                        if (recB != null) recB.stage = ObservationStage.Corroborated;
+                    }
+                    for (int r = 1; r <= s.f101.revision; r++)
+                    {
+                        FormStatus stepDecision = r == 1 ? s.f101.firstDecision : (r == s.f101.revision ? s.f101.current : FormStatus.Unverified);
+                        bool stepRefuted = stepDecision == FormStatus.Refuted;
+                        s.f101History.Add(new FormRevisionEntry
+                        {
+                            revision = r,
+                            decision = stepDecision,
+                            claimId = stepRefuted ? HypothesisService.ClaimUnreliableZero : "",
+                            evidenceIds = stepRefuted
+                                ? new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card }
+                                : new List<string>(),
+                            chapter = r == 1 ? "CH01" : (s.chapter ?? "CH01"),
+                            layer = r == 1 ? Reality.B : s.layer
+                        });
+                    }
                 }
             }
 
-            if (s.f101 != null && s.f101.revision > 0 && s.f101History.Count == 0)
-            {
-                if (s.f101.current == FormStatus.Refuted && FormService.RefutationAvailable(s))
-                {
-                    s.f101Argument = new DeductionSubmission
-                    {
-                        formId = "F101",
-                        selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
-                        claimId = HypothesisService.ClaimUnreliableZero
-                    };
-                    var recA = s.FindObservation(ObservationRegistry.Bed4Traces);
-                    var recB = s.FindObservation(ObservationRegistry.Bed4Card);
-                    if (recA != null) recA.stage = ObservationStage.Corroborated;
-                    if (recB != null) recB.stage = ObservationStage.Corroborated;
-                }
-                for (int r = 1; r <= s.f101.revision; r++)
-                {
-                    FormStatus stepDecision = r == 1 ? s.f101.firstDecision : (r == s.f101.revision ? s.f101.current : FormStatus.Unverified);
-                    bool stepRefuted = stepDecision == FormStatus.Refuted;
-                    s.f101History.Add(new FormRevisionEntry
-                    {
-                        revision = r,
-                        decision = stepDecision,
-                        claimId = stepRefuted ? HypothesisService.ClaimUnreliableZero : "",
-                        evidenceIds = stepRefuted
-                            ? new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card }
-                            : new List<string>(),
-                        chapter = r == 1 ? "CH01" : (s.chapter ?? "CH01"),
-                        layer = r == 1 ? Reality.B : s.layer
-                    });
-                }
-            }
+            if (fromVersion < 7)
+                InventoryService.MigrateFromLegacy(s);
         }
 
         private static bool Valid(Investigation s)
@@ -287,6 +296,8 @@ namespace CTCC
                 return false;
             if (s.journalNotes == null || s.journalNotes.Count > JournalNote.MaxNotes ||
                 s.journalNotes.Exists(n => n == null || !n.ValidFor(s)) || !ScenePropPose.ValidList(s.sceneProps))
+                return false;
+            if (!InventoryService.ValidState(s) || s.e10aLastTab < 0 || s.e10aLastTab > 4)
                 return false;
             if (s.exception0317Link.HasValue && (!CorroborationService.IsCorroborated(s) ||
                 !CorroborationService.Supported0317(s, s.exception0317Link)))

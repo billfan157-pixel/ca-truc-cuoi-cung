@@ -166,8 +166,8 @@ namespace CTCC
             toastTitle.fontSize = Scaled(20);
             toastBody.fontSize = Scaled(19);
             help.text = options.alternateBindings
-                ? "Mũi tên  Đi    K  Tương tác    L  Đèn pin    J  Sổ trực    Esc  Menu"
-                : "WASD  Đi    E  Tương tác    F  Đèn pin    Tab  Sổ trực    Esc  Menu";
+                ? "Mũi tên  Đi    K  Tương tác    L  Đèn pin    J  Ba lô    H  Cất đồ    Esc  Menu"
+                : "WASD  Đi    E  Tương tác    F  Đèn pin    Tab  Ba lô    H  Cất đồ    Esc  Menu";
         }
 
         public void Hud(string reality, string objective)

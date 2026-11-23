@@ -80,7 +80,7 @@ namespace CTCC
     [Serializable]
     public sealed class Investigation
     {
-        public const int Schema = 6;
+        public const int Schema = 7;
         public const int MinSupportedSchema = 1;
         public int schemaVersion = Schema;
         public long sequence;
@@ -107,6 +107,9 @@ namespace CTCC
         public List<JournalNote> journalNotes = new();
         public TimelineConnection exception0317Link;
         public List<ScenePropPose> sceneProps = new();
+        public List<BackpackEntry> backpackItems = new();
+        public string equippedInstanceId = "";
+        public int e10aLastTab;
         public List<string> dreadEventsSeen = new();
         public int dreadSeed = 20051118;
         public List<TranscriptEntry> transcript = new();
@@ -253,6 +256,7 @@ namespace CTCC
             var state = new Investigation();
             state.evidence.Add("E10a");
             state.Remember("CH01-T01");
+            InventoryService.EnsureDefaultTools(state);
             return state;
         }
     }

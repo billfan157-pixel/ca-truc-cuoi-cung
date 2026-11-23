@@ -17,19 +17,169 @@ namespace CTCC
             return reality.Commit(proposed, feet, warp: true, geometryChanges: true, newVisit: true);
         }
 
-        public CommitResult ReadLetter(Vector3 feet) =>
-            Record("E10a.SMSRead", feet);
+        public CommitResult ReadLetter(Vector3 feet)
+        {
+            var next = PrepareReadLetter(extractKeys: true);
+            return next == null ? CommitResult.Applied : reality.Commit(next, feet);
+        }
 
-        public Task<CommitResult> ReadLetterAsync(Vector3 feet) => RecordAsync("E10a.SMSRead", feet);
+        public Task<CommitResult> ReadLetterAsync(Vector3 feet, bool extractKeys = true)
+        {
+            var next = PrepareReadLetter(extractKeys);
+            return next == null ? Task.FromResult(CommitResult.Applied) : reality.CommitEvidenceAsync(next);
+        }
+
+        private Investigation PrepareReadLetter(bool extractKeys)
+        {
+            bool smsAlready = State.Happened("E10a.SMSRead");
+            bool envAlready = InventoryService.HasPhysical(State, BackpackCatalog.E10aEnvelope);
+            bool keysAlready = !extractKeys ||
+                (InventoryService.HasPhysical(State, BackpackCatalog.GateKey) && InventoryService.HasPhysical(State, BackpackCatalog.WingCKey));
+            if (smsAlready && envAlready && keysAlready) return null;
+
+            var next = State.Copy();
+            next.Remember("E10a.SMSRead");
+            if (InventoryService.TryAcquire(next, BackpackCatalog.E10aEnvelope, Reality.R, "LOC01", out var env))
+            {
+                env.MarkViewed("FLAP");
+                env.MarkViewed("BAY_SMS");
+                if (extractKeys) env.MarkViewed("KEYS_EXTRACTED");
+            }
+            if (extractKeys)
+            {
+                InventoryService.TryAcquire(next, BackpackCatalog.GateKey, Reality.R, "LOC01", out _);
+                InventoryService.TryAcquire(next, BackpackCatalog.WingCKey, Reality.R, "LOC01", out _);
+            }
+            return next;
+        }
+
+        public Task<CommitResult> InspectE10aLayerAsync(int tabIndex, string pageKey, bool markSmsRead = false, bool extractKeys = false)
+        {
+            var next = State.Copy();
+            bool changed = false;
+            int clamped = Mathf.Clamp(tabIndex, 0, 4);
+            if (next.e10aLastTab != clamped) { next.e10aLastTab = clamped; changed = true; }
+
+            bool hadEnv = InventoryService.HasPhysical(next, BackpackCatalog.E10aEnvelope);
+            if (InventoryService.TryAcquire(next, BackpackCatalog.E10aEnvelope, Reality.R, "LOC01", out var env))
+            {
+                if (!hadEnv) changed = true;
+                if (!string.IsNullOrEmpty(pageKey) && env.MarkViewed(pageKey)) changed = true;
+            }
+            if (markSmsRead && !next.Happened("E10a.SMSRead"))
+            {
+                next.Remember("E10a.SMSRead");
+                env?.MarkViewed("BAY_SMS");
+                changed = true;
+            }
+            if (extractKeys)
+            {
+                bool hadGate = InventoryService.HasPhysical(next, BackpackCatalog.GateKey);
+                bool hadWing = InventoryService.HasPhysical(next, BackpackCatalog.WingCKey);
+                InventoryService.TryAcquire(next, BackpackCatalog.GateKey, Reality.R, "LOC01", out _);
+                InventoryService.TryAcquire(next, BackpackCatalog.WingCKey, Reality.R, "LOC01", out _);
+                if (env != null && env.MarkViewed("KEYS_EXTRACTED")) changed = true;
+                if (!hadGate || !hadWing) changed = true;
+            }
+            return changed ? reality.CommitEvidenceAsync(next) : Task.FromResult(CommitResult.Applied);
+        }
+
+        public Task<CommitResult> AcquireItemAsync(string itemDefId, string location)
+        {
+            if (string.IsNullOrEmpty(itemDefId)) return Task.FromResult(CommitResult.PadRequired);
+            var existing = InventoryService.FindByDef(State, itemDefId);
+            if (existing != null && existing.status != BackpackItemStatus.MemoryRef)
+                return Task.FromResult(CommitResult.Applied);
+            var next = State.Copy();
+            if (!InventoryService.TryAcquire(next, itemDefId, State.layer, location, out _))
+                return Task.FromResult(CommitResult.PadRequired);
+            return reality.CommitEvidenceAsync(next);
+        }
+
+        public Task<CommitResult> EquipItemAsync(string itemDefId)
+        {
+            var currentEq = InventoryService.GetEquipped(State);
+            if (string.IsNullOrEmpty(itemDefId) && currentEq == null)
+                return Task.FromResult(CommitResult.Applied);
+            if (!string.IsNullOrEmpty(itemDefId) && currentEq != null && currentEq.itemDefId == itemDefId)
+                return Task.FromResult(CommitResult.Applied);
+            var next = State.Copy();
+            if (!InventoryService.TryEquip(next, itemDefId))
+                return Task.FromResult(CommitResult.PadRequired);
+            return reality.CommitEvidenceAsync(next);
+        }
+
+        public Task<CommitResult> PlaceItemAtAnchorAsync(string itemDefId, string anchorId)
+        {
+            var next = State.Copy();
+            if (!InventoryService.TryPlaceAtAnchor(next, itemDefId, anchorId))
+                return Task.FromResult(CommitResult.PadRequired);
+            return reality.CommitEvidenceAsync(next);
+        }
+
+        public Task<CommitResult> RetrieveItemFromAnchorAsync(string anchorId, bool equip = false)
+        {
+            var next = State.Copy();
+            if (!InventoryService.TryRetrieveFromAnchor(next, anchorId, equip))
+                return Task.FromResult(CommitResult.PadRequired);
+            return reality.CommitEvidenceAsync(next);
+        }
+
+        public Task<CommitResult> ReturnPaperToFixtureAsync(string itemDefId)
+        {
+            var next = State.Copy();
+            if (!InventoryService.TryReturnToWorldFixture(next, itemDefId))
+                return Task.FromResult(CommitResult.Applied);
+            return reality.CommitEvidenceAsync(next);
+        }
+
+        public Task<CommitResult> RecordLanNoticedAsync()
+        {
+            if (State.layer != Reality.B || !State.Happened("CH01-T03") || State.Happened("CH01-LAN-NOTICED"))
+                return Task.FromResult(CommitResult.Applied);
+            var next = State.Copy();
+            next.Remember("CH01-LAN-NOTICED");
+            return reality.CommitEvidenceAsync(next, publishGameplay: false);
+        }
+
+        public Task<CommitResult> CompleteLanCinematicAsync()
+        {
+            if (State.layer != Reality.B || !State.Happened("CH01-T03"))
+                return Task.FromResult(CommitResult.PadRequired);
+            if (State.Happened("CH01-T04") && State.Happened("CH01-LAN-NOTICED"))
+                return Task.FromResult(CommitResult.Applied);
+            var next = State.Copy();
+            next.Remember("CH01-LAN-NOTICED");
+            next.Remember("CH01-T04");
+            return reality.CommitEvidenceAsync(next);
+        }
 
         public CommitResult OpenGate(Vector3 feet)
         {
             if (!State.Happened("E10a.SMSRead")) return CommitResult.PadRequired;
-            return Record("CH01-T02", feet, "CH01-S1", true);
+            var next = PrepareOpenGate();
+            return next == null ? CommitResult.Applied : reality.Commit(next, feet, geometryChanges: true);
         }
 
-        public Task<CommitResult> OpenGateAsync(Vector3 feet) => State.Happened("E10a.SMSRead")
-            ? RecordAsync("CH01-T02", feet, "CH01-S1", true) : Task.FromResult(CommitResult.PadRequired);
+        public Task<CommitResult> OpenGateAsync(Vector3 feet)
+        {
+            if (!State.Happened("E10a.SMSRead")) return Task.FromResult(CommitResult.PadRequired);
+            var next = PrepareOpenGate();
+            return next == null ? Task.FromResult(CommitResult.Applied) : reality.CommitAsync(next, feet, geometryChanges: true);
+        }
+
+        private Investigation PrepareOpenGate()
+        {
+            if (State.Happened("CH01-T02")) return null;
+            var next = State.Copy();
+            next.Remember("CH01-T02");
+            next.checkpoint = "CH01-S1";
+            // Ensure gate key is cleanly in bag (stowed after unlocking)
+            InventoryService.TryAcquire(next, BackpackCatalog.GateKey, Reality.R, "LOC01", out _);
+            if (InventoryService.GetEquipped(next)?.itemDefId == BackpackCatalog.GateKey)
+                InventoryService.UnequipAll(next);
+            return next;
+        }
 
         public CommitResult AtHub(Vector3 feet, out bool warp)
         {
@@ -54,7 +204,6 @@ namespace CTCC
                 candidate.layer = Reality.B;
                 candidate.checkpoint = "CH01-CP01";
                 candidate.Remember("CH01-T03");
-                candidate.Remember("CH01-T04");
                 next = candidate;
                 return true;
             }
@@ -63,6 +212,7 @@ namespace CTCC
                 candidate.layer = Reality.R;
                 candidate.checkpoint = "CH01-CP03";
                 candidate.Remember("CH01-T08");
+                InventoryService.ReconcileLayerBoundToMemory(candidate);
                 next = candidate;
                 return true;
             }
@@ -72,6 +222,7 @@ namespace CTCC
                 candidate.chapter = "CH02";
                 candidate.checkpoint = "CH01-CP04";
                 candidate.Remember("CH01-T10");
+                InventoryService.ReconcileLayerBoundToMemory(candidate);
                 next = candidate;
                 return true;
             }
@@ -97,9 +248,12 @@ namespace CTCC
         private Investigation PrepareBoard()
         {
             var next = State.Copy();
+            next.Remember("CH01-T04");
+            next.Remember("CH01-LAN-NOTICED");
             next.Remember("CH01-T05");
             next.checkpoint = "CH01-CP01";
             next.RecordObservation(ObservationRegistry.F101Sheet, Reality.B, "LOC02", ObservationStage.Discovered);
+            InventoryService.TryAcquire(next, BackpackCatalog.BoardAssignment, Reality.B, "LOC02", out _);
             return next;
         }
 
@@ -154,6 +308,8 @@ namespace CTCC
             next = State.Copy();
             next.layer = State.layer == Reality.R ? Reality.B : Reality.R;
             next.checkpoint = GateService.G02(State) ? "CH02-CP03" : "CH02-CP02";
+            if (next.layer != Reality.B)
+                InventoryService.ReconcileLayerBoundToMemory(next);
             return true;
         }
 
