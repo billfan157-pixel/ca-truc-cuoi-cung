@@ -1,5 +1,5 @@
 # CA TRỰC CUỐI CÙNG — CHƯƠNG 1: NGƯỜI TRỞ VỀ
-## WALKTHROUGH GAMEPLAY B01–B08
+**WALKTHROUGH GAMEPLAY B01–B08**
 
 **Thể loại:** Kinh dị tâm lý góc nhìn thứ nhất, khám phá hiện trường và điều tra bằng vật thể 3D.  
 **Bối cảnh:** Bệnh viện An Sinh; đêm 17/11/2012 và ca trực 17/11/2005.  
@@ -42,18 +42,18 @@ Người chơi có thể quay lại các điểm chưa kiểm, đọc giấy the
 
 ---
 
-# II. WALKTHROUGH CHI TIẾT
+## II. WALKTHROUGH CHI TIẾT
 
-## B01 — BỨC THƯ KHÔNG CÒN LỜI HẸN
+### B01 — BỨC THƯ KHÔNG CÒN LỜI HẸN
 **Khu vực:** LOC01, hiện thực R (2012).  
 **Thời lượng:** 1,5–2,5 phút tuyến chính.  
 **Cảm xúc:** Dè chừng, tò mò, có một lý do cá nhân chưa nói hết.
 
-### Cảnh mở
+#### Cảnh mở
 
 Mưa đêm rơi xuống sân xi măng. Xe máy Minh dừng cạnh lối cổng phụ bệnh viện. Đèn đường không đủ soi toàn bộ cổng sắt. Người chơi có thể di chuyển vài bước quanh xe trước khi chú ý đến phong bì Bảy để lại. Không mở đầu bằng cutscene dẫn tay hay camera lia ép vào bì thư: vị trí đặt, ánh đèn và âm giấy bị gió tạt là gợi hướng tự nhiên.
 
-### Trình tự người chơi
+#### Trình tự người chơi
 
 1. **Quan sát nơi mình vừa tới.** Người chơi có thể nhìn vệt lốp mới, chiếc xe, bảng tên cũ và biển thông báo tháo dỡ. Vết lốp là chi tiết bối cảnh, không được biến thành “dấu vết thủ phạm”. Nếu bỏ qua, vẫn mở được cổng.
 
@@ -65,22 +65,22 @@ Mưa đêm rơi xuống sân xi măng. Xe máy Minh dừng cạnh lối cổng p
 
 5. **Bước vào.** Người chơi chủ động đẩy cánh cổng, mưa nặng hạt phủ khoảng sân phía trong. Camera không tự xoay lại chiếc xe. Quyết định đầu tiên của Minh là **đi vào dù cuộc hẹn bị hoãn**.
 
-### Nhịp kinh dị
+#### Nhịp kinh dị
 
 Khi người chơi hạ phong bì, âm mưa trở lại hơi khác hướng. Nếu đã nhìn biển tháo dỡ, cánh biển tôn gõ một tiếng ngắn sau khi chốt cổng chuyển động; đó là âm kim loại có nguồn, không phải một jumpscare “ma” đầu chương. Giữ khoảng trống âm thanh để người chơi tiếp tục suy nghĩ về lời hẹn.
 
-### Thông tin và trạng thái sau beat
+#### Thông tin và trạng thái sau beat
 
 Minh biết bệnh viện đã đóng, có 13 người chết theo thông tin công khai, Bảy hẹn rồi hoãn và chính mình vẫn bước vào. E10a là evidence duy nhất của chương, sự kiện đọc tin nhắn đã được lưu; chìa cổng chỉ là item dùng cho tương tác, không sinh thêm evidence. Người chơi tới sân trong, CH01-T02 hoàn tất.
 
 ---
 
-## B02 — NGƯỜI ĐỨNG SAU Ô KÍNH
+### B02 — NGƯỜI ĐỨNG SAU Ô KÍNH
 **Khu vực:** Sân LOC01 → sảnh LOC02, R.  
 **Thời lượng:** 1–1,5 phút.  
 **Cảm xúc:** Tòa nhà bỏ hoang có vẻ vẫn đang chờ một người nào đó.
 
-### Trình tự người chơi
+#### Trình tự người chơi
 
 1. **Băng qua sân theo dấu sáng.** Ánh đèn phía quầy tiếp nhận vừa đủ tạo hướng đi; vẫn nhìn được mép nền, rãnh nước và cửa sảnh. Không cần waypoint nổi hoặc bắt người chơi bật đèn pin để được phép tiến.
 
@@ -90,35 +90,35 @@ Minh biết bệnh viện đã đóng, có 13 người chết theo thông tin c�
 
 4. **Bước vào quầy.** Không có khuôn mặt áp vào kính, không teleport người chơi và không chuyển qua cinematic. Kính ở R chỉ là tiền đề cho cuộc gặp thật sự khi Minh chuyển lớp.
 
-### Nhịp kinh dị
+#### Nhịp kinh dị
 
 Một micro-dread phụ thuộc góc nhìn là đủ. Không chồng tia chớp mạnh, tiếng gõ kim loại B01 và jumpscare ở cửa sảnh trong thời gian quá sát nhau. Cảnh rùng mình đến từ điều phi lý rất nhỏ: **ánh sáng của một ca trực trong tòa nhà lẽ ra đã bỏ hoang**.
 
-### Thông tin và trạng thái sau beat
+#### Thông tin và trạng thái sau beat
 
 Người chơi hiểu rằng tại quầy có một điều cần kiểm tra, nhưng chưa biết đó là ai và chưa nhận thêm chứng cứ. Đích tiếp theo là cuốn sổ trực vật lý tại AN01.
 
 ---
 
-## B03 — CA TRỰC Ở MỘT NGÀY KHÁC
+### B03 — CA TRỰC Ở MỘT NGÀY KHÁC
 **Khu vực:** Quầy LOC02 / AN01, R → B.  
 **Thời lượng:** 3–4,5 phút, trong đó thoại điện ảnh khoảng 60–90 giây.  
 **Cảm xúc:** Ấm áp trước, bất thường sau.  
 **Dàn dựng:** Scripted Event → người chơi chủ động trò chuyện → Cinematic Dialogue Scene → trở lại FPS.
 
-### Pha 1 — Giở sổ và chuyển lớp
+#### Pha 1 — Giở sổ và chuyển lớp
 
 1. Người chơi bước tới quầy tiếp nhận R. Ánh đèn bàn hướng sự chú ý tới **cuốn sổ trực thật ở AN01**. Đây là một đối tượng của thế giới, **không phải giao diện ba lô**.
 2. Minh tự giở sổ; CH01-T03 kích hoạt transaction R→B tại cùng vị trí an toàn. Âm mưa sân chuyển thành tiếng quạt, giấy, đèn và hoạt động của một ca trực. Trục cửa, quầy, các cột và hướng đi giữ nhất quán để người chơi nhận ra cùng bệnh viện; chỉ bề mặt, ánh sáng và hoạt động đổi.
 3. Sau khi transition commit, người chơi vẫn nhìn tự do. Lan có mặt sau quầy, đang ghi chép.
 
-### Pha 2 — Lan nhận biết Minh trong gameplay
+#### Pha 2 — Lan nhận biết Minh trong gameplay
 
 4. Khi Minh đi gần, **Lan dừng viết, ngẩng đầu và nhận ra anh**. Chuyển động nhỏ, tự nhiên: dừng bút nửa nhịp, ngước mắt, điều chỉnh tư thế. Lan có thể lên tiếng gọi anh theo thoại chính thức đã có; không đưa một jumpscare vào gương mặt.
 5. Người chơi **chưa mất điều khiển**. Có thể nhìn chiếc ghế, cuốn sổ, lịch năm 2005 hoặc đồng hồ treo tường. Nếu quay đi hoặc lùi ra sân, Lan không đứng bất động chờ một nút: cô chỉnh tập giấy, tiếp tục công việc rồi chú ý lại khi Minh quay về. Câu chào nhận diện chỉ phát một lần.
 6. Khi Minh tới mép quầy, prompt ngắn **“Nói chuyện với Lan”** xuất hiện. Người chơi chủ động nhấn E/K. Chỉ hành động này mới khởi động cinematic, không tự chạy sau 6 giây đứng im, không tự khóa camera vì nhân vật đi qua vùng trigger.
 
-### Pha 3 — Cinematic Dialogue Scene
+#### Pha 3 — Cinematic Dialogue Scene
 
 7. Camera blend liền mạch từ FPS sang góc medium tại quầy, không màn đen hoặc tải scene mới. Cảnh giữ mạch nhìn của người chơi: Lan ở sau quầy, Minh ở phía đối diện; không sử dụng over-the-shoulder cho Minh nếu rig cơ thể và góc quay không đáp ứng.
 8. Diễn xuất mở bằng cảm giác **hai người từng thân quen**: khoảng lặng khi nhìn nhau, chuyển động tay Lan đặt bút xuống, phản ứng không trọn vẹn của Minh. Trong lời thoại chính thức CH01-D03/D04/D05/D07, Lan nói về ca trực **17/11/2005** như một điều đang diễn ra. Minh, ở năm 2012, nhận ra sự sai lệch.
@@ -126,35 +126,35 @@ Người chơi hiểu rằng tại quầy có một điều cần kiểm tra, nh
 10. Lan hướng mắt và tay về **BOARD** trên quầy, giao Minh việc kiểm tra phòng 101. Cảnh không tự “nhặt item” qua cutscene, không mở khóa các manh mối người chơi chưa xem và không phát lời thoại bị khóa của các chương sau.
 11. Camera quay lại FPS ở quầy. Phải có Skip, phụ đề, bản tóm tắt phần lời thoại đã được phép biết và phục hồi input/camera sau skip hoặc load. Không phát jumpscare ngay lúc trả quyền điều khiển.
 
-### Pha 4 — Nhận trách nhiệm và tự khám phá
+#### Pha 4 — Nhận trách nhiệm và tự khám phá
 
 12. Người chơi tự **nhấc BOARD** khỏi quầy, kiểm tra giấy trong 3D và cất vào ngăn giấy của ba lô. Chỉ lúc này **CH01-T05** commit và việc vào Phòng 101 mới được mở. **BOARD tại quầy là đồ bàn giao nhiệm vụ; F101 là phiếu được kiểm tra, đánh dấu và ký ở Phòng 101**, không phải một món đã ký được Lan trao tại đây.
 13. Khám phá tùy chọn tại quầy: kéo **DRAWER-DESK** xem OBS_RECEPTION_DRAWER, soi lịch, quay lên đồng hồ 03:17 trong B để kiểm bằng chính camera của mình. Người chơi có thể dùng đèn/đổi góc và ghi nhớ nguồn; không cần phải hoàn thành tất cả để đi Phòng 101.
 
-### Nhịp kinh dị và giá trị cảm xúc
+#### Nhịp kinh dị và giá trị cảm xúc
 
 Lan **không** làm mặt quỷ, biến mất trong tiếng chói, hay bị hệ thống gọi là một hồn ma. Điều đáng sợ là sự bình thường quá thuyết phục của cô. Có thể thử một phản xạ mặt kính chậm hoặc bị lóa trong nhánh quan sát phụ, nhưng không đưa bằng chứng chắc chắn “Lan không có bóng” vào canon.
 
 Hình ảnh Lan chăm chú ghi sổ, hơi ấm đèn bàn và tiếng bút trong cảnh này phải được giữ nhất quán: chúng là chất liệu khiến **quầy trống B06** có tác động cảm xúc.
 
-### Thông tin và trạng thái sau beat
+#### Thông tin và trạng thái sau beat
 
 Minh đã trải nghiệm ca trực B năm 2005, gặp Lan và nhận BOARD. Q về Lan và thời gian được mở, chưa giải đáp. CH01-T03/T04 và T05 đúng thứ tự, AP02 lưu hợp lệ, các observation phụ chỉ ghi khi người chơi chủ động kiểm.
 
 ---
 
-## B04 — PHÒNG CÓ VỊ TRÍ GIƯỜNG THỨ TƯ
+### B04 — PHÒNG CÓ VỊ TRÍ GIƯỜNG THỨ TƯ
 **Khu vực:** LOC02 ↔ STAFF ↔ HALL ↔ LOC03, B.  
 **Thời lượng:** 6–8 phút tuyến chính; điều tra sâu thêm tùy người chơi.  
 **Cảm xúc:** Từ nghi ngờ một con số tới cảm giác có điều từng xảy ra ngay tại nơi mình đứng.
 
-### Đường đến Phòng 101
+#### Đường đến Phòng 101
 
 1. Sau khi cầm BOARD, người chơi có thể đi thẳng qua HALL hoặc vòng qua hốc hồ sơ điều dưỡng STAFF. Hai đường hội tụ ở Phòng 101; không có nhiệm vụ mở tủ STAFF mới được phép vào phòng. Lối tới Khu C chưa mở theo beat này.
 2. Trên đường qua HALL, tiếng xe đẩy xuất hiện ở đoạn xa rồi **khựng lại** (DREAD_B04_TROLLEY_STOP). Không cho xe lao vào camera hoặc chắn lối. Nếu Minh quay tìm, hành lang vắng nhưng sự chú ý của anh giờ hướng về những **dấu bánh xe** có thể kiểm.
 3. Tại cửa Phòng 101, F101 đang ghi con số **0**. Người chơi có thể đọc ngay mặt trước, nghiêng tờ phiếu để nhìn ô số và đặt lại trên **bảng kẹp AN02**. Không bắt lập luận ngay; lúc này con số chỉ là một tuyên bố hành chính.
 
-### Vào phòng và nhìn thấy điều giấy không nói
+#### Vào phòng và nhìn thấy điều giấy không nói
 
 4. Người chơi **hé DOOR-101** bằng E hoặc giữ-kéo rồi bước qua ngưỡng; CH01-T06 và checkpoint AP04 được ghi. Cửa mở vừa đủ để thấy rèm và quạt, không tự phơi hết hốc giường 4.
 5. Minh đi giữa những vị trí giường hiện hữu, tự so khoảng cách đầu giường, mặt tường, chỗ đặt đồ và dấu mòn trên sàn. Phần không gian sau rèm có hình học cho thấy **một vị trí từng được sử dụng**, nhưng chưa chứng minh ai ở đó.
@@ -162,47 +162,47 @@ Minh đã trải nghiệm ca trực B năm 2005, gặp Lan và nhận BOARD. Q v
 7. Sau rèm là **OBS101A**: vệt bánh quanh chỗ kê giường, chăn gấp vội, dép nhựa nhỏ. Người chơi tự nhìn từ nhiều góc, có thể cúi xuống hoặc dùng ánh đèn để thấy chỗ mòn. Khi quan sát tại chỗ, ghi observation có provenance lớp B/LOC03; **không cất dấu sàn hay đôi dép thành evidence xuất** trong Chương 1.
 8. Người chơi có thể quay nhìn ba giường còn lại rồi trở lại hốc 4. Đây là **Spatial Deduction**: tự so tương quan không gian, không kéo một biểu tượng “dấu bánh giường” sang biểu tượng “giường 4” trong menu.
 
-### Thẻ AS-05B — sự bất thường có chữ ký
+#### Thẻ AS-05B — sự bất thường có chữ ký
 
 9. Trên giá kẹp tại vị trí thứ tư, người chơi nhấc **AS-05B (OBS101B)**. PhysicalInspector mở trên chính chiếc thẻ được cầm: mặt trước, mặt sau, ô bàn giao và chữ ký nhận còn thiếu.
 10. Người chơi lật thẻ, nghiêng đón sáng hoặc dùng lệnh trợ năng tương đương để khám phá vết hằn **“03g17 · CHƯA CHỐT SỔ”** ở mặt sau. Chi tiết này là câu hỏi về mốc giao ca, **không cho phép kết luận một người chết lúc 03:17**.
 11. Người chơi có thể **cất tạm AS-05B vào ngăn giấy thuộc B**, lấy ra kiểm lại khi cần hoặc đặt nó ở một điểm so tài liệu hợp lệ. Hệ thống vẫn giữ nguồn và trạng thái đã Examined. Cầm thẻ rồi quên kiểm ô chữ ký sẽ không tự cho phép ký Refuted.
 
-### Điều tra phụ có ý nghĩa
+#### Điều tra phụ có ý nghĩa
 
 12. **STAFF:** mở DRAWER-NURSE để đọc **OBS_SHIFT_LOG / quy chế AS-05**; xem **OBS_CORRIDOR_NOTICE**. Tác dụng là hiểu một chuyển giao hợp lệ cần có dấu nhận và cách kê giường tạm được quản lý. Đây là nền nghiệp vụ, không phải chìa khóa UI bắt buộc.
 13. **Giường 2:** đọc **OBS101C**, phiếu chuyển đã hoàn tất có đầy đủ dấu bàn giao. Người chơi nhận ra **một hồ sơ đúng quy trình trông như thế nào**, từ đó biết tại sao thẻ giường 4 gây nghi vấn. Không cần đọc C để được ký Refuted nếu đã đủ hai nguồn chính.
 14. **Giường 3:** mở DRAWER-BED3 xem **OBS101D**, phiếu thuốc/việc hoàn tất của giường 3. Nó cho thấy giấy tờ có thể khớp đúng một vị trí mà **không** chứng minh điều gì về vị trí 4. Nếu đem phiếu này làm căn cứ bác bỏ F101, Minh phản hồi nguồn đó nói về giường khác.
 15. **Mốc thời gian tùy chọn EX01:** nếu đã tự xem đồng hồ B ở quầy, soi vết hằn mặt sau AS-05B và đọc một nguồn ca trực tại quầy hoặc STAFF, người chơi có thể tự ghi mối liên hệ **03:17** trong Pocket Note mở rộng. Trình tự nguồn có thể bất kỳ. EX01 chỉ mở khả năng nghe CH01-D19 sau khi ký, không thay kết luận F101.
 
-### Nhịp kinh dị
+#### Nhịp kinh dị
 
 Khi Minh kiểm dấu bánh hoặc hạ thẻ sau khi đọc ô bàn giao, tiếng xe kim loại/tấm rèm có thể vang **đúng từ nơi thiếu dấu xác nhận**. Một chi tiết rèm khép thêm hay quạt chậm lại được phép xuất hiện sau khi camera về 3D, không trong inspector. Không dùng bóng người làm “phần thưởng chắc chắn” cho người chơi đọc tài liệu; sự yên ắng sau vật chứng có thể đáng sợ hơn.
 
-### Điều người chơi thực sự biết
+#### Điều người chơi thực sự biết
 
 Có một vị trí sử dụng khác với cách phiếu mô tả; thẻ bàn giao liên quan chưa có xác nhận hoàn tất. **Chưa chứng minh** có bệnh nhân vẫn còn trong phòng, có ai cố tình làm giả giấy, ai nằm tại đó hoặc vì sao 03:17 xuất hiện. Hai quan sát chính cho phép người chơi chuẩn bị một lập luận giới hạn ở B05.
 
 ---
 
-## B05 — CHỮ KÝ TRÊN CON SỐ 0
+### B05 — CHỮ KÝ TRÊN CON SỐ 0
 **Khu vực:** Phòng 101, B, bảng kẹp F101 tại AN02.  
 **Thời lượng:** 5–7 phút nếu tự kiểm và lựa chọn; tuyến A/B có thể ngắn hơn.  
 **Cảm xúc:** Người chơi hiểu rằng đặt bút cũng là một hành động gây hậu quả.
 
-### Trở lại bảng kẹp
+#### Trở lại bảng kẹp
 
 1. Người chơi đi tới F101 tại **AN02** và nhìn trực tiếp các trường trên tờ phiếu. Giấy hiện hữu ở bảng kẹp; không lấy F101 gốc từ BOARD ở quầy hay đem gốc F101 đi khỏi Phòng 101.
 2. Nếu muốn đối chiếu, mở ba lô, **lấy AS-05B ra**, đặt vào **kẹp so tài liệu cạnh F101**, tự lật/soi hai vùng in. Đây là vị trí vật lý để người chơi không phải ghép hai biểu tượng trong một màn hình suy luận giả lập.
 3. Người chơi có thể tháo thẻ, đi nhìn lại OBS101A trên sàn rồi quay về. Không reset tiến độ quan sát đã commit vì thẻ đang trong túi hay được đặt ở bàn.
 
-### Lập luận bằng cử chỉ, không bằng dây nối UI
+#### Lập luận bằng cử chỉ, không bằng dây nối UI
 
 4. Trên F101, người chơi có thể **đánh dấu con số 0**. Trên thẻ AS-05B, chỉ vào **ô người nhận chưa ký**. Khi đã thực sự Examined OBS101A trong phòng, có thể quay/điểm nhìn về dấu bánh/nhóm dấu tại hốc 4 rồi chọn hành động ngắn **“Liên hệ với dấu hiện trường”**; hỗ trợ bàn phím/chữ lớn làm được cùng thao tác.
 5. Sau đó Minh chọn giới hạn của phát biểu: **“Chưa đủ căn cứ xác nhận số 0.”** Không đưa lựa chọn “có bệnh nhân còn sống trong phòng” hoặc “ai đó cố tình làm giả” thành đáp án đúng.
 6. Các thao tác vật lý trên chỉ tạo đầu vào cho hệ đánh giá: **OBS101A và OBS101B đã Examined ở B, đúng mark F101_ZERO và OBS101B_SIGN, link tới OBS101A_TRACES, cùng claim giới hạn**. Hệ thống mới được phép xác nhận nhánh Refuted. Kẹp đúng thẻ lên bảng mà chưa xem dấu sàn **không** đủ. Nếu thiếu bước, Minh giải thích điều chưa biết, không hiện tiếng chuông “SAI”.
 
-### Ba chữ ký đều hợp lệ
+#### Ba chữ ký đều hợp lệ
 
 **A — Affirmed / Xác nhận 0.** Người chơi có thể ký ngay cả khi chưa khám phá giường 4. Chữ ký được commit, giấy hiển thị bản signed A, **D(LOC03)=1** trong lớp B. Vách che **deniedBay** đóng kín khu vực hốc 4; quạt đều và lạnh, sau vách có hai tiếng gõ nén. Cảnh không khẳng định có người đang bị nhốt; điều đáng sợ là **một tờ giấy có thể khiến vị trí từng nhìn thấy bị phủ kín**.
 
@@ -214,24 +214,24 @@ Có một vị trí sử dụng khác với cách phiếu mô tả; thẻ bàn g
 8. **G01 mở ở cả A/B/C** ngay sau commit bền vững CH01-T07. Người chơi có thể đứng lại quan sát và sửa quyết định trước khi chuyển B→R. Lần ký đầu lưu firstDecision; mỗi sửa đổi hợp lệ cập nhật current/revision/history; bấm lặp cùng lựa chọn không nhân số lần.
 9. Nếu EX01 đã hoàn tất, khi rời Phòng 101 người chơi có thể nghe CH01-D19 đúng điều kiện; không tự kích cho người bỏ qua nhánh phụ.
 
-### Đỉnh kinh dị chính — “ở phía sau rèm”
+#### Đỉnh kinh dị chính — “ở phía sau rèm”
 
 Khi người chơi **đã kiểm tra AS-05B, hạ tài liệu và đang tự do nhìn lại phòng**, tiếng quạt/hum đèn hạ nhẹ trong khoảng ngắn; một tiếng móc rèm hoặc khung giường phát đúng hướng hốc 4. Nếu player tự quay nhìn, có thể thoáng thấy một hình người thấp hoặc bóng tựa đầu giường trong chưa đầy hai giây, rồi mất khi ánh sáng ổn định. Không lộ mặt, không lao vào camera, không định danh. Nếu không quay, chỉ nghe âm và vẫn được kiểm tra hiện trường; **không ép camera, không tặng manh mối bắt buộc qua jumpscare**.
 
 Scare này chỉ xuất hiện **một lần** ở thời điểm phù hợp giữa lần kiểm thẻ và quyết định/khoảng hậu ký; không chồng blackout hoặc hiệu ứng phản hồi F101. Nếu người chơi ký rất nhanh, không kéo họ trở lại xem scare. Chế độ giảm jumpscare sử dụng silhouette tĩnh hoặc âm có caption, không nháy sáng mạnh.
 
-### Điều còn lại sau khi ký
+#### Điều còn lại sau khi ký
 
 Người chơi vừa chọn tin, để ngỏ hoặc phản đối một con số. Không có lựa chọn nào tự giải câu hỏi người ở giường 4 là ai. Kết quả vật lý ở B khiến Minh muốn đối chiếu thêm với một hiện trường không phụ thuộc tờ phiếu — chính là động lực của Chương 2.
 
 ---
 
-## B06 — NGƯỜI GIAO VIỆC KHÔNG CÒN Ở QUẦY
+### B06 — NGƯỜI GIAO VIỆC KHÔNG CÒN Ở QUẦY
 **Khu vực:** LOC03 → HALL → LOC02 / AN01, B → R.  
 **Thời lượng:** 2–3 phút.  
 **Cảm xúc:** Sự mất mát đáng sợ hơn một gương mặt quỷ.
 
-### Trình tự người chơi
+#### Trình tự người chơi
 
 1. Minh rời Phòng 101, đi lại qua hành lang. Không auto-teleport về quầy. Âm nền ở B đổi nhẹ theo chữ ký; không thêm một cuộc rượt đuổi vì CH01 không có Hunter.
 2. Người chơi có thể mở ba lô để xem bản nhớ của AS-05B, BOARD và ghi chú, hoặc quay lại 101 để sửa F101. Đây là một cơ hội **tự kiểm điều mình vừa làm**, không là bước bắt buộc.
@@ -240,66 +240,66 @@ Người chơi vừa chọn tin, để ngỏ hoặc phản đối một con số
 5. Người chơi tới **sổ trực vật lý tại AN01**, tự giở trang để bàn giao. Hành động này kích **CH01-T08** và transaction B→R ngay vị trí an toàn; không bắt đem F101 gốc từ phòng 101 về đặt lên sổ. Dữ liệu chữ ký đã tồn tại trong history và giấy signed nằm tại lớp B.
 6. Khi về R, đèn/quạt của ca 2005 nhường cho mưa và sự xuống cấp. **Các tờ giấy vật lý chỉ thuộc B**, dù đang nằm trên bàn, cầm trên tay hay cất trong ba lô, phải được trả về nơi B có thể phục hồi; ba lô giữ **ghi nhớ nguồn đã kiểm**, không cho Minh rút bản gốc giấy B ra sử dụng trong R.
 
-### Đạo diễn âm thanh
+#### Đạo diễn âm thanh
 
 Sự thay đổi nằm ở ba chất âm: **R 2012** là mưa và tòa nhà bỏ hoang; **B 2005** có quạt, giấy, bút và con người; **R sau bàn giao** trở lại tiếng sân nhưng thiếu hoàn toàn một giọng nói đã trở nên quen thuộc. Sự im lặng của chiếc ghế là payoff của cuộc gặp B03.
 
-### Thông tin và trạng thái sau beat
+#### Thông tin và trạng thái sau beat
 
 Minh chưa giải thích được vì sao Lan ở B nhưng không còn ở quầy. CH01-T08 hoàn tất, R được phục hồi mà không nhận thay đổi hình học do F101 trong B. Ghi chú và lịch sử quyết định còn nguyên, không có giấy B vật lý lọt sang R.
 
 ---
 
-## B07 — CÁNH CỔNG KHÔNG CHO RỜI ĐI
+### B07 — CÁNH CỔNG KHÔNG CHO RỜI ĐI
 **Khu vực:** LOC02 → LOC01 → LOC02, R.  
 **Thời lượng:** 1–1,5 phút trên tuyến trực tiếp.  
 **Cảm xúc:** Phản xạ tự nhiên đầu tiên sau trải nghiệm phi lý là bỏ đi.
 
-### Trình tự người chơi
+#### Trình tự người chơi
 
 1. Sau khi về R, mục tiêu ngắn trong Pocket Note hoặc qua tự thoại là **thử rời bệnh viện**. Người chơi có thể chạy về sân theo lối đã tới. Xe máy, rãnh nước, biển tháo dỡ và cổng phụ vẫn ở vị trí quen thuộc; không cần đặt một mê cung mới.
 2. Tới cổng, Minh tự **nắm và kéo cánh sắt**. Không cần lục túi tìm chìa khu C hoặc món đồ thần bí; đây không phải puzzle chìa khóa. Khi kéo đủ mức, transaction **CH01-T09** chuyển qua vòng lặp không gian một lần, đặt player ở safe pad hợp lệ để nhận ra mình lại đang ở trong khuôn viên.
 3. **Scare chủ đạo thứ hai:** một khoảng hụt âm mưa ngắn, cú đập kim loại bên ngoài cổng và bóng phản chiếu lướt ngang khung. Không đưa khuôn mặt, không cho nhân vật tấn công và không biến cổng thành boss. Âm/camera có phiên bản giảm jumpscare. Nếu người chơi đã gặp scare mạnh ở B05 quá gần, hạ cường độ âm hoặc để khoảng hồi nhịp phù hợp.
 4. Khi Minh nhìn lại, cổng không cung cấp lối thoát. Lời thoại CH01-D14 chỉ phát đúng điều kiện. Lần thử thứ hai không tạo thêm vòng loop; thay bằng phản hồi ngắn cho thấy hiện tại đường ra không mở được.
 
-### Ý nghĩa
+#### Ý nghĩa
 
 Ở B01, Minh **chọn bước vào**; ở B07, Minh **không thể rời đi bằng cách phủi bỏ điều vừa biết**. Đây là đối xứng của hai thao tác tay, không phải một phép thử khóa lần nữa.
 
-### Thông tin và trạng thái sau beat
+#### Thông tin và trạng thái sau beat
 
 CH01-T09 được lưu once; đường từ cổng về AN01 luôn mở. Ba lô và vật chứng R không mất hoặc nhân đôi qua seam.
 
 ---
 
-## B08 — ĐIỀU CÒN LẠI SAU KHI TỜ GIẤY BIẾN MẤT
+### B08 — ĐIỀU CÒN LẠI SAU KHI TỜ GIẤY BIẾN MẤT
 **Khu vực:** LOC01 → LOC02 / AN01, R.  
 **Thời lượng:** 1–2 phút.  
 **Cảm xúc:** Không thể hiểu tất cả, nhưng không thể ngừng kiểm chứng.
 
-### Đường đi trở lại
+#### Đường đi trở lại
 
 1. Người chơi tự đi từ cổng về sảnh trên tuyến đã quen. Trong quãng ngắn, tiếng mưa và âm đường xa bị hạ nhẹ theo khoảng cách, để lại tiếng bước chân và một khoảng bất an có chủ đích. **Không tắt sạch mọi đèn sân**: mép bậc, lối đi và quầy AN01 vẫn được nhận diện. Không kéo dài đi bộ bắt buộc đúng 30 giây nếu người chơi chạy nhanh.
 2. Khi tới sảnh R, người chơi nhìn thấy cuốn sổ và lối dẫn về Phòng 101. Cùng một tòa nhà đã mở ra lớp B và trả lại cảnh R, nhưng câu hỏi về hốc giường 4 vẫn chưa có câu trả lời.
 
-### Ba lô như một phần ký ức
+#### Ba lô như một phần ký ức
 
 3. Nếu player từng **thực sự nhấc/soi hoặc cất AS-05B ở B**, khi mở ngăn giấy trong R có thể xuất hiện một **hình bóng thoáng qua của mép thẻ hoặc dấu ô bàn giao trên lớp trình bày của túi**. Khi đưa tay tới, đó không phải vật thật có thể equip: nó chỉ dẫn tới **ghi nhớ đã đọc tại LOC03/B**. Sự kiện thị giác này là **P-BAG08_ECHO**, một hiệu ứng biểu đạt ký ức, không phải item mới, không là chứng cứ vật lý 2012 và không xuất hiện nếu người chơi chưa hề thấy thẻ.
 4. Nếu người chơi không mở ba lô, câu chuyện vẫn hoàn chỉnh. Pocket Note có thể giữ một câu hỏi ngắn về thứ đã thấy trong Phòng 101, dựa trên chính những nguồn player đã thực sự kiểm. Không được tự tóm tắt rằng Minh đã gặp bệnh nhân, phát hiện thủ phạm hoặc biết giờ tử vong.
 5. Minh có thể lấy **E10a thực ở R** ra đọc lại: một lời hẹn bị hoãn, một mẩu tin cũ và lý do anh đã tự bước vào. Đối chiếu cảm giác với trải nghiệm ở B là suy nghĩ của người chơi, không phải thông báo “đã giải xong vụ án”.
 
-### Kết chương
+#### Kết chương
 
 6. Người chơi đến **sổ trực vật lý tại AN01**, giở trang để xác nhận tiếp tục kiểm hiện trường. **CH01-T10 / CP04** được commit và thẻ **CHƯƠNG 02 — PHÒNG BỆNH TRỐNG** xuất hiện. Không cần mở menu suy luận nhiều tab hoặc chọn một câu kết đạo đức.
 7. Camera và trạng thái chuyển tiếp để người chơi bước vào **Phòng 101 của hiện thực R (2012)**. Chương 2 còn các dấu **LIST + SOCKETS + WHEELS → PZ01/E12 → E11 → G02**, được điều tra độc lập; không tự cấp manh mối hoặc đồ vật CH02 ở đoạn kết CH01.
 
-### Hình ảnh kết
+#### Hình ảnh kết
 
 Một tiếng giấy lật khô tại quầy trống. Không có Lan, không có jumpscare cuối chương. Cánh cửa Phòng 101 ở hướng đi tiếp; người chơi **muốn tự quay lại nhìn hiện trường thật** vì những gì đã tận mắt thấy ở B vẫn không thể khớp với một con số trên giấy.
 
 ---
 
-# III. NHỊP KINH DỊ VÀ CHỖ DỪNG CHO NGƯỜI CHƠI
+## III. NHỊP KINH DỊ VÀ CHỖ DỪNG CHO NGƯỜI CHƠI
 
 Kinh dị trong chương phải có **nguồn**, **thời điểm**, **hậu quả**. Ưu tiên tạo cảm giác bị nhìn, những âm thanh có chỗ phát cụ thể, và các thay đổi diễn ra sau hành động của Minh. Không nhầm số lượng jumpscare với độ sâu kinh dị.
 
@@ -318,7 +318,7 @@ Không phát một scare lớn khi player đang mở ba lô, soi 3D, nghe thoạ
 
 ---
 
-# IV. ĐỒ VẬT, THÔNG TIN VÀ QUYẾT ĐỊNH
+## IV. ĐỒ VẬT, THÔNG TIN VÀ QUYẾT ĐỊNH
 
 | Đối tượng | Vị trí / thời điểm | Player tác động bằng gì | Dữ liệu và giới hạn |
 | --- | --- | --- | --- |
@@ -343,7 +343,7 @@ Không phát một scare lớn khi player đang mở ba lô, soi 3D, nghe thoạ
 
 ---
 
-# V. ĐƯỜNG ĐI HỢP LỆ VÀ KHẢ NĂNG PHỤC HỒI
+## V. ĐƯỜNG ĐI HỢP LỆ VÀ KHẢ NĂNG PHỤC HỒI
 
 **Tuyến thẳng:** B01 đọc E10a → mở cổng → B02 tới quầy → B03 chuyển B, nói chuyện Lan, lấy BOARD → B04 vào 101 → B05 ký A hoặc B → B06 về AN01/R → B07 thử cổng → B08 về AN01/CH02. Tuyến này không cần xem STAFF, OBS101C/D, EX01 hoặc lấy AS-05B.
 
@@ -355,7 +355,7 @@ Không phát một scare lớn khi player đang mở ba lô, soi 3D, nghe thoạ
 
 ---
 
-# VI. ĐIỀU KIỆN HOÀN THÀNH CHO BẢN GAMEPLAY
+## VI. ĐIỀU KIỆN HOÀN THÀNH CHO BẢN GAMEPLAY
 
 Bản walkthrough chỉ được coi là vận hành đúng khi các đường chơi và trạng thái sau được kiểm trong Unity:
 
