@@ -1796,6 +1796,8 @@ namespace CTCC
             Apply(casework.OutsideAttempt(player.Feet), "WT B07 SEAM once");
             Require(State.Happened("CH01-T09") && casework.OutsideAttempt(player.Feet) != CommitResult.Applied,
                 "WT B07 SEAM fires once and refuses repeat");
+            Require(scene.outerGate?.isOpen == true && IsDepartureDeferred(),
+                "WT B07 post-T09 gate stays physically open in R while Minh is reluctant to leave");
             var seamKeyRes = WorldUseResolver.Resolve(State, BackpackCatalog.GateKey, "SEAM");
             Require(seamKeyRes.Outcome == WorldUseOutcome.GateRefusedAfterCollapse &&
                     InventoryService.HasPhysical(State, BackpackCatalog.GateKey),
@@ -2044,10 +2046,69 @@ namespace CTCC
             Apply(pending.GetAwaiter().GetResult(), label);
         }
 
+        private IEnumerator VerifyS1BeforeG02()
+        {
+            var early = new Investigation { chapter = "CH02", layer = Reality.B, checkpoint = "CH02-CP02" };
+            early.f101.current = FormStatus.Unverified;
+            early.Remember("CH01-T02");
+            var reception = scene.ResolveZoneAt(new Vector3(4f, .2f, -4f));
+            var emergency = scene.ResolveZoneAt(new Vector3(4f, .2f, 20.8f));
+            Require(reception?.zoneId == "LOC02" && reception.upperConnectors.Length == 1 &&
+                emergency?.zoneId == "LOC04" && emergency.upperConnectors.Length == 1,
+                "S1 and S3 have independently registered connectors");
+            var s1 = reception.upperConnectors[0];
+            var s3 = emergency.upperConnectors[0];
+            var nearS1 = new Vector3(.3f, 0f, -4f);
+            try
+            {
+                yield return scene.UnloadZoneAsync(RegionStreamer.Service);
+                yield return scene.UnloadZoneAsync(RegionStreamer.Upper);
+                transaction.Present(early);
+                yield return streamer.Reconcile(early, nearS1);
+                Require(!scene.HasZone("LOC05") && s1.activeSelf, "S1 B stays closed before G02");
+
+                early.layer = Reality.R;
+                transaction.Present(early);
+                Require(s1.activeSelf, "S1 keeps the connector until the upper zone has registered");
+                yield return streamer.Reconcile(early, new Vector3(4f, 0f, 24f));
+                Require(!scene.HasZone("LOC05") && s3.activeSelf, "S3 proximity alone keeps LOC05 unloaded before G02");
+                yield return streamer.Reconcile(early, nearS1);
+                Require(scene.HasZone("LOC05") && !s1.activeSelf && s3.activeSelf && !scene.HasZone("LOC09"),
+                    "S1 R loads the upper zone and opens only its connector before G02");
+                yield return streamer.Reconcile(early, scene.Pad("AP06").position);
+                Require(scene.HasZone("LOC05") && !GateService.G02(early) && !GateService.G03(early) &&
+                    early.chapter == "CH02" && !early.Happened("CH03-T01") && !early.Has(EvidenceRegistry.PatientRegister),
+                    "S1 upper landing preserves CH02, evidence and both gate conditions");
+
+                NavMesh.RemoveAllNavMeshData();
+                var data = scene.BuildNavigation();
+                var instance = NavMesh.AddNavMeshData(data);
+                try
+                {
+                    var path = new NavMeshPath();
+                    Require(NavMesh.CalculatePath(scene.Pad("AP02").position, scene.Pad("AP06").position,
+                        NavMesh.AllAreas, path) && path.status == NavMeshPathStatus.PathComplete,
+                        "S1 R has a continuous route from reception to its upper landing before G02");
+                }
+                finally
+                {
+                    if (instance.valid) instance.Remove();
+                    if (data != null) Destroy(data);
+                    scene.TryRefreshNavigation(scene.Pad("AP02").position);
+                }
+                verification.Add("V33-Q05 S1 pre-G02 PASS: R route, B closure, load-before-open, S3/B1 closure and unchanged CH03 gates.");
+            }
+            finally
+            {
+                transaction.Present(State);
+            }
+        }
+
         private IEnumerator VerifyCampusWorldQA()
         {
             if (scene.IsAdditiveMode)
             {
+                yield return VerifyS1BeforeG02();
                 yield return scene.EnsureRegionalZonesStreamedAsync();
 
                 // WORLD-Q04: 3D XYZ multi-wing same-Z & multi-story elevation zone disambiguation

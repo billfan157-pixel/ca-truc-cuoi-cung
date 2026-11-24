@@ -54,7 +54,7 @@ namespace CTCC
                 }
             }
 
-            if (!GateService.G02(state)) yield break;
+            bool secondGate = GateService.G02(state);
             string checkpoint = SafeCheckpoints.Pad(state.checkpoint);
             bool upperPinned = checkpoint is "AP06" or "AN03" or "AP07";
             bool servicePinned = checkpoint is "AP08" or "AP09";
@@ -63,9 +63,14 @@ namespace CTCC
             bool atEmergencyS3 = EmergencyS3Portal.Contains(feet);
             bool atEmergencyS2 = EmergencyS2Portal.Contains(feet);
 
-            bool upperNeeded = upperPinned || UpperStackVolume.Contains(feet) || feet.y > 0.3f || atReceptionS1 || atEmergencyS3;
-            bool serviceNeeded = servicePinned || BasementStackVolume.Contains(feet) || feet.y < -0.25f ||
-                (state.chapter == "CH04" && atEmergencyS2);
+            bool onS1OrUpperFloor = feet.y > 0.3f &&
+                UpperStackVolume.Contains(new Vector3(feet.x, UpperStackVolume.center.y, feet.z));
+            bool earlyS1Access = state.layer == Reality.R && (atReceptionS1 || onS1OrUpperFloor);
+            bool upperNeeded = secondGate
+                ? upperPinned || UpperStackVolume.Contains(feet) || feet.y > 0.3f || atReceptionS1 || atEmergencyS3
+                : earlyS1Access;
+            bool serviceNeeded = secondGate && (servicePinned || BasementStackVolume.Contains(feet) || feet.y < -0.25f ||
+                (state.chapter == "CH04" && atEmergencyS2));
 
             if (upperNeeded)
             {
@@ -79,7 +84,7 @@ namespace CTCC
             }
             if (!upperNeeded && Time.unscaledTime - upperLastNeeded > 20f && scene.HasZone("LOC05"))
                 yield return scene.UnloadZoneAsync(Upper);
-            if (!serviceNeeded && Time.unscaledTime - serviceLastNeeded > 20f && scene.HasZone("LOC09"))
+            if (secondGate && !serviceNeeded && Time.unscaledTime - serviceLastNeeded > 20f && scene.HasZone("LOC09"))
                 yield return scene.UnloadZoneAsync(Service);
         }
     }

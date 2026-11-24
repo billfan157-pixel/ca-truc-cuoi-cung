@@ -886,7 +886,7 @@ namespace CTCC
             }
         }
 
-        private void Take3D(string id, string title, string copy, string imageId, string modelId)
+        private void Take3D(string id, string title, string copy, string imageId, string modelId, ActionChoice? readDetail = null)
         {
             var tex = Image(imageId);
             var tmpl = string.IsNullOrEmpty(modelId) ? null : scene.InspectTemplate(modelId);
@@ -898,33 +898,46 @@ namespace CTCC
                 ui.Toast("ĐÃ THU THẬP VẬT CHỨNG", title + " đã được lưu vào sổ trực.", 4.5f);
             });
 
+            const string heading = "KHO GIƯỜNG 101  /  HIỆN TRƯỜNG R";
+            var reader = new List<ActionChoice>
+            {
+                new(State.Has(id) ? "Đã ghi vào sổ" : "Ghi vật chứng", confirmTake)
+            };
+            if (readDetail.HasValue) reader.Add(readDetail.Value);
+            reader.Add(new ActionChoice("Quay lại", CloseModal));
+
             if ((tmpl != null || tex != null) && inspector != null && qaFolder == null)
             {
                 float aspect = tex != null ? (float)tex.width / tex.height : 1f;
                 inspector.Open(tmpl, tex, aspect, ActiveVolume());
-                ui.ShowInspectSidebar("KHO GIƯỜNG 101  /  HIỆN TRƯỜNG R", title, copy,
-                    new[]
-                    {
-                        new ActionChoice(State.Has(id) ? "Đã ghi vào sổ" : "Thu thập & ghi vào sổ", confirmTake),
-                        new ActionChoice("Bản chữ lớn", () =>
-                        {
-                            inspector.Close();
-                            ui.Show("KHO GIƯỜNG 101  /  HIỆN TRƯỜNG R", title, copy,
-                                new[] { new ActionChoice(State.Has(id) ? "Đã ghi vào sổ" : "Ghi vật chứng", confirmTake), new ActionChoice("Quay lại", CloseModal) },
-                                CloseModal, tex);
-                        }),
-                        new ActionChoice("Đặt lại", CloseModal)
-                    }, CloseModal, () => inspector.Close());
+                var sidebar = new List<ActionChoice>
+                {
+                    new(State.Has(id) ? "Đã ghi vào sổ" : "Thu thập & ghi vào sổ", confirmTake)
+                };
+                if (readDetail.HasValue) sidebar.Add(readDetail.Value);
+                sidebar.Add(new ActionChoice("Bản chữ lớn", () =>
+                {
+                    inspector.Close();
+                    ui.Show(heading, title, copy, reader.ToArray(), CloseModal, tex);
+                }));
+                sidebar.Add(new ActionChoice("Đặt lại", CloseModal));
+                ui.ShowInspectSidebar(heading, title, copy, sidebar.ToArray(), CloseModal, () => inspector.Close());
+                return;
             }
-            else
-            {
-                ui.Show("KHO GIƯỜNG 101  /  HIỆN TRƯỜNG R", title, copy,
-                    new[]
-                    {
-                        new ActionChoice(State.Has(id) ? "Đã ghi vào sổ" : "Ghi vật chứng", confirmTake),
-                        new ActionChoice("Quay lại", CloseModal)
-                    }, CloseModal, tex);
-            }
+
+            ui.Show(heading, title, copy, reader.ToArray(), CloseModal, tex);
+        }
+
+        private void Ch02ReadTransferNote()
+        {
+            if (State.chapter != "CH02" || State.layer != Reality.R || !State.Has("E12")) return;
+            inspector?.Close();
+            string line = LineAtBeat("CH02-D08", 1, "B04");
+            voice?.RecordTranscriptOnly("CH02-D08", "Minh", line, "B04");
+            ui.Show("PHIẾU CHUYỂN 101/4", "Dòng ghi chú bị gạch xóa",
+                "Sốt 39,8°C sau đợt truyền AS-05 lần 4. Bé khóc hoảng loạn vì không nhớ tên mẹ, ôm chặt bức tranh mới chịu ngủ. " +
+                "Không thể để bé dưới hầm thêm một đêm nào nữa.\n\nMinh · " + line,
+                new[] { new ActionChoice("Quay lại phiếu chuyển", () => Use("TRANSFER")) }, CloseModal);
         }
 
         private void SaveEvidence(string id, Action committed) =>
@@ -1095,7 +1108,7 @@ namespace CTCC
                 }));
             choices.Add(new ActionChoice("Trở lại bảng kẹp", Anchor));
             ui.Show("HỒ SƠ TRONG KHO 101", "Bức tranh của An", missing ??
-                "Tranh ghi lại một cánh cửa có khóa. Vòng cũ ghi C01. Phiếu chuyển ghi An, khám sốt tạm ở 101/4 ngày 17/11/2005, rồi trở lại C01.",
+                "Tranh ghi lại một cánh cửa có khóa. Vòng cũ ghi C01. Phiếu chuyển ghi An, khám sốt tạm ở 101/4 ngày 17/11/2005, rồi chuyển lại Khu C.",
                 choices.ToArray(), Anchor, State.Has(EvidenceRegistry.Drawing) ? Image("Drawing") : null);
         }
 
@@ -1160,10 +1173,9 @@ namespace CTCC
         private const string RegisterRows =
             "C01     101/4     Đã chuyển\n" +
             "····     B/2         Phiếu giữ đồ K-02\n" +
-            "C03     B/3         Bàn giao\n" +
-            "…\n" +
-            "C11     C/11       Bàn giao\n" +
-            "····     C/12       Hộp đồ, thiếu thẻ tên";
+            "C03     C04     C05     C06     C07\n" +
+            "C08     C09     C10     C11\n" +
+            "C12     C/12       Dấu chìa, tên bị xé khỏi trang";
 
         private void Ch03ReadRegister()
         {
@@ -1269,22 +1281,37 @@ namespace CTCC
 
         private void Ch03InspectAnonymousBoxC12()
         {
-            ui.Show("NGĂN KỆ C12  /  HỒ SƠ VÔ DANH", "Hộp đồ cá nhân không tên",
-                "Ngăn kệ thứ 12 chỉ còn hộp carton buộc dây bện và một chiếc chìa khóa nhà đã mòn, hoàn toàn không có thẻ tên hay giấy tờ tùy thân.\n\n" +
-                "Sổ E03, dòng C/12: hộp đã bàn giao, chưa xác định người nhận.",
-                new[]
+            var choices = new List<ActionChoice>
+            {
+                new("Ghi nhận sự tồn tại C12 (Giữ nguyên khuyết danh)", () =>
                 {
-                    new ActionChoice("Ghi nhận sự tồn tại C12 (Giữ nguyên khuyết danh)", () =>
+                    SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.C12UnnamedBox, "LOC07"), () =>
                     {
-                        SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.C12UnnamedBox, "LOC07"), () =>
-                        {
-                            voice?.Speak("CH03-D04", "Minh", Line("CH03-D04"));
-                            CloseModal();
-                            Ch03CheckG03Unlocked();
-                        });
-                    }),
-                    new ActionChoice("Đóng", CloseModal)
-                }, CloseModal);
+                        voice?.Speak("CH03-D04", "Minh", Line("CH03-D04"));
+                        CloseModal();
+                        Ch03CheckG03Unlocked();
+                    });
+                })
+            };
+            if (State.chapter == "CH03" && GateService.G03(State))
+                choices.Add(new ActionChoice("Đọc ghi chú của Lan trong E03", Ch03ReadC12Note));
+            choices.Add(new ActionChoice("Đóng", CloseModal));
+            ui.Show("NGĂN KỆ C12  /  HỒ SƠ VÔ DANH", "Hộp đồ cá nhân không tên",
+                "Hộp trống. Dưới đáy còn một vết gỉ hình chiếc chìa khóa. Không có thẻ tên hay giấy tờ tùy thân.\n\n" +
+                "Sổ E03, dòng C/12: hồ sơ thiếu góc ghi tên.",
+                choices.ToArray(), CloseModal);
+        }
+
+        private void Ch03ReadC12Note()
+        {
+            if (State.chapter != "CH03" || State.layer != Reality.R || !GateService.G03(State)) return;
+            string line = LineAtBeat("CH03-D07", 1, "B05");
+            voice?.RecordTranscriptOnly("CH03-D07", "Minh", line, "B05");
+            ui.Show("SỔ RIÊNG CỦA LAN · E03", "Ghi chú cạnh mã C12",
+                "Thiếu niên gầy, khoảng mười lăm đến mười sáu tuổi. Góc ghi tên đã bị xé. " +
+                "Cậu ấy nói về mũi dép có chỉ xanh trước khi tôi mở lá thư của C05. Có thể cậu đã nghe ai kể. " +
+                "Đêm nào cậu cũng nghe tôi hát ru bé An năm nốt nhạc. Cậu xin tự cất chiếc chìa có vết sứt ở răng và dặn tôi ghi ‘tôi giữ chìa’.\n\nMinh · " + line,
+                new[] { new ActionChoice("Quay lại hộp C12", Ch03InspectAnonymousBoxC12) }, CloseModal);
         }
 
         private void TriggerLoc07RadioDistraction()

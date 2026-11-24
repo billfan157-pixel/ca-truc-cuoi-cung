@@ -306,6 +306,12 @@ namespace CTCC
         private static float Axis(Keyboard keyboard, Key left, Key right) =>
             (keyboard[right].isPressed ? 1 : 0) - (keyboard[left].isPressed ? 1 : 0);
 
+        public void NudgeWithinScene(Vector3 displacement)
+        {
+            capsule.Move(displacement);
+            currentVelocity = Vector3.zero;
+        }
+
         public void Move(Vector3 planarMetresPerSecond, float seconds)
         {
             verticalSpeed = capsule.isGrounded ? -1.15f : Mathf.Max(-15f, verticalSpeed - 18f * seconds);

@@ -7,7 +7,7 @@ Covers LOC05 (Trạm điều dưỡng), LOC06 (Hành lang ca trực), and LOC07 
   with cloth-bound spine, ruled ledger pages, and metal pen rest (LOC07).
 - CTCC_PROP_KnittingBagC02: Bà Lành's (C02) woven cloth knitting bag, skein of crimson-red wool yarn, crossed bamboo
   knitting needles, unfinished knitted swatch & care tag (LOC07 / CH03-PU01 & CH03-PU02).
-- CTCC_PROP_UnnamedBoxC12: C12 personal effects box with unmarked brass house key & blank string tag (LOC07 / CH03-Q03).
+- CTCC_PROP_UnnamedBoxC12: Open effects box with a key-shaped rust stain on the lining (LOC07 / CH03-Q03).
 - CTCC_PROP_VintageRadio: Portable 2000s hospital staff room cassette/AM-FM radio used as acoustic distraction in LOC07
   Meeting Room bypass loop (TASK011 / CH03-Q04).
 """
@@ -95,17 +95,18 @@ def build_knitting_bag_c02():
 
 
 def build_unnamed_box_c12():
-    """C12 personal effects cardboard/wood storage box with unmarked brass house key on blank tag (CH03-Q03)."""
-    objs = []
-    # Worn kraft-board personal effects box with slightly ajar lid
-    objs.append(C.make_box("EffectsBoxBase", (0.0, 0.0, 0.055), (0.28, 0.20, 0.11), "KraftPaper", bevel=0.006))
-    objs.append(C.make_box("EffectsBoxLid", (0.015, 0.02, 0.116), (0.29, 0.21, 0.028), "KraftPaper", bevel=0.005, rot=(0, 0, math.radians(7))))
-    objs.append(C.make_box("BoxLabelC12", (0.0, -0.102, 0.060), (0.11, 0.004, 0.048), "Paper", bevel=0.001))
-    # Unmarked brass house key resting on top of a blank manila tag beside the box
-    objs.append(C.make_box("BlankKeyTag", (0.18, -0.04, 0.005), (0.055, 0.095, 0.003), "Paper", bevel=0.001, rot=(0, 0, math.radians(-16))))
-    objs.append(C.make_cylinder("KeyBow", (0.19, -0.01, 0.009), (0.19, -0.01, 0.014), 0.016, "Brass", segments=16))
-    objs.append(C.make_box("KeyShaft", (0.175, -0.048, 0.011), (0.007, 0.055, 0.004), "Brass", bevel=0.001, rot=(0, 0, math.radians(-18))))
-    objs.append(C.make_box("KeyTeeth", (0.163, -0.064, 0.011), (0.014, 0.016, 0.004), "Brass", bevel=0.001, rot=(0, 0, math.radians(-18))))
+    """Build the empty R-layer box and the discoloration left by its missing key."""
+    objs = [C.make_box("EffectsBoxBase", (0, 0, .008), (.28, .20, .016), "KraftPaper", bevel=.003)]
+    for index, y in enumerate((-.094, .094)):
+        objs.append(C.make_box(f"BoxLongWall{index}", (0, y, .038), (.28, .012, .070), "KraftPaper", bevel=.003))
+    for index, x in enumerate((-.134, .134)):
+        objs.append(C.make_box(f"BoxEndWall{index}", (x, 0, .038), (.012, .176, .070), "KraftPaper", bevel=.003))
+    objs.append(C.make_box("EffectsBoxLid", (0, .105, .114), (.28, .013, .105), "KraftPaper",
+                           bevel=.004, rot=(math.radians(-10), 0, 0)))
+    objs.append(C.make_box("BoxLabelC12", (0, -.101, .041), (.11, .004, .036), "Paper", bevel=.001))
+    objs.append(C.make_cylinder("RustBow", (-.038, .008, .0161), (-.038, .008, .0166), .017, "Wood", segments=20))
+    objs.append(C.make_box("RustShaft", (.004, .008, .0163), (.072, .010, .0005), "Wood"))
+    objs.append(C.make_box("RustTeeth", (.034, .013, .0163), (.017, .017, .0005), "Wood"))
     return objs
 
 

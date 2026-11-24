@@ -330,7 +330,7 @@ namespace CTCC
             var op = SceneManager.UnloadSceneAsync(sc);
             while (op != null && !op.isDone) yield return null;
             Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate,
-                lastLayerM, lastThirdGate, lastServiceGate);
+                lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched);
             Debug.Log($"CTCC_REGION_UNLOAD scene={sceneName} loaded={LoadedZoneCount} ms={timer.Elapsed.TotalMilliseconds:F2}");
         }
 
@@ -843,8 +843,9 @@ namespace CTCC
             lastB07GateLatched = b07GateLatched;
             foreach (var zone in registeredZones)
             {
+                bool hasOpenS1 = zone.zoneId == "LOC02" && !layerB && !layerM;
                 foreach (var connector in zone.upperConnectors)
-                    Toggle(connector, !secondGate || !HasZone("LOC05"));
+                    Toggle(connector, !(secondGate || hasOpenS1) || !HasZone("LOC05"));
                 Toggle(zone.serviceConnector, !serviceGate || !HasZone("LOC09"));
             }
 

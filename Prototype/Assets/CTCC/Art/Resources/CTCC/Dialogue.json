@@ -342,6 +342,34 @@
       "speaker": "Minh",
       "context": "CH01 B05; lớp B sau F101 trước sụp đổ B->R. Yêu cầu CH01-T07 và CH01-EX01 (đối chiếu 03:17 từ vết hằn sau thẻ AS-05B, đồng hồ quầy và bối cảnh ca trực). Tùy chọn, một lần.",
       "copy": "Ba giờ mười bảy… Vết hằn sau thẻ giường bốn ghi đúng giờ chiếc đồng hồ ngoài quầy dừng lại. Vậy mà trên phiếu bàn giao vẫn ghi tròn trịa con số không…"
+    },
+    {
+      "id": "CH02-D08",
+      "chapter": "CH02",
+      "speaker": "Minh",
+      "context": "CH02 B04; soi dòng gạch xóa trên phiếu chuyển E11 (FS21)",
+      "copy": "‘Sốt cao sau đợt truyền AS-05 lần 4... quên tên mẹ’... AS-05 không phải mã biểu mẫu. Đó là thứ họ tiêm cho đứa nhỏ."
+    },
+    {
+      "id": "CH03-D07",
+      "chapter": "CH03",
+      "speaker": "Minh",
+      "context": "CH03 B05, ghi chú E03 về C12 và C05, FS23",
+      "copy": "Cậu ấy biết mũi dép buộc chỉ xanh. Lan cũng chưa biết cậu đã nghe từ đâu."
+    },
+    {
+      "id": "CH04-D08",
+      "chapter": "CH04",
+      "speaker": "Minh",
+      "context": "CH04 B05; đọc mục thi thể #12 trên biên bản tiếp nhận sơ bộ E04 tại LOC10 (FS23)",
+      "copy": "Khoan đã... Thi thể số mười hai là đàn ông khoảng năm mươi tuổi, có sẹo mổ cũ? Trong sổ của Lan, C12 chỉ là một thiếu niên gầy, tầm mười lăm mười sáu tuổi..."
+    },
+    {
+      "id": "CH04-D09",
+      "chapter": "CH04",
+      "speaker": "Minh",
+      "context": "CH04 B01; đọc mục 02:50 trên sổ chìa E02 và sổ trực E09 tại LOC06 (DEC-V32-02)",
+      "copy": "Hai giờ năm mươi mở cửa kiểm kê vật tư theo lệnh giám đốc… Ca đó mình nhớ, xe chở thùng hàng tới trước khi cháy tám phút."
     }
   ],
   "conditions": [

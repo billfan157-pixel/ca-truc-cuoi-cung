@@ -11,16 +11,18 @@ namespace CTCC
             var choices = new List<ActionChoice>
             {
                 new("Lấy bản lệnh giao ca · E02", () => ReadDutyItem(EvidenceRegistry.DutyOrders,
-                    "Bản nhận của phòng trực có chữ ký xác nhận lệnh giữ cửa. Giữ bản giấy để đối chiếu nguồn."),
+                    "Sổ bàn giao chìa khóa ca đêm 17–18/11/2005.\n22:00 · Minh nhận chìa C-01.\n23:10 · Khóa thường lệ sau khi Lan đã vào.\n02:50 · Mở kiểm kê vật tư theo lệnh giám đốc, rồi khóa lại. Người giữ chìa không đổi.\n04:15 · Trả chìa tại bàn chỉ huy ngoài sân."),
                     !State.Has(EvidenceRegistry.DutyOrders)),
                 new("Chép sổ ca đêm · E09", () => ReadDutyItem(EvidenceRegistry.DutyLog,
-                    "Sổ ca ghi các lần nhận và mất liên lạc. Những mốc này chưa xác định giờ tử vong."),
+                    "Sổ ca ghi lần mở cửa kiểm kê 02:50 và các lần nhận, mất liên lạc sau đó. Các mốc này chưa xác định giờ tử vong."),
                     !State.Has(EvidenceRegistry.DutyLog)),
                 new("Đọc bản chép băng họp", Ch04Meeting),
                 new("Xem lịch đi xe thuốc", () =>
                     ui.Show("BẢNG GIAO CA", "Tuyến xe thuốc", "Hành lang → quầy thuốc → cửa khu B. Khi xe dừng ở quầy, lối giữa thông. Lối cầu thang phía sảnh luôn quay lại được.",
                         new[] { new ActionChoice("Đặt lịch xuống", Ch04DutyRoom) }, Ch04DutyRoom))
             };
+            if (CanCompareInventoryTime())
+                choices.Add(new ActionChoice("Đối chiếu mốc 02:50", Ch04CompareInventoryTime));
             choices.Add(new("Rời phòng trực", CloseModal));
             ui.Show("PHÒNG TRỰC · TẦNG 2", "Lịch trực và tủ hồ sơ",
                 State.Happened("PT01.presented") ? "Xuống cầu thang Cấp cứu, theo biển Kỹ thuật B1." : Line("CH04-D01"),
@@ -32,6 +34,19 @@ namespace CTCC
                 new[] { new ActionChoice("Lưu vào sổ trực", () =>
                     SaveCheckpoint(() => ChapterFour.Take(transaction, id, "LOC06"), Ch04DutyRoom)),
                     new ActionChoice("Đặt lại", Ch04DutyRoom) }, Ch04DutyRoom);
+
+        private bool CanCompareInventoryTime() =>
+            State.chapter == "CH04" && State.layer == Reality.R &&
+            State.Has(EvidenceRegistry.DutyOrders) && State.Has(EvidenceRegistry.DutyLog);
+
+        private void Ch04CompareInventoryTime()
+        {
+            if (!CanCompareInventoryTime()) return;
+            string line = LineAtBeat("CH04-D09", 1, "B01");
+            voice?.RecordTranscriptOnly("CH04-D09", "Minh", line, "B01");
+            ui.Show("PHÒNG TRỰC · E02 VÀ E09", "Mốc mở kiểm kê 02:50", line,
+                new[] { new ActionChoice("Quay lại sổ trực", Ch04DutyRoom) }, Ch04DutyRoom);
+        }
 
         private void Ch04Meeting()
         {
@@ -91,9 +106,7 @@ namespace CTCC
                 return;
             }
             var choices = new List<ActionChoice>();
-            if (!e04) choices.Add(new("Đọc hồ sơ tiếp nhận · E04", () =>
-                ReadMorgueItem(EvidenceRegistry.MorgueRegister,
-                    "Bản sao đối chiếu hồ sơ cứu hộ và tiếp nhận ghi 13 người tử vong. Phiếu đối chiếu L-13 dẫn đến ghi nhận vị trí thu hồi Khu C.")));
+            choices.Add(new("Đọc hồ sơ tiếp nhận · E04", Ch04ReadMorgueRegister));
             if (!e07) choices.Add(new("Đọc thẻ và phiếu thu hồi · E07", () =>
                 ReadMorgueItem(EvidenceRegistry.LanRecovery,
                     "Thẻ của Lan đi kèm phiếu L-13. Ghi chú hiện trường xác nhận vị trí tìm thấy ở bên trong Khu C.")));
@@ -111,11 +124,39 @@ namespace CTCC
                 choices.ToArray(), CloseModal);
         }
 
-        private void ReadMorgueItem(string id, string copy) =>
-            ui.Show("NHÀ XÁC", id, copy,
-                new[] { new ActionChoice("Chép tài liệu", () =>
-                    SaveCheckpoint(() => ChapterFour.Take(transaction, id, "LOC10"), Ch04Morgue)),
-                    new ActionChoice("Đặt lại", Ch04Morgue) }, Ch04Morgue);
+        private void Ch04ReadMorgueRegister()
+        {
+            ReadMorgueItem(EvidenceRegistry.MorgueRegister,
+                "Biên bản tiếp nhận sơ bộ · 18/11/2005. Thu hồi 13 thi thể trong Khu C. " +
+                "Các mục #01–11 đã được đối chiếu từng phần. Phiếu L-13 dẫn đến ghi nhận vị trí thu hồi. " +
+                "Biên bản chưa xác định giờ hoặc nguyên nhân tử vong từng người.",
+                State.Has(EvidenceRegistry.PatientRegister)
+                    ? new ActionChoice("Đọc mục thi thể #12", Ch04ReadMorgueEntry12)
+                    : null);
+        }
+
+        private void Ch04ReadMorgueEntry12()
+        {
+            if (State.chapter != "CH04" || State.layer != Reality.R ||
+                !State.Has(EvidenceRegistry.PatientRegister)) return;
+
+            string line = LineAtBeat("CH04-D08", 1, "B05");
+            voice?.RecordTranscriptOnly("CH04-D08", "Minh", line, "B05");
+            ui.Show("NHÀ XÁC · E04", "Mục thi thể #12",
+                "Nam khoảng 48–55 tuổi, có sẹo mổ cũ. Phụ lục vật kèm ghi nhãn ngăn lạnh N-04. Chưa xác định danh tính.\n\nMinh · " + line,
+                new[] { new ActionChoice("Quay lại biên bản", Ch04ReadMorgueRegister) }, Ch04ReadMorgueRegister);
+        }
+
+        private void ReadMorgueItem(string id, string copy, ActionChoice? detail = null)
+        {
+            var choices = new List<ActionChoice>();
+            if (!State.Has(id))
+                choices.Add(new ActionChoice("Chép tài liệu", () =>
+                    SaveCheckpoint(() => ChapterFour.Take(transaction, id, "LOC10"), Ch04Morgue)));
+            if (detail.HasValue) choices.Add(detail.Value);
+            choices.Add(new ActionChoice("Đặt lại", Ch04Morgue));
+            ui.Show("NHÀ XÁC", id, copy, choices.ToArray(), Ch04Morgue);
+        }
 
         private void Ch04LanPage()
         {

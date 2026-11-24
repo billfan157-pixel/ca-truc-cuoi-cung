@@ -377,7 +377,7 @@ namespace CTCC
                 Ch02Transfer,
                 "Phiếu chuyển 101/4 → C01",
                 "Phiếu chuyển 101/4",
-                "17/11/2005 · An — Giường 4 phòng 101, khám sốt tạm. Trở lại C01. Bản lưu nội bộ cất trong tủ khô kho 101.",
+                "17/11/2005 · An (C01) — khám sốt tạm tại giường 4, Phòng 101. Chuyển lại Khu C trong ngày theo lệnh phòng Giám đốc. Phiếu viết tay của Lan, lưu tại kho 101.",
                 "Vật chứng lớp R · LOC03 (Kho 101)",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
@@ -1109,7 +1109,7 @@ namespace CTCC
                         WorldUseOutcome.GateRefusedAfterCollapse,
                         equippedItemDefId == BackpackCatalog.WingCKey
                             ? "Chìa khu C không liên quan tới cánh cổng này."
-                            : "Ổ khóa không còn là vấn đề. Chiếc chìa cổng phụ không đổi được tình thế này.");
+                            : "Mình chưa thể bỏ đi khi chuyện bên trong còn dang dở.");
                 }
             }
 
@@ -1205,7 +1205,7 @@ namespace CTCC
 
             var sb = new StringBuilder();
             sb.Append(DecisionReflectionLine(state.f101.current));
-            sb.Append("\nCổng phụ không cho rời đi. Chỉ còn cách tự kiểm chứng hiện trường Phòng 101 năm 2012 qua sổ trực.");
+            sb.Append("\nMình chưa thể bỏ đi khi chuyện bên trong còn dang dở. Trở lại sổ trực để kiểm chứng hiện trường Phòng 101 năm 2012.");
             return sb.ToString();
         }
 

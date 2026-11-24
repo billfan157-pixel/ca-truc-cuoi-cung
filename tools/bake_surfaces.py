@@ -748,7 +748,8 @@ def build_signs_and_documents():
     dr.text((545, 920), "BAN GIÁM ĐỐC", font=typeface(24, True), fill="#3a4c42", anchor="mm")
     add_paper_grain(rules, seed=6020, foxing=0.60).save(DEST / "WardRules.png")
 
-    def form(name, heading, left, lines, stamp_text=None, seed=6030):
+    def form(name, heading, left, lines, stamp_text=None, seed=6030, struck_lines=(),
+             footer="Bản lưu tại bàn trực · Mẫu nội bộ AS-05"):
         width, height = (770, 1024)
         img = Image.new("RGB", (width, height), "#d8c9a6")
         d = ImageDraw.Draw(img)
@@ -761,8 +762,14 @@ def build_signs_and_documents():
             y_pos = 292 + i * 78
             d.line((46, y_pos - 18, width - 48, y_pos - 18), fill="#9a9271", width=2)
             d.text((48, y_pos), line, font=typeface(27, i == 1), fill="#3c3426")
+        note_font = typeface(23)
+        for index, line in enumerate(struck_lines):
+            y = 652 + 36 * index
+            d.text((48, y), line, font=note_font, fill="#3c3426")
+            end = 48 + d.textlength(line, font=note_font)
+            d.line((47, y + 16, end + 5, y + 12), fill="#745443", width=2)
         d.line((46, 845, width - 48, 845), fill="#847958", width=2)
-        d.text((48, 882), "Bản lưu tại bàn trực · Mẫu nội bộ AS-05", font=typeface(22), fill="#5d523d")
+        d.text((48, 882), footer, font=typeface(22), fill="#5d523d")
         if stamp_text:
             # Red faded Vietnamese institutional rectangular rubber stamp
             st_box = (465, 675, 712, 790)
@@ -781,9 +788,15 @@ def build_signs_and_documents():
     form("BedList", "BẢN KÊ GIƯỜNG", "Nội trú   •   Phòng 101   •   Tầng trệt",
          ("Vị trí 1    •    Vị trí 2    •    Vị trí 3", "Tổng theo bản kê: 03 giường", "Đính kèm sổ kiểm kê 2005."),
          stamp_text="ĐÃ KIỂM KÊ", seed=6033)
-    form("Transfer", "PHIẾU CHUYỂN", "17/11/2005   •   Bản lưu nội bộ",
-         ("Bệnh nhi: An", "101 / 4  •  Khám sốt tạm", "Chuyển trở lại: Khu C — C01", "Lưu tại tủ khô kho phòng 101."),
-         stamp_text="CHUYỂN KHU C", seed=6034)
+    form("Transfer", "PHIẾU CHUYỂN", "17/11/2005   •   Ghi tay, chưa nhập sổ",
+         ("Bệnh nhi: An (mã C01)", "Khám sốt tạm tại giường 4 — Phòng 101",
+          "Chuyển lại Khu C trong ngày", "Theo lệnh phòng Giám đốc"),
+         seed=6034,
+         struck_lines=("Sốt 39,8°C sau đợt truyền AS-05 lần 4.",
+                       "Bé khóc hoảng loạn vì không nhớ tên mẹ,",
+                       "ôm chặt bức tranh mới chịu ngủ.",
+                       "Không thể để bé dưới hầm thêm một đêm nào nữa."),
+         footer="Phiếu ghi tay · Lan")
 
     # An's crayon/colored-pencil drawing on aged drawing paper (richer handmade crayon stroke look!)
     drawing = Image.new("RGB", (700, 500), "#d2c39f")

@@ -244,7 +244,8 @@ namespace CTCC
                 snapshot.chapter == "CH01" && snapshot.layer == Reality.B &&
                 snapshot.Happened("CH01-T05") && !snapshot.Happened("CH01-T06"))
                 effectiveRoomPose = 0.13f; // Unlocked ajar after BOARD pickup — Minh pushes/drags DOOR-101 to step inside!
-            bool b07GateLatched = snapshot.chapter == "CH01" && snapshot.Happened("CH01-T08");
+            bool b07GateLatched = snapshot.chapter == "CH01" && snapshot.Happened("CH01-T08") &&
+                !snapshot.Happened("CH01-T09");
             scene.Present(snapshot.layer == Reality.B, (int)snapshot.f101.current,
                 snapshot.Happened("CH01-T02"), snapshot.Happened("CH01-T05"),
                 snapshot.Has("E12"), GateService.G02(snapshot),

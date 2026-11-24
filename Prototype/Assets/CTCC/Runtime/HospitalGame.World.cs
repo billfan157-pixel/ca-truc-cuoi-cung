@@ -9,6 +9,8 @@ namespace CTCC
         private float observeWardAgainAt;
         private float wardVisibleSeconds;
         private bool b07GateAttemptRunning;
+        private float departureCueUntil;
+        private const float DepartureThresholdZ = -19.92f;
         private const string WheelTrace = "BED4_WHEELS", BlanketTrace = "BED4_BLANKET", SlipperTrace = "BED4_SLIPPERS";
 
         private bool CanSpatialLinkBed4() =>
@@ -38,10 +40,7 @@ namespace CTCC
             {
                 if (State.chapter == "CH01" && State.Happened("CH01-T08") && !State.Happened("CH01-T09"))
                     return "[" + UseKey + "]  Kéo mở cánh cổng phụ   ·   Giữ chuột trái để kéo";
-                var eq = InventoryService.GetEquipped(State);
-                if (eq != null && eq.itemDefId is (BackpackCatalog.GateKey or BackpackCatalog.WingCKey))
-                    return "[" + UseKey + "]  Thử mở cổng bằng " + (BackpackCatalog.Get(eq.itemDefId)?.ShortLabel ?? "chìa khóa");
-                return "[" + UseKey + "]  Kiểm tra cánh cổng phụ";
+                return "[" + UseKey + "]  Nhìn ra cổng phụ";
             }
 
             if (target.id is ("COMPARE_CLIP_AN02" or "COMPARE_DESK_STAFF" or "COMPARE_DESK_RECEPTION" or "COMPARE_DESK_101"))
@@ -302,24 +301,38 @@ namespace CTCC
         private void ExecuteB07GateAttempt()
         {
             if (b07GateAttemptRunning || busy) return;
-            var equipped = InventoryService.GetEquipped(State);
             if (State.Happened("CH01-T09"))
             {
-                if (equipped != null && equipped.itemDefId is (BackpackCatalog.GateKey or BackpackCatalog.WingCKey))
-                {
-                    var res = WorldUseResolver.Resolve(State, equipped.itemDefId, "SEAM");
-                    scene.atmosphere?.From("doorLatch", new Vector3(4f, 1.24f, -20.0f), 0.72f);
-                    ui.Caption(res.Feedback, 4.2f, true);
-                }
-                else
-                {
-                    scene.atmosphere?.From("doorLatch", new Vector3(4f, 1.24f, -20.0f), 0.60f);
-                    ui.Caption("Cánh cổng sắt đã khóa chặt phía ngoài. Không tìm được đường ra — trở lại sổ trực.", 4.6f, true);
-                }
+                RespondToDeparture();
                 return;
             }
 
             StartCoroutine(RunB07PeakGateSeam());
+        }
+
+        private bool TryDepartureThreshold(Vector3 feet)
+        {
+            if (!IsDepartureDeferred() || scene.outerGate?.pivot == null ||
+                Mathf.Abs(feet.x - 4f) > 1.25f || Mathf.Abs(feet.y) > 0.4f || feet.z > DepartureThresholdZ)
+                return false;
+
+            player.NudgeWithinScene(new Vector3(0f, 0f, Mathf.Min(0.72f, -19.22f - feet.z)));
+            RespondToDeparture();
+            return true;
+        }
+
+        private bool IsDepartureDeferred() =>
+            State.layer == Reality.R && State.Happened("CH01-T09") &&
+            State.chapter is ("CH01" or "CH02" or "CH03" or "CH04");
+
+        private void RespondToDeparture()
+        {
+            if (!IsDepartureDeferred() || Time.unscaledTime < departureCueUntil) return;
+
+            departureCueUntil = Time.unscaledTime + 4.6f;
+            scene.atmosphere?.From("emergencyHum", player.Feet + Vector3.up, 0.38f);
+            string journal = Options.alternateBindings ? "J" : "Tab";
+            ui.Caption($"[Ù trầm] Minh · Mình chưa thể bỏ đi khi chuyện bên trong còn dang dở.\n{journal} → Pocket Note → Nhật ký điều tra.", 4.6f, true);
         }
 
         private IEnumerator RunB07PeakGateSeam()

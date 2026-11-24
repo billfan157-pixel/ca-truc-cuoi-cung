@@ -363,6 +363,7 @@ namespace CTCC
             }
 
             Vector3 feet = player.Feet;
+            if (TryDepartureThreshold(feet)) return;
             if (scene.PedalBin?.HeldOpen == true && (scene.PedalBin.transform.position - feet).sqrMagnitude > 7f)
                 SetPedalBin(false);
             if (!streaming && Time.unscaledTime >= reconcileRegionsAt)
@@ -866,8 +867,10 @@ namespace CTCC
                 case "DRAW3": Take3D(EvidenceRegistry.DrawingFragments[2], "Mảnh tranh 3", "Ông mặt trời và một nửa ô cửa sổ nhỏ.", "DrawingPiece3", null); break;
                 case "WRIST": Take3D(EvidenceRegistry.Wristband, "Vòng tay bệnh nhi C01", "Phiến giấy trong vòng nhựa mờ ghi mã C01. Vòng được giữ trong túi đồ vải ở kho 101.", null, "WRIST"); break;
                 case "TRANSFER":
-                    Take3D(EvidenceRegistry.Transfer, "Phiếu chuyển 101/4",
-                        "17/11/2005 · An\nGiường 4 phòng 101, khám sốt tạm. Trở lại C01.\n\nBản lưu nội bộ từ bàn trực, cất trong tủ khô kho 101.", "Transfer", null);
+                    if (State.chapter == "CH02" && State.layer == Reality.R && State.Has("E12"))
+                        Take3D(EvidenceRegistry.Transfer, "Phiếu chuyển 101/4",
+                            "17/11/2005 · Bệnh nhi An (C01)\nKhám sốt tạm tại giường 4, Phòng 101. Theo lệnh phòng Giám đốc, chuyển lại Khu C trong ngày.\n\nPhiếu viết tay của Lan, chưa nhập sổ chính.",
+                            "Transfer", null, new ActionChoice("Đọc dòng gạch xóa", Ch02ReadTransferNote));
                     break;
                 case "G02":
                     ui.Caption(GateService.G02(State)

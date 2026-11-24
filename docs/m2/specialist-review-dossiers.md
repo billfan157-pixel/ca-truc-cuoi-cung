@@ -1,10 +1,10 @@
 # Ca Trực Cuối Cùng — M2 Specialist Review Dossiers (`TASK026`, `TASK027`, `TASK028`)
 
 - **Status:** **OPEN — AWAITING HUMAN SPECIALIST SIGN-OFF**
-- **Scope:** Condensed CH01 & early CH02 across `LOC01–04` (branch `codex/m2-a-production-readiness`, Unity 6.3 LTS and Blender 4.5 assets).
+- **Scope:** The M2-A archive covers condensed CH01 and early CH02 (`LOC01–04`). For `TASK027`, use the locked Core v3.3.1 design of basement Wing C and its rescue interfaces below.
 - **Evidence Package Linked for Reviewers:**
   - Research and art direction in [research-and-art-direction.md](research-and-art-direction.md).
-  - Revision, playable build and captures in [the M2-A acceptance record](acceptance.md).
+  - Historical M2-A revision, playable build and captures in [the M2-A acceptance record](acceptance.md).
 
 > [!IMPORTANT]
 > Per `AGENTS.md` and M2 Definition of Done, **AI self-review does NOT substitute for human domain specialists.** Each dossier below packages exact architectural metrics, historical assumptions (`V/I/F/U`), and visual assets so external reviewers can inspect and sign off directly.
@@ -30,20 +30,25 @@
 
 ---
 
-## 2. `TASK027` — Fire Safety, Egress & Post-Incident Plausibility Review
+## 2. `TASK027` — Historical Fire Safety Review
 
-- **Target Specialist:** Fire safety engineer / PCCC specialist.
-- **Items for Verification:**
-  1. **Clear Egress Widths (`Core 03` / `layout.json` verified by Unity NavMesh & stretcher proxy):**
-     - Main Corridor width: `3.00 m` clear (`x ∈ [2.5, 5.5]`).
-     - Side Staff Corridor width: `2.10 m` clear (`x ∈ [-1.0, 1.1]`).
-     - Room 101 doorway (`GATE-101`): `1.20 m` clear — passes `0.72 m × 1.98 m` stretcher proxy cleanly with `0` collision.
-     - Store Room doorway (`GATE-STORE`): `1.22 m` clear (initially blocked in R by rolling medical cabinet until `PZ01`).
-     - Emergency dual entrances (`GATE-CAPCUU` Door A & `GATE-CAPCUU-B` Door B): `1.40 m` clear each — dual escape routes verified for `CH02-B06`.
-  2. **Environmental Storytelling & Signage Restraint:**
-     - Corridor wall-mounted red fire extinguisher (`CTCC_PROP_FireExtinguisher`), closed stairwell barrier (`Sign_KhuBClosed`), red *CẤP CỨU* light boxes, and scorched-blouse motif on the psychological manifestation (`CHAR005` Gatekeeper) avoid sensationalized active flames or implausible building collapse in an intact reinforced-concrete 1987 structure.
-     - *Open Uncertainty (`U-04`):* Confirm that the 7-year post-fire deterioration in Wing A/Room 101 (monsoon seepage, efflorescence, rust, peeling limewash, subtle smoke discoloration near vents) is physically consistent with a localized 2005 ward/wing fire followed by abandonment through 2012.
-- **Reviewer Sign-Off:** `PENDING HUMAN REVIEW` | Name/Credentials: `________________` | Date: `________` | Verdict: `[ ] Pass  [ ] Pass w/ Fixes  [ ] Revise`
+**Status:** Pending human review. Ask a PCCC specialist familiar with Vietnamese hospital incidents and practice around 2005 to review the fictional 18 November 2005 incident. Core 07 `Backlog!89` requires review of all three items before art lock. `TASK022` supplies the draft section.
+
+| Review item | Material to review | Question for the specialist |
+| --- | --- | --- |
+| Wing C section | Core 03 §§3.3, 3.5, 8 and Figure 3, plus the [campus sections](../campus/campus-sections.png). B1 is at −3.40 m and the rear yard at −1.90 m. Mark `LOC04 → S2 → LOC09 → LOC11 → LOC12`, the service branch to `LOC10`, the glazed main door and the former east exit walled up in 2004. Mark the independent Wing B S1 route to the yard in the 2005 reconstruction and the blocked direct courtyard door in R 2012. | Are the levels, barriers, sightlines and separate routes consistent with the proposed section? Record the drawing revision and any unverified dimensions or sightlines. |
+| Smoke behavior | Core 02 `EVT006–009` and `EVT026`, E09, Core 07 `Evidence Specs/E05b` and `DEC-V32-03`. Mark the technical area `LOC09`, Wing C interface, and the in-story observations at 02:58, 03:09 and ~03:25. Keep the 2012 traces and the 2005 observations identified by date and source. | Is the qualitative timing and change in visibility plausible given the section? Record assumptions about airflow, openings and visibility, and where the evidence leaves the behavior uncertain. |
+| Emergency response | Core 02 `EVT007–010` and `EVT026`, Core 04 CH05 B02–B05 and CH07 B03, E02 and E09. Review the 03:05 instruction to keep Wing C locked, the 03:09–03:12 exchange at the main door, Wing B evacuation of six people via S1, and the sequence at the glazed door. Around 03:25 Minh pulls his hand back from the keys, leaves the Wing C door and returns to the yard amid fire sirens. After a time transition, he hands in the keys at the command post at 04:15, as recorded in E02. Use CH07-D15 and the [approved EVT026 erratum](design-lock-errata.md#evt026--trình-tự-ứng-cứu-trong-hồ-sơ-task027). | Are the evacuation, on-site coordination and handover plausible for the period? When might the fire crews have physically entered the yard, and with what confidence? Record the basis and limits of that assessment. The entry time is open. |
+
+Record the source and revision, specialist name and credentials, dated findings and limitations for each row, requested changes, and their disposition or retest before art lock. Link any corresponding build evidence by revision and QA ID, such as `V31-Q08` and `V33-Q05`; these checks cover route behavior and leave the specialist verdict pending. Use the Core 07 Decisions process for any proposed change to locked design.
+
+| Section | Verdict | Sources, limitations and corrective action |
+| --- | --- | --- |
+| Wing C section | Pending | |
+| Smoke behavior | Pending | |
+| Emergency response | Pending | |
+
+**Reviewer sign-off:** Name and credentials __________________ · Date __________ · Final verdict __________
 
 ---
 
