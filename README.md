@@ -35,4 +35,4 @@ Mở thư mục `Prototype` với Unity 6.3 LTS `6000.3.28f1`. Trên Windows, kh
 
 - [Nghiên cứu An Sinh](docs/prototype/research.md), [mặt cắt và mặt bằng](docs/prototype/layout.md) và [bảng vật liệu](docs/prototype/loc03-reference.png).
 - [Chọn Unity và URP](docs/prototype/engine.md), [Bằng chứng nghiệm thu & so sánh BEFORE/AFTER](docs/prototype/verification.md) và [Bảng showcase 8 góc M0-R](docs/prototype/evidence/m0r-showcase-board.jpg).
-- [Nguồn tài nguyên của build](Prototype/ThirdPartyNotices.md) và [Production Database v2.2](docs/07_Production_Database.xlsx).
+- [Bộ tài liệu Core v3.3.1 chính thức](docs/agent/README.md#bảy-nguồn-sở-hữu), [Production Database](docs/07_Production_Database.xlsx) và [nguồn tài nguyên của build](Prototype/ThirdPartyNotices.md).

@@ -28,6 +28,7 @@ SHEET_KEYS = {
     "Events": "ID",
     "Dialogue": "ID",
     "Puzzle specs": "ID",
+    "Evidence Specs": "ID",
     "Patients": "ID",
     "Timeline": "ID",
     "Reveal order": "Chương",
@@ -43,6 +44,11 @@ SHEET_KEYS = {
     "Backlog": "ID",
     "Locations": "LOC",
     "Roadmap": "Milestone",
+    "Canon Matrix": "Mốc / ID",
+    "Provenance Matrix": "ID",
+    "PZ10 Matrix": "Vòng",
+    "Ending Matrix": "END",
+    "Mystery Matrix": "Câu hỏi",
 }
 WORD = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 SHEET = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"

@@ -1,2 +1,6 @@
 * text=auto
 *.unity text eol=lf
+docs/CANON-AUDIT.md -text
+docs/CHANGELOG.md -text
+docs/RELEASE-NOTES.md -text
+docs/SHA256SUMS.txt -text

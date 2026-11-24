@@ -1,6 +1,6 @@
 # Hệ thống skill vận hành Ca trực cuối cùng
 
-[AGENTS.md](../../AGENTS.md) chọn skill theo đầu việc. Sáu skill cấp dự án nằm tại `.agents/skills/`. Mỗi skill quy định nguồn cần mở, hợp đồng cần giữ, việc cần làm và bằng chứng cần bàn giao. Nội dung và tiến độ sản xuất được quản lý tại bảy tài liệu Core. Dùng [walkthrough CH01 B01–B08](../ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) và DEC-CH01R-04 cho trình tự thao tác, cue và phục hồi của CH01.
+[AGENTS.md](../../AGENTS.md) chọn skill theo đầu việc. **Core v3.3.1 Final Clean — Design Lock** là nguồn chính thức của dự án. Bản phát hành ngày 24/11/2026 có [ghi chú phát hành](../RELEASE-NOTES.md), [nhật ký thay đổi](../CHANGELOG.md), [kiểm toán canon](../CANON-AUDIT.md) và [mã SHA-256](../SHA256SUMS.txt). Dùng [walkthrough CH01 B01–B08](../ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) và `DEC-CH01R-04` cho thao tác, cue và phục hồi. Áp dụng `DEC-V331-01` cho LOC01 sau T09.
 
 ## Điều phối công việc
 
@@ -21,19 +21,20 @@ Với yêu cầu đi qua nhiều khâu, chọn skill theo đầu ra chính. Ví 
 
 | Nguồn | Dùng để quyết định | Tra nhanh |
 | --- | --- | --- |
-| [Core 01 Game Design](../01_Game_Design_Document.docx) | Vòng chơi, nguyên tắc tương tác, UX và mục tiêu chất lượng | §2 gameplay, §3 demo, §4 alias và cổng duyệt, phần v2.2 |
-| [Core 02 Narrative](../02_Narrative_Bible.docx) | Sự thật trong thế giới, hiểu biết nhân vật, WR, ending | CAN01–07, WR01–08, PT01–05, §4 và phần v2.2 |
-| [Core 03 World & Architecture](../03_World_Architecture_Bible.docx) | Hình học R, cao độ, tuyến sử dụng, provenance vật lý và tính thời kỳ | §2–4, Hình 1, §6.1 W-Q01–07, phần v2.2 |
-| [Core 04 Level & Chapter](../04_Level_Chapter_Design.docx) | Route và thực thi CH01–08, trigger, checkpoint, take/skip/retry | §1, heading từng chương, phần v2.2, hình kết nối CH01 |
-| [Core 05 Art & Audio](../05_Art_Audio_Bible.docx) | Chất liệu, modular kit, lighting, cue/mixer/VO, asset-ready và license | §01–04, modular production, handoff, phần v2.2 |
-| [Core 06 Technical Design](../06_Technical_Design_Document.docx) | Module, schema, gate, transaction, save và kiểm kỹ thuật | §01–04, contract v2/v2.2, engine spike, T01–08 |
-| [Core 07 Production Database](../07_Production_Database.xlsx) | Dòng dữ liệu theo ID, master Dialogue, lịch sử quyết định, tiến độ và QA | Nhóm sheet theo bảng dưới |
+| [Core 01 Game Design](../01_Game_Design_Document.docx) | Vòng chơi, UX, phạm vi sản phẩm và mục tiêu chất lượng | §2 hệ thống chơi, §3 quản trị sản xuất, §6 hợp đồng trải nghiệm v3.3.1 |
+| [Core 02 Narrative](../02_Narrative_Bible.docx) | Canon, tri thức nhân vật, WR, ending và hậu đề | §1.3 CAN01–09, §2 timeline, §3 các chương/ending, §4 nhân vật, §§5–9 |
+| [Core 03 World & Architecture](../03_World_Architecture_Bible.docx) | Hình học R, cao độ, tuyến sử dụng, xuất xứ vật chứng và tính thời kỳ | §§3.2–3.6, §6.1 W-Q01–07, §8 liên tục 2005/2012, DEC-WORLD-01 |
+| [Core 04 Level & Chapter](../04_Level_Chapter_Design.docx) | Tuyến CH01–08, trigger, checkpoint, take/skip/retry và hậu đề | §1, heading từng chương và phần V3.1–V3.3.1 |
+| [Core 05 Art & Audio](../05_Art_Audio_Bible.docx) | Vật liệu, kit, lighting, cue/mixer/VO, asset-ready và license | §§01–04 và phần V3.1–V3.3.1 về vật chứng, ~03:25, PZ10 và thực thể |
+| [Core 06 Technical Design](../06_Technical_Design_Document.docx) | Module, schema, gate, giao dịch, save và kiểm kỹ thuật | §§01–04, hợp đồng Save v7 và phần V3.1–V3.3.1 về snapshot, PZ10 và export |
+| [Core 07 Production Database](../07_Production_Database.xlsx) | Dữ liệu theo ID, master Dialogue và Evidence Specs, quyết định, tiến độ và QA | Nhóm sheet theo bảng dưới |
 
 | Việc đang làm | Sheet Core 07 mở theo nhu cầu |
 | --- | --- |
 | Chọn việc và nghiệm thu | `Roadmap`, `Backlog`, `Decisions`, `Changelog`. `Dashboard` dùng tóm tắt. |
-| Luồng chơi và triển khai | `Chapter gates`, `Events`, `Puzzle specs`, `Locations`. |
+| Luồng chơi và triển khai | `Chapter gates`, `Events`, `Puzzle specs`, `Locations`, `Evidence Specs`. |
 | Nội dung và kiểm tiết lộ | `Dialogue`, `Patients`, `Timeline`, `Reveal order`, `Plot twists`, `Foreshadowing`, `Payoff`. |
+| Đối chiếu quy tắc giữa chương | `Canon Matrix`, `Provenance Matrix`, `PZ10 Matrix`, `Ending Matrix`, `Mystery Matrix`. |
 | Kiểm nguồn và độ tin cậy | `Canon checks`, `Narrative QA`, `QA`, `Research`, `Assets`. |
 
 Mã `DOCxx` trong đoạn cũ dùng bảng chuyển đổi Core 01 §4. Chẳng hạn `DOC06` cũ về twist/manh mối đã chuyển sang `07/Plot twists`, `Foreshadowing` và `Payoff`. Core 06 hiện hành là Technical Design.
@@ -42,20 +43,22 @@ Mã `DOCxx` trong đoạn cũ dùng bảng chuyển đổi Core 01 §4. Chẳng 
 
 - Mỗi manh mối bắt buộc có dấu hiệu trong cảnh, nguồn và vị trí rõ, thao tác cho người chơi suy luận, kết quả cập nhật state và cách lấy lại. R là hiện thực vật lý, B trình bày hệ quả của hồ sơ, M tái hiện một phần quá khứ đã cố định. Tái sử dụng địa hình và landmark R/B. Mọi gói công bố lấy từ chứng cứ vật lý đủ provenance, E08 được đánh dấu nonexport.
 - Đường dạy chính là F101/OBS101 ở CH01 → ký A/B hoặc hoàn tất đánh dấu, liên kết và kết luận C → G01 → E11 đủ ba phần và E12 vật lý ở CH02 → G02 và xác thực C01. Điều tra sau đó đi từ tồn tại C02, sự thật về Lan, lối sau bị bịt đến mâu thuẫn phiếu nội bộ. Mỗi bước mở một kết luận hoặc thay đổi giả thuyết của người chơi. Cách áp dụng nghiên cứu của dự án nằm ở `07/Research` R1–R4, R7 và R13.
-- Cuối game, G06 mở trước PZ09. PZ09 dùng các mốc đã có để mở M, sau đó mới hoàn tất E08. Năm phản bác PZ10 cần state đã commit trước G07. AN08 dùng xác nhận cuối cho bốn ending. Danh tính C02–11 tác động nội dung tùy chọn, C12 luôn chưa rõ tên, tổng 13 và việc Bảy nộp phần ngoài luôn giữ đúng canon.
+- Sau G06, PZ09 mở M. Xem hoặc skip đủ ba đoạn M để hoàn tất E08 với transcript tương ứng. G07 đọc năm phản bác PZ10 đã commit qua UI Chất vấn riêng. AN08 xác nhận snapshot cuối cho bốn ending. Hồ sơ ghi 13 thi thể gồm 12 người chết do cháy và một người vô danh chết trước cháy. C12 được chuyển sống lúc 02:50, giữ danh tính chưa xác định và nằm ngoài số thi thể.
+- Với END03/04, hoàn tất B02 hoặc fallback AN08 qua xem/skip tự thu liên gốc `PROP-XK12` từ túi Bảy vào manifest nguồn R. Inspect 3D là tùy chọn. Bảy nộp phần ngoài độc lập ở cả bốn ending. Chỉ hậu đề END04 xác nhận S-12 còn sống tại Cơ sở 02 năm 2013.
 - Nhịp đi từ nỗi sợ của không gian quen mà sai lệch, qua An như người dẫn đường, đến thực thể báo trước bằng cue, rồi chuyển thành đối đầu qua chứng cứ. Chọn chase, reset, khoảng lặng và trợ năng theo beat. Test manh mối ở chế độ mute, bàn phím và giảm chuyển động theo Core 04/05 và `07/QA`. Dùng `07/Research` R5–R6 và R8–R10 khi cần truy nguyên quyết định.
 
 ## Giải quyết chênh lệch giữa nguồn
 
-1. Đối chiếu Core sở hữu chủ đề, khoản v2.2 mới nhất và DEC/LOCK tương ứng. Dùng trường dữ liệu tường minh, ví dụ Chapter và Context từ Dialogue, khi mã legacy dễ gây hiểu nhầm.
+1. Đối chiếu Core sở hữu chủ đề và dòng `07/Decisions` theo ID. Áp dụng `DEC-V31-01–08`, `DEC-V32-01–05`, `DEC-V33-01–07` và `DEC-V331-01–02` tại các điểm sửa. Tra `V331-DOC01` và Changelog cho các chỉnh sửa cuối. Đọc Chapter và Context từ `Dialogue` khi gặp ID cũ.
 2. Nếu skill hoặc tài liệu liên quan đến task có chỉ dẫn mâu thuẫn hay lỗi thời, áp dụng quy định trong [AGENTS.md](../../AGENTS.md#nguồn-và-cách-làm). Dừng task và báo người dùng vị trí nguồn, nội dung bị lệch, căn cứ đối chiếu, ảnh hưởng và phương án xử lý. Chờ người dùng quyết định trước khi tiếp tục.
 3. Khi thay đổi được chốt trong phạm vi, cập nhật nơi sở hữu trước. Đồng bộ các tham chiếu bị tác động theo ID, thử bộ kiểm tra liên quan, ghi Changelog, rồi đọc lại nguồn và kiểm diff/dữ liệu trước khi báo xong. Dùng SHA-256 đầu/cuối khi cần đối chiếu nhiều phiên bản.
 
-| Điểm thấy trong bộ v2.2 | Cách vận hành |
+| Điểm dễ lệch giữa các phiên bản | Cách vận hành |
 | --- | --- |
-| Tri thức ở CH03 | Core 02 CAN02–03 và 07/Reveal order xác định 13 tử vong đã công khai ở CH01. CH03 xác thực sự tồn tại C02 và giữ câu hỏi về liên hệ giữa mã C với nạn nhân. |
+| Tin công bố và phân loại thi thể | CH01 tiếp nhận tin báo 13 tử vong. CH03 xác thực sự tồn tại C02. CH08 dùng E04, E09 và PROP-XK12 để phân loại 13 thi thể và xác lập việc chuyển sống C12. Tra CAN02/CAN08, `07/Canon Matrix` và `Reveal order`. |
 | E10 và sửa phiếu | CH01 chỉ seed E10a. CH02 cho sửa F101 ở AN02, giữ firstDecision. E10 hoàn chỉnh sau E10b ở CH06. Tra Core 04 CH02 B05 và DEC-CH06. |
-| `Dialogue!A70:F70` có ID `CH01-D16b` và Chapter CH04. `CH04-D06` cũng có guard trong Context. | Dùng Chapter/Context và `LOCK-V22-02` để phát tại CH04 B06 sau H05/PT02. Dùng ID hiện có để truy vết và chạy V22-Q03. |
+| `CH01-D16b` có Chapter CH04 | Phát tại CH04 B06 sau H05/PT02. Tra guard riêng của `CH04-D06` trong Context. Kiểm V22-Q03 và V31-Q01. |
+| Trục thang S1 và cổng phụ LOC01 | S1 trong nhà nối LOC02 ⇄ LOC05 ⇄ LOC07 trong R. Riêng cửa xả sân S1 bị chắn ở R, thông ở M CH05. Sau T09, LOC01 dùng phản hồi chủ quan của Minh. Tra `DEC-V331-01` và `V33-Q05`. |
 
 ## Cổng sản xuất
 
@@ -68,13 +71,13 @@ Mã `DOCxx` trong đoạn cũ dùng bảng chuyển đổi Core 01 §4. Chẳng 
 | M4 | Art/VO/audio, trợ năng, hiệu năng và hồ sơ giấy phép theo build. |
 | M5 | Regression toàn build, phân phối đúng phạm vi và hết P0. |
 
-Core 07 ghi M0/M1 đã hoàn thành và M2 đang làm tại lần đồng bộ 23/11/2026. CH01 B01–B08 có kết quả kỹ thuật theo build a4f5a3f. Đối chiếu Roadmap/Backlog trước mỗi lượt và ghi riêng bằng chứng triển khai, kết quả ca QA và nghiệm thu task. Thời lượng 20,5–30 phút của CH01 đầy đủ và 20–30 phút của M2 rút gọn được đo theo hai tuyến tương ứng.
+Core 07 ghi M0/M1 đã hoàn thành và M2 đang làm. Unity 6.3 LTS `6000.3.28f1`, URP 17.3 và Windows x64 đã chốt theo TASK029/DEC-V2-04. `V331-DOC01` đạt rà tài liệu. Các ca build V30–V33, playtest TASK010 và review TASK026–028 cần bằng chứng riêng. Tra Roadmap/Backlog trước mỗi lượt, đối chiếu đúng tuyến CH01 đầy đủ hoặc M2 rút gọn khi đo thời lượng.
 
 | Task M0 | Skill chính | Đầu ra cần chứng minh |
 | --- | --- | --- |
 | TASK022 | `ctcc-level` | Mặt cắt draft thấy rõ cao độ B1, tuyến kỹ thuật, cửa sau bịt, hướng sân/đường xe và lối khu B độc lập. Đối chiếu Core 03 Hình 1, §3/§6.1, Core 04 §1 và `07/Locations`. Lưu hình, log và duyệt bản draft theo Backlog. |
 | TASK023 | `ctcc-art-audio` | Register ảnh theo nguồn, thời kỳ và quyền. Giao bộ reference 2D LOC03, đánh dấu U ở mục thiếu chứng cứ. Phân biệt bằng chứng dùng để tham khảo, mức suy luận và quyền dùng trong game. |
-| TASK029 | `ctcc-production` với `ctcc-gameplay` | Ma trận ứng viên về kỹ năng, pipeline/import, license, R/B-collider-nav, save, profiling và build size. Thử scene nhỏ, tạo build chạy được, ghi cấu hình PC sơ bộ và giới hạn đo được. Gắn quyết định chính thức với DEC-V2-04. Dành nghiệm thu module tích hợp và stress swap cho TASK025. |
+| TASK029 | `ctcc-production` với `ctcc-gameplay` | Tra [kết quả spike đã hoàn thành](../prototype/engine.md) và quyết định DEC-V2-04. Dùng dữ liệu TASK025 khi truy vết module tích hợp và stress swap. |
 
 ## Tra cứu trực tiếp
 
@@ -88,12 +91,14 @@ python docs/agent/project_docs.py doc 04 --outline
 python docs/agent/project_docs.py doc 04 --section "CH02 /"
 python docs/agent/project_docs.py sheet "Chapter gates" CH02
 python docs/agent/project_docs.py sheet Dialogue CH01-D16b
-python docs/agent/project_docs.py sheet QA V22-Q03
+python docs/agent/project_docs.py sheet "Evidence Specs" "E01-B (AS-05B)"
+python docs/agent/project_docs.py sheet "Provenance Matrix" PROP-XK12
+python docs/agent/project_docs.py sheet QA V331-DOC01
 python docs/agent/project_docs.py check
 python docs/agent/project_docs.py hashes
 ```
 
-`status` đọc trạng thái Roadmap và chọn milestone đầu còn task MUST theo Backlog. Có thể tra milestone cụ thể. Báo sẵn sàng của dependency chỉ xét các dòng Backlog. `check` kiểm file, cấu trúc sheet/ID và đồ thị phụ thuộc. Công thức Excel được hiển thị cùng giá trị lưu sẵn nếu có. Kết quả kiểm nguồn là bằng chứng cho phần rà dữ liệu của V22-Q04. Các phần nghiệm thu trên build hoặc chuyên gia cần bằng chứng tương ứng.
+`status` đọc Roadmap và chọn milestone đầu còn task MUST theo Backlog. Có thể tra milestone cụ thể. `check` kiểm file, cấu trúc sheet/ID và đồ thị phụ thuộc. Công thức Excel được hiển thị cùng giá trị lưu sẵn nếu có. Đối chiếu kết quả rà nguồn với `V331-DOC01`. So mã SHA-256 từ thư mục `docs/` với bản kê phát hành.
 
 ## Bằng chứng bàn giao
 
@@ -107,6 +112,6 @@ Ghi đầu ra vào nơi phù hợp với task và dẫn đường dẫn từ k�
 | Kiểm chứng | ID QA, build/revision, môi trường, bước, kỳ vọng, kết quả thật và bằng chứng. |
 | Trạng thái | Ca đã chạy, ca chưa chạy và lý do, issue/dependency còn mở hoặc dấu vết phê duyệt nếu cổng cần. |
 
-Ví dụ “Sửa logic E11 CH02” định tuyến gameplay. Tra `CH02-PU02`, `DEC-CH02` và contract v2.2 Core 06. Thử thiếu `transferNote` phải còn G02 đóng dù E12 đã có, rồi thêm phần còn thiếu từ R và kiểm G02 qua cả A/B/C. Ghi `CH02-Q01/Q02` và `LOG06-Q01` theo build cụ thể.
+Ví dụ “Sửa logic E11 CH02” định tuyến gameplay. Tra `CH02-PU02`, `DEC-CH02` và hợp đồng Core 06. Thử thiếu `transferNote` phải còn G02 đóng dù E12 đã có, rồi thêm phần còn thiếu từ R và kiểm G02 qua cả A/B/C. Ghi `CH02-Q01/Q02` và `LOG06-Q01` theo build cụ thể.
 
 Ví dụ “Kiểm thoại Lan bị lộ ở CH01” dùng narrative và QA. Đối chiếu `CH01-D16`, `CH01-D16b`, `CH04-D06`, `LOCK-V22-02` và `V22-Q03`. Kiểm cả transcript, menu, skip và load đầu game. Tại CH04 B06 chạy các trạng thái trước/sau H05 và PT02.

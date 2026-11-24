@@ -575,7 +575,7 @@ Minh chưa giải thích được vì sao Lan ở B nhưng không còn ở quầ
 1. Sau khi về R, mục tiêu ngắn trong Pocket Note hoặc qua tự thoại là **thử rời bệnh viện**. Người chơi có thể chạy về sân theo lối đã tới. Xe máy, rãnh nước, biển tháo dỡ và cổng phụ vẫn ở vị trí quen thuộc; không cần đặt một mê cung mới.
 2. Tới cổng, Minh tự **nắm và kéo cánh sắt**. Không cần lục túi tìm chìa khu C hoặc món đồ thần bí; đây không phải puzzle chìa khóa. Khi kéo đủ mức, transaction **CH01-T09** chuyển qua vòng lặp không gian một lần, đặt player ở safe pad hợp lệ để nhận ra mình lại đang ở trong khuôn viên.
 3. **Scare chủ đạo thứ hai:** một khoảng hụt âm mưa ngắn, cú đập kim loại bên ngoài cổng và bóng phản chiếu lướt ngang khung. Không đưa khuôn mặt, không cho nhân vật tấn công và không biến cổng thành boss. Âm/camera có phiên bản giảm jumpscare. Nếu người chơi đã gặp scare mạnh ở B05 quá gần, hạ cường độ âm hoặc để khoảng hồi nhịp phù hợp.
-4. Khi Minh nhìn lại, cổng không cung cấp lối thoát. Lời thoại CH01-D14 chỉ phát đúng điều kiện. Lần thử thứ hai không tạo thêm vòng loop; thay bằng phản hồi ngắn cho thấy hiện tại đường ra không mở được.
+4. Khi Minh nhìn lại, đường ra bị giới hạn qua phản hồi chủ quan của anh theo `DEC-V331-01`. Lời thoại CH01-D14 chỉ phát đúng điều kiện. Lần thử lại không tạo thêm vòng lặp.
 
 #### Dựng seam bằng một hành động người chơi có thật
 
@@ -585,7 +585,7 @@ Minh chưa giải thích được vì sao Lan ở B nhưng không còn ở quầ
 
 **Cú từ chối:** âm mưa hạ ngắn, tiếng kim loại đập có hướng **từ bên ngoài**. Khung nhìn dịch chuyển theo một transition ngắn/continuity seam chứ không làm toàn cảnh xoay 180 độ khiến người dễ say chuyển động. Player thấy mình vẫn ở trong khuôn viên, đường về quầy nằm ở phía có thể nhận ra. Nếu dùng crossfade mềm khi reducedMotion, trạng thái logic không khác; lời CH01-D14 chỉ một lần theo guard.
 
-**Lần thử thứ hai:** cánh cổng phản hồi đã không thể thoát. Không cho player lặp cùng seam vô hạn; không phát lại cú gõ giật. Nếu người chơi nhấn dùng chìa phụ đang equip, Game không tịch thu item hay mở đường tắt; có thể trả cảm giác chìa không thay được tình thế này. Chìa khu C không là phép mở khóa cổng hoặc làm phát thoại nơi cấm.
+**Lần thử thứ hai:** dùng nhịp ù trầm AS-05, phản hồi chủ quan của Minh và bước lùi nhẹ về sân kèm gợi ý Journal. Giữ chốt vật lý LOC01 đã mở tại T02 và seam T09 đã tiêu thụ. Giữ nguyên thoại CH01 đã khóa và trạng thái hai chìa trong ba lô. Kiểm `V33-Q05` cùng ca hồi quy CH01 B07.
 
 **Sự kiện ở biên thế giới:** hiện tượng cổng không phải vật thể thuộc ba lô, cũng không cấp observation mới để giải F101 đã ký. Nó đặt ra một vấn đề khác: bệnh viện đang giữ Minh ở lại, nhưng cơ chế đó chưa được giải thích trong CH01. Không cho NPC/ma xuất hiện để diễn giải cho player.
 
