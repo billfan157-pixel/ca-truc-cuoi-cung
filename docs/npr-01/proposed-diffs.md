@@ -1,5 +1,7 @@
 # Bản so sánh dự thảo theo nguồn
 
+Bản ghi của gói review đầu tiên. Sau quyết định ngày 25/11/2026, xem [Decision Register](decision-register.md) và [Changelog NPR-01](changelog.md) để xác định nội dung đã đưa vào bộ Core dự thảo.
+
 Mỗi mục cho thấy nội dung hiện hành và chữ thay thế để review trong cùng ngữ cảnh. Tiêu đề và nhãn ghi nơi cần đồng bộ khi được duyệt. Mục biên tập cập nhật vào nguồn đóng băng theo quy trình quyết định và Changelog sau duyệt.
 
 ## NPR-01-01 · Hai manifest và coda END03

@@ -1,26 +1,39 @@
-# NPR-01 · Bản dự thảo rà soát Core
+# Bộ Core dự thảo NPR-01
 
-- **Ngày đối chiếu** 25/11/2026
-- **Nguồn khóa** GitHub `main` tại `3c0b955de95bcf39853c30e2669b2bac24ad969e`, Core v3.3.1 Final Clean — Design Lock
-- **Trạng thái** Chờ chủ dự án và chuyên gia duyệt theo từng mục
+**Trạng thái ngày 25/11/2026.** Chủ dự án đã duyệt hướng A/B và cho phép soạn bộ Core nâng cấp dự thảo. Câu thoại, phương án canon và phương án sản xuất tiếp tục theo từng điều kiện trong [Decision Register](decision-register.md). Bộ chính thức là Core v3.3.1 Final Clean tại GitHub `main` `3c0b955`. [Nguồn sở hữu](../agent/README.md#bảy-nguồn-sở-hữu) · [SHA-256](../SHA256SUMS.txt)
 
-NPR-01 dùng [bản review và cuộc kiểm toán trong chat Nghiên cứu đánh giá cốt truyện](chatgpt-conversation://6b052af6-45ac-83ec-b1be-a0388ebc5ee4) để lập đề xuất theo nguồn, ID và ca QA. Các đoạn thay thế bên dưới là bản so sánh để duyệt. [Core hiện hành](../agent/README.md#bảy-nguồn-sở-hữu), [mã băm phát hành](../SHA256SUMS.txt) và [ứng viên M2](../m2/m2-final-candidate-report.md) tiếp tục là mốc đối chiếu.
+## Bộ Core nâng cấp
 
-| Tài liệu | Việc cần review |
+Sáu bản Word gồm trang hướng dẫn NPR-01 và nội dung Core để đối chiếu. Các sửa trong thân tài liệu được ghi ở Changelog. Workbook giữ 27 sheet và có các dòng NPR-01 trong Decisions/Changelog. Mỗi bản nằm dưới `core-draft/` và có hậu tố `NPR-01-Draft`.
+
+| Core | Nội dung chính |
 | --- | --- |
-| [Kiểm toán NPR-01](audit.md) | Kết quả từng nhận định và căn cứ từ Core 01–07 |
-| [Chỉ mục canon và quyết định](decisions.md) | Phương án, chủ thể duyệt, điều kiện và đích nhập vào Core 07 |
-| [Bản so sánh câu chữ](proposed-diffs.md) | Đoạn hiện hành, bản đề xuất, điểm đồng bộ và việc giữ chờ |
-| [Dàn dựng và sản xuất nội dung](creative-production.md) | Vĩnh, Lan, storyboard, environmental storytelling, visual, audio và thẩm định biểu đạt |
-| [Sổ trạng thái sản xuất](production-ledger.md) | Backlog đóng băng, bằng chứng M2, nhánh M3.2, điều kiện nghiệm thu và quyết định về phạm vi |
-| [Kỹ thuật, bản địa hóa và trợ năng](technical-plan.md) | Ma trận đo, build provenance, locale, accessibility và tiêu chí bàn giao |
-| [Tác động QA](qa-impact.md) | Ca hiện hành và bổ sung đề xuất theo từng thay đổi, cùng bằng chứng tại thời điểm bàn giao |
+| [01 · Game Design](core-draft/01_Game_Design_Document_NPR-01-Draft.docx) | Quyền lựa chọn, phạm vi M2 và đếm task theo Backlog. |
+| [02 · Narrative Bible](core-draft/02_Narrative_Bible_NPR-01-Draft.docx) | Ba tầng thông tin, hai manifest, Vĩnh–Lan và câu thử PZ10. |
+| [03 · World Architecture](core-draft/03_World_Architecture_Bible_NPR-01-Draft.docx) | Đường lưu LOC08/10, phạm vi hồ sơ ứng cứu và topology. |
+| [04 · Level & Chapter](core-draft/04_Level_Chapter_Design_NPR-01-Draft.docx) | AN05, CH07/08, CH07-D19, R1/R3 và coda END03. |
+| [05 · Art & Audio](core-draft/05_Art_Audio_Bible_NPR-01-Draft.docx) | Khung duyệt visual, cinematic, audio và asset handoff. |
+| [06 · Technical Design](core-draft/06_Technical_Design_Document_NPR-01-Draft.docx) | Hợp đồng gameplay, locale, ngân sách và build provenance. |
+| [07 · Production Database](core-draft/07_Production_Database_NPR-01-Draft.xlsx) | Dialogue, PZ10, Ending và Provenance dự thảo. Dashboard có cache theo ngày, giữ công thức và các nguồn nghiệm thu. |
 
-## Trình tự duyệt
+## Tài liệu dùng khi review
 
-1. Ưu tiên phân biệt manifest E01-B, phạm vi công bố và chuỗi lưu E01 trước khi chốt nội dung CH06–CH08.
-2. Duyệt khả năng chứng minh của R1/R3 trước khi duyệt thoại. Chọn cách dàn dựng Vĩnh và Lan sau khi xem shot list và giới hạn tri thức từng beat.
-3. EVT026 theo [errata đã duyệt cho hồ sơ TASK027](../m2/design-lock-errata.md#evt026--trình-tự-ứng-cứu-trong-hồ-sơ-task027). Chi tiết ứng cứu và đồng bộ Core chờ chuyên gia và chủ dự án.
-4. Chủ dự án duyệt từng mục trong [sổ quyết định](decisions.md). Mục được duyệt mới chuyển vào `07/Decisions` theo ID quyết định chính thức, đồng bộ đúng bề mặt đích, ghi `07/Changelog` và cập nhật kết quả QA bằng chứng theo build.
+| Tài liệu | Mục đích |
+| --- | --- |
+| [Canon Authority Index](canon-authority-index.md) | Bản đồ sở hữu, dữ kiện khóa, đề xuất, giới hạn và chờ chuyên gia. |
+| [Đề xuất canon](canon-proposals.md) | Ảnh E01-B, phạm vi công bố và chuỗi lưu 2006–2012. |
+| [Decision Register và các mục chờ](decision-register.md) | Hướng đã duyệt, quyết định tại đích, người cần xác nhận và căn cứ để chốt. |
+| [Changelog](changelog.md) · [So sánh câu chữ](proposed-diffs.md) | Sửa đổi theo ID, vị trí và lịch sử gói. |
+| [Narrative Impact Matrix](narrative-impact-matrix.md) | Tác động lên tri thức, reveal và giới hạn chứng cứ PZ10. |
+| [Gameplay & Technical Impact Matrix](gameplay-technical-impact-matrix.md) | Quan hệ Core 01–07, ảnh hưởng M2/M3.2, các bất biến và điều kiện tích hợp. |
+| [Live Production Ledger](production-ledger.md) | Task, build, bằng chứng và bốn mức trạng thái. |
+| [Tài liệu sản xuất nội dung](creative-production.md) | Chỉ mục Visual, Cinematic, Environmental, Character, Audio, phạm vi duyệt. |
+| [Kế hoạch kỹ thuật](technical-plan.md) · [Bản thử localization](localization-prototype.md) | Vietnamese-first, externalization, performance và build size. |
+| [Kiểm toán chéo](cross-audit.md) · [Tác động QA](qa-impact.md) · [Kiểm toán NPR-01 ban đầu](audit.md) | Đối chiếu tài liệu, workbook và căn cứ build. |
 
-Bất biến của gói duyệt gồm 28 dòng thoại CH01, topology, G01–G08, Save Schema v7, PZ10 năm cặp/năm bit, bốn nhánh END, E08 nonexport, C12 chưa xác định danh tính và hậu đề 2013 chỉ ở END04. CH05–CH08 trong đợt này ở phạm vi tài liệu. TASK010 và TASK026–028 vẫn chờ người thật. Phiên bản Core kế tiếp và lịch phát hành chờ quyết định.
+## Thứ tự xem xét
+
+1. Đọc [đề xuất canon](canon-proposals.md) và [Decision Register](decision-register.md). Chốt mức ảnh E01-B, khoảng mở công bố và phạm vi provenance sau ý kiến TASK028.
+2. Xem các lựa chọn thoại/diễn xuất và thử đọc PZ10 với đúng cặp chứng cứ. Chọn nhịp Minh–Lan có thể dựng mà vẫn giữ guard, route và chuỗi tiết lộ.
+3. EVT026 tiếp tục dùng [errata đã duyệt cho hồ sơ TASK027](../m2/design-lock-errata.md#evt026--trình-tự-ứng-cứu-trong-hồ-sơ-task027). Chờ thẩm định chi tiết ứng cứu trước quyết định đồng bộ chính thức.
+4. Khi từng mục được duyệt, ghi xác nhận, đích đồng bộ, QA và build. TASK010 và TASK026–028 theo cổng của Core 07. [Ứng viên M2](../m2/m2-final-candidate-report.md) tiếp tục sở hữu phạm vi bằng chứng của `c459aba`.

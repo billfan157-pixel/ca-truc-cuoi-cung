@@ -1,5 +1,7 @@
 # Chỉ mục canon và sổ quyết định dự thảo
 
+Bản ghi của gói review đầu tiên. Sau quyết định ngày 25/11/2026, xem [Decision Register](decision-register.md) và [Changelog NPR-01](changelog.md) để xác định nội dung đã đưa vào bộ Core dự thảo.
+
 Các mã NPR-01 dưới đây dùng để trao đổi trong đợt review. Khi chủ dự án duyệt, ghi quyết định chính thức vào `07/Decisions` và nối ngược về mã NPR-01, phạm vi, người duyệt, ngày, nguồn, QA và bằng chứng. Ghi `07/Changelog` sau khi đồng bộ nguồn. Cột “Ưu tiên” là đề xuất của gói review.
 
 | Mục | Ưu tiên | Phương án A | Phương án B | Trạng thái và thẩm quyền |

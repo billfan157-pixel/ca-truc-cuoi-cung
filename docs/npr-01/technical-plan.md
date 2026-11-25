@@ -42,3 +42,22 @@ Sản xuất dịch giữ bảng thuật ngữ, hướng dẫn spoiler theo beat
 ## Trợ năng
 
 Giữ đường đọc đủ nghĩa khi mute/mono, caption hướng cho cue quan trọng, reduced motion, chữ lớn, thao tác phím/toggle, Story Mode và tuyến fallback. Thử tìm đúng nút bằng bàn phím, phóng chữ trên mặt giấy và UI, phân biệt tín hiệu bằng văn bản/hình, skip và load lại cảnh có trạng thái. Các kiểm kỹ thuật dự thảo lấy `T06`, `AU01`, `CH08-Q07`, `V32-Q04` và tiêu chí chính thức trong `TASK020`. Bằng chứng nghiệm thu gồm ảnh/clip, log, bề mặt, preset, locale và revision.
+
+## Ngân sách thử nghiệm và đầu ra để duyệt
+
+Các số ở cột giới hạn làm việc là giả định cho lượt đo tiếp theo. Chuẩn nghiệm thu gameplay/perf hiện hành vẫn ở Core 06. Khi thu dữ liệu, gắn revision, scene/route, preset, phân giải, VSync, máy, tình trạng streaming, source capture và metric.
+
+| Khoản | Ngân sách làm việc đề xuất | Tác vụ đo và điều kiện chốt |
+| --- | --- | --- |
+| CPU | Main P95 8 ms, Render P95 4 ms làm mốc chẩn đoán 60 Hz. | Dựa trên Main 6,88–7,23 ms và Render khoảng 2,53 ms của candidate. Mỗi tuyến có dấu peak, GC, I/O và vùng swap. Đo máy yếu hơn trước khi chốt trần. |
+| GPU | Mốc nội bộ GPU P95 14,5 ms để dành khoảng dự phòng. P95 render ≤16,6 ms theo tuyến Core 06. | Đo khung render và presented riêng. Lập nhóm ánh sáng/bóng, gián tiếp/probe, geometry và hậu kỳ ở Room 101, LOC08 và END04 B08. |
+| RAM | Working set tạm 2,2 GiB cho route đại diện ứng viên, theo dõi ổn định qua 30 swap/reload. | Dựa trên 1.755,6–1.763,3 MiB đã đo. Ghi heap, native/graphics, process commit, kích thước cache và spike, sau đó quyết mức headroom. |
+| VRAM | Mục tiêu thăm dò trong 75% ngân sách DXGI khả dụng quan sát trên máy ứng viên. Máy iGPU báo riêng vùng chia sẻ và pressure. | Tách dedicated/shared, ghi peak/resident/evictions. Không suy VRAM tối thiểu từ RAM hoặc một máy. |
+| Streaming và loading | So với candidate cùng máy, mục tiêu tạm cold launch không quá 6 s trên ổ thử; báo riêng warm, transition, pause và tải lại. | Dùng ngưỡng chẩn đoán spike 33,3 ms để đánh dấu khung chậm trong capture 60 Hz. Đo route biên tile và 30 swap, ghi 95/99 cùng số khung chậm, đối chiếu WORLD-Q04/Q06. |
+| Build size | ZIP c459aba là 427.784.396 byte, mốc tham chiếu. Báo tăng khi assembly, texture, audio và generated assets tăng hơn 20% so với baseline tương đương về phạm vi. | Đo ZIP, cài đặt giải nén, size theo asset group và peak khi cập nhật. Min spec, dung lượng công bố và phân vùng đóng gói chờ owner/tech. |
+
+Dùng [bản thử localization](localization-prototype.md) làm thiết kế fixture offline trước khi chọn công cụ và locale phát hành.
+
+### Tham chiếu Phase F M3.2
+
+Dossier cục bộ `9a6378b:docs/m3/m32-implementation-and-acceptance-report.md` báo cáo binary `c90a2eb` trên 1080p Medium, 120 Hz, ba lượt. Unity GPU P95 đạt 15,20–15,76 ms so với 15,85 ms trên M2 cùng trạng thái host. Đỉnh working set 1.789,9–1.808,0 MiB. Tải additive LOC05 42,1–76,4 ms và LOC09 49,6–57,2 ms được ghi theo metric tải vùng, riêng với frame spike. Snapshot chưa có GPUTime/DisplayedTime PresentMon ở 60 Hz. Tài liệu này dùng số 120 Hz để đối chiếu kỹ thuật trong phạm vi nhánh, và giữ bộ 60 Hz của M2 làm tham chiếu riêng. Không dùng kết quả M3.2 để tuyên bố LOC08/END04 đạt.
