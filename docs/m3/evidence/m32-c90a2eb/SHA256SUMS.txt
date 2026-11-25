@@ -1,0 +1,7 @@
+﻿af0d764855dd7a4b97b43b39f9df059cace52969199f29acc17311a9c5b9b211  CaTrucCuoiCung-M3.2-c90a2eb-Windows-x64.zip  (421626919 bytes)
+fbd073ca59c4918edbc6704f5393cf59021173af11714c00db4212c50117492b  windows-x64/CaTrucCuoiCung.exe  (667136 bytes)
+ac7a8f8eb962597404e5ece578c1053e0007ee613805f1e0084de4d976ea78e3  windows-x64/CaTrucCuoiCung_Data/Managed/Assembly-CSharp.dll  (954368 bytes)
+0b551aeb3e158a366df241bb9bc45ce5da24422c5287d5ec7d3d7bfae9986e0c  ch03-ch04-pz04-dual-route-gameplay.mp4  (13912793 bytes)
+d364804ca30bb9b111977d94837fedf2804ed780fe3b44a8046e8883fe8bb7f4  build-identity.txt  (1122 bytes)
+b17a9e3a39c04e9e142169a1e47804766e14861514eac952c268971f8b55bcd7  performance-summary-120hz.json  (44667 bytes)
+461ced3571b9966c7ef4dff0e2c46733ef8a4c4a8949431a8101fb72aa1e1683  run-m32-presentmon-60hz.ps1  (4111 bytes)

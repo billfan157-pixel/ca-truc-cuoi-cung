@@ -1,0 +1,33 @@
+TASK025-A PASS Affirmed: actual controller/collision path and runtime modules; F101 r3, D=0, G01/G02, CP04, E12/E11 and slots.
+TASK025-A PASS Unverified: actual controller/collision path and runtime modules; F101 r1, D=0, G01/G02, CP04, E12/E11 and slots.
+TASK025-A PASS Refuted: actual controller/collision path and runtime modules; F101 r1, D=0, G01/G02, CP04, E12/E11 and slots.
+TASK025-B / T02 / T03 PASS: 30 denied doorway attempts, 30 valid swaps, forced rollback and 10 reloads in the same build.
+T08 PASS: fault after durable temp write retains previous commit; damaged primary recovers verified backup.
+V22-Q03 partial PASS: CH04 lines blocked before CH04.
+T08 deferred PASS: 10 main-loop frames while the worker was held after flush; previous state retained; failed publication returns SaveUnavailable.
+M2-ADDITIVE PASS: 4 boot gameplay zones + CAMPUS_EXT; duplicate zone/pad rejected; LOC04 released, rejected unloaded restore, then rebound and restored AP05.
+V22-Q03 runtime PASS: text/VO/transcript blocked in slice; CH04 B06 condition admits both guarded IDs only with both prerequisites.
+M2A-DIALOGUE PASS: interruption settles once, allowed transcript persists through the snapshot and restore.
+CHAR-Q01/Q04/Q07/Q08 PASS: named anatomy and face curves on all built LODs (incl. GK Teeth/Tongue), stride/sole slip Lan=0,008/0,008 m/s GK=0,009/0,009 m/s, required clips/sockets, skin bindings, shaders and audio tracks.
+M2 dual GI PASS: R=369, B=369.
+CH02-Q05 PASS: both escape thresholds, outside rejected, failed publication keeps cameo live, retry durably commits T06/CP04 once.
+AU01 spatial PASS: relative captions, overlapping anchors, collider low-pass, mono falloff, hot stereo switch and master mute.
+T06 keyboard subtest PASS: Tab focus within modal, Enter action, Esc dismiss, alternate binding and 130% font settings kept.
+TASK04–05 STAFF PASS: reverse discovery order, Large Print, Lan and reading guards, scene cancellation, autosave and once-only reactions.
+TASK03 F101 PASS: initial presentations, revisions, manual curtain, motion expiry, save restore, additive rebind, and R collider independence.
+CH01-R ADVERSARIAL PASS: Lan VO and old transcripts, LOG06-Q01 card content, 03:17 inspection and answer validation, D19 guard, F101 reaction at exhausted ambient budget, once-only cues after reload, and independent Reality.R progression.
+CH01 WALKTHROUGH & PROPOSAL V1.1 100% PASS: 3D BackpackStage3D 50-cycle stress, 4 Quick-Slots, all 4 comparison surfaces (AN02/STAFF/RECEPTION/WARD101) + zone reload + remote recovery, CH02/03/04 rollout + MemoryOnly + E06a tape resolver, and complete B01-B08 reconciliation.
+TASK007 / CH01-Q04–Q14 PASS: alcove safety, depleted battery + mute + reduced motion to CP04, [K] prompt, premature LOC04/stairs gate, E10a skip fallback, and CH01 spoiler boundary.
+TASK008 / CH02-Q01–Q06 & V30-Q01 PASS: each missing E11 part blocks G02, duplicate evidence idempotence, Story Mode + mute + reduced motion cameo hold & text warning, and E11/CH02-D08 boundary.
+TASK009-C ACCESSIBILITY & TOGGLE PASS: single-press E/K toggle alternative verified on all 7 draggable world rigs without mouse drag, 130% Large-Print, mute, reduced motion, and Story Mode.
+CHAR-Q05/Q06/Q08 PASS: three forced Lan face LODs + automatic distance LOD0->1->2 transitions in motion across Lan/An/GK, 150 steady-state + live speech updates at 0 managed bytes, pause/resume, interrupted voice and 12 reactivations.
+TASK011-A/B/C/E & CH03-Q03 PASS: LOS/partition, floor-isolated hearing & door noise, 2 invalid paths in 2 queries (0 raw move), radio 1,78 m, full 6-state FSM, Story Mode & safe-pad breakoff.
+TASK011-D/E & GAP-NAV-01/02 PASS: Orderly 3-stop + Route B + no-chase + gentle reset, Unrecorded max-2-loop apparition (!=C12), zero cross-doorway role teleport, dynamic morgueLock & multi-zone NavMesh stitching, and unload cleanup.
+CH04-Q01 PZ04 DUAL-ROUTE PASS: Route A timing (no record edits), falsification & missing-slip rejection + 2-strike hint, Route B factual cross-check + Orderly reroute + corridor arrow flip.
+CH03-Q01–Q05 and CH04-Q01–Q06 module PASS. PZ04 Route A+B, C02/C12, M restore, legacy schemas 1–6, local forms, 16-mask power, symmetric E04/E07 H05/guard, AN05 handoff, reloaded region save.
+V33-Q05 R outer gate seals PASS: visible solid fence covers K-B, K-D and K-F.
+V33-Q05 S1 discharge PASS: R salvage collider, M CH05 direct capsule and NavMesh route, R restored.
+V33-Q05 S1 streaming PASS: stair transition, hysteresis, seal-before-unload and reopen-after-reload.
+V33-Q05 S1 pre-G02 PASS: R route, B closure, load-before-open, S3/B1 closure and unchanged CH03 gates.
+WORLD-Q03/Q04 & W-Q02/W-Q03 PASS: 3D XYZ multi-wing/multi-floor zones, Campus_Interiors streaming, B1-independent S1 Khu B route, and E05b sealed door exterior pit verified.
+RESULT=PASS
