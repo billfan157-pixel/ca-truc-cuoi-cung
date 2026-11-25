@@ -18,7 +18,7 @@
 - Smoke test 11/11 qua G01, G02, G03, danh tính C02/C12, điều kiện thoại CH04 và hợp đồng schema. [Logic smoke test](evidence/phase-ab/logic-smoke.txt).
 - Lệnh build thử `./tools/build_m2.ps1 -SkipGenerate -Output 'output/m2-final/phase-b-verification'` dừng trước khi đóng gói Player. Editor báo timeout khởi tạo Licensing rồi crash trong `UnityEditor.BuildReportRestService` khi tạo socket cục bộ. Lượt dựng lại sau thay đổi S1 lặp lại timeout Licensing và lỗi `wakeup_pipes_init`. Log gốc `output/m2-final/phase-b-verification/build.log` và log dựng lại `output/m2-final/s1-verification/build.log`. Ca NavMesh V33-Q05 chưa chạy.
 
-**Implemented — Player Verification Pending** · Đồng bộ thoại, bề mặt vật chứng và phản hồi LOC01 theo các mục trên. Trục nội bộ S1 trước G02 đã triển khai. Vị trí và va chạm cửa xả trực tiếp ra sân cần xác minh riêng.
-**Technical Verified** · Kiểm tĩnh, biên dịch C# và smoke test logic. Build Windows x64, QA trên Player, NavMesh/streaming, D3D12 và benchmark đang chờ.
-**Human Review Pending** · TASK010 và TASK026–028.
-**Accepted** · M2 tiếp tục mở. Người dùng đã duyệt checkpoint triển khai. Trạng thái nghiệm thu Phase B và V33-Q05 đang chờ Player.
+**Implemented** · Đồng bộ thoại `53/53`, bề mặt vật chứng (`E11`, `E03/C12`, `E04`), phản hồi `LOC01` sau `T09`, trục nội bộ `S1`, cửa xả sân `S1` (`78ec669`), rào 3 cổng ngoài `K-B/K-D/K-F` (`46e706c`) và tối ưu GPU lớp R (`fb2e96d`).
+**Technical Verified** · Toàn bộ Windows x64 Player `fb2e96d` (`v33-host-20261125-143228`), Targeted S1 QA, Full Module QA (`27/27`), Full Player Input QA (`19/19`), D3D12 failure probe và 3 lượt benchmark PresentMon 60 Hz (`Unity GPU P95 = 12,47–13,23 ms`, `PresentMon GPU P95 = 13,14–14,01 ms`, `p95_budget_met: true`) đã PASS trên cùng binary.
+**Accepted (Phase B)** · Phase B đã chốt đóng ngày 25/11/2026 để mở Phase C–F (`TASK007/008/009` + gói `TASK010`).
+**Human Review Pending (cổng M2)** · `TASK010` (playtest 6 người mới) và `TASK026–028` (review chuyên gia); mốc M2 giữ mở.

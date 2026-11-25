@@ -1,7 +1,16 @@
 # Ca Trực Cuối Cùng — Human Playtest Kit (`TASK010`)
 
 - **Milestone / Gate:** M2 Vertical Slice (`TASK010`)
-- **Status:** **OPEN — AWAITING HUMAN PARTICIPANTS (0/6 completed sessions)**
+- **Status:** **Human Review Pending — OPEN (0/6 human sessions completed)**
+- **Approved Technical Candidate for Sessions:** `m2-final-cand-c459aba` (`revision=c459aba86192591b4adf5d267438e5fb4b77f704`, `development=False`, Unity `6000.3.28f1`, Core `v3.3.1 Final Clean — Design Lock`)
+  - `exe_sha256`: `fbd073ca59c4918edbc6704f5393cf59021173af11714c00db4212c50117492b`
+  - `assembly_sha256`: `373d7c91bfcc071a04969b664f6a2fd03c553ee66e39fb65f6fcb8b58b149cbc`
+  - **Release Package:** [output/m2-final/m2-final-release-c459aba/CaTrucCuoiCung-M2-FINAL-c459aba-Windows-x64.zip](../../output/m2-final/m2-final-release-c459aba/CaTrucCuoiCung-M2-FINAL-c459aba-Windows-x64.zip) + [SHA256SUMS.txt](../../output/m2-final/m2-final-release-c459aba/SHA256SUMS.txt)
+  - **Moderator Launcher (6 isolated sessions `PT-01`..`PT-06`):** [start-task010-session.ps1](../../output/m2-final/m2-final-release-c459aba/start-task010-session.ps1)
+    ```powershell
+    & '.\start-task010-session.ps1' -ParticipantId PT-01
+    ```
+    *(Verifies binary SHA-256 against `build-identity.txt`, isolates `-ctcc-save` and `-ctcc-playtest-log` per participant, and launches `1920x1080` Medium D3D12 cleanly.)*
 - **Target Sample:** ≥ 6 new players unfamiliar with the codebase or Core Design System
 - **Scope:** use a named M2 candidate covering shortened CH01, PZ01/PZ02 to verified C01, and the scripted cameo. The full CH01 walkthrough has its own timing target.
 - **Pass thresholds (Core 01 and Core 07/TASK010):**

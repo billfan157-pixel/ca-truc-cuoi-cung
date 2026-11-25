@@ -1,0 +1,415 @@
+{
+  "build": "m2-final-cand-c459aba",
+  "revision": "c459aba86192591b4adf5d267438e5fb4b77f704",
+  "assembly_sha256": "373d7c91bfcc071a04969b664f6a2fd03c553ee66e39fb65f6fcb8b58b149cbc",
+  "exe_sha256": "fbd073ca59c4918edbc6704f5393cf59021173af11714c00db4212c50117492b",
+  "machine": {
+    "cpu": "Intel(R) Core(TM) Ultra 7 155H",
+    "gpu": "Intel(R) Arc(TM) Graphics",
+    "driver": "Direct3D 12 [level 12.2]",
+    "ram_mib": 15868
+  },
+  "configuration": {
+    "resolution": "1920x1080",
+    "quality": "Medium",
+    "render_scale": 0.88,
+    "gi_mode": "dual-probes",
+    "vsync": 1,
+    "display_hz": 60,
+    "route": "expansion CH01-CH04",
+    "loaded_zones": 7,
+    "streaming_textures": 105,
+    "active_mips_bytes": 281847342
+  },
+  "gate": {
+    "frame_budget_ms": 16.67,
+    "p95_budget_met": true,
+    "note": "Ba capture PresentMon 60 Hz độc lập trên ứng viên M2-FINAL c459aba (100% khung foreground, 6.655–6.663 khung/lượt). Unity GPU P95 đạt 12,77–12,97 ms (lượt 1 đạt 0/6.640 khung vượt 16,67 ms, max 16,29 ms), PresentMon GPUTime P95 đạt 13,74–13,88 ms (P99 15,66–15,83 ms), Unity wall P95/P99 đạt 16,68 ms và PresentMon DisplayedTime P95 đạt 16,73–16,75 ms."
+  },
+  "runs": [
+    {
+      "run": "benchmark-1",
+      "pid": 22672,
+      "route_frames": 6663,
+      "focus_frames": 6663,
+      "focus_share": 1.0,
+      "startup_ms": {
+        "launch_to_first_present": 1155.2,
+        "launch_to_ready": 5038.3,
+        "awake_to_ready": 1728.1
+      },
+      "unity_ms": {
+        "wall": {
+          "n": 6663,
+          "p50": 16.6676,
+          "p95": 16.6767,
+          "p99": 16.6788,
+          "max": 66.664,
+          "over_33_3": 14
+        },
+        "main": {
+          "n": 6663,
+          "p50": 4.2219,
+          "p95": 6.8759,
+          "p99": 9.3727,
+          "max": 52.442,
+          "over_33_3": 2
+        },
+        "render": {
+          "n": 6663,
+          "p50": 1.6305,
+          "p95": 2.5344,
+          "p99": 4.5314,
+          "max": 21.8813,
+          "over_33_3": 0
+        },
+        "gpu": {
+          "n": 6640,
+          "p50": 8.1253,
+          "p95": 12.9679,
+          "p99": 14.5201,
+          "max": 16.2895,
+          "over_33_3": 0
+        }
+      },
+      "presentmon_ms": {
+        "frame_time": {
+          "n": 6662,
+          "p50": 16.6488,
+          "p95": 19.0637,
+          "p99": 22.4045,
+          "max": 57.3636,
+          "over_33_3": 10
+        },
+        "displayed_time": {
+          "n": 6662,
+          "p50": 16.6624,
+          "p95": 16.7463,
+          "p99": 16.8262,
+          "max": 83.3401,
+          "over_33_3": 13
+        },
+        "cpu_busy": {
+          "n": 6662,
+          "p50": 16.3788,
+          "p95": 18.7891,
+          "p99": 22.1212,
+          "max": 57.1698,
+          "over_33_3": 10
+        },
+        "gpu_time": {
+          "n": 6662,
+          "p50": 8.7595,
+          "p95": 13.8804,
+          "p99": 15.8254,
+          "max": 31.0508,
+          "over_33_3": 0
+        }
+      },
+      "memory_bytes": {
+        "working_set_peak": 1841164288.0,
+        "private_peak": 1961394176.0,
+        "unity_allocated_peak": 303527917.0
+      },
+      "stage_peaks": [
+        {
+          "stage": "begin",
+          "max_wall_ms": 66.664,
+          "over_33_3": 1,
+          "max_gpu_ms": 9.8476
+        },
+        {
+          "stage": "swap-B-R",
+          "max_wall_ms": 49.9988,
+          "over_33_3": 1,
+          "max_gpu_ms": 10.4962
+        },
+        {
+          "stage": "ch04-technical-stair",
+          "max_wall_ms": 49.9984,
+          "over_33_3": 1,
+          "max_gpu_ms": 8.6335
+        },
+        {
+          "stage": "room-entry-R-torch",
+          "max_wall_ms": 33.3389,
+          "over_33_3": 1,
+          "max_gpu_ms": 16.2895
+        },
+        {
+          "stage": "ch03-return-R",
+          "max_wall_ms": 33.3382,
+          "over_33_3": 2,
+          "max_gpu_ms": 8.8935
+        },
+        {
+          "stage": "store-return",
+          "max_wall_ms": 33.3377,
+          "over_33_3": 1,
+          "max_gpu_ms": 13.2881
+        }
+      ],
+      "capture": {
+        "result": "output/m2-final/m2-final-cand-c459aba/presentmon-20261125-154113/benchmark-1/result.txt",
+        "presents": "output/m2-final/m2-final-cand-c459aba/presentmon-20261125-154113/benchmark-1/presents.csv",
+        "frames": "output/m2-final/m2-final-cand-c459aba/presentmon-20261125-154113/benchmark-1/frames.csv"
+      }
+    },
+    {
+      "run": "benchmark-2",
+      "pid": 26060,
+      "route_frames": 6659,
+      "focus_frames": 6659,
+      "focus_share": 1.0,
+      "startup_ms": {
+        "launch_to_first_present": 906.8,
+        "launch_to_ready": 4776.0,
+        "awake_to_ready": 1710.0
+      },
+      "unity_ms": {
+        "wall": {
+          "n": 6659,
+          "p50": 16.6683,
+          "p95": 16.6768,
+          "p99": 16.6783,
+          "max": 66.6488,
+          "over_33_3": 17
+        },
+        "main": {
+          "n": 6659,
+          "p50": 4.3299,
+          "p95": 7.2085,
+          "p99": 10.4651,
+          "max": 59.5747,
+          "over_33_3": 3
+        },
+        "render": {
+          "n": 6659,
+          "p50": 1.6064,
+          "p95": 2.5015,
+          "p99": 4.5733,
+          "max": 26.4799,
+          "over_33_3": 0
+        },
+        "gpu": {
+          "n": 6631,
+          "p50": 8.3184,
+          "p95": 12.7722,
+          "p99": 14.4781,
+          "max": 17.0416,
+          "over_33_3": 0
+        }
+      },
+      "presentmon_ms": {
+        "frame_time": {
+          "n": 6658,
+          "p50": 16.6541,
+          "p95": 19.3548,
+          "p99": 23.4176,
+          "max": 66.1475,
+          "over_33_3": 18
+        },
+        "displayed_time": {
+          "n": 6658,
+          "p50": 16.6625,
+          "p95": 16.7398,
+          "p99": 16.8105,
+          "max": 83.2882,
+          "over_33_3": 15
+        },
+        "cpu_busy": {
+          "n": 6658,
+          "p50": 16.3898,
+          "p95": 19.0642,
+          "p99": 23.2019,
+          "max": 65.9488,
+          "over_33_3": 18
+        },
+        "gpu_time": {
+          "n": 6658,
+          "p50": 8.9703,
+          "p95": 13.7364,
+          "p99": 15.6554,
+          "max": 29.5727,
+          "over_33_3": 0
+        }
+      },
+      "memory_bytes": {
+        "working_set_peak": 1848983552.0,
+        "private_peak": 1970896896.0,
+        "unity_allocated_peak": 301375043.0
+      },
+      "stage_peaks": [
+        {
+          "stage": "begin",
+          "max_wall_ms": 66.6488,
+          "over_33_3": 2,
+          "max_gpu_ms": 10.743
+        },
+        {
+          "stage": "ch04-technical-stair",
+          "max_wall_ms": 49.9878,
+          "over_33_3": 2,
+          "max_gpu_ms": 10.9938
+        },
+        {
+          "stage": "ch03-handoff",
+          "max_wall_ms": 49.9872,
+          "over_33_3": 1,
+          "max_gpu_ms": 8.751
+        },
+        {
+          "stage": "swap-R-B",
+          "max_wall_ms": 49.9868,
+          "over_33_3": 1,
+          "max_gpu_ms": 13.0127
+        },
+        {
+          "stage": "swap-B-R",
+          "max_wall_ms": 49.9866,
+          "over_33_3": 1,
+          "max_gpu_ms": 11.7036
+        },
+        {
+          "stage": "approach-R",
+          "max_wall_ms": 33.3397,
+          "over_33_3": 1,
+          "max_gpu_ms": 9.8224
+        }
+      ],
+      "capture": {
+        "result": "output/m2-final/m2-final-cand-c459aba/presentmon-20261125-154113/benchmark-2/result.txt",
+        "presents": "output/m2-final/m2-final-cand-c459aba/presentmon-20261125-154113/benchmark-2/presents.csv",
+        "frames": "output/m2-final/m2-final-cand-c459aba/presentmon-20261125-154113/benchmark-2/frames.csv"
+      }
+    },
+    {
+      "run": "benchmark-3",
+      "pid": 30184,
+      "route_frames": 6655,
+      "focus_frames": 6655,
+      "focus_share": 1.0,
+      "startup_ms": {
+        "launch_to_first_present": 904.2,
+        "launch_to_ready": 4749.8,
+        "awake_to_ready": 1683.5
+      },
+      "unity_ms": {
+        "wall": {
+          "n": 6655,
+          "p50": 16.6678,
+          "p95": 16.6768,
+          "p99": 16.6781,
+          "max": 66.6614,
+          "over_33_3": 16
+        },
+        "main": {
+          "n": 6655,
+          "p50": 4.3475,
+          "p95": 7.2293,
+          "p99": 10.044,
+          "max": 58.2958,
+          "over_33_3": 1
+        },
+        "render": {
+          "n": 6655,
+          "p50": 1.5936,
+          "p95": 2.5112,
+          "p99": 4.3984,
+          "max": 26.7016,
+          "over_33_3": 0
+        },
+        "gpu": {
+          "n": 6633,
+          "p50": 8.2188,
+          "p95": 12.8037,
+          "p99": 14.6058,
+          "max": 17.0851,
+          "over_33_3": 0
+        }
+      },
+      "presentmon_ms": {
+        "frame_time": {
+          "n": 6654,
+          "p50": 16.6458,
+          "p95": 19.2641,
+          "p99": 22.6729,
+          "max": 57.4667,
+          "over_33_3": 13
+        },
+        "displayed_time": {
+          "n": 6654,
+          "p50": 16.6624,
+          "p95": 16.7308,
+          "p99": 16.8028,
+          "max": 66.6884,
+          "over_33_3": 13
+        },
+        "cpu_busy": {
+          "n": 6654,
+          "p50": 16.3691,
+          "p95": 18.9759,
+          "p99": 22.367,
+          "max": 57.2152,
+          "over_33_3": 12
+        },
+        "gpu_time": {
+          "n": 6654,
+          "p50": 8.9049,
+          "p95": 13.7969,
+          "p99": 15.735,
+          "max": 28.7865,
+          "over_33_3": 0
+        }
+      },
+      "memory_bytes": {
+        "working_set_peak": 1840832512.0,
+        "private_peak": 1960538112.0,
+        "unity_allocated_peak": 300002069.0
+      },
+      "stage_peaks": [
+        {
+          "stage": "begin",
+          "max_wall_ms": 66.6614,
+          "over_33_3": 1,
+          "max_gpu_ms": 10.2906
+        },
+        {
+          "stage": "ch04-technical-stair",
+          "max_wall_ms": 49.9993,
+          "over_33_3": 2,
+          "max_gpu_ms": 9.4088
+        },
+        {
+          "stage": "ch03-enter-M",
+          "max_wall_ms": 33.3412,
+          "over_33_3": 2,
+          "max_gpu_ms": 10.4488
+        },
+        {
+          "stage": "swap-R-B",
+          "max_wall_ms": 33.3373,
+          "over_33_3": 2,
+          "max_gpu_ms": 12.2493
+        },
+        {
+          "stage": "submit-F101-B",
+          "max_wall_ms": 33.3372,
+          "over_33_3": 1,
+          "max_gpu_ms": 10.7187
+        },
+        {
+          "stage": "read-letter",
+          "max_wall_ms": 33.3367,
+          "over_33_3": 1,
+          "max_gpu_ms": 12.2899
+        }
+      ],
+      "capture": {
+        "result": "output/m2-final/m2-final-cand-c459aba/presentmon-20261125-154113/benchmark-3/result.txt",
+        "presents": "output/m2-final/m2-final-cand-c459aba/presentmon-20261125-154113/benchmark-3/presents.csv",
+        "frames": "output/m2-final/m2-final-cand-c459aba/presentmon-20261125-154113/benchmark-3/frames.csv"
+      }
+    }
+  ]
+}

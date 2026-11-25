@@ -1,0 +1,16 @@
+=== module-failure ===
+FAIL: System.InvalidOperationException: intentional QA module failure
+  at CTCC.HospitalGame+<AutomatedVisit>d__203.MoveNext () [0x00052] in <9a1d634c4f854a69b0d1a44088566da5>:0 
+RESULT=FAIL
+=== escape-premature ===
+  at CTCC.HospitalGame+<VerifyM2AdditiveAndCharacters>d__206.MoveNext () [0x00d31] in <9a1d634c4f854a69b0d1a44088566da5>:0 
+  at CTCC.HospitalGame+<FinishVerification>d__208.MoveNext () [0x00060] in <9a1d634c4f854a69b0d1a44088566da5>:0 
+RESULT=FAIL
+=== invalid-reasoning ===
+  at CTCC.HospitalGame+<VerifyCh01RAdversarialSuite>d__223.MoveNext () [0x0202f] in <9a1d634c4f854a69b0d1a44088566da5>:0 
+  at CTCC.HospitalGame+<FinishVerification>d__208.MoveNext () [0x00060] in <9a1d634c4f854a69b0d1a44088566da5>:0 
+RESULT=FAIL
+=== broken-progression ===
+  at CTCC.HospitalGame+<VerifyCh01RAdversarialSuite>d__223.MoveNext () [0x0202f] in <9a1d634c4f854a69b0d1a44088566da5>:0 
+  at CTCC.HospitalGame+<FinishVerification>d__208.MoveNext () [0x00060] in <9a1d634c4f854a69b0d1a44088566da5>:0 
+RESULT=FAIL
