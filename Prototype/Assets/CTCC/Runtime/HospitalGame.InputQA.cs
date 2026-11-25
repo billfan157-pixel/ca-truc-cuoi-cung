@@ -777,9 +777,6 @@ namespace CTCC
             verification.Add($"INPUT PASS {branch}: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.");
             if (branch == FormStatus.Unverified && !Environment.GetCommandLineArgs().Contains("-ctcc-ch01-ch02-only"))
             {
-                string record = Argument("-ctcc-record");
-                captureExpansion = !string.IsNullOrEmpty(record);
-                if (captureExpansion) StartCoroutine(CaptureExpansionFrames(Path.Combine(record, "ch03-04")));
                 try { yield return InputHospitalExpansion(); }
                 finally { captureExpansion = false; }
             }
@@ -965,12 +962,10 @@ namespace CTCC
             yield return Until(() => !ui.IsModal, "closed AN05 direction note");
             verification.Add("INPUT CH03–04 PASS: W capsule on three flights, PZ03, C12, R/M, CH03 radio distraction, PZ04 Route A + Route B on live Orderly, duty papers, circuit controls, H05, dialogue guard, B1 autosave menu, and AN05 handoff.");
 
-            // Switch video recorder cleanly to a dedicated ch05-full folder when -ctcc-record is active!
+            // Start real 12fps video frame capture for the full CH05 B01-B08 gameplay sequence when -ctcc-record is active!
             string recordRoot = Argument("-ctcc-record");
             if (!string.IsNullOrEmpty(recordRoot))
             {
-                captureExpansion = false;
-                yield return null;
                 captureExpansion = true;
                 StartCoroutine(CaptureExpansionFrames(Path.Combine(recordRoot, "ch05-full")));
             }
