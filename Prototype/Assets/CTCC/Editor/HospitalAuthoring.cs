@@ -124,7 +124,12 @@ namespace CTCC.Editor
             public Area[] rooms;
             public Aperture[] openings;
             public Pose[] pads, beds;
+            public S1DischargeLayout s1Discharge;
             public float wallHeight, bedWidth, bedLength;
+        }
+        [Serializable] private sealed class S1DischargeLayout
+        {
+            public float x, y, z, width, height, firstTreadX;
         }
         [Serializable] private sealed class Area
         {

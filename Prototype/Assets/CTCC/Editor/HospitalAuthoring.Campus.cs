@@ -240,8 +240,7 @@ namespace CTCC.Editor
             // Ground floor flanks OUTSIDE locked LOC02 lobby (x in [-1.1..9.1] stays 100% untouched!)
             foreach (float x in new[] { -13.0f, -9.0f, -5.0f })
                 Bay1987(new Vector3(x, 0f, -8.0f), 0f);
-            // Short infill strip connecting x=-3.0 to LOC02 west corner (-1.1)
-            Surface("K-A South ground infill W", new Vector3(-2.05f, 1.80f, -7.86f), new Vector3(2.0f, 3.60f, 0.28f), "ExteriorFacade", "ExteriorFacadeB", tile: 2.2f, isStatic: true, parent: g);
+            BuildS1CourtyardDischarge(g, realRoot);
             // East ground flank (x = 9.1..18.0)
             foreach (float x in new[] { 11.1f, 15.1f })
                 Bay1987(new Vector3(x, 0f, -8.0f), 0f);
@@ -257,7 +256,13 @@ namespace CTCC.Editor
                 Surface($"K-A South corner W y={y}", new Vector3(-14.5f, y + 2.0f, -7.86f), new Vector3(1.1f, 4.0f, 0.30f), "ExteriorFacade", "ExteriorFacadeB", tile: 2.2f, isStatic: true, parent: g);
             }
             // Ground-floor brick plinth along exposed K-A front flanks
-            Box("K-A plinth W", new Vector3(-8.0f, 0.42f, -8.05f), new Vector3(13.8f, 0.84f, 0.36f), Mat("WeatheredBrick"), g, tile: 1.4f, isStatic: true);
+            var discharge = layout.s1Discharge;
+            float westJamb = discharge.x - discharge.width / 2f;
+            float eastJamb = discharge.x + discharge.width / 2f;
+            Box("K-A plinth W", new Vector3((-14.9f + westJamb) / 2f, 0.42f, -8.05f),
+                new Vector3(westJamb + 14.9f, 0.84f, 0.36f), Mat("WeatheredBrick"), g, tile: 1.4f, isStatic: true);
+            Box("K-A plinth S1 east jamb", new Vector3((eastJamb - 1.1f) / 2f, 0.42f, -8.05f),
+                new Vector3(-1.1f - eastJamb, 0.84f, 0.36f), Mat("WeatheredBrick"), g, tile: 1.4f, isStatic: true);
             Box("K-A plinth E", new Vector3(13.6f, 0.42f, -8.05f), new Vector3(8.8f, 0.84f, 0.36f), Mat("WeatheredBrick"), g, tile: 1.4f, isStatic: true);
 
             // --- B. WEST ELEVATION (x = -15.0, z = -8..40, 3 stories enclosing S1 West Gallery!) ---

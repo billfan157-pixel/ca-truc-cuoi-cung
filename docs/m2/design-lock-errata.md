@@ -28,3 +28,11 @@ Lượt đọc E03 bắt buộc trong runtime chỉ hiển thị mã và dấu v
 **Trạng thái:** Người dùng đã duyệt triển khai ngày 25/11/2026.
 
 Theo Core 03 §8, `DEC-V331-01` và `V33-Q05`, trục S1 nối LOC02, LOC05 và LOC07 thông trong R. Core 07 `Chapter gates!C4` tiếp tục áp dụng cho thời điểm bắt đầu điều tra CH03. S1 cho phép di chuyển vật lý trong R trước G02. S3, B1, kích hoạt CH03, vật chứng và các sự kiện giữ điều kiện hiện hành. Cửa xả trực tiếp từ chiếu nghỉ ra sân là hạng mục riêng của `V33-Q05`.
+
+### Implementation Clarifications · Cửa xả sân S1
+
+**Phê duyệt M2-FINAL ngày 25/11/2026.** Tâm cửa ở mặt nam K-A, phía tây LOC02, tại `(-2.05, 0, -7.86)` theo trục Unity X/Y/Z. `docs/prototype/layout.json` khai báo khẩu độ `1.36 × 2.24 m` và chân vế thang tại `x=-2.90`. Bậc đầu lùi về phía tây để có chiếu nghỉ phẳng nối trực tiếp cửa với chân S1. Tâm trục thang, đầu vế tầng 2, hành lang lên LOC07 và đường vòng qua lễ tân W-Q02 dùng mốc hiện có. Nền cửa nối đến mép sân LOC01 tại `z=-8`.
+
+Khung thép, ngưỡng phẳng và vách bao thuộc tile LOC02 để NavMesh thu được hình học lối ra. Trong R, cánh cửa mở về phía sân và đồ thanh lý cùng rào lưới chặn khẩu độ bằng collider. CH05 ở lớp M mở thông cánh cửa, thu hồi vật cản và cho phép tiếp cận qua chân S1. Hợp đồng này chỉ có phần trình bày hình học và tải vùng. Cửa khép trong B và khi kiểm bằng trạng thái M của CH03. G02 tiếp tục quyết định tiến trình, S3/B1, vật chứng và sự kiện dùng điều kiện hiện hành. Các ID canon và Save Schema v7 giữ nguyên.
+
+`V33-Q05` kiểm đường thẳng qua ngưỡng bằng capsule và NavMesh trong R/M, thử tiến bằng controller từ chiếu nghỉ trong R và đi hai chiều qua LOC05/LOC07 trước G02. `W-Q02` kiểm đường qua lễ tân độc lập B1, còn `WORLD-Q04` kiểm phân vùng theo cao độ. Module QA lưu hai góc ảnh từ chiếu nghỉ và sân khi chạy trên Player.

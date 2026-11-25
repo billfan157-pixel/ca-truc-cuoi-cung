@@ -56,6 +56,8 @@ namespace CTCC
         public DoorPose emergencyDoorA;
         public DoorPose emergencyDoorB;
         public DoorPose archiveExitDoor;
+        public DoorPose s1DischargeDoor;
+        public GameObject s1DischargeSalvage;
         public Transform drawerBed3;
         public Vector3 drawerBed3ClosedPos;
         public Vector3 drawerBed3OpenOffset;

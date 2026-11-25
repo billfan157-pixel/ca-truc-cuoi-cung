@@ -250,7 +250,7 @@ namespace CTCC
                 snapshot.Happened("CH01-T02"), snapshot.Happened("CH01-T05"),
                 snapshot.Has("E12"), GateService.G02(snapshot),
                 snapshot.layer == Reality.M, GateService.G03(snapshot), snapshot.chapter == "CH04", deferF101Visuals,
-                effectiveRoomPose, b07GateLatched);
+                effectiveRoomPose, b07GateLatched, memoryS1Discharge: RegionStreamer.IsS1DischargeMemory(snapshot));
             if (restoreProps && scene.interactables != null)
             {
                 foreach (var pose in snapshot.sceneProps)

@@ -65,7 +65,7 @@ namespace CTCC
 
             bool onS1OrUpperFloor = feet.y > 0.3f &&
                 UpperStackVolume.Contains(new Vector3(feet.x, UpperStackVolume.center.y, feet.z));
-            bool earlyS1Access = state.layer == Reality.R && (atReceptionS1 || onS1OrUpperFloor);
+            bool earlyS1Access = (state.layer == Reality.R || IsS1DischargeMemory(state)) && (atReceptionS1 || onS1OrUpperFloor);
             bool upperNeeded = secondGate
                 ? upperPinned || UpperStackVolume.Contains(feet) || feet.y > 0.3f || atReceptionS1 || atEmergencyS3
                 : earlyS1Access;
@@ -87,5 +87,7 @@ namespace CTCC
             if (secondGate && !serviceNeeded && Time.unscaledTime - serviceLastNeeded > 20f && scene.HasZone("LOC09"))
                 yield return scene.UnloadZoneAsync(Service);
         }
+
+        internal static bool IsS1DischargeMemory(Investigation state) => state.chapter == "CH05" && state.layer == Reality.M;
     }
 }

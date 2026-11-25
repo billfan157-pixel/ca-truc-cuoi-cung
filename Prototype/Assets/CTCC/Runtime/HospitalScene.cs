@@ -81,6 +81,8 @@ namespace CTCC
         public InspectImage[] inspectImages = Array.Empty<InspectImage>();
         public InspectModel[] inspectModels = Array.Empty<InspectModel>();
         public DoorPose outerGate, roomDoor, staffCrossDoor, emergencyDoorA, emergencyDoorB, archiveExitDoor;
+        public DoorPose s1DischargeDoor;
+        public GameObject s1DischargeSalvage;
         public GameObject seamBlocker;
         public GameObject realProps, reportProps, memoryProps, pendingBay, deniedBay, refutedBay;
         public GameObject statusA, statusB, statusC, paperAfter, storeClues;
@@ -147,7 +149,7 @@ namespace CTCC
         private bool lastLayerB, lastLayerM;
         private int lastForm;
         private bool lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate, lastThirdGate;
-        private bool lastServiceGate, lastB07GateLatched;
+        private bool lastServiceGate, lastB07GateLatched, lastMemoryS1Discharge;
         private bool seamClosed, spareTaken;
         public event Action<ZoneRegion> ZoneUnregistering;
         public event Action ZoneReloaded;
@@ -312,7 +314,8 @@ namespace CTCC
             try
             {
                 Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate,
-                    lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched);
+                    lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched,
+                    memoryS1Discharge: lastMemoryS1Discharge);
                 PresentCheckpointProps(seamClosed, spareTaken);
             }
             finally { smoothPresentation = restoreSmooth; }
@@ -330,7 +333,8 @@ namespace CTCC
             var op = SceneManager.UnloadSceneAsync(sc);
             while (op != null && !op.isDone) yield return null;
             Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate,
-                lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched);
+                lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched,
+                memoryS1Discharge: lastMemoryS1Discharge);
             Debug.Log($"CTCC_REGION_UNLOAD scene={sceneName} loaded={LoadedZoneCount} ms={timer.Elapsed.TotalMilliseconds:F2}");
         }
 
@@ -425,6 +429,8 @@ namespace CTCC
             if (region.emergencyDoorA != null && region.emergencyDoorA.pivot != null) emergencyDoorA = region.emergencyDoorA;
             if (region.emergencyDoorB != null && region.emergencyDoorB.pivot != null) emergencyDoorB = region.emergencyDoorB;
             if (region.archiveExitDoor != null && region.archiveExitDoor.pivot != null) archiveExitDoor = region.archiveExitDoor;
+            if (region.s1DischargeDoor?.pivot != null) s1DischargeDoor = region.s1DischargeDoor;
+            if (region.s1DischargeSalvage != null) s1DischargeSalvage = region.s1DischargeSalvage;
             if (region.seamBlocker != null) seamBlocker = region.seamBlocker;
             if (region.pendingBay != null) pendingBay = region.pendingBay;
             if (region.deniedBay != null) deniedBay = region.deniedBay;
@@ -525,6 +531,8 @@ namespace CTCC
             ClearOwned(ref emergencyDoorA, region.emergencyDoorA);
             ClearOwned(ref emergencyDoorB, region.emergencyDoorB);
             ClearOwned(ref archiveExitDoor, region.archiveExitDoor);
+            ClearOwned(ref s1DischargeDoor, region.s1DischargeDoor);
+            ClearOwned(ref s1DischargeSalvage, region.s1DischargeSalvage);
             ClearOwned(ref seamBlocker, region.seamBlocker);
             ClearOwned(ref pendingBay, region.pendingBay);
             ClearOwned(ref deniedBay, region.deniedBay);
@@ -829,7 +837,7 @@ namespace CTCC
 
         public void Present(bool layerB, int form, bool entered, bool acceptedBoard, bool closetOpen, bool secondGate,
             bool layerM = false, bool thirdGate = false, bool serviceGate = false, bool deferF101Visuals = false,
-            float? roomDoorOpenness = null, bool b07GateLatched = false)
+            float? roomDoorOpenness = null, bool b07GateLatched = false, bool memoryS1Discharge = false)
         {
             lastLayerB = layerB;
             lastLayerM = layerM;
@@ -841,9 +849,10 @@ namespace CTCC
             lastThirdGate = thirdGate;
             lastServiceGate = serviceGate;
             lastB07GateLatched = b07GateLatched;
+            lastMemoryS1Discharge = memoryS1Discharge;
             foreach (var zone in registeredZones)
             {
-                bool hasOpenS1 = zone.zoneId == "LOC02" && !layerB && !layerM;
+                bool hasOpenS1 = zone.zoneId == "LOC02" && ((!layerB && !layerM) || memoryS1Discharge);
                 foreach (var connector in zone.upperConnectors)
                     Toggle(connector, !(secondGate || hasOpenS1) || !HasZone("LOC05"));
                 Toggle(zone.serviceConnector, !serviceGate || !HasZone("LOC09"));
@@ -940,6 +949,9 @@ namespace CTCC
             emergencyDoorA?.Set(secondGate);
             emergencyDoorB?.Set(secondGate);
             archiveExitDoor?.Set(thirdGate);
+            bool presentDay = !layerB && !layerM;
+            s1DischargeDoor?.Set(presentDay || (layerM && memoryS1Discharge));
+            Toggle(s1DischargeSalvage, presentDay);
             Physics.SyncTransforms();
         }
 

@@ -32,7 +32,8 @@ namespace CTCC.Editor
 
             // S1 is the independent public core. The emergency transfer stair joins the same ward,
             // and the east service flight reaches B1 without cutting through the ward.
-            Flight(upper, "S1 · Lễ tân → Khu B", new(-1.0f, 0, -4), new(-11, WardLevel, -4), 2.7f);
+            // Keep the upper landing and centreline. Set back the first tread to make a flat ground landing.
+            Flight(upper, "S1 · Lễ tân → Khu B", new(layout.s1Discharge.firstTreadX, 0, -4), new(-11, WardLevel, -4), 2.7f);
             Deck(upper, "S1 · West gallery", WardLevel, -13.7f, -11, -5.35f, 38.2f, true);
             Deck(upper, "S1 · Ward bridge", WardLevel, -11, -3.5f, 35.9f, 38.2f, true);
             Flight(upper, "S3 · Cấp cứu → Khu B", new(4, 0, 21.99f), new(4, WardLevel, 32.1f), 2.7f);
@@ -198,6 +199,73 @@ namespace CTCC.Editor
             Lamp("B1 E05b gallery bulkhead M", LightType.Point, new(24.5f, y + 2.55f, 50.4f), 1.95f, 9.5f, new Color(.74f, .84f, .80f), gal);
             Lamp("B1 E05b gallery bulkhead E", LightType.Point, new(35.8f, y + 2.55f, 48.2f), 2.15f, 9.0f, new Color(.74f, .84f, .80f), gal);
             Lamp("B1 E05b sunken court moon key", LightType.Point, new(36.1f, y + 2.65f, 42.0f), 3.20f, 8.5f, new Color(.58f, .76f, .92f), gal);
+        }
+
+        private void BuildS1CourtyardDischarge(Transform shell, Transform realRoot)
+        {
+            // Campus Grounds is visual background for navigation. The outlet is part of the reception tile.
+            if (multiScene)
+            {
+                shell = zones["LOC02"].permanent;
+                realRoot = zones["LOC02"].real;
+            }
+            var opening = layout.s1Discharge;
+            float half = opening.width / 2f;
+            float left = opening.x - half;
+            float right = opening.x + half;
+            var origin = new Vector3(opening.x, opening.y, opening.z);
+            var frame = Group("S1 courtyard discharge", shell, origin);
+
+            Infill("West jamb", -3.05f, left, 0f, 3.6f);
+            Infill("East jamb", right, -1.05f, 0f, 3.6f);
+            Infill("Lintel", left, right, opening.height, 3.6f);
+
+            // Flush landing, passage and threshold connect the stair toe to the courtyard slab.
+            Deck(shell, "S1 ground landing", opening.y, opening.firstTreadX - .10f, -1f, -5.40f, -2.60f);
+            Deck(shell, "S1 discharge passage", opening.y, -2.95f, -1f, opening.z + .22f, -5.40f);
+            Deck(shell, "S1 flush courtyard threshold", opening.y, left - .08f, right + .08f, -8f, opening.z + .22f);
+            Surface("S1 passage west wall", new Vector3(-2.98f, 1.80f, -6.62f), new Vector3(.16f, 3.60f, 2.48f),
+                "PlasterR", "PlasterB", solid: true, tile: 1.8f, isStatic: true, parent: shell);
+
+            var metal = Mat("MetalOld");
+            foreach (float x in new[] { -half + .035f, half - .035f })
+                Box("S1 steel frame upright", new Vector3(x, opening.height / 2f, 0f),
+                    new Vector3(.07f, opening.height, .16f), metal, frame, solid: true);
+            Box("S1 steel frame head", new Vector3(0f, opening.height - .035f, 0f),
+                new Vector3(opening.width, .07f, .16f), metal, frame, solid: true);
+            var hinge = Group("S1 discharge hinge", frame, new Vector3(-half + .075f, 0f, -.12f));
+            float leafWidth = opening.width - .15f;
+            Box("S1 discharge steel leaf", new Vector3(leafWidth / 2f, (opening.height - .07f) / 2f, 0f),
+                new Vector3(leafWidth, opening.height - .11f, .067f), metal, hinge, solid: true);
+            Box("S1 push bar", new Vector3(leafWidth / 2f, 1.04f, .072f), new Vector3(leafWidth - .19f, .045f, .048f), metal, hinge);
+
+            var salvage = Group("S1 discharge salvage and mesh", realRoot, origin + Vector3.back * .32f);
+            Box("S1 salvage rack base", new Vector3(0f, .31f, -.05f), new Vector3(opening.width - .09f, .62f, .37f), Mat("WoodDoorR"), salvage, solid: true);
+            Box("S1 mesh barrier bottom rail", new Vector3(0f, .62f, .02f), new Vector3(opening.width - .06f, .07f, .08f), metal, salvage, solid: true);
+            Box("S1 mesh barrier top rail", new Vector3(0f, 1.78f, .02f), new Vector3(opening.width - .06f, .07f, .08f), metal, salvage);
+            for (int i = -6; i <= 6; i++)
+                Box("S1 mesh vertical wire", new Vector3(i * .095f, 1.20f, .02f), new Vector3(.023f, 1.16f, .034f), metal, salvage);
+            for (int i = 0; i < 8; i++)
+                Box("S1 mesh horizontal wire", new Vector3(0f, .70f + i * .145f, .02f), new Vector3(opening.width - .10f, .024f, .036f), metal, salvage);
+            Box("S1 mesh collision", new Vector3(0f, 1.20f, .02f), new Vector3(opening.width - .08f, 1.16f, .068f),
+                metal, salvage, solid: true).GetComponent<MeshRenderer>().enabled = false;
+
+            var door = new DoorPose { pivot = hinge, openAngle = 93f };
+            if (multiScene)
+            {
+                zones["LOC02"].region.s1DischargeDoor = door;
+                zones["LOC02"].region.s1DischargeSalvage = salvage.gameObject;
+            }
+            else
+            {
+                world.s1DischargeDoor = door;
+                world.s1DischargeSalvage = salvage.gameObject;
+            }
+
+            void Infill(string label, float from, float to, float bottom, float top) =>
+                Surface("K-A S1 discharge " + label, new Vector3((from + to) / 2f, opening.y + (bottom + top) / 2f, opening.z),
+                    new Vector3(to - from, top - bottom, .28f), "ExteriorFacade", "ExteriorFacadeB", solid: true,
+                    tile: 2.2f, isStatic: true, parent: shell);
         }
 
         private void Flight(Transform parent, string name, Vector3 start, Vector3 end, float width)

@@ -2098,11 +2098,67 @@ namespace CTCC
                     if (data != null) Destroy(data);
                     scene.TryRefreshNavigation(scene.Pad("AP02").position);
                 }
+                VerifyS1CourtyardDischarge(early);
                 verification.Add("V33-Q05 S1 pre-G02 PASS: R route, B closure, load-before-open, S3/B1 closure and unchanged CH03 gates.");
             }
             finally
             {
                 transaction.Present(State);
+            }
+        }
+
+        private void VerifyS1CourtyardDischarge(Investigation early)
+        {
+            var door = scene.s1DischargeDoor;
+            var salvage = scene.s1DischargeSalvage;
+            Require(door?.pivot != null && salvage != null, "S1 courtyard discharge is bound from the reception tile");
+            var threshold = door.pivot.parent.position;
+            var landing = threshold + Vector3.forward * 3.55f;
+            var courtyard = threshold + Vector3.back * 1.55f;
+
+            bool CastDischarge(out RaycastHit hit) => Physics.CapsuleCast(landing + Vector3.up * .46f,
+                landing + Vector3.up * 1.40f, HospitalScene.Radius, Vector3.back, out hit,
+                Vector3.Distance(landing, courtyard), HospitalScene.SolidMask, QueryTriggerInteraction.Ignore);
+
+            Require(door.isOpen && salvage.activeInHierarchy && CastDischarge(out var blocked) &&
+                blocked.collider.transform.IsChildOf(salvage.transform), "S1 R discharge is blocked by its salvage and visible mesh");
+            try
+            {
+                CheckDirectNavigation(open: false);
+                var memory = new Investigation { chapter = "CH03", layer = Reality.M };
+                transaction.Present(memory);
+                Require(!door.isOpen && !salvage.activeSelf && CastDischarge(out _), "Other memories keep the S1 outlet closed");
+                memory.chapter = "CH05";
+                transaction.Present(memory);
+                Require(door.isOpen && !salvage.activeSelf && !CastDischarge(out _), "CH05 M clears the S1 discharge capsule");
+                CheckDirectNavigation(open: true);
+            }
+            finally
+            {
+                transaction.Present(early);
+                scene.TryRefreshNavigation(scene.Pad("AP02").position);
+            }
+            Require(salvage.activeInHierarchy && CastDischarge(out _), "S1 discharge restores its R blockage");
+            verification.Add("V33-Q05 S1 discharge PASS: R salvage collider, M CH05 direct capsule and NavMesh route, R restored.");
+
+            void CheckDirectNavigation(bool open)
+            {
+                NavMesh.RemoveAllNavMeshData();
+                var data = scene.BuildNavigation();
+                Require(data != null, "S1 courtyard discharge navigation bake");
+                var instance = NavMesh.AddNavMeshData(data);
+                try
+                {
+                    Require(NavMesh.SamplePosition(landing, out var from, .28f, NavMesh.AllAreas), "S1 landing is on NavMesh");
+                    Require(NavMesh.SamplePosition(courtyard, out var to, .28f, NavMesh.AllAreas), "S1 courtyard approach is on NavMesh");
+                    Require(NavMesh.Raycast(from.position, to.position, out _, NavMesh.AllAreas) != open,
+                        $"S1 direct NavMesh route matches outlet state (open={open})");
+                }
+                finally
+                {
+                    if (instance.valid) instance.Remove();
+                    Destroy(data);
+                }
             }
         }
 
@@ -2250,6 +2306,8 @@ namespace CTCC
                 yield return CaptureWorldView("campus-ap01-R", new Vector3(3.95f, 1.64f, -16.8f), new Vector3(4.0f, 5.2f, -6.0f));
                 yield return CaptureWorldView("campus-courtyard-diag-R", new Vector3(13.8f, 2.25f, -24.5f), new Vector3(24.5f, 4.4f, 14.0f));
                 yield return CaptureWorldView("campus-ap02-reception-R", new Vector3(4.35f, 1.62f, -4.65f), new Vector3(1.5f, 1.35f, -3.5f));
+                yield return CaptureWorldView("s1-discharge-landing-R", new Vector3(-2.05f, 1.62f, -4.35f), new Vector3(-2.05f, 1.12f, -8.18f));
+                yield return CaptureWorldView("s1-discharge-courtyard-R", new Vector3(-3.25f, 1.62f, -11.0f), new Vector3(-2.05f, 1.08f, -7.86f));
                 yield return CaptureWorldView("campus-ap04-room101-window-R", new Vector3(9.6f, 1.62f, 5.2f), new Vector3(10.0f, 3.2f, 14.1f));
                 yield return CaptureWorldView("campus-ap05-emergency-R", new Vector3(3.65f, 1.62f, 17.15f), new Vector3(6.8f, 1.45f, 20.5f));
                 yield return CaptureWorldView("campus-kb-maingate-R", new Vector3(-28.5f, 2.2f, -37.5f), new Vector3(-27.0f, 3.8f, -8.0f));

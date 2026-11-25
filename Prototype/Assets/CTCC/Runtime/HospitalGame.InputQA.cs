@@ -777,6 +777,13 @@ namespace CTCC
             yield return WalkWithInput(reception);
             yield return WalkWithInput(new Vector3(.3f, 0f, -4f));
             yield return Until(() => scene.HasZone("LOC05") && !streaming, "S1 streams from the reception approach");
+            var dischargeLanding = new Vector3(-2.05f, 0f, -4f);
+            yield return WalkWithInput(dischargeLanding);
+            yield return WalkWithInput(new Vector3(dischargeLanding.x, 0f, -7.35f));
+            player.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            yield return Hold(State.settings.alternateBindings ? Key.UpArrow : Key.W, .8f);
+            Require(player.Feet.z > -7.86f, "S1 discharge mesh stops the controller before the courtyard");
+            yield return WalkWithInput(dischargeLanding);
 
             Vector3[] route = {
                 new(-11.9f, 4f, -4f), new(-12.3f, 4f, 37.05f), new(-2.5f, 4f, 37.05f),
