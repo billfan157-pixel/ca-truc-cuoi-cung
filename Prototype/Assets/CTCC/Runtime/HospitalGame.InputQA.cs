@@ -1069,18 +1069,18 @@ namespace CTCC
             yield return Choose("Đóng");
             yield return Until(() => !ui.IsModal, "closed PZ07 overlay modal");
 
-            // Duck back into LOC10 refuge and wait for Hunter to turn SOUTH in LOC09 (forward.z < -0.5), giving 9s clear to enter E05b gallery!
+            // Duck back into LOC10 refuge and wait for Hunter to sweep south past z=37.8 (facing south), then hug west wall x=5.3 (>3.6m clear of 3.0m walk hearing!) into LOC11 -> E05b gallery!
             yield return WalkWithInput(new Vector3(6.0f, -3.4f, 43.3f));
-            yield return WalkWithInput(new Vector3(6.0f, -3.4f, 39.0f));
+            yield return WalkWithInput(new Vector3(5.3f, -3.4f, 39.0f));
             yield return WalkWithInput(new Vector3(3.6f, -3.4f, 39.0f));
             yield return Until(() => !orderlyAi.IsActive ||
                 (orderlyAi.CurrentState == OrderlyState.Patrol &&
                  orderlyAi.ActiveActor.transform.position.x < 9.6f &&
-                 orderlyAi.ActiveActor.transform.position.z < 41.2f &&
+                 orderlyAi.ActiveActor.transform.position.z < 37.8f &&
                  orderlyAi.ActiveActor.transform.forward.z < -0.5f),
-                "CH05-B1 Hunter turns south in LOC09 leaving LOC11 north passage clear", 35f);
-            yield return WalkWithInput(new Vector3(6.0f, -3.4f, 39.0f));
-            yield return WalkWithInput(new Vector3(6.5f, -3.4f, 42.2f));
+                "CH05-B1 Hunter sweeps south past z=37.8 leaving west wall & LOC11 silent and clear", 35f);
+            yield return WalkWithInput(new Vector3(5.3f, -3.4f, 39.0f));
+            yield return WalkWithInput(new Vector3(5.3f, -3.4f, 42.6f));
             yield return WalkWithInput(new Vector3(10.5f, -3.4f, 42.2f));
             yield return WalkWithInput(new Vector3(12.5f, -3.4f, 42.2f));
             yield return WalkWithInput(new Vector3(12.5f, -3.4f, 50.4f));
