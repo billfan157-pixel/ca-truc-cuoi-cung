@@ -65,7 +65,7 @@ namespace CTCC
                 serviceLastNeeded = Time.unscaledTime;
                 if (!scene.HasZone("LOC09")) yield return scene.LoadZoneAsync(Service);
             }
-            if (secondGate && !serviceNeeded && Time.unscaledTime - serviceLastNeeded > 20f && scene.HasZone("LOC09"))
+            if (!serviceNeeded && Time.unscaledTime - serviceLastNeeded > 20f && scene.HasZone("LOC09"))
                 yield return scene.UnloadZoneAsync(Service);
 
             // Handle the walkable regions before yielding to optional visual streaming.

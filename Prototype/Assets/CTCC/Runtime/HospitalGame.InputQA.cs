@@ -1108,15 +1108,21 @@ namespace CTCC
             Require(orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Hunter, "CH05-L3 Hunter active on Floor 3 post-G05");
             yield return AimAndUseHere("RADIO_LOC07");
             yield return Until(() => orderlyAi.CurrentState == OrderlyState.Investigate, "CH05-L3 radio distraction pulls Hunter");
-            // Circle north-east around the freestanding shelf (1.1, 34) while Hunter investigates south-west toward the radio!
-            yield return WalkWithInput(new Vector3(-0.9f, 8f, 36.8f));
-            yield return WalkWithInput(new Vector3(2.4f, 8f, 36.8f));
+            // Step south to AN03 behind the freestanding shelf (1.1, 34), let Hunter cross north toward the radio, then slip south to LOC08 cleanly!
+            yield return WalkWithInput(new Vector3(-0.6f, 8f, 32.2f));
+            yield return Until(() => !orderlyAi.IsActive ||
+                (orderlyAi.ActiveActor.transform.position.z > 35.0f && orderlyAi.ActiveActor.transform.position.x < 1.8f),
+                "CH05-L3 Hunter pulled north toward radio leaving south passage clear", 20f);
+            yield return WalkWithInput(new Vector3(-0.6f, 8f, 31.1f));
+            yield return WalkWithInput(new Vector3(2.4f, 8f, 31.1f));
             yield return WalkWithInput(new Vector3(2.4f, 8f, 32.3f));
             yield return WalkWithInput(new Vector3(5.2f, 8f, 32.3f));
             yield return AimAndUseHere("CH05_HANDOFF");
             yield return Until(() => !busy && ui.IsModal && State.Happened(ChapterFive.EvHandoff) &&
                 State.checkpoint == ChapterFive.CheckpointHandoff, "CH05-CP03 handoff committed at LOC08");
+            yield return new WaitForSecondsRealtime(0.45f);
             yield return Choose("Ở lại kiểm tra tầng 3");
+            captureExpansion = false;
             Require(GateService.G05(State) && !State.Has("E01") && !State.Has("E06") && !State.Has("E10b") &&
                 !State.Has("E08") && !State.Happened("G06.opened"),
                 "CH05 full input walkthrough stops cleanly at CH05->CH06 boundary");

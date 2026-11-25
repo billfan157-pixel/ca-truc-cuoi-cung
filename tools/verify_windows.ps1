@@ -5,7 +5,7 @@ param(
     [switch]$PlayerInput,
     [switch]$S1Only,
     [ValidateSet('D3D12','D3D11')][string]$GraphicsApi = 'D3D12',
-    [ValidateRange(30,600)][int]$TimeoutSeconds = 240,
+    [ValidateRange(30,900)][int]$TimeoutSeconds = 240,
     [ValidateSet('module-failure','keyboard-failure','visual-failure','escape-premature','char-mesh','char-track','char-interruption','invalid-reasoning','broken-progression')][string]$ProbeFailure,
     [ValidateSet('Low','Medium','High')][string]$Quality = 'Medium'
 )

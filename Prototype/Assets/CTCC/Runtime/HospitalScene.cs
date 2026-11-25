@@ -154,6 +154,7 @@ namespace CTCC
         private int lastForm;
         private bool lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate, lastThirdGate;
         private bool lastServiceGate, lastFifthGate, lastB07GateLatched, lastMemoryS1Discharge;
+        private float? lastRoomDoorOpenness;
         private bool seamClosed, spareTaken;
         private Investigation lastCaseworkState;
         public event Action<ZoneRegion> ZoneUnregistering;
@@ -389,9 +390,13 @@ namespace CTCC
             smoothPresentation = false;
             try
             {
+                float? currentDoorOpenness = !string.Equals(sceneName, "LOC03_Ward101", StringComparison.Ordinal) &&
+                    interactables != null && roomDoor?.pivot != null
+                    ? interactables.IntendedOpenness("DOOR-101")
+                    : lastRoomDoorOpenness;
                 Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate,
-                    lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched,
-                    memoryS1Discharge: lastMemoryS1Discharge);
+                    lastLayerM, lastThirdGate, lastServiceGate, roomDoorOpenness: currentDoorOpenness,
+                    b07GateLatched: lastB07GateLatched, memoryS1Discharge: lastMemoryS1Discharge);
                 PresentCheckpointProps(seamClosed, spareTaken);
                 if (lastCaseworkState != null) PresentCasework(lastCaseworkState);
                 Physics.SyncTransforms();
@@ -422,9 +427,13 @@ namespace CTCC
             finally
             {
                 unloading.Remove(sceneName);
+                float? currentDoorOpenness = !string.Equals(sceneName, "LOC03_Ward101", StringComparison.Ordinal) &&
+                    interactables != null && roomDoor?.pivot != null
+                    ? interactables.IntendedOpenness("DOOR-101")
+                    : lastRoomDoorOpenness;
                 Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate,
-                    lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched,
-                    memoryS1Discharge: lastMemoryS1Discharge);
+                    lastLayerM, lastThirdGate, lastServiceGate, roomDoorOpenness: currentDoorOpenness,
+                    b07GateLatched: lastB07GateLatched, memoryS1Discharge: lastMemoryS1Discharge);
                 Physics.SyncTransforms();
                 foreach (var region in registeredZones)
                     if (region != null && region.isActiveAndEnabled && region.participatesInNavMesh)
@@ -959,6 +968,7 @@ namespace CTCC
             lastServiceGate = serviceGate;
             lastB07GateLatched = b07GateLatched;
             lastMemoryS1Discharge = memoryS1Discharge;
+            lastRoomDoorOpenness = roomDoorOpenness;
             UpdateRegionalConnectors();
 
             if (!themeReady || showedReport != layerB || showedMemory != layerM)
