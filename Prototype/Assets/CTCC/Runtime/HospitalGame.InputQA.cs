@@ -1111,8 +1111,8 @@ namespace CTCC
             // Step south to AN03 behind the freestanding shelf (1.1, 34), let Hunter cross north toward the radio, then slip south to LOC08 cleanly!
             yield return WalkWithInput(new Vector3(-0.6f, 8f, 32.2f));
             yield return Until(() => !orderlyAi.IsActive ||
-                (orderlyAi.ActiveActor.transform.position.z > 35.0f && orderlyAi.ActiveActor.transform.position.x < 1.8f),
-                "CH05-L3 Hunter pulled north toward radio leaving south passage clear", 20f);
+                (orderlyAi.ActiveActor.transform.position.z > 33.6f && orderlyAi.ActiveActor.transform.position.x < 0.4f),
+                "CH05-L3 Hunter pulled to west radio table leaving south-east passage clear", 20f);
             yield return WalkWithInput(new Vector3(-0.6f, 8f, 31.1f));
             yield return WalkWithInput(new Vector3(2.4f, 8f, 31.1f));
             yield return WalkWithInput(new Vector3(2.4f, 8f, 32.3f));
