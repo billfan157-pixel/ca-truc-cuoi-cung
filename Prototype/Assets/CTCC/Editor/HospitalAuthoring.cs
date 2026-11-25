@@ -239,7 +239,7 @@ namespace CTCC.Editor
             var allPads = new List<Pose>(layout.pads)
             {
                 new Pose { id = "AP06", x = 4.0f, y = 4f, z = 33.5f, yaw = 0f },
-                new Pose { id = "AP10", x = 0.8f, y = 4f, z = 35.2f, yaw = -90f },
+                new Pose { id = "AP10", x = 0.85f, y = 4f, z = 33.0f, yaw = -90f },
                 new Pose { id = "AN03", x = -0.6f, y = 8f, z = 32.2f, yaw = -90f },
                 new Pose { id = "AP11", x = 5.2f, y = 8f, z = 32.3f, yaw = 90f },
                 new Pose { id = "AP07", x = 4.0f, y = 4f, z = 45.7f, yaw = 0f },

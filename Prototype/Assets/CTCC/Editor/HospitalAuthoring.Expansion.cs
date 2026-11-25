@@ -67,7 +67,7 @@ namespace CTCC.Editor
             handoffMarker.gameObject.SetActive(false);
             Lamp("LOC08 admin spill R", LightType.Point, new(6.1f, ArchiveLevel + 2.55f, 32.3f), 3.1f, 7.5f, new Color(.84f, .88f, .78f), upper);
             CapsuleTarget("CH05_HANDOFF", "Hồ sơ Phòng Hành chính · Kiểm tra báo cáo (CH05-CP03)",
-                new(6.65f, ArchiveLevel + 1.05f, 32.3f), new(.65f, .65f, .85f), upper);
+                new(6.48f, ArchiveLevel + 1.08f, 32.3f), new(.72f, .68f, .92f), upper);
             if (multiScene)
             {
                 zones["LOC05"].region.loc08GateBlocker = loc08GateRoot.gameObject;
@@ -201,26 +201,27 @@ namespace CTCC.Editor
             CapsuleTarget("AN05_HANDOFF_NOTE", "Ghi chú bàn giao → Xe bệnh nhân AN05 tại Khu B",
                 new(4.84f, WardLevel + 1.15f, 46.72f), new(.52f, .58f, .52f), upper);
 
-            // Canonical AN05 Anchor (Core 02/04/07): Patient wheelchair/stretcher in LOC05 Khu B (clear of AP06 & west doors!)
-            var an05Root = Group("AN05 · Xe bệnh nhân Khu B", upper, new(-0.65f, WardLevel, 35.2f));
+            // Canonical AN05 Anchor (Core 02/04/07): Patient wheelchair/stretcher parked along south wall of LOC05 Khu B
+            // (completely clear of CH03 archive walks, CH04 Orderly route at z=36.6, and AP06 at x=4.0!)
+            var an05Root = Group("AN05 · Xe bệnh nhân Khu B", upper, new(-0.65f, WardLevel, 32.85f));
             if (art)
             {
-                var chair = PlaceBlenderModel("CTCC_PROP_TransportTrolley", an05Root, Vector3.zero, 90f, pairRB: true,
+                var chair = PlaceBlenderModel("CTCC_PROP_TransportTrolley", an05Root, Vector3.zero, 0f, pairRB: true,
                     scale: new Vector3(0.76f, 0.88f, 0.62f));
                 staticArchitecture.Add(chair);
             }
             else
             {
-                Box("AN05 wheelchair proxy", new(0f, .46f, 0f), new(.72f, .92f, 1.10f), Mat("Steel"), an05Root, solid: false);
+                Box("AN05 wheelchair proxy", new(0f, .46f, 0f), new(1.02f, .92f, .72f), Mat("Steel"), an05Root, solid: false);
             }
-            Box("AN05 wheelchair collider", new(0f, .46f, 0f), new(.74f, .92f, 1.02f), Mat("Steel"), an05Root, solid: true)
+            Box("AN05 wheelchair collider", new(0f, .46f, 0f), new(1.02f, .92f, .72f), Mat("Steel"), an05Root, solid: true)
                 .GetComponent<Renderer>().enabled = false;
             var an05Visual = Group("AN05 · Brass Anchor Halo", an05Root, new(0f, .012f, 0f));
-            Box("AN05 brass ring", Vector3.zero, new(1.18f, .016f, 1.38f), Mat("Brass"), an05Visual, solid: false);
-            Box("AN05 strip", new(.56f, .016f, 0f), new(.10f, .022f, .64f), Mat("LiveTube"), an05Visual, solid: false);
+            Box("AN05 brass ring", Vector3.zero, new(1.36f, .016f, 1.06f), Mat("Brass"), an05Visual, solid: false);
+            Box("AN05 strip", new(.66f, .016f, 0f), new(.10f, .022f, .54f), Mat("LiveTube"), an05Visual, solid: false);
             an05Visual.gameObject.SetActive(false);
             CapsuleTarget("AN05", "Xe bệnh nhân Khu B · Điểm neo ký ức AN05 (CH05)",
-                new(-0.55f, WardLevel + 0.86f, 35.2f), new(.92f, 1.08f, 1.16f), upper);
+                new(-0.18f, WardLevel + 1.05f, 32.85f), new(1.18f, 1.10f, .92f), upper);
 
             // Phase D (TASK013-B): LOC09 Technical Blueprint Cabinet & PZ07 Drafting Table (North wall x=7.4, z=44.65)
             var pz07Table = Group("LOC09 · Tủ bản vẽ kỹ thuật & Bàn căn PZ07", service, new(7.4f, BasementLevel, 44.65f));
@@ -238,7 +239,7 @@ namespace CTCC.Editor
             }
             Lamp("LOC09 blueprint drafting lamp", LightType.Point, new(7.4f, BasementLevel + 2.15f, 43.95f), 2.8f, 5.5f, new Color(.94f, .90f, .74f), service);
             CapsuleTarget("CH05_BLUEPRINTS", "Tủ bản vẽ B1 · Sơ đồ 2005 & Hoàn công 2004 (E05 / PZ07)",
-                new(7.4f, BasementLevel + 1.08f, 44.35f), new(1.95f, .76f, .88f), service);
+                new(7.4f, BasementLevel + 1.12f, 44.20f), new(1.95f, .78f, .90f), service);
 
             // Phase D Optional (DEC-V32-03): LOC09 AS-05 Solvent Tank Valve w/ aged cut padlock & wedged air damper (West wall x=5.08, z=35.55)
             var valveRoot = Group("CTCC_PROP_LOC09_ValveCut", service, new(5.08f, BasementLevel, 35.55f));
@@ -257,7 +258,7 @@ namespace CTCC.Editor
             Box("Air damper duct", new(-.36f, 1.92f, .24f), new(.22f, .44f, .72f), Mat("MetalOld"), valveRoot, solid: false, isStatic: true);
             Box("Rusted damper wedge", new(-.24f, 1.84f, .24f), new(.14f, .06f, .06f), Mat("Brass"), valveRoot, solid: false, isStatic: true);
             CapsuleTarget("LOC09_VALVE", "Van bồn dung môi AS-05 & tấm chắn gió (Quan sát tùy chọn)",
-                new(5.26f, BasementLevel + 1.34f, 35.62f), new(.64f, .96f, .96f), service);
+                new(5.48f, BasementLevel + 1.48f, 35.72f), new(.68f, 1.02f, 1.02f), service);
 
             if (multiScene)
             {
@@ -409,7 +410,7 @@ namespace CTCC.Editor
             Box("Evac tally sheet", new(.90f, 1.38f, -.55f), new(.02f, .62f, .44f), Mat("Paper"), s1Assembly, solid: false);
             Lamp("CH05 S1 assembly warm flood M", LightType.Point, new(0f, 2.55f, -.65f), 4.2f, 11f, new Color(1.0f, 0.74f, 0.40f), s1Assembly);
             CapsuleTarget("CH05_M_PAIR3_ASSEMBLY", "Điểm tập kết sân ngoài S1 · Đưa Nhóm 3 & chốt danh sách 6/6",
-                origin + new Vector3(0f, 1.15f, -1.10f), new(1.45f, 1.45f, 1.15f), s1Assembly);
+                new Vector3(0f, 1.15f, -0.65f), new(1.45f, 1.45f, 1.15f), s1Assembly);
             if (multiScene)
             {
                 zones["LOC02"].region.s1DischargeDoor = door;

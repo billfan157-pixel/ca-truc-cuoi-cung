@@ -96,7 +96,7 @@ namespace CTCC
                     if (!route.MoveNext())
                     {
                         passed = State.Happened("M1-complete") && GateService.G02(State) &&
-                            (Argument("-ctcc-expansion") != "true" || GateService.G04(State));
+                            (Argument("-ctcc-expansion") != "true" || (GateService.G04(State) && GateService.G05(State)));
                         break;
                     }
                 }
@@ -384,8 +384,79 @@ namespace CTCC
                 foreach (var frame in BenchmarkCommit("ch04-evidence-" + id, ChapterFour.Take(transaction, id, "LOC10")))
                     yield return frame;
             foreach (var frame in BenchmarkCommit("ch04-H05-PT02", ChapterFour.MatchRecovery(transaction))) yield return frame;
+            foreach (var frame in BenchmarkCommit("ch04-t06-lan", casework.RecordAsync("CH04-T06", player.Feet))) yield return frame;
             Require(transaction.Restore(SaveSlot.Auto, out var restored) == SaveRead.Valid && restored == scene.Pad("AP09"),
                 "Benchmark restored B1 checkpoint");
+
+            // CH05 Benchmark Stages (M3.3 Phase G: AN05 with live M NPCs, LOC09 PZ07 blueprints, B1 E05b gallery, LOC08 G05)
+            foreach (var point in new[]
+            {
+                new Vector3(7f, 0, 39f), new(7f, 0, 32.4f), new(7f, 0, 21.17f),
+                new(4f, 0, 20.97f), new(4f, 0, 33.0f), new(0.85f, 0, 33.0f)
+            })
+                foreach (var unused in BenchmarkWalk("ch05-approach-an05", point)) yield return null;
+
+            foreach (var frame in BenchmarkCommit("ch05-cp01-entry", ChapterFive.CommitEntryCheckpointAsync(transaction, player.Feet))) yield return frame;
+            foreach (var frame in BenchmarkCommit("ch05-enter-M", ChapterFive.EnterEvacuationMemoryAsync(transaction, player.Feet))) yield return frame;
+            player.Teleport(scene.Pad("AP10"));
+            player.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+            benchmarkStage = "ch05-an05-memory-npcs";
+            var an05Until = Time.realtimeSinceStartupAsDouble + 3.5;
+            while (Time.realtimeSinceStartupAsDouble < an05Until) yield return null;
+            foreach (var frame in BenchmarkCommit("ch05-evac-pair1", ChapterFive.CompleteEvacPairAsync(transaction, 1))) yield return frame;
+            foreach (var point in new[] { new Vector3(0.85f, 0, 36.9f), new(-12.2f, 0, 37.0f), new(-12.2f, 0, 22.6f) })
+                foreach (var unused in BenchmarkWalk("ch05-an05-memory-npcs", point)) yield return null;
+            foreach (var frame in BenchmarkCommit("ch05-evac-pair2", ChapterFive.CompleteEvacPairAsync(transaction, 2))) yield return frame;
+            foreach (var point in new[] { new Vector3(-12.2f, 0, -4.0f), new(-2.0f, 0, -4.0f) })
+                foreach (var unused in BenchmarkWalk("ch05-an05-memory-npcs", point)) yield return null;
+            var s1Out = scene.s1DischargeDoor.pivot.parent.position + Vector3.back * 1.15f;
+            foreach (var unused in BenchmarkWalk("ch05-an05-memory-npcs", s1Out)) yield return null;
+            foreach (var frame in BenchmarkCommit("ch05-evac-pair3", ChapterFive.CompleteEvacPairAsync(transaction, 3))) yield return frame;
+            foreach (var frame in BenchmarkCommit("ch05-return-R", ChapterFive.FinishEvacuationReturnAsync(transaction, player.Feet))) yield return frame;
+            player.Teleport(scene.Pad("AP10"));
+
+            foreach (var point in new[]
+            {
+                new Vector3(4f, 0, 33.0f), new(4f, 0, 20.97f), new(7f, 0, 21.17f)
+            })
+                foreach (var unused in BenchmarkWalk("ch05-loc09-pz07", point)) yield return null;
+            if (!scene.RegionReady("LOC09", RegionStreamer.Service))
+                foreach (var frame in BenchmarkLoadRegion("LOC09", RegionStreamer.Service)) yield return frame;
+            foreach (var point in new[] { new Vector3(7f, 0, 32.55f), new(7.4f, 0, 43.2f) })
+                foreach (var unused in BenchmarkWalk("ch05-loc09-pz07", point)) yield return null;
+            foreach (var frame in BenchmarkCommit("ch05-acquire-E05", ChapterFive.AcquireBlueprintsAtLoc09Async(transaction))) yield return frame;
+            foreach (var frame in BenchmarkCommit("ch05-pz07-align", ChapterFive.AttemptPz07OverlayAsync(transaction, true, true))) yield return frame;
+            benchmarkStage = "ch05-loc09-pz07";
+            player.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+            var pz07Until = Time.realtimeSinceStartupAsDouble + 2.5;
+            while (Time.realtimeSinceStartupAsDouble < pz07Until) yield return null;
+
+            foreach (var point in new[]
+            {
+                new Vector3(9.4f, 0, 42.0f), new(12.5f, 0, 42.0f), new(12.5f, 0, 50.4f),
+                new(35.8f, 0, 50.4f), new(35.8f, 0, 42.0f)
+            })
+                foreach (var unused in BenchmarkWalk("ch05-b1-e05b-gallery", point)) yield return null;
+            foreach (var frame in BenchmarkCommit("ch05-observe-E05b", ChapterFive.ObserveSealedWallE05bAsync(transaction))) yield return frame;
+            foreach (var frame in BenchmarkCommit("ch05-verify-H03-G05", ChapterFive.VerifyH03AndOpenG05Async(transaction))) yield return frame;
+            benchmarkStage = "ch05-b1-e05b-gallery";
+            player.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+            var e05bUntil = Time.realtimeSinceStartupAsDouble + 2.0;
+            while (Time.realtimeSinceStartupAsDouble < e05bUntil) yield return null;
+
+            foreach (var point in new[]
+            {
+                new Vector3(35.8f, 0, 50.4f), new(12.5f, 0, 50.4f), new(12.5f, 0, 42.0f),
+                new(7f, 0, 42.0f), new(7f, 0, 32.4f), new(7f, 0, 21.17f),
+                new(4f, 0, 20.97f), new(4f, 0, 34.35f), new(-2.65f, 0, 34.35f),
+                new(-14.7f, 0, 34.35f), new(-14.7f, 0, 36.8f), new(2.4f, 0, 36.8f),
+                new(2.4f, 0, 32.3f), new(5.2f, 0, 32.3f)
+            })
+                foreach (var unused in BenchmarkWalk("ch05-loc08-g05-handoff", point)) yield return null;
+            foreach (var frame in BenchmarkCommit("ch05-cp03-handoff", ChapterFive.CommitCh05HandoffAsync(transaction, player.Feet))) yield return frame;
+            Require(GateService.G05(State) && State.checkpoint == ChapterFive.CheckpointHandoff &&
+                !State.Has("E08") && !State.Happened("G06.opened"),
+                "Benchmark completed CH05 cleanly through G05 and CP03 without violating CH06 boundary");
         }
 
         private IEnumerable<object> BenchmarkCommit(string name, Task<CommitResult> commit)

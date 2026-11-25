@@ -952,19 +952,151 @@ namespace CTCC
             yield return Choose("Tải điểm lưu tự động");
             yield return Until(() => !busy && !ui.IsModal && transaction.OnPad(player.Feet, "AP09"), "B1 reload with actual menu");
             Require(GateService.G04(State) && State.Happened("CH04-T06") && !State.Has("E08"), "B1 autosave state");
-            // Return up B1 -> ER -> Floor 2 LOC06 to complete AN05 CH04->CH05 handoff (keeping CH05/G05/G06/E08 locked!)
+            // Return up B1 -> ER -> Floor 2 LOC06 to read AN05 direction note, then walk to canonical AN05 wheelchair in Khu B!
             yield return WalkWithInput(new Vector3(7, -3.4f, 38.98f));
             yield return WalkWithInput(new Vector3(7, -3.4f, 32.4f));
             yield return WalkWithInput(new Vector3(7, 0f, 21.17f));
             yield return WalkWithInput(new Vector3(4, 0f, 20.97f));
             yield return WalkWithInput(new Vector3(4, 4f, 33.73f));
             yield return WalkWithInput(new Vector3(4, 4f, 45.7f));
-            yield return UseFrom("AN05", new Vector3(4.25f, 4.015f, 46.10f));
-            yield return Until(() => !busy && State.Happened("CH04-AN05.reached") && ui.IsModal, "AN05 handoff reached");
-            yield return Choose("Tiếp tục ở tầng 2");
-            Require(State.chapter == "CH04" && !State.Has("E08") && !State.Happened("G05.opened") && !State.Happened("G06.opened"),
-                "AN05 handoff preserves M3.2 CH05/G05/G06/E08 lock");
+            yield return AimAndUseHere("AN05_HANDOFF_NOTE");
+            yield return Until(() => !busy && State.Happened("CH04-AN05.reached") && ui.IsModal, "AN05 direction note reached");
+            yield return Choose("Ra sảnh Khu B");
+            yield return Until(() => !ui.IsModal, "closed AN05 direction note");
             verification.Add("INPUT CH03–04 PASS: W capsule on three flights, PZ03, C12, R/M, CH03 radio distraction, PZ04 Route A + Route B on live Orderly, duty papers, circuit controls, H05, dialogue guard, B1 autosave menu, and AN05 handoff.");
+
+            // ==================== CH05 FULL PLAYER INPUT WALKTHROUGH (B01–B08, ZERO NORMAL-ROUTE TELEPORT!) ====================
+            yield return WalkWithInput(new Vector3(4f, 4f, 37.0f));
+            yield return WalkWithInput(new Vector3(4f, 4f, 33.0f));
+            yield return WalkWithInput(new Vector3(0.85f, 4f, 33.0f));
+            yield return AimAndUseHere("AN05");
+            yield return Until(() => !busy && State.chapter == "CH05" && State.checkpoint == ChapterFive.CheckpointEntry && ui.IsModal,
+                "CH05-CP01 committed at AN05 wheelchair");
+            yield return Choose("Bước vào ký ức sơ tán");
+            yield return Until(() => !busy && !ui.IsModal && State.layer == Reality.M && State.Happened(ChapterFive.EvEntry),
+                "CH05 entered Layer M at AN05");
+
+            // Pair 1 (2/6) -> live Escape/Load mid-evacuation test (CH05-Q02!)
+            yield return WalkWithInput(new Vector3(0.85f, 4f, 36.9f));
+            yield return WalkWithInput(new Vector3(-1.4f, 4f, 36.9f));
+            yield return AimAndUseHere("CH05_M_PAIR1");
+            yield return Until(() => ui.IsModal, "CH05 Pair 1 modal");
+            yield return Choose("Mở chốt cửa Khu B");
+            yield return Until(() => !busy && !savingDialogue && !ui.IsModal &&
+                ChapterFive.RescuedCount(State) == 2 && State.Happened(ChapterFive.EvPair1),
+                "CH05 Pair 1 completed (2/6)");
+            yield return null;
+            yield return null;
+            yield return Tap(Key.Escape);
+            yield return Choose("Tải điểm lưu tự động");
+            yield return Until(() => !busy && !ui.IsModal && State.layer == Reality.M &&
+                ChapterFive.RescuedCount(State) == 2 && transaction.OnPad(player.Feet, "AP10"),
+                "CH05-Q02 live mid-evacuation autosave reload restores Layer M at AP10 with 2/6");
+
+            // Pair 2 (4/6): Walk S1 Ward bridge + S1 West gallery -> segment reset -> call colleague -> complete Pair 2
+            yield return WalkWithInput(new Vector3(0.85f, 4f, 36.9f));
+            yield return WalkWithInput(new Vector3(-12.2f, 4f, 37.0f));
+            yield return WalkWithInput(new Vector3(-12.2f, 4f, 22.8f));
+            yield return AimAndUseHere("CH05_M_PAIR2");
+            yield return Until(() => ui.IsModal, "CH05 Pair 2 modal");
+            yield return Choose("2. Dẫn Nhóm 2");
+            yield return Until(() => ui.IsModal && !State.Happened(ChapterFive.EvPair2), "CH05 Pair 2 obstacle segment reset");
+            yield return Choose("1. Gọi đồng nghiệp");
+            yield return Choose("2. Dẫn Nhóm 2");
+            yield return Until(() => !busy && !ui.IsModal && ChapterFive.RescuedCount(State) == 4 && State.Happened(ChapterFive.EvPair2),
+                "CH05 Pair 2 completed (4/6)");
+
+            // Pair 3 (6/6): Walk down S1 stairs -> straight through OPEN S1 courtyard discharge door -> Assembly -> B05 -> Return R!
+            yield return WalkWithInput(new Vector3(-12.2f, 4f, -4.0f));
+            Vector3 s1Threshold = scene.s1DischargeDoor.pivot.parent.position;
+            yield return WalkWithInput(new Vector3(s1Threshold.x, 0f, -4.0f));
+            yield return WalkWithInput(new Vector3(s1Threshold.x, 0f, s1Threshold.z - 0.35f));
+            yield return AimAndUseHere("CH05_M_PAIR3_ASSEMBLY");
+            yield return Until(() => ui.IsModal, "CH05 Pair 3 assembly modal");
+            yield return Choose("Đưa Nhóm 3 ra điểm tập kết");
+            yield return Until(() => !busy && ui.IsModal && ChapterFive.RescuedCount(State) == 6 && State.Happened(ChapterFive.EvPair3),
+                "CH05 Pair 3 completed (6/6) & Vĩnh B05 praise shown");
+            yield return Choose("Trở về xe bệnh nhân AN05");
+            yield return Until(() => !busy && !ui.IsModal && State.layer == Reality.R &&
+                State.Happened(ChapterFive.EvReturnR) && transaction.OnPad(player.Feet, "AP10"),
+                "CH05 T05 returned to R at AP10 (CH05-CP02)");
+            Require(scene.s1DischargeSalvage != null && scene.s1DischargeSalvage.activeInHierarchy,
+                "CH05 return to R restored S1 courtyard salvage barrier");
+
+            // B06–B07: Walk Floor 2 -> S3 -> LOC04 -> S2 -> LOC09 -> Optional Valve -> PZ07 (2 strikes + align) -> LOC11 -> E05b -> H03/G05
+            yield return WalkWithInput(new Vector3(4f, 4f, 33.0f));
+            yield return WalkWithInput(new Vector3(4f, 0f, 20.97f));
+            yield return WalkWithInput(new Vector3(7f, 0f, 21.17f));
+            yield return Until(() => scene.RegionReady("LOC09", RegionStreamer.Service), "LOC09 preloaded before S2 descent");
+            yield return WalkWithInput(new Vector3(7f, -3.4f, 32.4f));
+            yield return WalkWithInput(new Vector3(6.0f, -3.4f, 35.6f));
+            yield return AimAndUseHere("LOC09_VALVE");
+            yield return Until(() => !busy && ui.IsModal && State.Happened(ChapterFive.FlagValveSabotage), "CH05 optional valve observed");
+            yield return Choose("Ghi nhận nghi vấn");
+            yield return Until(() => !ui.IsModal, "closed LOC09 valve modal");
+            yield return WalkWithInput(new Vector3(6.0f, -3.4f, 43.3f));
+            yield return WalkWithInput(new Vector3(7.4f, -3.4f, 43.3f));
+            yield return AimAndUseHere("CH05_BLUEPRINTS");
+            yield return Until(() => !busy && ui.IsModal && State.Has(EvidenceRegistry.AsBuilt2004), "CH05 E05 blueprints acquired");
+            yield return Choose("Căn chồng hai bản vẽ");
+            yield return Choose("Kiểm tra chồng bản vẽ");
+            yield return Until(() => !busy && ui.IsModal && PuzzleService.FailedAttempts(State, ChapterFive.PuzzleOverlay) >= 1,
+                "CH05 PZ07 strike 1 recorded");
+            yield return Choose("Kiểm tra chồng bản vẽ");
+            yield return Until(() => !busy && ui.IsModal && PuzzleService.ShouldShowFieldHint(State, ChapterFive.PuzzleOverlay),
+                "CH05 PZ07 2-strike hint active");
+            yield return Choose("Điều chỉnh Mốc 1");
+            yield return Choose("Điều chỉnh Mốc 2");
+            yield return Choose("Kiểm tra chồng bản vẽ");
+            yield return Until(() => !busy && State.Happened(ChapterFive.FlagOverlayAligned), "CH05 PZ07 overlay aligned");
+            Require(!GateService.H03(State) && !GateService.G05(State),
+                "CH05-Q03 Input QA: aligned PZ07 overlay alone keeps H03 and G05 closed");
+            yield return Choose("Đóng");
+            yield return Until(() => !ui.IsModal, "closed PZ07 overlay modal");
+
+            // Walk LOC09 -> LOC11 -> North door -> Perimeter gallery -> East sunken pit -> E05b -> Verify H03 & Open G05!
+            yield return WalkWithInput(new Vector3(9.6f, -3.4f, 42.0f));
+            yield return WalkWithInput(new Vector3(12.5f, -3.4f, 42.0f));
+            yield return WalkWithInput(new Vector3(12.5f, -3.4f, 50.4f));
+            yield return WalkWithInput(new Vector3(35.8f, -3.4f, 50.4f));
+            yield return WalkWithInput(new Vector3(35.8f, -3.4f, 42.0f));
+            yield return AimAndUseHere("E05B_SEALED_DOOR");
+            yield return Until(() => !busy && ui.IsModal && State.Has(EvidenceRegistry.SealedWallPhoto), "CH05 physical E05b observed");
+            yield return Choose("★ Xác minh H03");
+            yield return Until(() => !busy && !ui.IsModal && GateService.H03(State) && GateService.G05(State),
+                "CH05 H03 verified (E05 + E05b) and G05 opened");
+
+            // B08: Return B1 -> S2 -> LOC04 -> S3 -> LOC05 -> S1 Archive stairs -> LOC07 (Hunter + Radio) -> LOC08 (AP11) -> CH05-CP03!
+            yield return WalkWithInput(new Vector3(35.8f, -3.4f, 50.4f));
+            yield return WalkWithInput(new Vector3(12.5f, -3.4f, 50.4f));
+            yield return WalkWithInput(new Vector3(12.5f, -3.4f, 42.0f));
+            yield return WalkWithInput(new Vector3(7f, -3.4f, 42.0f));
+            yield return WalkWithInput(new Vector3(7f, -3.4f, 32.4f));
+            yield return WalkWithInput(new Vector3(7f, 0f, 21.17f));
+            yield return WalkWithInput(new Vector3(4f, 0f, 20.97f));
+            yield return WalkWithInput(new Vector3(4f, 4f, 34.35f));
+            yield return WalkWithInput(new Vector3(-2.65f, 4f, 34.35f));
+            yield return WalkWithInput(new Vector3(-14.7f, 8f, 34.35f));
+            yield return WalkWithInput(new Vector3(-14.7f, 8f, 36.8f));
+            yield return WalkWithInput(new Vector3(-0.9f, 8f, 36.8f));
+            yield return WalkWithInput(new Vector3(-0.9f, 8f, 35.85f));
+            Require(orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Hunter, "CH05-L3 Hunter active on Floor 3 post-G05");
+            yield return AimAndUseHere("RADIO_LOC07");
+            yield return Until(() => orderlyAi.CurrentState == OrderlyState.Investigate, "CH05-L3 radio distraction pulls Hunter");
+            // Circle south past AN03 & around the south end of the freestanding shelf (1.1, 34) while Hunter investigates north radio!
+            yield return WalkWithInput(new Vector3(-0.6f, 8f, 32.2f));
+            yield return WalkWithInput(new Vector3(-0.6f, 8f, 30.8f));
+            yield return WalkWithInput(new Vector3(2.4f, 8f, 30.8f));
+            yield return WalkWithInput(new Vector3(2.4f, 8f, 32.3f));
+            yield return WalkWithInput(new Vector3(5.2f, 8f, 32.3f));
+            yield return AimAndUseHere("CH05_HANDOFF");
+            yield return Until(() => !busy && ui.IsModal && State.Happened(ChapterFive.EvHandoff) &&
+                State.checkpoint == ChapterFive.CheckpointHandoff, "CH05-CP03 handoff committed at LOC08");
+            yield return Choose("Ở lại kiểm tra tầng 3");
+            Require(GateService.G05(State) && !State.Has("E01") && !State.Has("E06") && !State.Has("E10b") &&
+                !State.Has("E08") && !State.Happened("G06.opened"),
+                "CH05 full input walkthrough stops cleanly at CH05->CH06 boundary");
+            verification.Add("INPUT CH05 PASS: zero-teleport W-walk B01-B08, AN05 3-pair 6/6 evacuation via open S1 courtyard discharge, live Escape mid-evac M reload, R S1 salvage restoration, DEC-V32-03 valve, PZ07 2-strike hint + dual E05/E05b H03/G05 guard, Floor 3 Hunter radio distraction, and unlocked LOC08 CH05-CP03 handoff.");
         }
 
         private IEnumerator WalkWithInput(Vector3 destination)

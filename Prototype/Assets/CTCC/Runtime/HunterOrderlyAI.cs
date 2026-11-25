@@ -102,6 +102,16 @@ namespace CTCC
             new(8.8f, -3.4f, 42.8f)
         };
 
+        // CH05 B1 Gatekeeper round: stays strictly clear of AP08, CH05_BLUEPRINTS (z=44.65),
+        // LOC09_VALVE (x=5.08), and the LOC11 north door (x=12.5, z=45.0) to the E05b gallery.
+        private static readonly Vector3[] Ch05ServiceRound =
+        {
+            new(13.2f, -3.4f, 40.2f),
+            new(11.8f, -3.4f, 41.2f),
+            new(8.8f, -3.4f, 41.4f),
+            new(8.8f, -3.4f, 36.8f)
+        };
+
         private static readonly Vector3[] Ch03FallbackRound =
         {
             new(2.6f, 8.0f, 31.0f),
@@ -1087,7 +1097,8 @@ namespace CTCC
         private int GetPatrolPointCount(AIRole role, string floorKey)
         {
             if (role == AIRole.Orderly) return ActiveOrderlyRoute.Length;
-            if (floorKey is ("CH04-B1" or "CH05-B1")) return ServiceRound.Length;
+            if (floorKey == "CH04-B1") return ServiceRound.Length;
+            if (floorKey == "CH05-B1") return Ch05ServiceRound.Length;
             if (scene?.Ch03PatrolWaypoints != null && scene.Ch03PatrolWaypoints.Length > 0)
                 return scene.Ch03PatrolWaypoints.Length;
             return Ch03FallbackRound.Length;
@@ -1103,8 +1114,10 @@ namespace CTCC
                 var route = ActiveOrderlyRoute;
                 return route[safeIdx % route.Length].Position;
             }
-            if (floorKey is ("CH04-B1" or "CH05-B1"))
+            if (floorKey == "CH04-B1")
                 return ServiceRound[safeIdx % ServiceRound.Length];
+            if (floorKey == "CH05-B1")
+                return Ch05ServiceRound[safeIdx % Ch05ServiceRound.Length];
             if (scene?.Ch03PatrolWaypoints != null && scene.Ch03PatrolWaypoints.Length > 0)
             {
                 var t = scene.Ch03PatrolWaypoints[safeIdx % scene.Ch03PatrolWaypoints.Length];

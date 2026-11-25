@@ -490,7 +490,7 @@ namespace CTCC.Editor
             CapsuleTarget("CH05_M_PAIR2", "Nhóm 2 (2 bệnh nhân) · Gọi đồng nghiệp & vượt vật cản hành lang S1",
                 new Vector3(-12.2f, WardLevel + 1.05f, 21.5f), new Vector3(1.45f, 1.35f, 1.35f), ch05Mem);
             CapsuleTarget("CH05_M_EXIT", "Xe bệnh nhân AN05 · Trạng thái sơ tán / Tái hiện cố định / Thoát M",
-                new Vector3(-0.65f, WardLevel + 1.05f, 35.2f), new Vector3(1.05f, 1.25f, 1.15f), ch05Mem);
+                new Vector3(-0.18f, WardLevel + 1.08f, 32.85f), new Vector3(1.18f, 1.25f, 0.98f), ch05Mem);
             ch05Mem.gameObject.SetActive(false);
 
             // CH03 Interactive Targets (LOC05 Nurse Station, LOC07 Archive & Meeting Loop, LOC06 Duty Corridor)
