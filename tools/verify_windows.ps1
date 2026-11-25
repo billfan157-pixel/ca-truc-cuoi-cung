@@ -3,6 +3,7 @@ param(
     [Parameter(Mandatory=$true)][string]$Evidence,
     [string]$RecordDir = "",
     [switch]$PlayerInput,
+    [switch]$S1Only,
     [ValidateSet('D3D12','D3D11')][string]$GraphicsApi = 'D3D12',
     [ValidateRange(30,600)][int]$TimeoutSeconds = 240,
     [ValidateSet('module-failure','keyboard-failure','visual-failure','escape-premature','char-mesh','char-track','char-interruption','invalid-reasoning','broken-progression')][string]$ProbeFailure,
@@ -12,6 +13,7 @@ param(
 $ErrorActionPreference='Stop'
 . "$PSScriptRoot/focus_m1p_player.ps1"
 if ($PlayerInput -and $ProbeFailure) { throw 'Failure probes belong to the module suite.' }
+if ($S1Only -and !$PlayerInput) { throw 'S1Only requires PlayerInput.' }
 $ctccExe=(Resolve-Path -LiteralPath $Executable).Path
 $ctccEvidence=[System.IO.Path]::GetFullPath($Evidence)
 if(Test-Path -LiteralPath (Join-Path $ctccEvidence 'gameplay.txt')) {
@@ -23,6 +25,7 @@ $qaArgs = if ($PlayerInput) { "-ctcc-input-qa `"$ctccEvidence`" -ctcc-save `"$ct
 $apiArg = "-force-" + $GraphicsApi.ToLowerInvariant()
 $ctccArgs="$apiArg -screen-fullscreen 0 -screen-width 1920 -screen-height 1080 -ctcc-quality $Quality $qaArgs -logFile `"$ctccLog`""
 if ($ProbeFailure) { $ctccArgs += " -ctcc-qa-probe $ProbeFailure" }
+if ($S1Only) { $ctccArgs += ' -ctcc-input-s1-only true' }
 if($RecordDir -ne "") {
     $recFull = [System.IO.Path]::GetFullPath($RecordDir)
     New-Item -ItemType Directory -Path $recFull -Force | Out-Null
@@ -69,5 +72,8 @@ foreach($file in $required) {
 }
 if (!(Select-String -LiteralPath (Join-Path $ctccEvidence 'gameplay.txt') -Quiet -Pattern '^RESULT=PASS$')) {
     throw 'No passing QA verdict in gameplay.txt.'
+}
+if ($S1Only -and !(Select-String -LiteralPath (Join-Path $ctccEvidence 'gameplay.txt') -Quiet -SimpleMatch 'V33-Q05 INPUT S1 PASS')) {
+    throw 'Targeted Player Input QA did not complete the S1 round trip.'
 }
 Get-Content -LiteralPath (Join-Path $ctccEvidence 'gameplay.txt')

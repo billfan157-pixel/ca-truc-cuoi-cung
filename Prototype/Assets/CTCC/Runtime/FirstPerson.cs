@@ -6,6 +6,9 @@ namespace CTCC
     [RequireComponent(typeof(CharacterController))]
     public sealed class FirstPerson : MonoBehaviour
     {
+        internal const float WalkSpeed = 2.2f;
+        internal static float MovementDeltaTime => Mathf.Min(Time.deltaTime, 0.045f);
+
         private CharacterController capsule;
         private Camera eye;
         private Transform torchPivot;
@@ -203,7 +206,7 @@ namespace CTCC
                 return;
             }
 
-            float dt = Mathf.Min(Time.deltaTime, 0.045f);
+            float dt = MovementDeltaTime;
             float sens = settings.mouseSensitivity > 0.05f ? settings.mouseSensitivity : 1f;
             Vector2 lookDelta = Vector2.zero;
             if (!LookSuppressed && m != null && Cursor.lockState == CursorLockMode.Locked)
@@ -233,7 +236,7 @@ namespace CTCC
             capsule.height = Mathf.MoveTowards(capsule.height, height, dt * 3.6f);
             capsule.center = Vector3.up * (capsule.height * 0.5f);
 
-            float speed = crouch ? 1.2f : running ? 4.2f : 2.2f;
+            float speed = crouch ? 1.2f : running ? 4.2f : WalkSpeed;
             Vector3 desired = transform.TransformDirection(Vector3.ClampMagnitude(new Vector3(x, 0f, z), 1f) * speed);
             // Weighty grounded acceleration & deceleration for realistic first-person horror feel
             float accel = desired.sqrMagnitude > 0.01f ? 14f : 11f;

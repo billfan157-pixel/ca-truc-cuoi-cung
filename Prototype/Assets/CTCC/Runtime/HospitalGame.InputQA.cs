@@ -33,6 +33,12 @@ namespace CTCC
             {
                 yield return null;
                 yield return null;
+                if (Argument("-ctcc-input-s1-only") == "true")
+                {
+                    Require(scene.IsAdditiveMode, "targeted S1 QA requires additive campus scenes");
+                    yield return InputVisit(FormStatus.Unverified, s1Only: true);
+                    yield break;
+                }
                 string branchFilter = Argument("-ctcc-input-branch");
                 var branches = new[] { FormStatus.Affirmed, FormStatus.Unverified, FormStatus.Refuted };
                 bool Selected(FormStatus branch) =>
@@ -54,7 +60,7 @@ namespace CTCC
             }
         }
 
-        private IEnumerator InputVisit(FormStatus branch)
+        private IEnumerator InputVisit(FormStatus branch, bool s1Only = false)
         {
             bool restart = transaction.Inspect(SaveSlot.Auto) is SaveRead.Valid or SaveRead.Backup;
             yield return Choose("Ca trực mới");
@@ -714,8 +720,9 @@ namespace CTCC
             }
 
             if (branch == FormStatus.Unverified && scene.IsAdditiveMode &&
-                !Environment.GetCommandLineArgs().Contains("-ctcc-ch01-ch02-only"))
+                (s1Only || !Environment.GetCommandLineArgs().Contains("-ctcc-ch01-ch02-only")))
                 yield return InputS1BeforeG02();
+            if (s1Only) yield break;
             if (branch != FormStatus.Refuted) yield return InputPhysicalCase(branch == FormStatus.Unverified);
             player.Teleport(scene.Pad("AP02"));
             yield return Tap(Key.Escape);
@@ -799,7 +806,8 @@ namespace CTCC
             yield return WalkWithInput(dischargeLanding);
 
             Vector3[] route = {
-                new(-11.9f, 4f, -4f), new(-12.3f, 4f, 37.05f), new(-2.5f, 4f, 37.05f),
+                new(-11.9f, 4f, -4f), new(-12.3f, 4f, 9.5f), new(-12.3f, 4f, 23f),
+                new(-12.3f, 4f, 37.05f), new(-2.5f, 4f, 37.05f),
                 new(-2.65f, 4f, 34.35f), new(-14.7f, 8f, 34.35f), new(-14.7f, 8f, 36.8f),
                 new(-2.4f, 8f, 36.8f)
             };
@@ -906,29 +914,77 @@ namespace CTCC
 
         private IEnumerator WalkWithInput(Vector3 destination)
         {
-            float deadline = Time.unscaledTime + 16f;
+            const float arrivalRadius = .20f;
+            const float stuckTime = 2f;
+            var start = player.Feet;
+            float initialDistance = Vector2.Distance(new Vector2(start.x, start.z), new Vector2(destination.x, destination.z));
+            // The controller clamps its movement delta on slow frames. Budget the same time for travel,
+            // while retaining a separate real-time ceiling if input or frame updates stop progressing.
+            float movementLimit = Mathf.Max(4f, initialDistance / (FirstPerson.WalkSpeed * .75f) + 2f);
+            float wallLimit = Mathf.Clamp(movementLimit * 2.5f, 10f, 90f);
+            double startedAt = Time.realtimeSinceStartupAsDouble;
+            float movementTime = 0f, lastProgressAt = 0f, progressDistance = initialDistance;
+            var capsule = player.GetComponent<CharacterController>();
             Key forward = State.settings.alternateBindings ? Key.UpArrow : Key.W;
-            InputSystem.QueueStateEvent(qaKeys, new KeyboardState(forward));
-            Vector3 offset;
-            do
+            Vector3 direction = destination - start;
+            direction.y = 0f;
+            float remaining = initialDistance;
+            bool arrived = remaining < arrivalRadius;
+            string exitReason = "arrived";
+            try
             {
-                offset = destination - player.Feet;
-                offset.y = 0;
-                if (offset.sqrMagnitude < .20f * .20f) break;
-                player.transform.rotation = Quaternion.LookRotation(offset);
-                qaKeys.MakeCurrent();
-                yield return null;
-            } while (Time.unscaledTime < deadline);
-            InputSystem.QueueStateEvent(qaKeys, new KeyboardState());
+                if (!arrived) InputSystem.QueueStateEvent(qaKeys, new KeyboardState(forward));
+                while (!arrived)
+                {
+                    if (Time.realtimeSinceStartupAsDouble - startedAt >= wallLimit) { exitReason = "wall-time limit"; break; }
+                    if (movementTime >= movementLimit) { exitReason = "movement-time limit"; break; }
+                    if (movementTime - lastProgressAt >= stuckTime) { exitReason = "no forward progress"; break; }
+
+                    player.transform.rotation = Quaternion.LookRotation(direction);
+                    qaKeys.MakeCurrent();
+                    yield return null;
+                    movementTime += FirstPerson.MovementDeltaTime;
+                    direction = destination - player.Feet;
+                    direction.y = 0f;
+                    remaining = direction.magnitude;
+                    arrived = remaining < arrivalRadius;
+                    if (progressDistance - remaining >= .12f)
+                    {
+                        progressDistance = remaining;
+                        lastProgressAt = movementTime;
+                    }
+                }
+            }
+            finally { InputSystem.QueueStateEvent(qaKeys, new KeyboardState()); }
+
+            Vector3 feet = player.Feet;
+            Vector3 velocity = capsule.velocity;
+            bool grounded = capsule.isGrounded;
+            var collision = capsule.collisionFlags;
+            bool pressed = qaKeys[forward].isPressed;
+            float lastDelta = Time.deltaTime, lastMovementDelta = FirstPerson.MovementDeltaTime;
+            double elapsed = Time.realtimeSinceStartupAsDouble - startedAt;
             yield return Until(() => !qaKeys[forward].isPressed, "walk release");
+            if (arrived && Mathf.Abs(player.Feet.y - destination.y) < .32f) yield break;
+
+            Vector3 final = player.Feet;
             string blocker = "none";
-            if (offset.sqrMagnitude >= .20f * .20f &&
-                Physics.CapsuleCast(player.Feet + Vector3.up * .46f, player.Feet + Vector3.up * 1.40f,
-                    HospitalScene.Radius, offset.normalized, out var hit, .50f,
+            if (remaining >= arrivalRadius &&
+                Physics.CapsuleCast(feet + Vector3.up * .46f, feet + Vector3.up * 1.40f,
+                    HospitalScene.Radius, direction.normalized, out var hit, .50f,
                     HospitalScene.SolidMask, QueryTriggerInteraction.Ignore))
                 blocker = hit.collider.name;
-            Require(offset.sqrMagnitude < .20f * .20f && Mathf.Abs(player.Feet.y - destination.y) < .32f,
-                $"Input route to {destination} ended at {player.Feet}; blocker={blocker}, controls={player.CanPlay}, modal={ui.IsModal}");
+            string floor = Physics.Raycast(feet + Vector3.up * .30f, Vector3.down, out var ground, .65f,
+                HospitalScene.SolidMask, QueryTriggerInteraction.Ignore) ? ground.collider.name : "none";
+            string zone = scene.ResolveZoneAt(feet)?.zoneId ?? "none";
+            if (arrived) exitReason = "height outside tolerance";
+            Require(false, $"Input route start={start}, destination={destination}, end={feet}, afterRelease={final}; " +
+                $"reason={exitReason}, initial={initialDistance:F2}m, remaining={remaining:F2}m, wall={elapsed:F2}/{wallLimit:F2}s, " +
+                $"movement={movementTime:F2}/{movementLimit:F2}s, delta={lastDelta:F3}s, movementDelta={lastMovementDelta:F3}s, timeScale={Time.timeScale:F2}, " +
+                $"velocity={velocity}, grounded={grounded}, collision={collision}, blocker={blocker}, floor={floor}, " +
+                $"zone={zone}, streaming={streaming}, LOC05={scene.HasZone("LOC05")}, LOC05Ready={scene.RegionReady("LOC05", RegionStreamer.Upper)}, " +
+                $"controls={player.CanPlay}, modal={ui.IsModal}, lookSuppressed={player.LookSuppressed}, externalCamera={player.ExternalCameraControl}, " +
+                $"key={forward}, pressed={pressed}, focused={Application.isFocused}");
         }
 
         private IEnumerator LookForWardConsequence(FormStatus branch)
