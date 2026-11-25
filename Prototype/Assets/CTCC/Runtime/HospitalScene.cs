@@ -718,10 +718,14 @@ namespace CTCC
             }
             if (region.staffChair == null) return;
             var chair = region.staffChair;
+            var closedPos = chair.localPosition;
+            if (closedPos.x > 0.87f) closedPos.x = 0.87f;
+            var openOffset = new Vector3(0.81f - closedPos.x, 0f, -0.17f);
+            chair.localPosition = closedPos;
             var seat = AddTarget(chair, "CHAIR-STAFF", Ch01FieldObjects.StaffSeat, chair.position + new Vector3(0, .52f, 0),
                 new Vector3(.46f, .48f, .44f));
             seat.visibilitySurface = chair.GetComponentInChildren<Collider>();
-            interactables?.ConfigureDrawer("CHAIR-STAFF", chair, chair.localPosition, new Vector3(-.14f, 0f, -.17f), -17f);
+            interactables?.ConfigureDrawer("CHAIR-STAFF", chair, closedPos, openOffset, -17f);
         }
 
         private SceneTarget receptionLedgerTarget, clipboardTarget;

@@ -34,7 +34,7 @@ namespace CTCC.Editor
         {
             var chair = new GameObject("Ghế gỗ bàn điều dưỡng").transform;
             chair.SetParent(parent, false);
-            chair.localPosition = new Vector3(.95f, 0f, 2.83f);
+            chair.localPosition = new Vector3(.87f, 0f, 2.83f);
             chair.localRotation = Quaternion.Euler(0, 257f, 0);
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(Models + "CTCC_PROP_ArchiveChair.fbx");
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, chair);
