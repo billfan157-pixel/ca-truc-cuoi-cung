@@ -1034,15 +1034,21 @@ namespace CTCC
             yield return WalkWithInput(new Vector3(7f, 0f, 21.17f));
             yield return Until(() => scene.RegionReady("LOC09", RegionStreamer.Service), "LOC09 preloaded before S2 descent");
             yield return WalkWithInput(new Vector3(7f, -3.4f, 32.4f));
-            // Wait safely on AP08 safe pad until CH05-B1 Hunter is deep inside LOC11 before inspecting LOC09 valve & blueprints
-            yield return Until(() => orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Hunter &&
-                orderlyAi.ActiveActor != null && orderlyAi.ActiveActor.transform.position.x > 12.5f,
-                "CH05-B1 Hunter occluded in LOC11 while waiting on AP08", 30f);
             yield return WalkWithInput(new Vector3(6.0f, -3.4f, 35.6f));
             yield return AimAndUseHere("LOC09_VALVE");
             yield return Until(() => !busy && ui.IsModal && State.Happened(ChapterFive.FlagValveSabotage), "CH05 optional valve observed");
             yield return Choose("Ghi nhận nghi vấn");
             yield return Until(() => !ui.IsModal, "closed LOC09 valve modal");
+
+            // Step into LOC10 morgue refuge (x < 4.45) and let CH05-B1 Hunter sweep south (z < 38.8) so both PZ07 & LOC11 are clear behind its back!
+            yield return WalkWithInput(new Vector3(6.0f, -3.4f, 39.0f));
+            yield return WalkWithInput(new Vector3(3.6f, -3.4f, 39.0f));
+            yield return Until(() => !orderlyAi.IsActive ||
+                (orderlyAi.CurrentState == OrderlyState.Patrol &&
+                 orderlyAi.ActiveActor.transform.position.x < 9.6f &&
+                 orderlyAi.ActiveActor.transform.position.z < 38.8f),
+                "CH05-B1 Hunter sweeps south LOC09 leaving blueprints and LOC11 open", 35f);
+            yield return WalkWithInput(new Vector3(6.0f, -3.4f, 39.0f));
             yield return WalkWithInput(new Vector3(6.0f, -3.4f, 43.3f));
             yield return WalkWithInput(new Vector3(7.4f, -3.4f, 43.3f));
             yield return AimAndUseHere("CH05_BLUEPRINTS");
@@ -1063,16 +1069,7 @@ namespace CTCC
             yield return Choose("Đóng");
             yield return Until(() => !ui.IsModal, "closed PZ07 overlay modal");
 
-            // Use LOC10 morgue doorway refuge (x < 4.45) to let CH05-B1 Hunter sweep south (z < 39.2), then slip behind into LOC11 -> E05b gallery!
-            yield return WalkWithInput(new Vector3(6.0f, -3.4f, 39.0f));
-            yield return WalkWithInput(new Vector3(3.6f, -3.4f, 39.0f));
-            yield return Until(() => !orderlyAi.IsActive ||
-                (orderlyAi.CurrentState == OrderlyState.Patrol &&
-                 orderlyAi.ActiveActor.transform.position.x < 9.6f &&
-                 orderlyAi.ActiveActor.transform.position.z < 39.2f),
-                "CH05-B1 Hunter sweeps south LOC09 leaving LOC11 north passage open", 30f);
-            yield return WalkWithInput(new Vector3(6.0f, -3.4f, 39.0f));
-            yield return WalkWithInput(new Vector3(6.5f, -3.4f, 42.2f));
+            // Slip east through LOC11 north doorway into E05b perimeter gallery while Hunter is south in LOC09!
             yield return WalkWithInput(new Vector3(10.5f, -3.4f, 42.2f));
             yield return WalkWithInput(new Vector3(12.5f, -3.4f, 42.2f));
             yield return WalkWithInput(new Vector3(12.5f, -3.4f, 50.4f));
