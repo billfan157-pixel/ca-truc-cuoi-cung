@@ -1,4 +1,4 @@
-# CTCC — M3.2 Implementation, Verification & Acceptance Dossier
+﻿# CTCC — M3.2 Implementation, Verification & Acceptance Dossier
 
 **Ngày lập:** 25/11/2026  
 **Nhánh làm việc:** `feat/m32-ai-ch03-ch04` (tách từ `main` `3c0b955de95bcf39853c30e2669b2bac24ad969e`, không force-push hay ghi đè `main`)  
@@ -167,7 +167,7 @@
 | `ch03-ch04-pz04-dual-route-gameplay.mp4` | `13.912.793` | `0b551aeb3e158a366df241bb9bc45ce5da24422c5287d5ec7d3d7bfae9986e0c` |
 | `build-identity.txt` | `1.122` | `d364804ca30bb9b111977d94837fedf2804ed780fe3b44a8046e8883fe8bb7f4` |
 | `performance-summary-120hz.json` | `44.667` | `b17a9e3a39c04e9e142169a1e47804766e14861514eac952c268971f8b55bcd7` |
-| `run-m32-presentmon-60hz.ps1` | `4.111` | `461ced3571b9966c7ef4dff0e2c46733ef8a4c4a8949431a8101fb72aa1e1683` |
+| `run-m32-presentmon-60hz.ps1` | `7410` | `7519ca08fc22e25751ca1aa0181ec4202ab20e87642f5668aa116a0cea81e014` |
 
 **9 Scene SHA-256 (tái tạo sạch, khớp 100% với commit `c90a2eb`, `prototype_diff=` rỗng):**
 - `AnSinh_Bootstrap.unity`: `612619dc389b876b4903348b7435ecba16d00054ccbe640b66bcce35650398c0`
@@ -184,7 +184,7 @@
 
 ## 8. Known Issues & Các Cổng Cần Chủ Dự Án Can Thiệp
 
-1. **Formal 60 Hz Elevated PresentMon Capture (Quyền OS & cấu hình màn hình):** Chủ dự án chuyển màn hình sang `60 Hz`, giữ desktop sáng ở foreground và chạy PowerShell Administrator:
+1. **Formal 60 Hz Elevated PresentMon Capture (Quyền OS & cấu hình màn hình):** Chủ dự án chuyển màn hình sang `60 Hz`, giữ desktop sáng ở foreground và chạy một lệnh PowerShell thường trên desktop `Default` (tự chuyển 120→60 Hz rồi khôi phục):
    ```powershell
    & "output\m3.2\m32-release-c90a2eb\run-m32-presentmon-60hz.ps1"
    ```
