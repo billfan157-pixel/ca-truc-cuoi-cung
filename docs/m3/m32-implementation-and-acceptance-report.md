@@ -3,6 +3,8 @@
 **Ngày lập:** 25/11/2026  
 **Nhánh làm việc:** `feat/m32-ai-ch03-ch04` (tách từ `main` `3c0b955de95bcf39853c30e2669b2bac24ad969e`, không force-push hay ghi đè `main`)  
 **Cơ sở ngoại lệ sản xuất:** Phương án 2 — Ngoại lệ sản xuất có kiểm soát (chủ dự án phê duyệt ngày 25/11/2026 cho phép triển khai Phase B–F trên nhánh riêng để đạt **M3.2 Technical Verified**, đồng thời giữ nguyên M2 OPEN, `TASK010`/`TASK026–028` = `Human Review Pending`, Art Lock OPEN, M3 Alpha OPEN, `TASK013`/CH05–CH08 khóa).  
+**Quyết định tích hợp 25/11/2026:** Chủ dự án cho phép đưa M3.2 lên `main` trong cùng đợt với Core dự thảo NPR-01 khi các review người thật còn chờ. Phạm vi quyết định là tích hợp mã và tài liệu. M2, art lock và M3 Alpha vẫn mở. CH05–CH08 tiếp tục ngoài phạm vi triển khai M3.2.
+
 **Ứng viên kỹ thuật M3.2:** `c90a2eb5fe62521839c3be84a0e59e2e56b41410` (`prototype_diff=` rỗng, `development=False`, Unity `6000.3.28f1`, URP `17.3.0` Forward+, D3D12, Windows x64, Save Schema v7)  
 **Tài liệu kiểm toán Phase A:** [m32-phase-a-audit-and-test-plan.md](m32-phase-a-audit-and-test-plan.md)
 
@@ -12,7 +14,7 @@
 
 | Cổng / Trạng thái | Trạng thái thực tế | Ghi chú trung thực |
 | --- | --- | --- |
-| **Core v3.3.1 Design Lock** | **10/10 SHA-256 nguyên vẹn** | Không sửa bất kỳ tài liệu Core 01–07 nào để hợp thức hóa triển khai. |
+| **Core v3.3.1 Design Lock** | **10/10 SHA-256 tại baseline và ứng viên được báo cáo** | Bản khóa ở `3c0b955`. Core NPR-01 trên `main` là bản dự thảo riêng với quy trình duyệt. |
 | **Save Schema v7** | **Nguyên vẹn (`Schema = 7`)** | Giữ nguyên migration v1–v7; mở rộng whitelist `puzzleId` trong `AtomicSaves.Valid()` cho `CH04-PU01/02/03` tương thích ngược 100%. |
 | **`TASK011-A..E` (Regional AI)** | **Technical Verified** | Đủ bằng chứng trên cả Full Module QA, Full Player Input QA và 4 D3D12 Failure Probes trên `c90a2eb`. |
 | **`TASK012-A..D` (CH03–CH04 & `PZ04`)** | **Technical Verified** | `CH03-Q01–Q05`, `CH04-Q01–Q06`, cả Tuyến A & Tuyến B của `PZ04`, `AN05` handoff đều PASS trên Windows Player `c90a2eb`. |
@@ -187,6 +189,6 @@
 ## 8. Known Issues & Các Cổng Cần Chủ Dự Án Can Thiệp
 
 1. **Ghi chú về phiên đo 60 Hz PresentMon (tùy chọn đo lại `100%` focus không chạm máy):** Phiên 3 lượt `60 Hz` (`bench-c90a2eb-60hz-20261125-202119`) đã xác minh đủ `GPUTime`/`DisplayedTime` và đạt **3/3 Core hard gate `≤ 16,67 ms`** (`Lượt 3: 13,56 ms Unity / 14,21 ms PresentMon`), tuy nhiên có chuyển cửa sổ nền trong lúc chạy (`focus 77,2% / 1,2% / 74,3%`). Nếu sau này muốn lưu thêm bộ số `100%` foreground tuyệt đối trên cả 3 lượt, chỉ cần chạy lại `output\m3.2\m32-release-c90a2eb\run-m32-presentmon-60hz.ps1` (đã sửa lưu thẳng vào `output\m3.2\` bất kể thư mục hiện hành) và giữ nguyên không Alt-Tab trong ~6 phút.
-2. **M2 Human-Review Gates (OPEN):** Hoàn tất 6 phiên người chơi mới (`TASK010`) và thu nhận ký xác nhận chuyên gia (`TASK026–028`) để đóng chính thức Milestone M2 và hợp thức hóa nhánh `feat/m32-ai-ch03-ch04` vào `main`.
+2. **M2 Human-Review Gates (OPEN):** Hoàn tất 6 phiên người chơi mới (`TASK010`) và thu nhận ký xác nhận chuyên gia (`TASK026–028`) để đóng chính thức Milestone M2. Quyết định tích hợp ở đầu hồ sơ giữ nguyên các yêu cầu nghiệm thu này.
 3. **Character Art Lock & Final VO (Out of Scope M3.2):** `CHAR-Q02/Q09` (art lock nhân vật production) và full VO CH04 (hiện dùng đầy đủ subtitle + transcript + caption định hướng cho trợ năng tắt âm) giữ mở cho giai đoạn sau theo Core.
 4. **CH05–CH08 / `TASK013` / M3 Alpha:** Giữ khóa cứng ngoài phạm vi M3.2; chỉ triển khai sau khi chốt đủ cổng M2 và M3.2.

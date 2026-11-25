@@ -1,10 +1,10 @@
 # Bộ Core dự thảo NPR-01
 
-**Trạng thái ngày 25/11/2026.** Chủ dự án đã duyệt hướng A/B và cho phép soạn bộ Core nâng cấp dự thảo. Câu thoại, phương án canon và phương án sản xuất tiếp tục theo từng điều kiện trong [Decision Register](decision-register.md). Bộ chính thức là [Core v3.3.1 Final Clean tại GitHub main `3c0b955`](https://github.com/billfan157-pixel/ca-truc-cuoi-cung/tree/3c0b955de95bcf39853c30e2669b2bac24ad969e/docs). [Nguồn sở hữu](../agent/README.md#bảy-nguồn-sở-hữu) · [SHA-256 của baseline](../SHA256SUMS.txt)
+**Trạng thái ngày 25/11/2026.** Chủ dự án đã duyệt hướng A/B và cho phép đưa bộ Core dự thảo lên `main` để review. Câu thoại, phương án canon và phương án sản xuất tiếp tục theo từng điều kiện trong [Decision Register](decision-register.md). Bộ chính thức là [Core v3.3.1 Final Clean tại GitHub main `3c0b955`](https://github.com/billfan157-pixel/ca-truc-cuoi-cung/tree/3c0b955de95bcf39853c30e2669b2bac24ad969e/docs). [Nguồn sở hữu](../agent/README.md#bảy-nguồn-sở-hữu) · [SHA-256 của baseline](../SHA256SUMS.txt)
 
 ## Bộ Core nâng cấp
 
-Sáu bản Word gồm trang hướng dẫn NPR-01 và nội dung Core để đối chiếu. Các sửa trong thân tài liệu được ghi ở Changelog. Workbook giữ 27 sheet và có các dòng NPR-01 trong Decisions/Changelog. Bảy tệp nằm ngay tại đường dẫn chuẩn `docs/01…07` trên nhánh NPR-01. Mở qua README dự án hoặc `project_docs.py` sẽ dùng trực tiếp bộ Core trên nhánh này.
+Sáu bản Word gồm trang hướng dẫn NPR-01 và nội dung Core để đối chiếu. Các sửa trong thân tài liệu được ghi ở Changelog. Workbook giữ 27 sheet và có các dòng NPR-01 trong Decisions/Changelog. Bảy tệp nằm ngay tại đường dẫn chuẩn `docs/01…07`. README dự án và `project_docs.py` mở trực tiếp bộ Core của checkout.
 
 | Core | Nội dung chính |
 | --- | --- |

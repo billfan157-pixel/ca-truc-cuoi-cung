@@ -6,7 +6,7 @@
 
 | Phạm vi | Tình trạng tại snapshot | Bằng chứng và việc còn mở |
 | --- | --- | --- |
-| GitHub `main` | `3c0b955de95bcf39853c30e2669b2bac24ad969e`, commit cha là `c459aba86192591b4adf5d267438e5fb4b77f704`. | Danh tính xác minh qua `git ls-remote`. Chênh lệch giữa hai commit ở `docs/m2/`. |
+| Baseline trước đợt tích hợp lên GitHub `main` | `3c0b955de95bcf39853c30e2669b2bac24ad969e`, commit cha là `c459aba86192591b4adf5d267438e5fb4b77f704`. | Danh tính xác minh qua `git ls-remote`. Chênh lệch giữa hai commit ở `docs/m2/`. |
 | Core 07 khóa | Backlog 25/96 Hoàn thành, 12 Đang làm, 4 Chờ duyệt, 55 Chưa làm. M0 4/4, M1 21/21, M2 0/19, M3 0/34, M4 0/17, M5 0/1. | Đếm cột H theo ID và milestone, khớp `project_docs.py status`. [Core 07](../07_Production_Database.xlsx) |
 | QA khóa | 138 dòng. 101 Chưa test, 21 Pass, 6 Đang làm, 5 Đạt, 4 Đạt rà tài liệu, 1 Chờ duyệt. Narrative QA 33 dòng Chưa test. | Giữ nguyên nhãn gốc. Bằng chứng từ candidate nằm trong report và log theo case. [Core 07](../07_Production_Database.xlsx) |
 | M1 | Đã hoàn thành theo workbook. M2 candidate có hồi quy cho F101, swap, save v1–v7. | Nguồn nghiệm thu [báo cáo candidate](../m2/m2-final-candidate-report.md). |
