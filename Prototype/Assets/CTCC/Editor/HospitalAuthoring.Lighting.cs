@@ -310,8 +310,8 @@ namespace CTCC.Editor
             if (AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/PC_RPAsset.asset") is { } pipeline)
             {
                 pipeline.renderScale = art ? 0.88f : 1.0f;
-                pipeline.shadowDistance = 38f;
-                pipeline.shadowCascadeCount = 2;
+                pipeline.shadowDistance = 24f;
+                pipeline.shadowCascadeCount = 1;
                 pipeline.useSRPBatcher = true;
                 pipeline.supportsCameraDepthTexture = true;
                 pipeline.supportsCameraOpaqueTexture = false;
@@ -323,6 +323,8 @@ namespace CTCC.Editor
                 if (addAtlas != null) addAtlas.intValue = 2048;
                 var addPerObj = pipeSo.FindProperty("m_AdditionalLightsPerObjectLimit");
                 if (addPerObj != null) addPerObj.intValue = 8;
+                var softQuality = pipeSo.FindProperty("m_SoftShadowQuality");
+                if (softQuality != null) softQuality.intValue = 1;
                 pipeSo.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(pipeline);
             }

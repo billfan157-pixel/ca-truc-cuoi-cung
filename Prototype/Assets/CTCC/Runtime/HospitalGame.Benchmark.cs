@@ -170,6 +170,7 @@ namespace CTCC
                     foreach (var item in matches) item.SetActive(false);
                     return;
                 case "shadows":
+                    scene?.SetShadowsAblated(true);
                     foreach (var light in FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                         light.shadows = LightShadows.None;
                     return;

@@ -62,7 +62,7 @@ namespace CTCC
     /// manages regional NavMesh caches, dual-scenario indirect GI (Trilight / Dual Baked LightProbes / APV),
     /// staggered reflection probes, and atomic R/B world presentation.
     /// </summary>
-    public sealed class HospitalScene : MonoBehaviour
+    public sealed partial class HospitalScene : MonoBehaviour
     {
         public const int SolidLayer = 9;
         public const int SolidMask = 1 << SolidLayer;
@@ -239,6 +239,7 @@ namespace CTCC
         {
             Instance = this;
             if (bed4TubeLight != null) bed4TubeBaseIntensity = bed4TubeLight.intensity;
+            SubscribeRenderBudget();
             RebuildPadLookup();
             RebuildProbeLookup();
 
@@ -385,6 +386,7 @@ namespace CTCC
 
             registeredZones.Add(region);
             zonesById[region.zoneId] = region;
+            RegisterPerformanceEntries(region);
             if (Application.isPlaying) RegisterChapterOneFieldObjects(region);
 
             // Bind zone-owned doors, dynamic rigs, characters, audio anchors and motion
@@ -533,6 +535,7 @@ namespace CTCC
         public void UnregisterZone(ZoneRegion region)
         {
             if (region == null || !registeredZones.Remove(region)) return;
+            UnregisterPerformanceEntries(region);
             ZoneUnregistering?.Invoke(region);
             if (!string.IsNullOrEmpty(region.zoneId) && zonesById.TryGetValue(region.zoneId, out var cur) && cur == region)
                 zonesById.Remove(region.zoneId);
@@ -1267,6 +1270,7 @@ namespace CTCC
 
         private void OnDestroy()
         {
+            UnsubscribeRenderBudget();
             if (Instance == this) Instance = null;
             if (navigation.valid) navigation.Remove();
             foreach (var snapshot in navigationCache)
