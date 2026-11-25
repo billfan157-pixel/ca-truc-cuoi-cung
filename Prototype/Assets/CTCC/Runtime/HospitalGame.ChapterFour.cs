@@ -221,14 +221,14 @@ namespace CTCC
                 if (!ChapterFour.ValidPower(mask))
                 {
                     ui.Caption("Quá tải (>4). Rơ-le ngắt, toàn bộ nhánh đã về Tắt.", 4.5f, true);
-                    orderlyAi?.TriggerDistraction(player.Feet);
+                    orderlyAi?.TriggerDistraction(player.Feet, 16f);
                 }
                 else if (ChapterFour.MorguePower(State.servicePower) && !wasMorgue)
                 {
                     if (Options.captions)
-                        ui.Caption("[Tiếng rơ-le đóng mạch phía bắc phòng kỹ thuật — khóa điện nhà xác LOC10 mở]", 4.5f, true);
+                        ui.Caption("[Tiếng rơ-le đóng mạch phía tiền sảnh Khu C — khóa điện nhà xác LOC10 mở]", 4.5f, true);
                     ui.Toast("ĐÃ CẤP ĐIỆN NHÀ XÁC · PZ05", "Khóa điện nhà xác và tủ khô LOC10 đã mở (Kho + Kỹ thuật).", 5f);
-                    orderlyAi?.TriggerDistraction(new Vector3(12.6f, -3.4f, 42.0f));
+                    orderlyAi?.TriggerDistraction(new Vector3(13.2f, -3.4f, 40.2f), 16f);
                 }
                 else if (Options.captions)
                     ui.Caption("[Tiếng rơ-le bảng điện Kỹ thuật B1 kêu tách]", 2.8f);

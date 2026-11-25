@@ -96,10 +96,10 @@ namespace CTCC
         // and sweeps north LOC09 without staring straight down the empty south room on spawn.
         private static readonly Vector3[] ServiceRound =
         {
-            new(12.8f, -3.4f, 40.2f),
+            new(13.2f, -3.4f, 40.2f),
+            new(13.4f, -3.4f, 44.2f),
             new(12.6f, -3.4f, 42.2f),
-            new(8.6f, -3.4f, 42.4f),
-            new(6.2f, -3.4f, 43.8f)
+            new(8.8f, -3.4f, 42.8f)
         };
 
         private static readonly Vector3[] Ch03FallbackRound =
