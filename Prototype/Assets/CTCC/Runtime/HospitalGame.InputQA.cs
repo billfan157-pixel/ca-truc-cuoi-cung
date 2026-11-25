@@ -774,8 +774,10 @@ namespace CTCC
             Require(State.chapter == "CH02" && State.layer == Reality.R && !GateService.G02(State),
                 "S1 input starts in R before unlocking G02");
             var reception = scene.Pad("AP02").position;
+            // Circle the south end of the solid duty desk before approaching the west stair.
+            Vector3[] receptionApproach = { new(4f, 0f, -6.15f), new(-.10f, 0f, -6.15f), new(-.10f, 0f, -4f) };
             yield return WalkWithInput(reception);
-            yield return WalkWithInput(new Vector3(.3f, 0f, -4f));
+            foreach (var point in receptionApproach) yield return WalkWithInput(point);
             yield return Until(() => scene.HasZone("LOC05") && !streaming, "S1 streams from the reception approach");
             var dischargeLanding = new Vector3(-2.05f, 0f, -4f);
             yield return WalkWithInput(dischargeLanding);
@@ -796,7 +798,7 @@ namespace CTCC
                 "Walking into LOC07 does not start CH03 or load B1 before G02");
 
             for (int i = route.Length - 2; i >= 0; i--) yield return WalkWithInput(route[i]);
-            yield return WalkWithInput(new Vector3(.3f, 0f, -4f));
+            for (int i = receptionApproach.Length - 1; i >= 0; i--) yield return WalkWithInput(receptionApproach[i]);
             yield return WalkWithInput(reception);
             Require(State.chapter == "CH02" && !GateService.G02(State), "S1 returns to the CH02 reception route");
             verification.Add("V33-Q05 INPUT S1 PASS: walked LOC02–LOC05–LOC07 and back in R before G02.");
