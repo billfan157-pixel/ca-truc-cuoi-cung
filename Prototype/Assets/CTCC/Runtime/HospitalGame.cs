@@ -385,11 +385,21 @@ namespace CTCC
                 SaveCheckpoint(() => casework.RecordAsync("CH03-T06", feet, "CH03-CP03"));
                 return;
             }
-            if (State.chapter == "CH04" && !State.Happened("CH04-T02") &&
+            if (State.chapter == "CH04" &&
                 Mathf.Abs(feet.y - 4f) < .25f && feet.z > 33f && feet.z < 37f && feet.x > -3.4f && feet.x < 6f)
             {
-                SaveCheckpoint(() => casework.RecordAsync("CH04-T02", feet));
-                return;
+                string expectedRoute = State.Happened("PZ04.ScheduleUpdated") ? "PZ04.RouteB" : "PZ04.RouteA";
+                if (!State.Happened("CH04-T02") || !State.Happened(expectedRoute))
+                {
+                    SaveCheckpoint(() => ChapterFour.CompletePz04Passage(transaction), () =>
+                    {
+                        bool viaB = State.Happened("PZ04.ScheduleUpdated");
+                        ui.Toast("ĐÃ VƯỢT TUYẾN XE THUỐC · PZ04",
+                            viaB ? "Tuyến B: đã đi qua hành lang trống sau khi cập nhật đúng phiếu buồng."
+                                 : "Tuyến A: đã vượt qua nhịp 3 điểm của xe thuốc mà không cần sửa hồ sơ.", 4.5f);
+                    });
+                    return;
+                }
             }
             bool use = keys[Options.alternateBindings ? Key.K : Key.E].wasPressedThisFrame;
             bool anchorPressed = keys.qKey.wasPressedThisFrame;
@@ -752,7 +762,8 @@ namespace CTCC
             "CURTAIN-101" => scene.interactables != null && scene.interactables.curtainCloth != null && scene.interactables.curtainCloth.gameObject.activeInHierarchy,
             "E03" or "C02_NOTE" or "AN03" or "C02_BAG" or "C02_LETTER" or "C12_BOX" or "FS10_LOCK" or "RADIO_LOC07" or "G03" => State.chapter is "CH03" or "CH04",
             "CH03_EXIT" => State.chapter == "CH03" && GateService.G03(State),
-            "AN04" or "CH04_POWER" or "E04_E07" => State.chapter == "CH04",
+            "AN04" or "CH04_POWER" or "E04_E07" or "PZ04_SCHEDULE" or "PZ04_ROOM_SLIP" or "PZ04_STATUS_BOARD" => State.chapter == "CH04",
+            "AN05" => State.chapter == "CH04" && GateService.G04(State) && State.Happened("CH04-T06"),
             Ch01FieldObjects.BinInterior => State.chapter == "CH01" && scene.PedalBin?.CanSeeInside == true,
             _ when target.fieldObject != null => target.fieldObject.Observation.AllowsChapter(State.chapter) &&
                 target.fieldObject.Observation.AllowsLayer(State.layer) &&
@@ -924,6 +935,18 @@ namespace CTCC
                     break;
                 case "AN04":
                     if (!TryUseHeldTapeOnAn04()) Ch04DutyRoom();
+                    break;
+                case "PZ04_SCHEDULE":
+                    Ch04OrderlySchedule();
+                    break;
+                case "PZ04_ROOM_SLIP":
+                    Ch04RoomStatusSlip();
+                    break;
+                case "PZ04_STATUS_BOARD":
+                    Ch04WardStatusBoard();
+                    break;
+                case "AN05":
+                    Ch04An05Handoff();
                     break;
                 case "CH04_POWER":
                     Ch04PowerBoard();
@@ -1264,10 +1287,12 @@ namespace CTCC
                 : "Trở xuống tầng 2, theo hành lang đến phòng trực."
                 : State.chapter == "CH04"
                 ? !State.Happened("PT01.presented") ? "Đọc sổ trực, bản nhận và bản chép băng họp."
+                : !State.Happened("CH04-T02") ? "Quan sát lịch 3 điểm của xe thuốc (hoặc đối chiếu phiếu buồng) để qua Khu B xuống B1."
                 : !ChapterFour.MorguePower(State.servicePower) && !GateService.H05(State) ? "Qua Cấp cứu xuống B1. Tìm bảng tải ở khu kỹ thuật."
                 : !GateService.H05(State) ? "Đối chiếu hồ sơ tiếp nhận và phiếu thu hồi ở nhà xác."
                 : !State.Happened("CH04-T06") ? "Nói chuyện với Lan ở cạnh tủ hồ sơ."
-                : "Quay lại tầng 2 theo cầu thang Cấp cứu."
+                : !State.Happened("CH04-AN05.reached") ? "Quay lại tầng 2 tới điểm neo AN05 trong phòng trực Khu B."
+                : "Đã hoàn tất CH04 và chốt điểm neo AN05 (CH05 khóa trong bản M3.2)."
                 : State.Happened("M1-complete") ? "Hồ sơ 101 đã lưu."
                 : GateService.G02(State) ? "Đến sổ giao ca ở cấp cứu."
                 : State.layer == Reality.B ? "Trở về hiện trường qua bảng kẹp phòng 101."

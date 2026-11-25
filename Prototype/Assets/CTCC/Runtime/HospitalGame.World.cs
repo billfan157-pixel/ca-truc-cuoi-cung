@@ -98,6 +98,11 @@ namespace CTCC
                 "OBS101B" => "Cầm thẻ đầu giường",
                 "OBS101C" => "Xem tờ kẹp ở giường 02",
                 "OBS101D" => "Lấy phiếu trong ngăn",
+                "PZ04_SCHEDULE" => "Xem lịch đẩy xe thuốc (3 điểm dừng)",
+                "PZ04_ROOM_SLIP" => "Đọc phiếu tình trạng buồng Khu B",
+                "PZ04_STATUS_BOARD" => "Đối chiếu bảng tình trạng buồng Khu B",
+                "AN05" => "Chốt điểm neo AN05 · Chuyển tiếp CH05",
+                "RADIO_LOC07" => "Bật đài cassette đánh lạc hướng",
                 Ch01FieldObjects.BinPedal when scene.PedalBin?.HeldOpen == true => "Nhả bàn đạp",
                 _ => target.title
             };

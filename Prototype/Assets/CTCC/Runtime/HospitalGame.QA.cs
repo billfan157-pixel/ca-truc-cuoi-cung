@@ -1112,8 +1112,22 @@ namespace CTCC
                 yield return WaitForApplied(ChapterFour.SetPower(transaction, mask), "Write circuit state");
                 Require(State.servicePower == (expectedFits[mask] ? mask : 0), "Save overload trip");
             }
+            // CH04-Q05 part 1: reload right after an overload trip (mask 15 -> servicePower 0) + minimum battery floor (>= 120s)
+            player.RestoreBattery(40);
+            Require(player.BatterySeconds >= 120, "CH04-Q05 flashlight enforces >=120s minimum floor");
+            Require(transaction.Restore(SaveSlot.Auto, out _) == SaveRead.Valid && State.servicePower == 0 &&
+                !ChapterFour.MorguePower(State.servicePower), "CH04-Q05 overload reset persists cleanly across reload");
+
             yield return WaitForApplied(ChapterFour.SetPower(transaction, 10), "Energize archive + service");
             yield return VerifyTask011Ch04RolesAndNavMesh();
+            yield return VerifyCh04Pz04DualRoute();
+
+            // CH04-Q03 symmetric proof: E07 alone MUST keep H05 closed just like E04 alone!
+            var e07Only = State.Copy();
+            Require(EvidenceRegistry.Grant(e07Only, EvidenceRegistry.LanRecovery, Reality.R, "LOC10") &&
+                !e07Only.Has(EvidenceRegistry.MorgueRegister) && !GateService.H05(e07Only),
+                "CH04-Q03 E07 alone excludes H05");
+
             yield return WaitForApplied(ChapterFour.Take(transaction, EvidenceRegistry.MorgueRegister, "LOC10"), "Take E04");
             Require(ChapterFour.MatchRecovery(transaction).GetAwaiter().GetResult() == CommitResult.PadRequired &&
                 !GateService.H05(State), "CH04-Q03 E04 alone excludes H05");
@@ -1121,14 +1135,56 @@ namespace CTCC
             yield return WaitForApplied(ChapterFour.MatchRecovery(transaction), "Verify H05 and present PT02");
             Require(GateService.G04(State) && MayDeliver("CH04-D06", "B06") && MayDeliver("CH01-D16b", "B06") &&
                 !MayDeliver("CH01-D16b", "B05") && !State.Has("E08"), "CH04-Q03/Q06 exact beat, evidence and guard");
+            yield return WaitForApplied(casework.RecordAsync("CH04-T06", scene.Pad("AP09").position), "Record CH04-T06 Lan conversation");
+            yield return WaitForApplied(ChapterFour.ReachAn05Handoff(transaction), "Reach AN05 CH04->CH05 handoff");
+            Require(State.Happened("CH04-AN05.reached") && State.chapter == "CH04" &&
+                !State.Has("E08") && !State.Happened("G05.opened") && !State.Happened("G06.opened"),
+                "CH04 AN05 handoff recorded while CH05/G05/G06/E08 stay strictly locked");
             yield return scene.UnloadZoneAsync(RegionStreamer.Service);
             Require(!scene.HasZone("LOC09") && !scene.TryPad("AP09", out _), "Service unload removes local pads");
             yield return scene.LoadZoneAsync(RegionStreamer.Service);
             Require(transaction.Restore(SaveSlot.Auto, out var restored) == SaveRead.Valid &&
-                restored == scene.Pad("AP09") && State.servicePower == 10 && GateService.G04(State),
-                "CH04-Q05 saved circuit and clues restored in reloaded B1");
+                restored == scene.Pad("AP09") && State.servicePower == 10 && GateService.G04(State) &&
+                State.Happened("PZ04.ScheduleUpdated") && State.Happened("CH04-AN05.reached"),
+                "CH04-Q05 saved circuit, PZ04 route, and clues restored in reloaded B1");
             yield return CaptureHospitalFrame("ch04-morgue", restored, 0f);
-            verification.Add("CH03-Q01/Q02/Q04/Q05 and CH04-Q02–Q06 module PASS. C02/C12, M restore, legacy schemas 1–5, local forms, power and H05/guard, reloaded region save.");
+            verification.Add("CH03-Q01–Q05 and CH04-Q01–Q06 module PASS. PZ04 Route A+B, C02/C12, M restore, legacy schemas 1–6, local forms, 16-mask power, symmetric E04/E07 H05/guard, AN05 handoff, reloaded region save.");
+        }
+
+        private IEnumerator VerifyCh04Pz04DualRoute()
+        {
+            // CH04-Q01 Route A: read schedule, pass corridor cleanly WITHOUT updating or falsifying records!
+            player.Teleport(scene.Pad("AP07"));
+            yield return WaitForApplied(ChapterFour.ReadOrderlySchedule(transaction), "PZ04 read 3-stop schedule");
+            Require(State.Happened("PZ04.ScheduleRead") && !State.Happened("PZ04.ScheduleUpdated"),
+                "CH04-Q01 Route A starts with default 3-stop Orderly route");
+            yield return WaitForApplied(ChapterFour.CompletePz04Passage(transaction), "PZ04 Route A passage completion");
+            Require(State.Happened("CH04-T02") && State.Happened("PZ04.RouteA") && State.Happened("CH04-PU01.solved") &&
+                !State.Happened("PZ04.ScheduleUpdated"),
+                "CH04-Q01 Route A completes CH04-T02 without modifying any record");
+
+            // CH04-Q01 Falsification rejection & missing-slip guard + 2-strike hint
+            yield return WaitForApplied(ChapterFour.AttemptUpdateOrderlySchedule(transaction, false), "PZ04 reject falsification");
+            Require(!State.Happened("PZ04.ScheduleUpdated"), "CH04-Q01 falsifying records never reroutes Orderly");
+            yield return WaitForApplied(ChapterFour.AttemptUpdateOrderlySchedule(transaction, true), "PZ04 reject before reading slip");
+            Require(!State.Happened("PZ04.ScheduleUpdated") && PuzzleService.ShouldShowFieldHint(State, "CH04-PU01"),
+                "CH04-Q01 missing room-status slip rejected and activates 2-strike hint");
+
+            // CH04-Q01 Route B: read valid room-status slip -> update schedule -> observable Orderly reroute + arrow indicator!
+            yield return WaitForApplied(ChapterFour.ReadRoomStatusSlip(transaction), "PZ04 read room-status slip");
+            yield return WaitForApplied(ChapterFour.AttemptUpdateOrderlySchedule(transaction, true), "PZ04 Route B factual update");
+            orderlyAi.SyncState(State);
+            Require(State.Happened("PZ04.ScheduleUpdated") && orderlyAi.OrderlyRouteAdjusted &&
+                orderlyAi.CurrentOrderlyStop == OrderlyStop.Pharmacy,
+                "CH04-Q01 Route B observably updates Orderly to Pharmacy <-> WingBDoor");
+            var loc05 = scene.ResolveZoneAt(scene.Pad("AP07").position);
+            if (loc05 != null && loc05.pz04RouteArrowRerouted != null && loc05.pz04RouteArrowDefault != null)
+                Require(loc05.pz04RouteArrowRerouted.activeSelf && !loc05.pz04RouteArrowDefault.activeSelf,
+                    "CH04-Q01 Route B flips physical corridor route arrow indicator");
+            yield return WaitForApplied(ChapterFour.CompletePz04Passage(transaction), "PZ04 Route B passage completion");
+            Require(State.Happened("PZ04.RouteB") && State.Happened("PZ04.RouteA"),
+                "CH04-Q01 both Route A and Route B verified cleanly");
+            verification.Add("CH04-Q01 PZ04 DUAL-ROUTE PASS: Route A timing (no record edits), falsification & missing-slip rejection + 2-strike hint, Route B factual cross-check + Orderly reroute + corridor arrow flip.");
         }
 
         private IEnumerator VerifyArchiveNavigation(Transform safe)

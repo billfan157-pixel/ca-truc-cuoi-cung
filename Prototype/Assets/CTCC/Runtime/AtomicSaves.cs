@@ -277,7 +277,7 @@ namespace CTCC
                 return false;
             var puzzles = new HashSet<string>(StringComparer.Ordinal);
             if (s.puzzles != null && s.puzzles.Exists(p => p == null ||
-                p.puzzleId is not ("CH01-F101" or "CH03-PU01" or "CH03-PU02") || !puzzles.Add(p.puzzleId) ||
+                p.puzzleId is not ("CH01-F101" or "CH03-PU01" or "CH03-PU02" or "CH04-PU01" or "CH04-PU02" or "CH04-PU03") || !puzzles.Add(p.puzzleId) ||
                 p.failedAttempts < 0 || p.solved != s.Happened(p.puzzleId + ".solved")))
                 return false;
             if (s.observed.Exists(id => !ObservationRegistry.Registered(id)))

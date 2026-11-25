@@ -876,7 +876,7 @@ namespace CTCC
             yield return Until(() => !busy && State.Happened("CH03-T06") && State.checkpoint == "CH03-CP03", "CH03-T06 patrol beat");
             Require(orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Hunter, "CH03 Floor-3 Hunter activates on CH03-T06");
             yield return AimAndUseHere("RADIO_LOC07");
-            Require(orderlyAi.CurrentState == OrderlyState.Investigate, "CH03-Q03 radio distraction pulls Hunter into Investigate");
+            yield return Until(() => orderlyAi.CurrentState == OrderlyState.Investigate, "CH03-Q03 radio distraction pulls Hunter into Investigate");
             yield return WalkWithInput(new Vector3(-.8f, 8, 36.8f));
             yield return WalkWithInput(new Vector3(-14.7f, 8, 36.8f));
             yield return WalkWithInput(new Vector3(-14.7f, 8, 34.35f));
@@ -899,7 +899,36 @@ namespace CTCC
                     InventoryService.HasPhysical(State, BackpackCatalog.Ch04Tape) &&
                     WorldUseResolver.Resolve(State, BackpackCatalog.Ch04Tape, "AN04").Outcome == WorldUseOutcome.PlayTapeAtDutyDesk,
                 "CH04 duty items & tape synced to Backpack and WorldUseResolver");
+
+            // CH04-Q01 PZ04 Route A (live Windows Player timing walk past 3-stop Orderly + cart without editing records!)
+            yield return UseFrom("PZ04_SCHEDULE", new Vector3(4.35f, 4.015f, 44.85f));
+            yield return Until(() => !busy && State.Happened("PZ04.ScheduleRead") && ui.IsModal, "PZ04 schedule read");
+            yield return Choose("Đặt lịch xuống");
+            yield return Until(() => !ui.IsModal && orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Orderly &&
+                orderlyAi.CurrentOrderlyStop == OrderlyStop.WingBDoor &&
+                orderlyAi.ActiveActor.transform.position.x < 1.2f, "Orderly clears corridor toward WingBDoor for Route A", 32f);
+            int resetsBeforeRouteA = orderlyAi.EncounterResetCount;
+            yield return WalkWithInput(new Vector3(4f, 4f, 36.2f));
+            yield return Until(() => !busy && State.Happened("CH04-T02") && State.Happened("PZ04.RouteA"), "PZ04 Route A passage recorded");
+            Require(!State.Happened("PZ04.ScheduleUpdated") && orderlyAi.EncounterResetCount == resetsBeforeRouteA,
+                "CH04-Q01 Route A passed cleanly past Orderly without record edits or reset");
+
+            // CH04-Q01 PZ04 Route B (live Windows Player falsification rejection + factual room-status slip cross-check + rerouted corridor!)
+            yield return Until(() => orderlyAi.ActiveActor.transform.position.z < 37.8f &&
+                (orderlyAi.ActiveActor.transform.position.x < 1.5f || orderlyAi.ActiveActor.transform.position.x > 5.0f),
+                "Wait for clear return to LOC06", 32f);
+            yield return WalkWithInput(new Vector3(4f, 4f, 45.2f));
+            yield return UseFrom("PZ04_ROOM_SLIP", new Vector3(4.35f, 4.015f, 46.05f));
+            yield return Until(() => !busy && State.Happened("PZ04.SlipRead") && ui.IsModal, "PZ04 room-status slip read");
+            yield return Choose("Mở bảng đối chiếu tuyến xe");
+            yield return Choose("Sửa sai hồ sơ");
+            yield return Until(() => !busy && !State.Happened("PZ04.ScheduleUpdated"), "PZ04 falsification rejected");
+            yield return Choose("Đối chiếu đúng phiếu");
+            yield return Until(() => !busy && State.Happened("PZ04.ScheduleUpdated") && orderlyAi.OrderlyRouteAdjusted,
+                "PZ04 Route B factual cross-check reroutes Orderly");
+            yield return Choose("Rời bảng");
             yield return WalkWithInput(new Vector3(4, 4, 33.6f));
+            yield return Until(() => !busy && State.Happened("PZ04.RouteB"), "PZ04 Route B corridor passage recorded");
             yield return WalkWithInput(new Vector3(4, 0, 20.97f));
             yield return WalkWithInput(new Vector3(7, 0, 21.17f));
             yield return WalkWithInput(new Vector3(7, -3.4f, 32.4f));
@@ -923,7 +952,19 @@ namespace CTCC
             yield return Choose("Tải điểm lưu tự động");
             yield return Until(() => !busy && !ui.IsModal && transaction.OnPad(player.Feet, "AP09"), "B1 reload with actual menu");
             Require(GateService.G04(State) && State.Happened("CH04-T06") && !State.Has("E08"), "B1 autosave state");
-            verification.Add("INPUT CH03–04 PASS: W capsule on three flights, PZ03, C12, R/M, duty papers, circuit controls, H05, dialogue guard and B1 autosave menu.");
+            // Return up B1 -> ER -> Floor 2 LOC06 to complete AN05 CH04->CH05 handoff (keeping CH05/G05/G06/E08 locked!)
+            yield return WalkWithInput(new Vector3(7, -3.4f, 38.98f));
+            yield return WalkWithInput(new Vector3(7, -3.4f, 32.4f));
+            yield return WalkWithInput(new Vector3(7, 0f, 21.17f));
+            yield return WalkWithInput(new Vector3(4, 0f, 20.97f));
+            yield return WalkWithInput(new Vector3(4, 4f, 33.73f));
+            yield return WalkWithInput(new Vector3(4, 4f, 45.7f));
+            yield return UseFrom("AN05", new Vector3(4.25f, 4.015f, 46.10f));
+            yield return Until(() => !busy && State.Happened("CH04-AN05.reached") && ui.IsModal, "AN05 handoff reached");
+            yield return Choose("Tiếp tục ở tầng 2");
+            Require(State.chapter == "CH04" && !State.Has("E08") && !State.Happened("G05.opened") && !State.Happened("G06.opened"),
+                "AN05 handoff preserves M3.2 CH05/G05/G06/E08 lock");
+            verification.Add("INPUT CH03–04 PASS: W capsule on three flights, PZ03, C12, R/M, CH03 radio distraction, PZ04 Route A + Route B on live Orderly, duty papers, circuit controls, H05, dialogue guard, B1 autosave menu, and AN05 handoff.");
         }
 
         private IEnumerator WalkWithInput(Vector3 destination)

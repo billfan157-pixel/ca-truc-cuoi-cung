@@ -147,19 +147,20 @@ namespace CTCC.Editor
             }
 
             // PZ04 physical schedule board, room-status slip, nursing status board, and observable route arrow indicator
-            var schedBoard = Group("PZ04 · Schedule & Status Board", upper, new(2.70f, WardLevel + 1.48f, 44.95f));
+            // Placed on the East wall of LOC06 (clear of GATE-G03 open leaf swinging north along x~3.05) and North wall of LOC05.
+            var schedBoard = Group("PZ04 · Schedule & Status Board", upper, new(5.28f, WardLevel + 1.48f, 44.85f));
             Box("Schedule frame", Vector3.zero, new(.05f, .64f, .88f), Mat("Wood"), schedBoard, solid: false, isStatic: true);
-            Box("Schedule sheet", new(.03f, 0f, 0f), new(.01f, .54f, .76f), Mat("Paper"), schedBoard, solid: false, isStatic: true);
+            Box("Schedule sheet", new(-.03f, 0f, 0f), new(.01f, .54f, .76f), Mat("Paper"), schedBoard, solid: false, isStatic: true);
             CapsuleTarget("PZ04_SCHEDULE", "Bảng lịch đẩy xe thuốc · 3 điểm dừng (PZ04)",
-                new(2.74f, WardLevel + 1.48f, 44.95f), new(.42f, .76f, .92f), upper);
+                new(5.22f, WardLevel + 1.48f, 44.85f), new(.42f, .76f, .92f), upper);
 
-            Box("PZ04 · Room status slip", new(5.26f, WardLevel + 1.24f, 45.25f), new(.04f, .34f, .28f), Mat("Paper"), upper, solid: false, isStatic: true);
+            Box("PZ04 · Room status slip", new(5.28f, WardLevel + 1.24f, 46.05f), new(.04f, .34f, .28f), Mat("Paper"), upper, solid: false, isStatic: true);
             CapsuleTarget("PZ04_ROOM_SLIP", "Phiếu tình trạng buồng Khu B (PZ04)",
-                new(5.20f, WardLevel + 1.24f, 45.25f), new(.44f, .52f, .48f), upper);
+                new(5.20f, WardLevel + 1.24f, 46.05f), new(.44f, .52f, .48f), upper);
 
-            Box("PZ04 · Ward status board", new(5.58f, WardLevel + 1.22f, 34.35f), new(.06f, .46f, .64f), Mat("Paper"), upper, solid: false, isStatic: true);
+            Box("PZ04 · Ward status board", new(5.65f, WardLevel + 1.38f, 38.08f), new(.64f, .46f, .06f), Mat("Paper"), upper, solid: false, isStatic: true);
             CapsuleTarget("PZ04_STATUS_BOARD", "Bảng tình trạng buồng Khu B · Đối chiếu tuyến xe (PZ04)",
-                new(5.48f, WardLevel + 1.22f, 34.35f), new(.46f, .64f, .78f), upper);
+                new(5.65f, WardLevel + 1.38f, 37.98f), new(.78f, .64f, .46f), upper);
 
             // Observable route indicator arrows above LOC06 south doorway (visible from both LOC06 & LOC05!)
             var arrowDefault = Group("PZ04 · Route Arrow Default", upper, new(4.0f, WardLevel + 2.52f, 44.08f));
@@ -175,12 +176,12 @@ namespace CTCC.Editor
             arrowRerouted.gameObject.SetActive(false);
 
             // AN05 handoff anchor in LOC06 (opens strictly after G04 + CH04-T06; CH05/G05/G06/E08 stay locked)
-            var an05Visual = Group("AN05 · Handoff Marker", upper, new(3.02f, WardLevel + 1.04f, 46.35f));
+            var an05Visual = Group("AN05 · Handoff Marker", upper, new(4.84f, WardLevel + 1.04f, 46.72f));
             Box("AN05 base", Vector3.zero, new(.46f, .08f, .46f), Mat("Brass"), an05Visual, solid: false);
             Box("AN05 strip", new(0f, .06f, 0f), new(.34f, .05f, .10f), Mat("LiveTube"), an05Visual, solid: false);
             an05Visual.gameObject.SetActive(false);
             CapsuleTarget("AN05", "Điểm neo Khu B · AN05 (Chuyển tiếp CH05)",
-                new(3.02f, WardLevel + 1.15f, 46.35f), new(.56f, .64f, .56f), upper);
+                new(4.84f, WardLevel + 1.15f, 46.72f), new(.56f, .64f, .56f), upper);
 
             if (multiScene)
             {
