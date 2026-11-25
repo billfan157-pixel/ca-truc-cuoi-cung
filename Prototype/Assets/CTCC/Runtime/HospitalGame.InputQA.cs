@@ -702,6 +702,9 @@ namespace CTCC
                 yield return Until(() => !busy && State.chapter == "CH02", "CH02 handoff");
             }
 
+            if (branch == FormStatus.Unverified && scene.IsAdditiveMode &&
+                !Environment.GetCommandLineArgs().Contains("-ctcc-ch01-ch02-only"))
+                yield return InputS1BeforeG02();
             if (branch != FormStatus.Refuted) yield return InputPhysicalCase(branch == FormStatus.Unverified);
             player.Teleport(scene.Pad("AP02"));
             yield return Tap(Key.Escape);
@@ -764,6 +767,32 @@ namespace CTCC
             }
             yield return Tap(Key.Escape);
             yield return Choose("Về màn hình đầu");
+        }
+
+        private IEnumerator InputS1BeforeG02()
+        {
+            Require(State.chapter == "CH02" && State.layer == Reality.R && !GateService.G02(State),
+                "S1 input starts in R before unlocking G02");
+            var reception = scene.Pad("AP02").position;
+            yield return WalkWithInput(reception);
+            yield return WalkWithInput(new Vector3(.3f, 0f, -4f));
+            yield return Until(() => scene.HasZone("LOC05") && !streaming, "S1 streams from the reception approach");
+
+            Vector3[] route = {
+                new(-11.9f, 4f, -4f), new(-12.3f, 4f, 37.05f), new(-2.5f, 4f, 37.05f),
+                new(-2.65f, 4f, 34.35f), new(-14.7f, 8f, 34.35f), new(-14.7f, 8f, 36.8f),
+                new(-2.4f, 8f, 36.8f)
+            };
+            foreach (var point in route) yield return WalkWithInput(point);
+            Require(State.chapter == "CH02" && !GateService.G02(State) && !GateService.G03(State) &&
+                !State.Happened("CH03-T01") && !State.Has(EvidenceRegistry.PatientRegister) && !scene.HasZone("LOC09"),
+                "Walking into LOC07 does not start CH03 or load B1 before G02");
+
+            for (int i = route.Length - 2; i >= 0; i--) yield return WalkWithInput(route[i]);
+            yield return WalkWithInput(new Vector3(.3f, 0f, -4f));
+            yield return WalkWithInput(reception);
+            Require(State.chapter == "CH02" && !GateService.G02(State), "S1 returns to the CH02 reception route");
+            verification.Add("V33-Q05 INPUT S1 PASS: walked LOC02–LOC05–LOC07 and back in R before G02.");
         }
 
         private IEnumerator InputHospitalExpansion()

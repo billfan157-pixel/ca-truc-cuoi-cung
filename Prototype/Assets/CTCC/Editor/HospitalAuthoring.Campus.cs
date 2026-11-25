@@ -159,6 +159,11 @@ namespace CTCC.Editor
             FenceRun(new Vector3(-42f, 0f, 80f), new Vector3(10f, 0f, 80f), 180f);
             FenceRun(new Vector3(18f, 0f, 80f), new Vector3(58f, 0f, 80f), 180f);
 
+            // DEC-V331-01 seals the existing public and service openings in R.
+            BuildDemolitionGateSeal(realRoot, "K-B", new Vector3(-30f, 0f, -30f), 10f);
+            BuildDemolitionGateSeal(realRoot, "K-D", new Vector3(53f, 0f, -30f), 10f);
+            BuildDemolitionGateSeal(realRoot, "K-F", new Vector3(14f, 0f, 79.8f), 8f);
+
             if (!art) return;
 
             // GATE 1: MAIN PUBLIC ENTRANCE ARCHWAY (Cổng chính at -30, -30) + Main Security Guardhouse
@@ -185,6 +190,30 @@ namespace CTCC.Editor
                 Box("Service gate pillar", new Vector3(gx, 1.55f, 80f), new Vector3(0.54f, 3.10f, 0.54f), Mat("BaseTrim"), g, isStatic: true);
             Box("Service gate closed leaf", new Vector3(14f, 1.20f, 80f), new Vector3(7.1f, 2.35f, 0.10f), Mat("MetalOld"), g, isStatic: true);
             Sign("Service gate sign", "Sign_KF_Service", new Vector3(14f, 2.65f, 79.88f), Vector3.back, new Vector2(3.6f, 0.85f), g, metalBacking: true);
+        }
+
+        private void BuildDemolitionGateSeal(Transform realRoot, string gate, Vector3 center, float width)
+        {
+            var root = Group(gate + " demolition seal", realRoot, center);
+            Box(gate + " solid corrugated fence", new Vector3(0f, 1.04f, 0f), new Vector3(width + .08f, 2.2f, .14f),
+                Mat("CorrugatedRoofR"), root, solid: true, tile: 1.2f);
+            var metal = Mat("MetalOld");
+            float inside = center.z < 0f ? 1f : -1f;
+            foreach (float x in new[] { -width * .25f, -.095f, .095f, width * .25f })
+                Box("Fence frame", new Vector3(x, 1.04f, inside * .10f), new Vector3(.08f, 2.2f, .09f), metal, root);
+
+            // Interlocked links at the leaf seam, on the inward side of each exit.
+            for (int index = 0; index < 6; index++)
+            {
+                float x = (index - 2.5f) * .064f;
+                var link = Group("Chain link", root, new Vector3(x, 1.24f + .15f * Mathf.Abs(x), inside * .18f));
+                link.localRotation = Quaternion.Euler(index % 2 == 0 ? 0f : 75f, 0f, x < 0f ? -9f : 9f);
+                foreach (float y in new[] { -.023f, .023f })
+                    Box("Link rail", new Vector3(0f, y, 0f), new Vector3(.084f, .012f, .012f), metal, link);
+                foreach (float end in new[] { -.037f, .037f })
+                    Box("Link end", new Vector3(end, 0f, 0f), new Vector3(.012f, .046f, .012f), metal, link);
+            }
+            Box("Seal padlock", new Vector3(0f, 1.20f, inside * .19f), new Vector3(.09f, .085f, .042f), Mat("Brass"), root);
         }
 
         // -----------------------------------------------------------------------------------------

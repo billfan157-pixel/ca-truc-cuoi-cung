@@ -2066,9 +2066,11 @@ namespace CTCC
                 transaction.Present(early);
                 yield return streamer.Reconcile(early, nearS1);
                 Require(!scene.HasZone("LOC05") && s1.activeSelf, "S1 B stays closed before G02");
+                VerifyDemolitionGateSeals(layerR: false);
 
                 early.layer = Reality.R;
                 transaction.Present(early);
+                VerifyDemolitionGateSeals(layerR: true);
                 Require(s1.activeSelf, "S1 keeps the connector until the upper zone has registered");
                 yield return streamer.Reconcile(early, new Vector3(4f, 0f, 24f));
                 Require(!scene.HasZone("LOC05") && s3.activeSelf, "S3 proximity alone keeps LOC05 unloaded before G02");
@@ -2102,6 +2104,35 @@ namespace CTCC
             {
                 transaction.Present(State);
             }
+        }
+
+        private void VerifyDemolitionGateSeals(bool layerR)
+        {
+            Physics.SyncTransforms();
+            foreach (var (gate, position, width) in new[]
+            {
+                ("K-B", new Vector3(-30f, 1f, -30f), 10f),
+                ("K-D", new Vector3(53f, 1f, -30f), 10f),
+                ("K-F", new Vector3(14f, 1f, 79.8f), 8f)
+            })
+            {
+                var panel = GameObject.Find(gate + " solid corrugated fence");
+                if (!layerR)
+                {
+                    Require(panel == null, gate + " demolition seal is absent in B");
+                    continue;
+                }
+
+                Require(panel != null && panel.TryGetComponent(out MeshRenderer renderer) && renderer.enabled &&
+                    panel.layer == HospitalScene.SolidLayer, gate + " has a visible solid R fence");
+                var fence = panel.GetComponent<BoxCollider>();
+                Require(fence != null && fence.enabled && !fence.isTrigger, gate + " fence blocks movement");
+                var inward = position.z < 0f ? Vector3.forward : Vector3.back;
+                foreach (float offset in new[] { -.49f, 0f, .49f })
+                    Require(fence.Raycast(new Ray(position + inward + Vector3.right * (offset * width), -inward), out _, 2f),
+                        gate + " fence covers the existing opening");
+            }
+            if (layerR) verification.Add("V33-Q05 R outer gate seals PASS: visible solid fence covers K-B, K-D and K-F.");
         }
 
         private IEnumerator VerifyCampusWorldQA()
