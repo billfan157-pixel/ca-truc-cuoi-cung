@@ -1071,6 +1071,7 @@ namespace CTCC
                  orderlyAi.ActiveActor.transform.position.x < 9.6f &&
                  orderlyAi.ActiveActor.transform.position.z < 39.2f),
                 "CH05-B1 Hunter sweeps south LOC09 leaving LOC11 north passage open", 30f);
+            yield return WalkWithInput(new Vector3(6.0f, -3.4f, 39.0f));
             yield return WalkWithInput(new Vector3(6.5f, -3.4f, 42.2f));
             yield return WalkWithInput(new Vector3(10.5f, -3.4f, 42.2f));
             yield return WalkWithInput(new Vector3(12.5f, -3.4f, 42.2f));
