@@ -102,11 +102,13 @@ namespace CTCC
             new(8.8f, -3.4f, 42.8f)
         };
 
-        // CH05 B1 Gatekeeper round: crosses the LOC09 <-> LOC11 doorway cleanly on centerline z=42.0
-        // in both directions, staying strictly clear of AP08, CH05_BLUEPRINTS (z=44.65),
-        // LOC09_VALVE (x=5.08), and the LOC11 north door (x=12.5, z=45.0) to the E05b gallery.
+        // CH05 B1 Gatekeeper round: patrols inside LOC11 (~5.4s window) before sweeping LOC09 south
+        // along doorway centerline z=42.0 in both directions, staying clear of AP08, CH05_BLUEPRINTS,
+        // LOC09_VALVE, and the LOC11 north door (x=12.5, z=45.0) to the E05b gallery.
         private static readonly Vector3[] Ch05ServiceRound =
         {
+            new(13.2f, -3.4f, 40.2f),
+            new(13.4f, -3.4f, 43.6f),
             new(13.2f, -3.4f, 40.2f),
             new(12.2f, -3.4f, 42.0f),
             new(8.6f, -3.4f, 42.0f),
