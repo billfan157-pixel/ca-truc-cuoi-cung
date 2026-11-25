@@ -165,6 +165,7 @@ namespace CTCC
         private readonly List<NavigationSnapshot> navigationCache = new();
         private readonly List<NavMeshBuildSource> navigationSources = new();
         private readonly List<NavMeshBuildMarkup> navigationMarkups = new();
+        private readonly List<NavMeshLinkInstance> portalNavLinks = new();
         private const int NavigationCacheCapacity = 8;
 
         private static readonly ProfilerMarker CollectNavigationMarker = new("CTCC.Navigation.Collect");
@@ -220,12 +221,17 @@ namespace CTCC
         public void PresentCasework(Investigation state)
         {
             lastCaseworkState = state;
+            bool prevService = lastServiceGate;
             lastServiceGate = state.chapter == "CH04";
             foreach (var region in registeredZones)
             {
                 Toggle(region.serviceConnector, !lastServiceGate || !HasZone("LOC09"));
                 region.PresentCasework(state);
             }
+            if (prevService != lastServiceGate && HasZone("LOC04"))
+                RefreshZoneNavMesh("LOC04");
+            else if (registeredZones.Count > 0)
+                SyncPortalNavMeshLinks();
         }
 
         public bool RefreshZoneNavMesh(string zoneId)
@@ -233,7 +239,58 @@ namespace CTCC
             if (string.IsNullOrEmpty(zoneId) || !zonesById.TryGetValue(zoneId, out var region) || region == null)
                 return false;
             Physics.SyncTransforms();
-            return !region.participatesInNavMesh || region.RefreshRegionalNavMesh();
+            bool ok = !region.participatesInNavMesh || region.RefreshRegionalNavMesh();
+            if (ok) SyncPortalNavMeshLinks();
+            return ok;
+        }
+
+        private void ReleasePortalNavLinks()
+        {
+            for (int i = 0; i < portalNavLinks.Count; i++)
+                if (NavMesh.IsLinkValid(portalNavLinks[i])) NavMesh.RemoveLink(portalNavLinks[i]);
+            portalNavLinks.Clear();
+        }
+
+        /// <summary>
+        /// Maintains lightweight bidirectional NavMeshLinks across loaded additive zone portals
+        /// so runtime per-zone regional NavMesh tiles stitch cleanly across S1/S2/S3 and corridors (GAP-NAV-02).
+        /// </summary>
+        private void SyncPortalNavMeshLinks()
+        {
+            ReleasePortalNavLinks();
+            if (registeredZones.Count == 0) return;
+
+            TryAddPortalLink("LOC01", "LOC02", new Vector3(4.0f, 0f, -8.55f), new Vector3(4.0f, 0f, -7.45f), 1.8f);
+            TryAddPortalLink("LOC02", "LOC03", new Vector3(4.0f, 0f, -0.55f), new Vector3(4.0f, 0f, 0.55f), 1.8f);
+            TryAddPortalLink("LOC02", "LOC03", new Vector3(0.05f, 0f, -0.55f), new Vector3(0.05f, 0f, 0.55f), 1.2f);
+            if (lastSecondGate)
+            {
+                TryAddPortalLink("LOC03", "LOC04", new Vector3(4.0f, 0f, 15.45f), new Vector3(4.0f, 0f, 16.55f), 1.6f);
+                TryAddPortalLink("LOC03", "LOC04", new Vector3(0.05f, 0f, 15.45f), new Vector3(0.05f, 0f, 16.55f), 1.2f);
+                TryAddPortalLink("LOC04", "LOC05", new Vector3(4.0f, 0f, 21.35f), new Vector3(4.0f, 0.36f, 22.90f), 2.0f);
+            }
+            if (!lastLayerB)
+                TryAddPortalLink("LOC02", "LOC05", new Vector3(-2.35f, 0f, -4.0f), new Vector3(-3.70f, 0.40f, -4.0f), 2.0f);
+            if (lastServiceGate && !lastLayerB)
+                TryAddPortalLink("LOC04", "LOC09", new Vector3(7.0f, 0f, 21.35f), new Vector3(7.0f, -0.05f, 22.75f), 2.0f);
+        }
+
+        private void TryAddPortalLink(string zoneA, string zoneB, Vector3 pointA, Vector3 pointB, float width)
+        {
+            if (!HasZone(zoneA) || !HasZone(zoneB)) return;
+            if (!NavMesh.SamplePosition(pointA, out var hitA, 0.85f, NavMesh.AllAreas) ||
+                !NavMesh.SamplePosition(pointB, out var hitB, 0.85f, NavMesh.AllAreas))
+                return;
+            var link = NavMesh.AddLink(new NavMeshLinkData
+            {
+                startPosition = hitA.position,
+                endPosition = hitB.position,
+                width = width,
+                costModifier = -1f,
+                bidirectional = true,
+                area = 0
+            });
+            if (NavMesh.IsLinkValid(link)) portalNavLinks.Add(link);
         }
 
         internal bool ServiceApproachBlocked =>
@@ -337,7 +394,9 @@ namespace CTCC
             }
             finally { smoothPresentation = restoreSmooth; }
             foreach (var region in registeredZones)
-                if (region.gameObject.scene == sc && region.participatesInNavMesh) region.RefreshRegionalNavMesh();
+                if (region != null && region.isActiveAndEnabled && region.participatesInNavMesh)
+                    region.RefreshRegionalNavMesh();
+            SyncPortalNavMeshLinks();
             ZoneReloaded?.Invoke();
         }
 
@@ -362,6 +421,11 @@ namespace CTCC
                 Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate,
                     lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched,
                     memoryS1Discharge: lastMemoryS1Discharge);
+                Physics.SyncTransforms();
+                foreach (var region in registeredZones)
+                    if (region != null && region.isActiveAndEnabled && region.participatesInNavMesh)
+                        region.RefreshRegionalNavMesh();
+                SyncPortalNavMeshLinks();
             }
             Debug.Log($"CTCC_REGION_UNLOAD scene={sceneName} loaded={LoadedZoneCount} ms={timer.Elapsed.TotalMilliseconds:F2}");
         }
@@ -1207,6 +1271,7 @@ namespace CTCC
                     if (z != null && z.isActiveAndEnabled && z.participatesInNavMesh && !z.RefreshRegionalNavMesh())
                         allOk = false;
                 }
+                if (allOk) SyncPortalNavMeshLinks();
                 return allOk && NavMesh.SamplePosition(landing, out _, 0.36f, NavMesh.AllAreas);
             }
 
@@ -1256,6 +1321,7 @@ namespace CTCC
             foreach (var zone in registeredZones.ToArray())
                 if (zone == null || !zone.isActiveAndEnabled || (zone.participatesInNavMesh && !await zone.RefreshRegionalNavMeshAsync()))
                     return false;
+            SyncPortalNavMeshLinks();
             return NavMesh.SamplePosition(landing, out _, 0.36f, NavMesh.AllAreas);
         }
 
@@ -1297,6 +1363,7 @@ namespace CTCC
         {
             UnsubscribeRenderBudget();
             if (Instance == this) Instance = null;
+            ReleasePortalNavLinks();
             if (navigation.valid) navigation.Remove();
             foreach (var snapshot in navigationCache)
                 if (snapshot.Data != null) Destroy(snapshot.Data);

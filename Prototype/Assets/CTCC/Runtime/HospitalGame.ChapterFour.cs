@@ -219,17 +219,20 @@ namespace CTCC
             SaveCheckpoint(() => ChapterFour.SetPower(transaction, mask), () =>
             {
                 if (!ChapterFour.ValidPower(mask))
+                {
                     ui.Caption("Quá tải (>4). Rơ-le ngắt, toàn bộ nhánh đã về Tắt.", 4.5f, true);
+                    orderlyAi?.TriggerDistraction(player.Feet);
+                }
                 else if (ChapterFour.MorguePower(State.servicePower) && !wasMorgue)
                 {
                     if (Options.captions)
-                        ui.Caption("[Tiếng rơ-le đóng mạch — khóa điện nhà xác LOC10 mở, đèn tủ khô bật sáng]", 4.5f, true);
+                        ui.Caption("[Tiếng rơ-le đóng mạch phía bắc phòng kỹ thuật — khóa điện nhà xác LOC10 mở]", 4.5f, true);
                     ui.Toast("ĐÃ CẤP ĐIỆN NHÀ XÁC · PZ05", "Khóa điện nhà xác và tủ khô LOC10 đã mở (Kho + Kỹ thuật).", 5f);
+                    orderlyAi?.TriggerDistraction(new Vector3(8.9f, -3.4f, 43.2f));
                 }
                 else if (Options.captions)
                     ui.Caption("[Tiếng rơ-le bảng điện Kỹ thuật B1 kêu tách]", 2.8f);
                 scene.atmosphere?.From("doorLatch", player.Feet);
-                orderlyAi?.TriggerDistraction(player.Feet);
                 Ch04PowerBoard();
             });
         }

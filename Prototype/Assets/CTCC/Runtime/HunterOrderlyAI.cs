@@ -623,7 +623,12 @@ namespace CTCC
             switch (currentState)
             {
                 case OrderlyState.Patrol:
-                    if (waitingAtStop)
+                    if (seesPlayer)
+                    {
+                        FaceTarget(actor, stimulusPosition, dt * 180f);
+                        StandStill(actor);
+                    }
+                    else if (waitingAtStop)
                     {
                         actor.transform.rotation = Quaternion.RotateTowards(actor.transform.rotation,
                             Quaternion.Euler(0f, stop.FacingYaw, 0f), dt * 140f);
@@ -723,7 +728,8 @@ namespace CTCC
                 returnCooldownUntil = Time.unscaledTime + ReturnCooldownSeconds;
                 TransitionTo(OrderlyState.Return, 5.0f);
             }
-            else if (playerSafe && currentState == OrderlyState.Suspicious)
+            else if (playerSafe && currentState == OrderlyState.Suspicious &&
+                (!suspiciousFromHearing || IsInSafeZone(stimulusPosition, scene)))
             {
                 sightTimer = 0f;
                 TransitionTo(OrderlyState.Return, 4.0f);

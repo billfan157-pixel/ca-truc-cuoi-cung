@@ -1155,6 +1155,9 @@ namespace CTCC
         {
             // CH04-Q01 Route A: read schedule, pass corridor cleanly WITHOUT updating or falsifying records!
             player.Teleport(scene.Pad("AP07"));
+            orderlyAi.SyncState(State);
+            Require(orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Orderly && !orderlyAi.OrderlyRouteAdjusted,
+                "CH04-Q01 live Orderly active on default 3-stop Route A before schedule cross-check");
             yield return WaitForApplied(ChapterFour.ReadOrderlySchedule(transaction), "PZ04 read 3-stop schedule");
             Require(State.Happened("PZ04.ScheduleRead") && !State.Happened("PZ04.ScheduleUpdated"),
                 "CH04-Q01 Route A starts with default 3-stop Orderly route");
