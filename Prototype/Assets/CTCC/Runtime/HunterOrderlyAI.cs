@@ -116,7 +116,7 @@ namespace CTCC
             new(3.3f, -3.4f, 41.15f)
         };
 
-        private static readonly string[] SafePads = { "AP02", "AP04", "AP05", "AP06", "AN03", "AP07", "AP08", "AP09" };
+        private static readonly string[] SafePads = { "AP02", "AP04", "AP05", "AP06", "AN03", "AP07", "AP08", "AP09", "AP10", "AP11" };
 
         private HospitalScene scene;
         private VoiceDirector voice;
@@ -212,9 +212,9 @@ namespace CTCC
             if (zone == null) return;
             if (activeActor != null && (zone.gatekeeperActor == activeActor || zone.orderlyActor == activeActor))
                 DeactivatePrimary();
-            else if (zone.zoneId == "LOC05" && (activeFloorKey == "CH03-L3" || activeRole == AIRole.Orderly))
+            else if (zone.zoneId == "LOC05" && (activeFloorKey is ("CH03-L3" or "CH05-L3") || activeRole == AIRole.Orderly))
                 DeactivatePrimary();
-            else if (zone.zoneId == "LOC09" && activeFloorKey == "CH04-B1")
+            else if (zone.zoneId == "LOC09" && activeFloorKey is ("CH04-B1" or "CH05-B1"))
                 DeactivatePrimary();
 
             if (zone.zoneId == "LOC09" || (zone.unrecordedActor != null && scene?.UnrecordedActor == zone.unrecordedActor))
@@ -248,6 +248,21 @@ namespace CTCC
                 {
                     nextRole = AIRole.Hunter;
                     nextFloorKey = "CH04-B1";
+                }
+            }
+            else if (state.layer == Reality.R && state.chapter == "CH05" && player != null)
+            {
+                if (state.Happened(ChapterFive.EvReturnR) && !GateService.G05(state) &&
+                    player.Feet.y < -2.4f && scene.HasZone("LOC09"))
+                {
+                    nextRole = AIRole.Hunter;
+                    nextFloorKey = "CH05-B1";
+                }
+                else if (GateService.G05(state) && !state.Happened(ChapterFive.EvHandoff) &&
+                    player.Feet.y > 6.2f && scene.HasZone("LOC05"))
+                {
+                    nextRole = AIRole.Hunter;
+                    nextFloorKey = "CH05-L3";
                 }
             }
 
@@ -720,7 +735,8 @@ namespace CTCC
             Vector3 agentPos = actor.transform.position;
             Vector3 agentFwd = actor.transform.forward;
             Vector3 playerFeet = player.Feet;
-            bool inMorgueRefuge = activeFloorKey == "CH04-B1" && playerFeet.x < 4.45f;
+            bool inMorgueRefuge = activeFloorKey is ("CH04-B1" or "CH05-B1") &&
+                (playerFeet.x < 4.45f || (activeFloorKey == "CH05-B1" && playerFeet.z > 44.75f));
             bool playerSafe = IsInSafeZone(playerFeet, scene) || inMorgueRefuge || Time.unscaledTime < graceUntil;
 
             // Safe-zone non-intrusion rule & Story Mode immediate breakoff (TASK011-E).
@@ -926,7 +942,7 @@ namespace CTCC
         {
             if (activeRole == AIRole.Orderly)
                 return player != null && player.Feet.z >= 38.2f ? "AP07" : "AP06";
-            if (activeFloorKey == "CH04-B1" || (player != null && player.Feet.y < -1.0f))
+            if (activeFloorKey is ("CH04-B1" or "CH05-B1") || (player != null && player.Feet.y < -1.0f))
                 return "AP08";
             if (state != null && state.chapter == "CH03" && player != null && player.Feet.y < 6.0f)
                 return "AP06";
@@ -1011,7 +1027,9 @@ namespace CTCC
             Vector3 delta = step - pos;
             const float radius = 0.30f;
             bool blockedBySafeZone = IsInSafeZone(step, scene);
-            bool blockedByMorgueBoundary = activeRole == AIRole.Hunter && activeFloorKey == "CH04-B1" && step.x < 4.55f;
+            bool blockedByMorgueBoundary = activeRole == AIRole.Hunter &&
+                activeFloorKey is ("CH04-B1" or "CH05-B1") &&
+                (step.x < 4.55f || (activeFloorKey == "CH05-B1" && step.z > 44.65f));
             if (blockedBySafeZone || blockedByMorgueBoundary ||
                 NavMesh.Raycast(pos, step, out _, NavMesh.AllAreas) ||
                 (delta.sqrMagnitude > 0.00001f && Physics.CapsuleCast(pos + Vector3.up * 0.48f, pos + Vector3.up * 1.39f,
@@ -1069,7 +1087,7 @@ namespace CTCC
         private int GetPatrolPointCount(AIRole role, string floorKey)
         {
             if (role == AIRole.Orderly) return ActiveOrderlyRoute.Length;
-            if (floorKey == "CH04-B1") return ServiceRound.Length;
+            if (floorKey is ("CH04-B1" or "CH05-B1")) return ServiceRound.Length;
             if (scene?.Ch03PatrolWaypoints != null && scene.Ch03PatrolWaypoints.Length > 0)
                 return scene.Ch03PatrolWaypoints.Length;
             return Ch03FallbackRound.Length;
@@ -1085,7 +1103,7 @@ namespace CTCC
                 var route = ActiveOrderlyRoute;
                 return route[safeIdx % route.Length].Position;
             }
-            if (floorKey == "CH04-B1")
+            if (floorKey is ("CH04-B1" or "CH05-B1"))
                 return ServiceRound[safeIdx % ServiceRound.Length];
             if (scene?.Ch03PatrolWaypoints != null && scene.Ch03PatrolWaypoints.Length > 0)
             {

@@ -239,7 +239,9 @@ namespace CTCC.Editor
             var allPads = new List<Pose>(layout.pads)
             {
                 new Pose { id = "AP06", x = 4.0f, y = 4f, z = 33.5f, yaw = 0f },
+                new Pose { id = "AP10", x = 0.8f, y = 4f, z = 35.2f, yaw = -90f },
                 new Pose { id = "AN03", x = -0.6f, y = 8f, z = 32.2f, yaw = -90f },
+                new Pose { id = "AP11", x = 5.2f, y = 8f, z = 32.3f, yaw = 90f },
                 new Pose { id = "AP07", x = 4.0f, y = 4f, z = 45.7f, yaw = 0f },
                 new Pose { id = "AP08", x = 7f, y = -3.4f, z = 32.2f, yaw = 0f },
                 new Pose { id = "AP09", x = 1.5f, y = -3.4f, z = 39f, yaw = -90f },
@@ -910,7 +912,21 @@ namespace CTCC.Editor
             if (!stretcherClear)
                 throw new InvalidOperationException("0.72 m stretcher proxy collided at the 101 doorway.");
             world.Present(false, 4, true, true, true, true, false, true, true);
-            VerifyNav("CH03–04 / connected hospital", new[] { "AP02", "AP05", "AP06", "AN03", "AP07", "AP08", "AP09" });
+            VerifyNav("CH03–05 / connected hospital", new[] { "AP02", "AP05", "AP06", "AP10", "AN03", "AP07", "AP08", "AP09" });
+            if (multiScene && zones.TryGetValue("LOC05", out var upperSlot) && upperSlot.region.loc08GateBlocker != null)
+            {
+                upperSlot.region.loc08GateBlocker.SetActive(false);
+                Physics.SyncTransforms();
+                try
+                {
+                    VerifyNav("CH05 / G05 LOC08 unlocked", new[] { "AN03", "AP11" });
+                }
+                finally
+                {
+                    upperSlot.region.loc08GateBlocker.SetActive(true);
+                    Physics.SyncTransforms();
+                }
+            }
 
             // W-Q02: Khu B (AP06) -> S1 -> Reception (AP02) -> Courtyard (AP01) with B1 (LOC09) completely excluded!
             if (multiScene && zones.TryGetValue("LOC09", out var b1Slot))

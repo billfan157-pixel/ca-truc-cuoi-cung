@@ -395,16 +395,17 @@ namespace CTCC.Editor
                 Lamp("LOC06 corridor tube B", LightType.Point, new Vector3(4.0f, 3.15f, 33.5f), 2.05f, 9.5f, new Color(0.86f, 0.96f, 0.87f), wardB);
             }
 
-            // Reality.M Memory Vignette Prop & Warm Golden Lamp (active only during Reality.M memory vignette!)
+            // Reality.M Memory Vignette Prop & Warm Golden Lamp (CH03 AN03 — active strictly during CH03 M!)
+            Transform ch03Mem = Group("CH03 · AN03 Memory Stage", memRoot);
             Lamp("Bà Lành memory vignette warm key M", LightType.Point, new Vector3(-1.18f, 1.94f, 33.38f),
-                4.6f, 6.5f, new Color(1.0f, 0.83f, 0.60f), memRoot);
+                4.6f, 6.5f, new Color(1.0f, 0.83f, 0.60f), ch03Mem);
             if (art)
             {
-                PlaceBlenderModel("CTCC_PROP_ArchiveChair", memRoot, new Vector3(-1.68f, 0, 33.08f), -76, pairRB: false);
-                PlaceBlenderModel("CTCC_PROP_KnittingBagC02", memRoot, new Vector3(-1.66f, .49f, 33.04f),
+                PlaceBlenderModel("CTCC_PROP_ArchiveChair", ch03Mem, new Vector3(-1.68f, 0, 33.08f), -76, pairRB: false);
+                PlaceBlenderModel("CTCC_PROP_KnittingBagC02", ch03Mem, new Vector3(-1.66f, .49f, 33.04f),
                     -30, pairRB: false, scale: Vector3.one * .87f);
             }
-            var knit = Group("Memory · named needle performance", memRoot, new Vector3(-1.59f, .62f, 33.05f));
+            var knit = Group("Memory · named needle performance", ch03Mem, new Vector3(-1.59f, .62f, 33.05f));
             var needleA = Box("Bamboo needle, near", new Vector3(0, 0, -.032f), new Vector3(.009f, .009f, .23f), Mat("Wood"), knit);
             var needleB = Box("Bamboo needle, far", new Vector3(-.025f, .014f, .02f), new Vector3(.009f, .009f, .20f), Mat("Wood"), knit);
             needleA.transform.localRotation = Quaternion.Euler(18, -36, 0);
@@ -412,6 +413,85 @@ namespace CTCC.Editor
             var memoryMotion = knit.gameObject.AddComponent<ArchiveMemoryMotion>();
             memoryMotion.needleA = needleA.transform;
             memoryMotion.needleB = needleB.transform;
+
+            // Phase C (TASK013-A): CH05 AN05 Evacuation Memory Stage in LOC05 Khu B + S1 West Gallery (active strictly during CH05 M!)
+            Transform ch05Mem = Group("CH05 · AN05 Evacuation Memory Stage", loc05?.memory ?? memory);
+            Lamp("CH05 Khu B warm fire glow M", LightType.Point, new Vector3(-0.4f, WardLevel + 2.65f, 35.4f),
+                4.4f, 12.5f, new Color(1.0f, 0.68f, 0.34f), ch05Mem);
+            Lamp("CH05 S1 west gallery warm glow M", LightType.Point, new Vector3(-12.2f, WardLevel + 2.65f, 21.5f),
+                4.0f, 14.0f, new Color(1.0f, 0.66f, 0.32f), ch05Mem);
+            Lamp("CH05 S1 descent warm glow M", LightType.Point, new Vector3(-9.5f, WardLevel + 1.85f, -4.0f),
+                3.6f, 12.5f, new Color(1.0f, 0.72f, 0.38f), ch05Mem);
+
+            // Soft non-strobe directional smoke ribbons (disabled cleanly when reduceMotion == true per CH05-Q04!)
+            Transform smokeRoot = Group("CH05 · Guidance Smoke Volumes", ch05Mem);
+            var smokeMat = art && materials.TryGetValue("BeamWarm", out var bw) ? bw : Mat("Glass");
+            Box("CH05 smoke ribbon Khu B", new Vector3(-2.6f, WardLevel + 2.45f, 36.8f), new Vector3(3.4f, .65f, 1.25f), smokeMat, smokeRoot, solid: false);
+            Box("CH05 smoke ribbon Gallery N", new Vector3(-12.2f, WardLevel + 2.35f, 23.0f), new Vector3(2.2f, .72f, 5.2f), smokeMat, smokeRoot, solid: false);
+            Box("CH05 smoke ribbon Gallery S", new Vector3(-12.2f, WardLevel + 2.45f, 7.5f), new Vector3(2.2f, .62f, 4.8f), smokeMat, smokeRoot, solid: false);
+
+            // Pair 2 non-blocking corridor obstacle visual along S1 west gallery (clear lane on west side so player never clips!)
+            var evacObstacle = Group("CH05 · Pair 2 Corridor Obstacle", ch05Mem, new Vector3(-11.45f, WardLevel, 21.5f));
+            Box("Obstacle linen cart", new Vector3(0f, .44f, 0f), new Vector3(.62f, .88f, 1.24f), Mat("MetalOld"), evacObstacle, solid: false);
+
+            // Dynamic evacuation wheelchair prop repositioned per active pair (Pair 1 -> Pair 2 -> Pair 3)
+            Transform evacChair = Group("CH05 · Evac Wheelchair M", ch05Mem, new Vector3(-1.35f, WardLevel, 36.65f));
+            if (art)
+            {
+                var chairMesh = PlaceBlenderModel("CTCC_PROP_TransportTrolley", evacChair, Vector3.zero, 90f, pairRB: false,
+                    scale: new Vector3(0.74f, 0.86f, 0.58f));
+                foreach (var c in chairMesh.GetComponentsInChildren<Collider>(true)) UnityEngine.Object.DestroyImmediate(c);
+            }
+            else
+            {
+                Box("Evac chair M proxy", new Vector3(0f, .44f, 0f), new Vector3(.64f, .88f, .92f), Mat("Steel"), evacChair, solid: false);
+            }
+
+            // Reused modular rigged NPCs for CH05 Evacuation Memory (colliders stripped so movement is 100% snag-free!)
+            CharacterActor colleagueActor = null;
+            CharacterActor vinhActor = null;
+            var patientActors = new List<CharacterActor>(6);
+            if (art)
+            {
+                colleagueActor = PlaceCharacterActor("CTCC_CHR_Lan", ch05Mem, new Vector3(-2.35f, WardLevel, 36.85f), 90f,
+                    "CH05_Colleague_Nurse", isApparition: false, enableBlink: false, enableLipSync: false);
+                StripActorColliders(colleagueActor);
+
+                vinhActor = PlaceCharacterActor("CTCC_CHR_Gatekeeper", ch05Mem, new Vector3(-12.2f, WardLevel, -3.2f), 0f,
+                    "CH05_Director_Vinh", isApparition: false, enableBlink: false, enableLipSync: false);
+                StripActorColliders(vinhActor);
+                vinhActor.gameObject.SetActive(false);
+
+                Vector3[] patientSpots =
+                {
+                    new(-1.85f, WardLevel, 35.85f), new(-1.25f, WardLevel, 36.95f), // Pair 1 (Khu B)
+                    new(-12.35f, WardLevel, 22.85f), new(-12.65f, WardLevel, 20.35f), // Pair 2 (S1 Gallery)
+                    new(-12.35f, WardLevel, -1.85f), new(-11.85f, WardLevel, -2.95f), // Pair 3 (S1 Stair Head)
+                };
+                string[] patientModels =
+                {
+                    "CTCC_CHR_Lan", "CTCC_CHR_Gatekeeper",
+                    "CTCC_CHR_Gatekeeper", "CTCC_CHR_Lan",
+                    "CTCC_CHR_Lan", "CTCC_CHR_Gatekeeper"
+                };
+                for (int p = 0; p < 6; p++)
+                {
+                    var pa = PlaceCharacterActor(patientModels[p], ch05Mem, patientSpots[p], p < 2 ? -90f : 180f,
+                        $"CH05_Patient_{p + 1}", isApparition: false, enableBlink: false, enableLipSync: false);
+                    StripActorColliders(pa);
+                    pa.gameObject.SetActive(p < 2);
+                    patientActors.Add(pa);
+                }
+            }
+
+            // CH05 Layer M Interactive Targets (single-press E/K accessible, zero hold-drag!)
+            CapsuleTarget("CH05_M_PAIR1", "Nhóm 1 (2 bệnh nhân) · Mở lối Khu B & phối hợp đẩy xe",
+                new Vector3(-2.25f, WardLevel + 1.05f, 36.85f), new Vector3(1.15f, 1.35f, 1.15f), ch05Mem);
+            CapsuleTarget("CH05_M_PAIR2", "Nhóm 2 (2 bệnh nhân) · Gọi đồng nghiệp & vượt vật cản hành lang S1",
+                new Vector3(-12.2f, WardLevel + 1.05f, 21.5f), new Vector3(1.45f, 1.35f, 1.35f), ch05Mem);
+            CapsuleTarget("CH05_M_EXIT", "Xe bệnh nhân AN05 · Trạng thái sơ tán / Tái hiện cố định / Thoát M",
+                new Vector3(-0.65f, WardLevel + 1.05f, 35.2f), new Vector3(1.05f, 1.25f, 1.15f), ch05Mem);
+            ch05Mem.gameObject.SetActive(false);
 
             // CH03 Interactive Targets (LOC05 Nurse Station, LOC07 Archive & Meeting Loop, LOC06 Duty Corridor)
             CapsuleTarget("E03", "Sổ đăng ký bệnh nhân 12 mã (E03)", new Vector3(-1.56f, 1.05f, 31.85f), new Vector3(0.55f, 0.29f, 0.40f), perm);
@@ -437,6 +517,13 @@ namespace CTCC.Editor
 
             if (loc05 != null)
             {
+                loc05.region.ch03MemoryStage = ch03Mem.gameObject;
+                loc05.region.ch05MemoryStage = ch05Mem.gameObject;
+                loc05.region.ch05SmokeVisuals = smokeRoot.gameObject;
+                loc05.region.ch05EvacWheelchair = evacChair;
+                loc05.region.ch05ColleagueActor = colleagueActor;
+                loc05.region.ch05VinhActor = vinhActor;
+                loc05.region.ch05PatientActors = patientActors.ToArray();
                 loc05.region.namedMemory = knit.gameObject;
                 loc05.region.memoryMotion = memoryMotion;
                 loc05.region.ch03PatrolWaypoints = wps;
@@ -447,6 +534,13 @@ namespace CTCC.Editor
                     loc05.probes.Add(arcProbe);
                 }
             }
+        }
+
+        private static void StripActorColliders(CharacterActor actor)
+        {
+            if (actor == null) return;
+            foreach (var col in actor.GetComponentsInChildren<Collider>(true))
+                UnityEngine.Object.DestroyImmediate(col);
         }
 
         private static AudioSource CreateVoiceAnchor(string name, Transform parent, Vector3 localPos, float maxDist)
