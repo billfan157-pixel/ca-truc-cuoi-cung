@@ -94,9 +94,9 @@ namespace CTCC
 
         private static readonly Vector3[] ServiceRound =
         {
-            new(7.3f, -3.4f, 37.0f),
-            new(8.9f, -3.4f, 41.7f),
-            new(6.6f, -3.4f, 43.8f)
+            new(8.9f, -3.4f, 40.2f),
+            new(9.1f, -3.4f, 43.6f),
+            new(6.0f, -3.4f, 43.8f)
         };
 
         private static readonly Vector3[] Ch03FallbackRound =
