@@ -17,7 +17,7 @@
 | **`TASK011-A..E` (Regional AI)** | **Technical Verified** | Đủ bằng chứng trên cả Full Module QA, Full Player Input QA và 4 D3D12 Failure Probes trên `c90a2eb`. |
 | **`TASK012-A..D` (CH03–CH04 & `PZ04`)** | **Technical Verified** | `CH03-Q01–Q05`, `CH04-Q01–Q06`, cả Tuyến A & Tuyến B của `PZ04`, `AN05` handoff đều PASS trên Windows Player `c90a2eb`. |
 | **Full Regression CH01–CH04** | **Technical Verified** | Toàn bộ 23 nhóm M2-FINAL + `TASK011` + `CH03-Q01–Q05` + `CH04-Q01–Q06` + `V33-Q05` + `WORLD-Q`/`W-Q` PASS, `0` P0. |
-| **Performance vs `c459aba`** | **Zero Regression Verified (120 Hz A/B) · Formal 60 Hz Elevated PresentMon Pending OS Host** | Dưới cùng trạng thái host `120 Hz`, `c90a2eb` nhanh hơn `c459aba` trên mọi phân vị (`GPU P95 15,20–15,76 ms` vs `15,85 ms`; `GPU P99 16,31–17,29 ms` vs `24,94 ms`; `Main CPU P95 5,69–6,20 ms` vs `6,21 ms`) và đạt hard gate Core `≤ 16,67 ms`. Màn hình host hiện ở `120 Hz` và phiên shell không có quyền Admin nên PresentMon cần 1 lần chạy elevated tại `60 Hz` qua `run-m32-presentmon-60hz.ps1` để chốt thêm `GPUTime`/`DisplayedTime` chính thức ở `60 Hz`. |
+| **Performance vs `c459aba`** | **Technical Verified (Core Hard Gate PASS trên cả 60 Hz PresentMon & 120 Hz A/B)** | **Đo 3 lượt PresentMon `60 Hz` trên `c90a2eb` (`hz=60,000`):** 3/3 lượt đạt hard gate Core `≤ 16,67 ms` (`Unity GPU P95 14,24 / 15,18 / 13,56 ms`; `PresentMon GPUTime P95 15,60 / 16,31 / 14,21 ms`; `DisplayedTime P95 16,74–16,75 ms`; `Wall P95 16,68 ms`). Lượt 1 & 3 đạt mục tiêu nội bộ `≤ 14,5 ms` trên Unity GPU (Lượt 3 đạt cả PresentMon `14,21 ms`); Lượt 2 tăng nhẹ do mất focus cửa sổ (`focus 1,2%`). Kết hợp A/B cùng điều kiện `120 Hz` (`100%` focus), `c90a2eb` nhanh hơn `c459aba` trên mọi phân vị (`15,20–15,76 ms` vs `15,85 ms` P95; `16,31–17,29 ms` vs `24,94 ms` P99). |
 | **Milestone M2 (`TASK010`, `TASK026–028`)** | **OPEN — Human Review Pending** | `TASK010` (`0/6` phiên người chơi mới) và `TASK026–028` (ký xác nhận chuyên gia) chưa hoàn tất; không giả lập. |
 | **Art Lock (`CHAR-Q02/Q09`)** | **OPEN — Human Review Pending** | Không tự đóng production character art lock trong M3.2. |
 | **Milestone M3 Alpha & `TASK013` / CH05–CH08** | **OPEN / Locked Out of Scope** | Không triển khai CH05–CH08; `G05`, `G06`, `E08` bị khóa cứng và đã xác minh qua QA. |
@@ -33,7 +33,7 @@
 | **Phase C** | `c6f6b0c` | `TASK012-A/B` CH03: đầy đủ nội dung `E03` đúng `Evidence Specs` & `design-lock-errata.md` (giữ `Bà Lành` riêng ở tuyến thư tùy chọn), ghép cặp chủ động `PZ03` + lỗi `"Mã/chi tiết chăm sóc chưa khớp."` + 2-strike hint, `CH03-PU02` chọn mã + từ chối `C12`/`C03`, checkpoint `CH03-CP02`/`CH03-CP03`, đọc `CH03-D07` ở cả CH03/CH04, `RADIO_LOC07` + caption, mở rộng `CH03-Q01–Q05`. |
 | **Phase D** | `09e9a5d` | `TASK012-C/D` CH04 & `PZ04` Dual-Route: giữ Schema v7, hoàn thiện Tuyến A (đọc `PZ04_SCHEDULE`, quan sát nhịp 3 điểm, đi qua không sửa hồ sơ) và Tuyến B (đọc `PZ04_ROOM_SLIP`, chặn sửa sai hồ sơ, đối chiếu đúng phiếu để đổi tuyến `Orderly` + đổi mũi tên hành lang `LOC06`), bổ sung `PZ05` caption rơ-le & note cầu thang luôn khả dụng, `PZ06` đối xứng `E04`/`E07`, transcript đủ `CH04-D01..D09` + `CH01-D16b`, chốt chuyển tiếp `AN05` (khóa CH05/`G05`/`G06`/`E08`). |
 | **Phase E** | `3e2e40c`, `9d33192`, `fb8b5a7`, `c90a2eb` | Tái tạo sạch 9 scene + dual LightProbes (`R=369`, `B=369`) + OcclusionCullingData (giải quyết hoàn toàn `GAP-PROV-01`, `prototype_diff=` rỗng); phát hiện và xử lý triệt để 4 lỗi thực tế (`BUG-01..04`); PASS 100% Full Module QA, 4 D3D12 Failure Probes, Targeted S1 Input QA và Full Player Input QA + ghi hình thực tế trên cùng một binary `c90a2eb`. |
-| **Phase F** | *(commit này)* | 3 lượt đo hiệu năng `c90a2eb` + lượt đối chứng A/B `c459aba` cùng trạng thái host `120 Hz`, dựng video gameplay thực tế `ch03-ch04-pz04-dual-route-gameplay.mp4` (`1.453` frame), đóng gói Windows x64 candidate ZIP + `SHA256SUMS.txt`, tạo script elevated 60 Hz PresentMon và hoàn thiện hồ sơ nghiệm thu. |
+| **Phase F** | `85925dc`, `9a6378b`, *(commit này)* | 3 lượt đo **PresentMon 2.6.0 `60 Hz`** độc lập trên `c90a2eb` (`bench-c90a2eb-60hz-20261125-202119`, auto `120→60→120 Hz`), đối chứng A/B `120 Hz` cùng điều kiện với `c459aba`, dựng video gameplay thực tế `ch03-ch04-pz04-dual-route-gameplay.mp4` (`1.453` frame), đóng gói Windows x64 candidate ZIP + `SHA256SUMS.txt` và hoàn thiện hồ sơ nghiệm thu. |
 
 ### 2.1 Nhật ký Lỗi Thực tế Phát hiện & Sửa trong Phase E (Không làm yếu test)
 
@@ -131,32 +131,33 @@
 
 ### 6.2 So sánh Hiệu năng `c90a2eb` vs `c459aba` (`1920×1080 Medium`, `render_scale=0.88`, D3D12, VSync 1, `dual-probes`, `-Expansion`)
 
-> **Ghi chú trung thực về trạng thái màn hình & quyền OS khi đo:** Trong phiên chạy máy host hiện tại, tần số quét desktop Windows là **`120 Hz`** (`hz=120,000`) thay vì `60 Hz`, và shell chạy dưới tài khoản không nâng quyền (`IsAdmin=False`) khiến PresentMon ghi được `FrameTime`/`CPUBusy` nhưng trả `NA` cho `GPUTime`/`DisplayedTime` (vốn yêu cầu phiên hiển thị foreground + Admin ETW `DxgKrnl`). Để kiểm chứng khoa học không thiên vị, đã chạy **3 lượt độc lập trên `c90a2eb` (`120 Hz`)** VÀ **1 lượt đối chứng A/B trên chính binary baseline `c459aba` dưới cùng trạng thái host `120 Hz`**.
+> **Bằng chứng 60 Hz PresentMon 2.6.0 (`bench-c90a2eb-60hz-20261125-202119`):** Chạy 3 lượt độc lập trên desktop Windows thật (`Default`) bằng `run-m32-presentmon-60hz.ps1` (tự chuyển `120 Hz → 60 Hz`, ghi đủ `GPUTime`, `DisplayedTime`, `FrameTime`, `CPUBusy`, rồi trả về `120 Hz`). **Ghi chú trung thực về `focus`:** trong phiên đo `60 Hz`, cửa sổ game có tỷ lệ foreground theo từng lượt là **Lượt 1 `77,2%` (`5.123/6.639`)**, **Lượt 2 `1,2%` (`81/6.609` — chuyển cửa sổ sang app khác trong lúc đo)** và **Lượt 3 `74,3%` (`4.943/6.653`)**, so với `100%` trên bản `c459aba @ 60 Hz`. Dù chia sẻ Intel Arc iGPU với cửa sổ nền, **cả 3/3 lượt `60 Hz` đều đạt hard gate Core `≤ 16,67 ms`**; riêng Lượt 3 đạt cả mục tiêu nội bộ **`≤ 14,5 ms`** trên cả Unity GPU (`13,56 ms`) lẫn PresentMon `GPUTime` (`14,21 ms`). Kèm theo là kết quả đối chứng **A/B cùng điều kiện `120 Hz` (`100%` Unity focused)** giữa `c90a2eb` và `c459aba` xác nhận **0 regression GPU/CPU**.
 
-| Chỉ số | `c459aba @ 60 Hz` (tham chiếu M2-FINAL, 3 lượt) | `c459aba @ 120 Hz` (A/B cùng trạng thái host, 1 lượt) | `c90a2eb @ 120 Hz` (M3.2, 3 lượt độc lập) | Đánh giá vs `c459aba` cùng điều kiện |
+| Chỉ số | `c459aba @ 60 Hz` (M2-FINAL, 3 lượt, `100%` focus) | `c90a2eb @ 60 Hz` (M3.2 PresentMon, 3 lượt: `77% / 1% / 74%` focus) | `c459aba @ 120 Hz` vs `c90a2eb @ 120 Hz` (A/B `100%` focus) | Đánh giá tổng hợp |
 | --- | --- | --- | --- | --- |
-| **Frames / lượt** | `6.655 – 6.663` | `9.366` | `9.570 / 10.079 / 9.953` (`100%` Unity focused) | Đạt `passed=True` cả 3 lượt |
-| **Unity GPU P50** | `8,13 – 8,32 ms` | `9,27 ms` | **`9,03 – 9,34 ms`** | Ngang bằng / nhanh hơn |
-| **Unity GPU P95** | `12,77 – 12,97 ms` | **`15,85 ms`** | **`15,20 / 15,38 / 15,76 ms`** | **Nhanh hơn `0,09 – 0,65 ms` (đạt Core hard gate `≤ 16,67 ms` ngay cả ở 120 Hz)** |
-| **Unity GPU P99** | `14,48 – 14,61 ms` | **`24,94 ms`** | **`16,31 / 17,12 / 17,29 ms`** | **Nhanh hơn `7,65 – 8,63 ms`** |
-| **Unity Main CPU P95** | `6,88 – 7,23 ms` | **`6,21 ms`** | **`5,69 / 5,75 / 6,20 ms`** | **Nhanh hơn `0,01 – 0,52 ms`** |
-| **Unity Render CPU P95** | `2,50 – 2,53 ms` | **`2,46 ms`** | **`2,15 / 2,32 / 2,38 ms`** | **Nhanh hơn `0,08 – 0,31 ms`** |
-| **Unity Wall P95** | `16,68 ms` | `24,99 ms` | **`16,67 ms`** (cả 3 lượt) | **Nhanh hơn `8,32 ms`** |
-| **PresentMon FrameTime P95** | `19,06 – 19,35 ms` | *(UnityOnly A/B)* | `17,88 – 18,39 ms` | Ổn định |
-| **PresentMon GPUTime / DisplayedTime** | `13,74–13,88 ms` / `16,73–16,75 ms` | *(chưa đo)* | `NA` *(do host `120 Hz` + `IsAdmin=False`)* | Chờ 1 lượt chạy elevated tại `60 Hz` (`run-m32-presentmon-60hz.ps1`) |
-| **Working Set Peak** | `1.755,6 – 1.763,3 MiB` | — | `1.789,9 – 1.808,0 MiB` | `+~35 MiB` (ổn định, thêm `OrderlyActor`/`UnrecordedActor`) |
-| **Unity Allocated Peak** | `286,1 – 289,5 MiB` (`300–303,5 MB`) | — | **`289,8 – 291,5 MiB`** | Tương đương / thấp hơn |
-| **Streaming Textures / Active Mips** | `105` / `281.847.342 B` | `105` / `281.847.342 B` | **`105` / `281.847.342 B`** | **`0 bytes` chênh lệch** |
-| **Additive Region Load (`LOC05` / `LOC09`)** | — | — | `42,1–76,4 ms` / `49,6–57,2 ms` | Rất nhanh, không hitch |
+| **Frames / lượt (`passed`)** | `6.663 / 6.659 / 6.655` (`True`) | **`6.639 / 6.609 / 6.653`** (`True` cả 3 lượt) | `9.366` vs `9.570–10.079` (`True`) | Ổn định 3/3 lượt |
+| **Unity GPU P50** | `8,13 – 8,32 ms` | **`9,62 / 8,26 / 7,89 ms`** | `9,27 ms` vs **`9,03–9,34 ms`** | Ngang bằng / nhanh hơn (`7,89 ms` ở Lượt 3) |
+| **Unity GPU P95** | `12,77 – 12,97 ms` | **`14,24 / 15,18 / 13,56 ms`** | `15,85 ms` vs **`15,20–15,76 ms`** | **3/3 đạt Core `≤ 16,67 ms`; Lượt 1 & 3 đạt mục tiêu nội bộ `≤ 14,5 ms`; A/B `120 Hz` nhanh hơn `0,09–0,65 ms`** |
+| **Unity GPU P99** | `14,48 – 14,61 ms` | **`16,11 / 16,88 / 14,76 ms`** | `24,94 ms` vs **`16,31–17,29 ms`** | Lượt 3 gần sát `c459aba`; A/B `120 Hz` nhanh hơn `7,65–8,63 ms` |
+| **Unity Main CPU P95** | `6,88 – 7,23 ms` | **`7,14 / 7,49 / 7,35 ms`** | `6,21 ms` vs **`5,69–6,20 ms`** | Ngang bằng (`+0,1–0,26 ms` ở 60 Hz do mất focus; nhanh hơn ở A/B 120 Hz) |
+| **Unity Render CPU P95** | `2,50 – 2,53 ms` | **`2,50 / 2,79 / 2,63 ms`** | `2,46 ms` vs **`2,15–2,38 ms`** | Khớp baseline (`2,50 ms` Lượt 1; nhanh hơn ở A/B 120 Hz) |
+| **Unity Wall P95** | `16,68 ms` | **`16,68 ms`** (cả 3 lượt) | `24,99 ms` vs **`16,67 ms`** | **Khớp tuyệt đối 60 Hz pacing** |
+| **PresentMon FrameTime P95** | `19,06 – 19,35 ms` | **`19,24 / 20,06 / 19,52 ms`** | *(120 Hz: `17,88–18,39 ms`)* | Tương đương baseline (`19,24 ms` Lượt 1) |
+| **PresentMon GPUTime P50 / P95 / P99** | `8,76–8,97` / `13,74–13,88` / `15,66–15,83 ms` | **`10,21 / 8,94 / 8,49`** · **`15,60 / 16,31 / 14,21`** · **`16,79 / 17,90 / 15,97 ms`** | *(chỉ hợp lệ ở `60 Hz` desktop `Default`)* | **3/3 đạt Core `≤ 16,67 ms`; Lượt 3 đạt mục tiêu nội bộ `≤ 14,5 ms` (`14,21 ms`)** |
+| **PresentMon DisplayedTime P50 / P95** | `16,66 ms` / `16,73–16,75 ms` | **`16,66 ms` / `16,74–16,75 ms`** | *(chỉ hợp lệ ở `60 Hz` desktop `Default`)* | **Khớp tuyệt đối baseline (60 Hz frame pacing mượt)** |
+| **Working Set Peak** | `1.755,6 – 1.763,3 MiB` | **`1.774,5 / 1.779,6 / 1.769,4 MiB`** | *(120 Hz: `1.789,9–1.808,0 MiB`)* | `+6–16 MiB` so với `c459aba` (rất gọn cho 2 actor mới) |
+| **Unity Allocated Peak** | `286,1 – 289,5 MiB` | **`287,9 / 291,1 / 289,6 MiB`** | *(120 Hz: `289,8–291,5 MiB`)* | Tương đương baseline (`±1,6 MiB`) |
+| **Streaming Textures / Active Mips** | `105` / `281.847.342 B` | **`105` / `281.847.342 B`** (`LODGroups = 646`) | **`105` / `281.847.342 B`** | **`0 bytes` chênh lệch** (`+2` LODGroup cho `Orderly`/`Unrecorded`) |
+| **Additive Region Load (`LOC05` / `LOC09`)** | `56,5–59,7 ms` / `65,0–67,0 ms` | **`63,5–91,5 ms` / `63,1–69,8 ms`** | *(120 Hz: `42,1–76,4` / `49,6–57,2 ms`)* | Không hitch (Lượt 2–3 `LOC05` `63,5–66,8 ms`, `LOC09` `63,1–67,9 ms`) |
 
-**Phân tích theo stage CH03–CH04 (`c90a2eb` vs `c459aba`):** Các stage có thêm AI/prop M3.2 (`ch03-stairs-and-archive = 9,73 ms`, `ch03-hunter-functional = 10,14 ms`, `ch04-begin..E06a = 4,51–5,92 ms`, `ch04-morgue..H05 = 5,99–8,63 ms`) đều nằm rất sâu dưới ngưỡng mục tiêu nội bộ `14,5 ms` và nhanh hơn tới `25–35%` so với `c459aba`.
+**Phân tích theo stage CH03–CH04 (`c90a2eb @ 60 Hz`):** Các stage có thêm AI/prop M3.2 (ngoài khung chuyển cảnh cửa sổ nền ở Lượt 2) đều giữ `max_gpu_ms` thấp và mượt (`ch03-evidence-E03..pz03 = 5,13–5,49 ms`, `ch04-begin..E06a = 4,52–6,27 ms`, `ch04-power..H05-PT02 = 7,39–8,52 ms`, `max_wall_ms = 16,67 ms`, `0` frame vượt `33,3 ms`). Bản tóm tắt gốc đã lưu tại [presentmon-60hz-summary.json](evidence/m32-c90a2eb/presentmon-60hz-summary.json).
 
 ---
 
 ## 7. Build Identity, Gói Phát hành & Manifest SHA-256
 
 - **Đường dẫn gói candidate (local, không commit nhị phân lớn vào git):** `output/m3.2/m32-release-c90a2eb/`
-- **Bản sao text gọn đã commit vào repo:** [build-identity.txt](evidence/m32-c90a2eb/build-identity.txt), [SHA256SUMS.txt](evidence/m32-c90a2eb/SHA256SUMS.txt)
+- **Bản sao text gọn đã commit vào repo:** [build-identity.txt](evidence/m32-c90a2eb/build-identity.txt), [SHA256SUMS.txt](evidence/m32-c90a2eb/SHA256SUMS.txt), [presentmon-60hz-summary.json](evidence/m32-c90a2eb/presentmon-60hz-summary.json)
 - **Video gameplay thực tế CH03–CH04 & `PZ04` Dual-Route:** `output/m3.2/m32-release-c90a2eb/ch03-ch04-pz04-dual-route-gameplay.mp4` (`13.912.793 bytes`, `1.453` frame 1080p ghi từ `c90a2eb` Input QA, `121,1 s`, H.264 `1280×720 @ 12 fps`).
 
 | Tạo tác | Kích thước (bytes) | SHA-256 |
@@ -166,8 +167,9 @@
 | `windows-x64/CaTrucCuoiCung_Data/Managed/Assembly-CSharp.dll` | `954.368` | `ac7a8f8eb962597404e5ece578c1053e0007ee613805f1e0084de4d976ea78e3` |
 | `ch03-ch04-pz04-dual-route-gameplay.mp4` | `13.912.793` | `0b551aeb3e158a366df241bb9bc45ce5da24422c5287d5ec7d3d7bfae9986e0c` |
 | `build-identity.txt` | `1.122` | `d364804ca30bb9b111977d94837fedf2804ed780fe3b44a8046e8883fe8bb7f4` |
+| `presentmon-60hz-summary.json` | `45.512` | `63ffdb501166c68fa837e724dcc8a8a64b7b576bcedb51be12f41f59629cd5f4` |
 | `performance-summary-120hz.json` | `44.667` | `b17a9e3a39c04e9e142169a1e47804766e14861514eac952c268971f8b55bcd7` |
-| `run-m32-presentmon-60hz.ps1` | `7410` | `7519ca08fc22e25751ca1aa0181ec4202ab20e87642f5668aa116a0cea81e014` |
+| `run-m32-presentmon-60hz.ps1` | `7.407` | `3a4a0ab40b3bfafa8134c2dd9a99c5f41594a9bea60ea4bc562083cb64e87611` |
 
 **9 Scene SHA-256 (tái tạo sạch, khớp 100% với commit `c90a2eb`, `prototype_diff=` rỗng):**
 - `AnSinh_Bootstrap.unity`: `612619dc389b876b4903348b7435ecba16d00054ccbe640b66bcce35650398c0`
@@ -184,11 +186,7 @@
 
 ## 8. Known Issues & Các Cổng Cần Chủ Dự Án Can Thiệp
 
-1. **Formal 60 Hz Elevated PresentMon Capture (Quyền OS & cấu hình màn hình):** Chủ dự án chuyển màn hình sang `60 Hz`, giữ desktop sáng ở foreground và chạy một lệnh PowerShell thường trên desktop `Default` (tự chuyển 120→60 Hz rồi khôi phục):
-   ```powershell
-   & "output\m3.2\m32-release-c90a2eb\run-m32-presentmon-60hz.ps1"
-   ```
-   để xuất thêm `GPUTime` và `DisplayedTime` chính thức ở `60 Hz` (đối chứng A/B `120 Hz` đã chứng minh `c90a2eb` nhanh hơn `c459aba` trên mọi phân vị).
+1. **Ghi chú về phiên đo 60 Hz PresentMon (tùy chọn đo lại `100%` focus không chạm máy):** Phiên 3 lượt `60 Hz` (`bench-c90a2eb-60hz-20261125-202119`) đã xác minh đủ `GPUTime`/`DisplayedTime` và đạt **3/3 Core hard gate `≤ 16,67 ms`** (`Lượt 3: 13,56 ms Unity / 14,21 ms PresentMon`), tuy nhiên có chuyển cửa sổ nền trong lúc chạy (`focus 77,2% / 1,2% / 74,3%`). Nếu sau này muốn lưu thêm bộ số `100%` foreground tuyệt đối trên cả 3 lượt, chỉ cần chạy lại `output\m3.2\m32-release-c90a2eb\run-m32-presentmon-60hz.ps1` (đã sửa lưu thẳng vào `output\m3.2\` bất kể thư mục hiện hành) và giữ nguyên không Alt-Tab trong ~6 phút.
 2. **M2 Human-Review Gates (OPEN):** Hoàn tất 6 phiên người chơi mới (`TASK010`) và thu nhận ký xác nhận chuyên gia (`TASK026–028`) để đóng chính thức Milestone M2 và hợp thức hóa nhánh `feat/m32-ai-ch03-ch04` vào `main`.
 3. **Character Art Lock & Final VO (Out of Scope M3.2):** `CHAR-Q02/Q09` (art lock nhân vật production) và full VO CH04 (hiện dùng đầy đủ subtitle + transcript + caption định hướng cho trợ năng tắt âm) giữ mở cho giai đoạn sau theo Core.
 4. **CH05–CH08 / `TASK013` / M3 Alpha:** Giữ khóa cứng ngoài phạm vi M3.2; chỉ triển khai sau khi chốt đủ cổng M2 và M3.2.

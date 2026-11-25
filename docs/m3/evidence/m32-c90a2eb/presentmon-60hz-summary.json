@@ -1,0 +1,1709 @@
+[
+  {
+    "run": "benchmark-1",
+    "identity": {
+      "pid": "19712",
+      "launch_qpc": "805388489207",
+      "assembly_sha256": "ac7a8f8eb962597404e5ece578c1053e0007ee613805f1e0084de4d976ea78e3",
+      "exe_sha256": "fbd073ca59c4918edbc6704f5393cf59021173af11714c00db4212c50117492b",
+      "requested_quality": "Medium",
+      "gi_mode": "dual-probes",
+      "ablation": "none"
+    },
+    "configuration": {
+      "passed": "True",
+      "error": "",
+      "unity": "6000.3.28f1",
+      "cpu": "Intel(R) Core(TM) Ultra 7 155H",
+      "gpu": "Intel(R) Arc(TM) Graphics",
+      "driver": "Direct3D 12 [level 12.2]",
+      "ram_mib": "15868",
+      "screen": "1920x1080",
+      "hz": "60,000",
+      "quality": "Medium",
+      "render_scale": "0,88",
+      "gi_mode": "dual-probes",
+      "additive": "True",
+      "loaded_zones": "7",
+      "vsync": "1",
+      "lod_bias": "1,6",
+      "streaming": "True",
+      "streaming_textures": "105",
+      "active_mips_bytes": "281847342",
+      "lod_groups": "646",
+      "qpc_hz": "10000000",
+      "awake_qpc": "805425552588",
+      "ready_qpc": "805451732454",
+      "draw_counter": "True",
+      "system_memory_counter": "True",
+      "frames": "6639",
+      "development": "False"
+    },
+    "app_focus_frames": 5123,
+    "route_frames": 6639,
+    "foreground_process_samples": 167,
+    "warm_process_samples": 216,
+    "startup_ms": {
+      "launch_to_first_present": 1400.1511,
+      "launch_to_ready": 6324.3247,
+      "awake_to_ready": 2617.9866
+    },
+    "unity": {
+      "wall_ms": {
+        "n": 6639,
+        "p50": 16.65,
+        "p95": 16.6761,
+        "p99": 16.6778,
+        "max": 266.6635,
+        "over_33_3": 37
+      },
+      "main_ms": {
+        "n": 6639,
+        "p50": 4.428,
+        "p95": 7.142,
+        "p99": 9.9439,
+        "max": 262.8322,
+        "over_33_3": 5
+      },
+      "render_ms": {
+        "n": 6639,
+        "p50": 1.6459,
+        "p95": 2.5005,
+        "p99": 5.1983,
+        "max": 41.7173,
+        "over_33_3": 1
+      },
+      "gpu_ms": {
+        "n": 6603,
+        "p50": 9.6185,
+        "p95": 14.2383,
+        "p99": 16.1147,
+        "max": 18.1508,
+        "over_33_3": 0
+      }
+    },
+    "presentmon": {
+      "FrameTime": {
+        "n": 6638,
+        "p50": 16.66,
+        "p95": 19.2399,
+        "p99": 25.6618,
+        "max": 288.5685,
+        "over_33_3": 33
+      },
+      "DisplayedTime": {
+        "n": 6547,
+        "p50": 16.6626,
+        "p95": 16.7364,
+        "p99": 16.812,
+        "max": 716.5357,
+        "over_33_3": 33
+      },
+      "CPUBusy": {
+        "n": 6637,
+        "p50": 16.3883,
+        "p95": 18.9704,
+        "p99": 25.4497,
+        "max": 288.3559,
+        "over_33_3": 32
+      },
+      "GPUTime": {
+        "n": 6638,
+        "p50": 10.2092,
+        "p95": 15.6005,
+        "p99": 16.793,
+        "max": 35.0471,
+        "over_33_3": 1
+      }
+    },
+    "memory_bytes": {
+      "working_set_peak": 1860730880.0,
+      "private_peak": 1975738368.0,
+      "unity_allocated_peak": 301920808.0
+    },
+    "stages": {
+      "begin": {
+        "max_wall_ms": 66.6501,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 60.4381,
+        "max_gpu_ms": 12.0308
+      },
+      "inspect-letter": {
+        "max_wall_ms": 49.9862,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 30.9818,
+        "max_gpu_ms": 14.5799
+      },
+      "read-letter": {
+        "max_wall_ms": 33.3243,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 23.6377,
+        "max_gpu_ms": 13.6139
+      },
+      "open-gate": {
+        "max_wall_ms": 33.3379,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 26.3273,
+        "max_gpu_ms": 12.4349
+      },
+      "gate-R": {
+        "max_wall_ms": 33.3244,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 24.1535,
+        "max_gpu_ms": 13.0078
+      },
+      "approach-R": {
+        "max_wall_ms": 66.6496,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 20.72,
+        "max_gpu_ms": 12.5715
+      },
+      "swap-R-B": {
+        "max_wall_ms": 83.3118,
+        "over_33_3": 3,
+        "max_cpu_main_ms": 54.9506,
+        "max_gpu_ms": 13.9949
+      },
+      "lan-reception-B": {
+        "max_wall_ms": 33.3257,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 33.2691,
+        "max_gpu_ms": 14.1178
+      },
+      "board": {
+        "max_wall_ms": 16.6776,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.9313,
+        "max_gpu_ms": 11.8302
+      },
+      "hall-B": {
+        "max_wall_ms": 49.9995,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 7.9801,
+        "max_gpu_ms": 11.8115
+      },
+      "open-door-101": {
+        "max_wall_ms": 16.6748,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.0345,
+        "max_gpu_ms": 9.7673
+      },
+      "room-entry-B": {
+        "max_wall_ms": 16.6761,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.9193,
+        "max_gpu_ms": 12.1558
+      },
+      "enter-room": {
+        "max_wall_ms": 16.6763,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.9762,
+        "max_gpu_ms": 10.6094
+      },
+      "submit-F101-B": {
+        "max_wall_ms": 16.6767,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 11.9869,
+        "max_gpu_ms": 10.648
+      },
+      "room-exit-B": {
+        "max_wall_ms": 16.6764,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 14.5581,
+        "max_gpu_ms": 10.4782
+      },
+      "hall-return-B": {
+        "max_wall_ms": 16.6779,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.0235,
+        "max_gpu_ms": 12.9369
+      },
+      "swap-B-R": {
+        "max_wall_ms": 49.9988,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 20.0924,
+        "max_gpu_ms": 11.8131
+      },
+      "approach-return-R": {
+        "max_wall_ms": 266.6635,
+        "over_33_3": 7,
+        "max_cpu_main_ms": 262.8322,
+        "max_gpu_ms": 14.0291
+      },
+      "seam": {
+        "max_wall_ms": 33.3371,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 25.4809,
+        "max_gpu_ms": 10.3443
+      },
+      "reception-return-R": {
+        "max_wall_ms": 16.6779,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.1722,
+        "max_gpu_ms": 12.517
+      },
+      "handoff-and-load": {
+        "max_wall_ms": 16.6775,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.0326,
+        "max_gpu_ms": 11.6885
+      },
+      "hall-R-torch": {
+        "max_wall_ms": 16.6778,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.4095,
+        "max_gpu_ms": 15.5436
+      },
+      "open-door-101-R": {
+        "max_wall_ms": 16.6751,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.1918,
+        "max_gpu_ms": 13.321
+      },
+      "room-entry-R-torch": {
+        "max_wall_ms": 16.676,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.2571,
+        "max_gpu_ms": 16.7138
+      },
+      "observe-LIST": {
+        "max_wall_ms": 16.6756,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.4277,
+        "max_gpu_ms": 16.7122
+      },
+      "observe-SOCKETS": {
+        "max_wall_ms": 33.3256,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 5.5122,
+        "max_gpu_ms": 17.2168
+      },
+      "observe-WHEELS": {
+        "max_wall_ms": 16.676,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.7017,
+        "max_gpu_ms": 16.396
+      },
+      "room-cross-R-torch": {
+        "max_wall_ms": 16.6785,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.0179,
+        "max_gpu_ms": 16.1197
+      },
+      "cabinet-approach": {
+        "max_wall_ms": 16.6754,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.0397,
+        "max_gpu_ms": 10.4011
+      },
+      "resolve-E12": {
+        "max_wall_ms": 16.6782,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 14.2302,
+        "max_gpu_ms": 8.5285
+      },
+      "store-R-torch": {
+        "max_wall_ms": 16.6776,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.2051,
+        "max_gpu_ms": 15.3842
+      },
+      "take-E11.drawing.1": {
+        "max_wall_ms": 16.6777,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.9665,
+        "max_gpu_ms": 9.8966
+      },
+      "take-E11.drawing.2": {
+        "max_wall_ms": 16.677,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.9452,
+        "max_gpu_ms": 9.5011
+      },
+      "take-E11.drawing.3": {
+        "max_wall_ms": 16.6759,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.7549,
+        "max_gpu_ms": 11.0936
+      },
+      "take-E11.drawing": {
+        "max_wall_ms": 16.6753,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.9317,
+        "max_gpu_ms": 10.0385
+      },
+      "take-E11.wristband": {
+        "max_wall_ms": 16.6749,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.4121,
+        "max_gpu_ms": 10.0851
+      },
+      "take-E11.transferNote": {
+        "max_wall_ms": 16.6763,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.8859,
+        "max_gpu_ms": 10.3874
+      },
+      "store-return": {
+        "max_wall_ms": 33.3243,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 7.0172,
+        "max_gpu_ms": 16.4457
+      },
+      "cabinet-return": {
+        "max_wall_ms": 16.6749,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.5139,
+        "max_gpu_ms": 16.3746
+      },
+      "room-return": {
+        "max_wall_ms": 33.3392,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 8.3221,
+        "max_gpu_ms": 18.1508
+      },
+      "verify-C01": {
+        "max_wall_ms": 16.6757,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.7421,
+        "max_gpu_ms": 11.6906
+      },
+      "an-vignette-R": {
+        "max_wall_ms": 33.3371,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 16.2752,
+        "max_gpu_ms": 15.7021
+      },
+      "gatekeeper-start": {
+        "max_wall_ms": 33.3371,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 16.3844,
+        "max_gpu_ms": 14.6394
+      },
+      "hall-junction": {
+        "max_wall_ms": 16.6778,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.3403,
+        "max_gpu_ms": 14.2358
+      },
+      "emergency-R-torch": {
+        "max_wall_ms": 16.6768,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 15.9371,
+        "max_gpu_ms": 13.8984
+      },
+      "gatekeeper-resolve": {
+        "max_wall_ms": 16.6764,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.4432,
+        "max_gpu_ms": 10.1717
+      },
+      "finish": {
+        "max_wall_ms": 16.6769,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.3506,
+        "max_gpu_ms": 9.9135
+      },
+      "load-LOC05": {
+        "max_wall_ms": 16.6748,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 4.7504,
+        "max_gpu_ms": 9.4984
+      },
+      "ch03-handoff": {
+        "max_wall_ms": 66.6506,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 11.5577,
+        "max_gpu_ms": 9.1804
+      },
+      "ch03-stairs-and-archive": {
+        "max_wall_ms": 33.3405,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 43.952,
+        "max_gpu_ms": 12.7361
+      },
+      "ch03-evidence-E03": {
+        "max_wall_ms": 16.675,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 4.3266,
+        "max_gpu_ms": 9.4776
+      },
+      "ch03-evidence-E03.C02Note": {
+        "max_wall_ms": 16.6746,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.4968,
+        "max_gpu_ms": 9.4992
+      },
+      "ch03-evidence-E03.C02YarnBag": {
+        "max_wall_ms": 16.6781,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.835,
+        "max_gpu_ms": 9.2972
+      },
+      "ch03-evidence-E03.C12KeyBox": {
+        "max_wall_ms": 16.6745,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.9736,
+        "max_gpu_ms": 9.4907
+      },
+      "ch03-pz03": {
+        "max_wall_ms": 16.6759,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.5675,
+        "max_gpu_ms": 8.5452
+      },
+      "ch03-enter-M": {
+        "max_wall_ms": 49.9983,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 8.0215,
+        "max_gpu_ms": 9.0136
+      },
+      "ch03-return-R": {
+        "max_wall_ms": 33.3392,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 25.0235,
+        "max_gpu_ms": 10.6145
+      },
+      "ch03-t06-patrol": {
+        "max_wall_ms": 16.6766,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 20.1469,
+        "max_gpu_ms": 8.5587
+      },
+      "ch03-hunter-functional": {
+        "max_wall_ms": 16.6776,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 15.0298,
+        "max_gpu_ms": 11.5363
+      },
+      "ch03-return-to-duty": {
+        "max_wall_ms": 199.988,
+        "over_33_3": 3,
+        "max_cpu_main_ms": 196.0725,
+        "max_gpu_ms": 15.1517
+      },
+      "ch03-duty-checkpoint": {
+        "max_wall_ms": 16.6772,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.424,
+        "max_gpu_ms": 7.6668
+      },
+      "ch04-begin": {
+        "max_wall_ms": 16.6757,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.28,
+        "max_gpu_ms": 8.0234
+      },
+      "ch04-evidence-E02": {
+        "max_wall_ms": 16.6757,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.9616,
+        "max_gpu_ms": 7.4913
+      },
+      "ch04-evidence-E09": {
+        "max_wall_ms": 16.6768,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.7956,
+        "max_gpu_ms": 8.0236
+      },
+      "ch04-evidence-E06a": {
+        "max_wall_ms": 16.6739,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.2468,
+        "max_gpu_ms": 7.8914
+      },
+      "ch04-meeting": {
+        "max_wall_ms": 16.6741,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.4835,
+        "max_gpu_ms": 8.0577
+      },
+      "ch04-to-technical-stair": {
+        "max_wall_ms": 16.6772,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.7632,
+        "max_gpu_ms": 12.2204
+      },
+      "load-LOC09": {
+        "max_wall_ms": 16.6749,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 4.3181,
+        "max_gpu_ms": 8.1894
+      },
+      "ch04-technical-stair": {
+        "max_wall_ms": 50.0005,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 32.8106,
+        "max_gpu_ms": 11.1601
+      },
+      "ch04-power": {
+        "max_wall_ms": 16.6749,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 4.8241,
+        "max_gpu_ms": 9.0666
+      },
+      "ch04-morgue": {
+        "max_wall_ms": 16.6784,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 13.6599,
+        "max_gpu_ms": 11.8848
+      },
+      "ch04-evidence-E04": {
+        "max_wall_ms": 16.6748,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 4.3342,
+        "max_gpu_ms": 8.7635
+      },
+      "ch04-evidence-E07": {
+        "max_wall_ms": 16.6747,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.0644,
+        "max_gpu_ms": 9.0746
+      },
+      "ch04-H05-PT02": {
+        "max_wall_ms": 16.6749,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 4.2816,
+        "max_gpu_ms": 9.0176
+      }
+    }
+  },
+  {
+    "run": "benchmark-2",
+    "identity": {
+      "pid": "18164",
+      "launch_qpc": "806694835646",
+      "assembly_sha256": "ac7a8f8eb962597404e5ece578c1053e0007ee613805f1e0084de4d976ea78e3",
+      "exe_sha256": "fbd073ca59c4918edbc6704f5393cf59021173af11714c00db4212c50117492b",
+      "requested_quality": "Medium",
+      "gi_mode": "dual-probes",
+      "ablation": "none"
+    },
+    "configuration": {
+      "passed": "True",
+      "error": "",
+      "unity": "6000.3.28f1",
+      "cpu": "Intel(R) Core(TM) Ultra 7 155H",
+      "gpu": "Intel(R) Arc(TM) Graphics",
+      "driver": "Direct3D 12 [level 12.2]",
+      "ram_mib": "15868",
+      "screen": "1920x1080",
+      "hz": "60,000",
+      "quality": "Medium",
+      "render_scale": "0,88",
+      "gi_mode": "dual-probes",
+      "additive": "True",
+      "loaded_zones": "7",
+      "vsync": "1",
+      "lod_bias": "1,6",
+      "streaming": "True",
+      "streaming_textures": "105",
+      "active_mips_bytes": "281847342",
+      "lod_groups": "646",
+      "qpc_hz": "10000000",
+      "awake_qpc": "806727157322",
+      "ready_qpc": "806746835492",
+      "draw_counter": "True",
+      "system_memory_counter": "True",
+      "frames": "6609",
+      "development": "False"
+    },
+    "app_focus_frames": 81,
+    "route_frames": 6609,
+    "foreground_process_samples": 3,
+    "warm_process_samples": 216,
+    "startup_ms": {
+      "launch_to_first_present": 1047.0341,
+      "launch_to_ready": 5199.9846,
+      "awake_to_ready": 1967.817
+    },
+    "unity": {
+      "wall_ms": {
+        "n": 6609,
+        "p50": 16.6712,
+        "p95": 16.6769,
+        "p99": 16.6796,
+        "max": 149.9624,
+        "over_33_3": 64
+      },
+      "main_ms": {
+        "n": 6609,
+        "p50": 4.6504,
+        "p95": 7.4905,
+        "p99": 10.0345,
+        "max": 46.606,
+        "over_33_3": 1
+      },
+      "render_ms": {
+        "n": 6609,
+        "p50": 1.6471,
+        "p95": 2.7884,
+        "p99": 6.0503,
+        "max": 22.5948,
+        "over_33_3": 0
+      },
+      "gpu_ms": {
+        "n": 6571,
+        "p50": 8.2623,
+        "p95": 15.1842,
+        "p99": 16.8758,
+        "max": 22.0514,
+        "over_33_3": 0
+      }
+    },
+    "presentmon": {
+      "FrameTime": {
+        "n": 6608,
+        "p50": 16.6789,
+        "p95": 20.0602,
+        "p99": 31.083,
+        "max": 159.0095,
+        "over_33_3": 47
+      },
+      "DisplayedTime": {
+        "n": 6608,
+        "p50": 16.6626,
+        "p95": 16.7494,
+        "p99": 16.9179,
+        "max": 149.969,
+        "over_33_3": 59
+      },
+      "CPUBusy": {
+        "n": 6608,
+        "p50": 16.4126,
+        "p95": 19.7568,
+        "p99": 30.6036,
+        "max": 158.6382,
+        "over_33_3": 47
+      },
+      "GPUTime": {
+        "n": 6608,
+        "p50": 8.9381,
+        "p95": 16.3084,
+        "p99": 17.9006,
+        "max": 67.8638,
+        "over_33_3": 1
+      }
+    },
+    "memory_bytes": {
+      "working_set_peak": 1866059776.0,
+      "private_peak": 1985146880.0,
+      "unity_allocated_peak": 305201707.0
+    },
+    "stages": {
+      "begin": {
+        "max_wall_ms": 49.9831,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 46.606,
+        "max_gpu_ms": 12.4885
+      },
+      "inspect-letter": {
+        "max_wall_ms": 33.3371,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 22.3333,
+        "max_gpu_ms": 18.9011
+      },
+      "read-letter": {
+        "max_wall_ms": 33.337,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 19.3866,
+        "max_gpu_ms": 13.4666
+      },
+      "open-gate": {
+        "max_wall_ms": 49.9876,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 32.4287,
+        "max_gpu_ms": 18.5449
+      },
+      "gate-R": {
+        "max_wall_ms": 33.3355,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 9.1892,
+        "max_gpu_ms": 17.0229
+      },
+      "approach-R": {
+        "max_wall_ms": 66.6664,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 13.0465,
+        "max_gpu_ms": 22.0514
+      },
+      "swap-R-B": {
+        "max_wall_ms": 49.9873,
+        "over_33_3": 4,
+        "max_cpu_main_ms": 24.0744,
+        "max_gpu_ms": 18.8319
+      },
+      "lan-reception-B": {
+        "max_wall_ms": 33.3378,
+        "over_33_3": 11,
+        "max_cpu_main_ms": 14.8877,
+        "max_gpu_ms": 19.2632
+      },
+      "board": {
+        "max_wall_ms": 33.3361,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 7.8862,
+        "max_gpu_ms": 17.8404
+      },
+      "hall-B": {
+        "max_wall_ms": 16.6773,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.1712,
+        "max_gpu_ms": 13.7382
+      },
+      "open-door-101": {
+        "max_wall_ms": 16.6773,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 9.7987,
+        "max_gpu_ms": 12.8562
+      },
+      "room-entry-B": {
+        "max_wall_ms": 33.3378,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 6.5762,
+        "max_gpu_ms": 17.7107
+      },
+      "enter-room": {
+        "max_wall_ms": 16.6784,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 9.7329,
+        "max_gpu_ms": 13.095
+      },
+      "submit-F101-B": {
+        "max_wall_ms": 33.3258,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 9.6796,
+        "max_gpu_ms": 16.831
+      },
+      "room-exit-B": {
+        "max_wall_ms": 16.6753,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.7242,
+        "max_gpu_ms": 16.8256
+      },
+      "hall-return-B": {
+        "max_wall_ms": 33.3247,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 10.5331,
+        "max_gpu_ms": 13.452
+      },
+      "swap-B-R": {
+        "max_wall_ms": 33.3367,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 20.488,
+        "max_gpu_ms": 12.6617
+      },
+      "approach-return-R": {
+        "max_wall_ms": 16.6805,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.8946,
+        "max_gpu_ms": 12.6058
+      },
+      "seam": {
+        "max_wall_ms": 33.3264,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 15.7344,
+        "max_gpu_ms": 10.5958
+      },
+      "reception-return-R": {
+        "max_wall_ms": 99.989,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 13.2197,
+        "max_gpu_ms": 16.8697
+      },
+      "handoff-and-load": {
+        "max_wall_ms": 16.6763,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.4864,
+        "max_gpu_ms": 10.8865
+      },
+      "hall-R-torch": {
+        "max_wall_ms": 16.6785,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 9.6182,
+        "max_gpu_ms": 15.9203
+      },
+      "open-door-101-R": {
+        "max_wall_ms": 16.6775,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.6435,
+        "max_gpu_ms": 14.3065
+      },
+      "room-entry-R-torch": {
+        "max_wall_ms": 33.3364,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 8.0453,
+        "max_gpu_ms": 18.5827
+      },
+      "observe-LIST": {
+        "max_wall_ms": 33.3242,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 6.2667,
+        "max_gpu_ms": 16.9106
+      },
+      "observe-SOCKETS": {
+        "max_wall_ms": 33.3265,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 7.9473,
+        "max_gpu_ms": 16.9866
+      },
+      "observe-WHEELS": {
+        "max_wall_ms": 33.3372,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 7.1623,
+        "max_gpu_ms": 16.9042
+      },
+      "room-cross-R-torch": {
+        "max_wall_ms": 16.6778,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.961,
+        "max_gpu_ms": 15.6907
+      },
+      "cabinet-approach": {
+        "max_wall_ms": 16.6764,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.319,
+        "max_gpu_ms": 10.0891
+      },
+      "resolve-E12": {
+        "max_wall_ms": 16.6747,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.9725,
+        "max_gpu_ms": 7.7656
+      },
+      "store-R-torch": {
+        "max_wall_ms": 16.676,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.7934,
+        "max_gpu_ms": 14.712
+      },
+      "take-E11.drawing.1": {
+        "max_wall_ms": 16.6758,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.093,
+        "max_gpu_ms": 6.8149
+      },
+      "take-E11.drawing.2": {
+        "max_wall_ms": 16.6789,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.6827,
+        "max_gpu_ms": 6.5377
+      },
+      "take-E11.drawing.3": {
+        "max_wall_ms": 16.6762,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.8218,
+        "max_gpu_ms": 6.548
+      },
+      "take-E11.drawing": {
+        "max_wall_ms": 16.6772,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.0521,
+        "max_gpu_ms": 6.9607
+      },
+      "take-E11.wristband": {
+        "max_wall_ms": 16.6772,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.192,
+        "max_gpu_ms": 6.5386
+      },
+      "take-E11.transferNote": {
+        "max_wall_ms": 16.6782,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.8644,
+        "max_gpu_ms": 6.5664
+      },
+      "store-return": {
+        "max_wall_ms": 16.6773,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 11.2746,
+        "max_gpu_ms": 15.7589
+      },
+      "cabinet-return": {
+        "max_wall_ms": 33.336,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 9.2189,
+        "max_gpu_ms": 17.6435
+      },
+      "room-return": {
+        "max_wall_ms": 33.3254,
+        "over_33_3": 3,
+        "max_cpu_main_ms": 13.0489,
+        "max_gpu_ms": 17.5233
+      },
+      "verify-C01": {
+        "max_wall_ms": 16.6765,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 9.6373,
+        "max_gpu_ms": 10.7084
+      },
+      "an-vignette-R": {
+        "max_wall_ms": 33.3366,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 10.4133,
+        "max_gpu_ms": 17.4285
+      },
+      "gatekeeper-start": {
+        "max_wall_ms": 16.676,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 9.9178,
+        "max_gpu_ms": 15.7414
+      },
+      "hall-junction": {
+        "max_wall_ms": 16.6762,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.8929,
+        "max_gpu_ms": 15.0607
+      },
+      "emergency-R-torch": {
+        "max_wall_ms": 16.6792,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 11.3403,
+        "max_gpu_ms": 11.9789
+      },
+      "gatekeeper-resolve": {
+        "max_wall_ms": 16.6717,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.4014,
+        "max_gpu_ms": 7.7801
+      },
+      "finish": {
+        "max_wall_ms": 16.673,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 9.2905,
+        "max_gpu_ms": 6.6069
+      },
+      "load-LOC05": {
+        "max_wall_ms": 16.6722,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.0273,
+        "max_gpu_ms": 6.2677
+      },
+      "ch03-handoff": {
+        "max_wall_ms": 49.9949,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 10.3566,
+        "max_gpu_ms": 6.3409
+      },
+      "ch03-stairs-and-archive": {
+        "max_wall_ms": 33.3414,
+        "over_33_3": 5,
+        "max_cpu_main_ms": 30.9787,
+        "max_gpu_ms": 17.4168
+      },
+      "ch03-evidence-E03": {
+        "max_wall_ms": 16.6748,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.807,
+        "max_gpu_ms": 7.8426
+      },
+      "ch03-evidence-E03.C02Note": {
+        "max_wall_ms": 16.6751,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.8881,
+        "max_gpu_ms": 7.9232
+      },
+      "ch03-evidence-E03.C02YarnBag": {
+        "max_wall_ms": 16.6746,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 4.6968,
+        "max_gpu_ms": 7.9959
+      },
+      "ch03-evidence-E03.C12KeyBox": {
+        "max_wall_ms": 16.6747,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.4426,
+        "max_gpu_ms": 7.8976
+      },
+      "ch03-pz03": {
+        "max_wall_ms": 16.6748,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 14.0674,
+        "max_gpu_ms": 8.196
+      },
+      "ch03-enter-M": {
+        "max_wall_ms": 33.3365,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 7.2495,
+        "max_gpu_ms": 9.7955
+      },
+      "ch03-return-R": {
+        "max_wall_ms": 33.3369,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 15.475,
+        "max_gpu_ms": 8.6241
+      },
+      "ch03-t06-patrol": {
+        "max_wall_ms": 16.6755,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 29.4479,
+        "max_gpu_ms": 7.2458
+      },
+      "ch03-hunter-functional": {
+        "max_wall_ms": 33.3398,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 23.0611,
+        "max_gpu_ms": 9.4047
+      },
+      "ch03-return-to-duty": {
+        "max_wall_ms": 33.3228,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 9.5511,
+        "max_gpu_ms": 20.2208
+      },
+      "ch03-duty-checkpoint": {
+        "max_wall_ms": 16.6759,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 4.7133,
+        "max_gpu_ms": 4.7481
+      },
+      "ch04-begin": {
+        "max_wall_ms": 16.6753,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.7063,
+        "max_gpu_ms": 4.5356
+      },
+      "ch04-evidence-E02": {
+        "max_wall_ms": 16.6761,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.0422,
+        "max_gpu_ms": 4.9959
+      },
+      "ch04-evidence-E09": {
+        "max_wall_ms": 16.6753,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.3695,
+        "max_gpu_ms": 4.4489
+      },
+      "ch04-evidence-E06a": {
+        "max_wall_ms": 16.6737,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.3066,
+        "max_gpu_ms": 4.7422
+      },
+      "ch04-meeting": {
+        "max_wall_ms": 16.6733,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.3056,
+        "max_gpu_ms": 4.2628
+      },
+      "ch04-to-technical-stair": {
+        "max_wall_ms": 149.9624,
+        "over_33_3": 5,
+        "max_cpu_main_ms": 20.348,
+        "max_gpu_ms": 11.3392
+      },
+      "load-LOC09": {
+        "max_wall_ms": 16.6757,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 3.9765,
+        "max_gpu_ms": 6.8898
+      },
+      "ch04-technical-stair": {
+        "max_wall_ms": 49.9893,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 23.9014,
+        "max_gpu_ms": 8.9786
+      },
+      "ch04-power": {
+        "max_wall_ms": 16.6751,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.1118,
+        "max_gpu_ms": 7.9096
+      },
+      "ch04-morgue": {
+        "max_wall_ms": 49.9852,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 28.758,
+        "max_gpu_ms": 11.5881
+      },
+      "ch04-evidence-E04": {
+        "max_wall_ms": 16.6759,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 4.4242,
+        "max_gpu_ms": 4.7046
+      },
+      "ch04-evidence-E07": {
+        "max_wall_ms": 16.6744,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.9604,
+        "max_gpu_ms": 4.8144
+      },
+      "ch04-H05-PT02": {
+        "max_wall_ms": 16.6741,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 4.5582,
+        "max_gpu_ms": 5.2572
+      }
+    }
+  },
+  {
+    "run": "benchmark-3",
+    "identity": {
+      "pid": "8884",
+      "launch_qpc": "807988234086",
+      "assembly_sha256": "ac7a8f8eb962597404e5ece578c1053e0007ee613805f1e0084de4d976ea78e3",
+      "exe_sha256": "fbd073ca59c4918edbc6704f5393cf59021173af11714c00db4212c50117492b",
+      "requested_quality": "Medium",
+      "gi_mode": "dual-probes",
+      "ablation": "none"
+    },
+    "configuration": {
+      "passed": "True",
+      "error": "",
+      "unity": "6000.3.28f1",
+      "cpu": "Intel(R) Core(TM) Ultra 7 155H",
+      "gpu": "Intel(R) Arc(TM) Graphics",
+      "driver": "Direct3D 12 [level 12.2]",
+      "ram_mib": "15868",
+      "screen": "1920x1080",
+      "hz": "60,000",
+      "quality": "Medium",
+      "render_scale": "0,88",
+      "gi_mode": "dual-probes",
+      "additive": "True",
+      "loaded_zones": "7",
+      "vsync": "1",
+      "lod_bias": "1,6",
+      "streaming": "True",
+      "streaming_textures": "105",
+      "active_mips_bytes": "281847342",
+      "lod_groups": "646",
+      "qpc_hz": "10000000",
+      "awake_qpc": "808022831487",
+      "ready_qpc": "808041517591",
+      "draw_counter": "True",
+      "system_memory_counter": "True",
+      "frames": "6653",
+      "development": "False"
+    },
+    "app_focus_frames": 4943,
+    "route_frames": 6653,
+    "foreground_process_samples": 160,
+    "warm_process_samples": 215,
+    "startup_ms": {
+      "launch_to_first_present": 1276.0293,
+      "launch_to_ready": 5328.3505,
+      "awake_to_ready": 1868.6104
+    },
+    "unity": {
+      "wall_ms": {
+        "n": 6653,
+        "p50": 16.6724,
+        "p95": 16.6766,
+        "p99": 16.6778,
+        "max": 66.6615,
+        "over_33_3": 19
+      },
+      "main_ms": {
+        "n": 6653,
+        "p50": 4.429,
+        "p95": 7.3544,
+        "p99": 10.7624,
+        "max": 58.5088,
+        "over_33_3": 2
+      },
+      "render_ms": {
+        "n": 6653,
+        "p50": 1.5977,
+        "p95": 2.6307,
+        "p99": 5.6993,
+        "max": 32.1245,
+        "over_33_3": 0
+      },
+      "gpu_ms": {
+        "n": 6619,
+        "p50": 7.8879,
+        "p95": 13.5578,
+        "p99": 14.7617,
+        "max": 18.4974,
+        "over_33_3": 0
+      }
+    },
+    "presentmon": {
+      "FrameTime": {
+        "n": 6652,
+        "p50": 16.633,
+        "p95": 19.5231,
+        "p99": 24.4718,
+        "max": 62.3154,
+        "over_33_3": 19
+      },
+      "DisplayedTime": {
+        "n": 6652,
+        "p50": 16.6623,
+        "p95": 16.7388,
+        "p99": 16.8101,
+        "max": 66.6965,
+        "over_33_3": 19
+      },
+      "CPUBusy": {
+        "n": 6652,
+        "p50": 16.3754,
+        "p95": 19.2375,
+        "p99": 24.2084,
+        "max": 61.8783,
+        "over_33_3": 18
+      },
+      "GPUTime": {
+        "n": 6652,
+        "p50": 8.4863,
+        "p95": 14.2142,
+        "p99": 15.9687,
+        "max": 35.9951,
+        "over_33_3": 1
+      }
+    },
+    "memory_bytes": {
+      "working_set_peak": 1855320064.0,
+      "private_peak": 1974710272.0,
+      "unity_allocated_peak": 303622673.0
+    },
+    "stages": {
+      "begin": {
+        "max_wall_ms": 66.6615,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 58.5088,
+        "max_gpu_ms": 11.2507
+      },
+      "inspect-letter": {
+        "max_wall_ms": 16.6774,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 18.4685,
+        "max_gpu_ms": 14.1029
+      },
+      "read-letter": {
+        "max_wall_ms": 33.3366,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 24.9358,
+        "max_gpu_ms": 13.515
+      },
+      "open-gate": {
+        "max_wall_ms": 16.676,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 13.4227,
+        "max_gpu_ms": 11.979
+      },
+      "gate-R": {
+        "max_wall_ms": 16.6781,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 12.1038,
+        "max_gpu_ms": 12.3967
+      },
+      "approach-R": {
+        "max_wall_ms": 16.6787,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 11.9972,
+        "max_gpu_ms": 10.1133
+      },
+      "swap-R-B": {
+        "max_wall_ms": 50.0026,
+        "over_33_3": 5,
+        "max_cpu_main_ms": 18.3091,
+        "max_gpu_ms": 12.5188
+      },
+      "lan-reception-B": {
+        "max_wall_ms": 16.6778,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 16.2519,
+        "max_gpu_ms": 13.3404
+      },
+      "board": {
+        "max_wall_ms": 16.6758,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.3727,
+        "max_gpu_ms": 10.5917
+      },
+      "hall-B": {
+        "max_wall_ms": 16.6775,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 11.1063,
+        "max_gpu_ms": 10.1979
+      },
+      "open-door-101": {
+        "max_wall_ms": 16.6752,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.0237,
+        "max_gpu_ms": 9.6905
+      },
+      "room-entry-B": {
+        "max_wall_ms": 16.6772,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.5296,
+        "max_gpu_ms": 12.7972
+      },
+      "enter-room": {
+        "max_wall_ms": 16.6776,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 9.092,
+        "max_gpu_ms": 11.6001
+      },
+      "submit-F101-B": {
+        "max_wall_ms": 16.677,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 15.2231,
+        "max_gpu_ms": 9.7403
+      },
+      "room-exit-B": {
+        "max_wall_ms": 16.6779,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.7829,
+        "max_gpu_ms": 9.4907
+      },
+      "hall-return-B": {
+        "max_wall_ms": 16.6777,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.2143,
+        "max_gpu_ms": 12.5661
+      },
+      "swap-B-R": {
+        "max_wall_ms": 33.3349,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 19.7631,
+        "max_gpu_ms": 10.9954
+      },
+      "approach-return-R": {
+        "max_wall_ms": 16.6779,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 9.5587,
+        "max_gpu_ms": 10.6676
+      },
+      "seam": {
+        "max_wall_ms": 33.3245,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 18.1949,
+        "max_gpu_ms": 9.2557
+      },
+      "reception-return-R": {
+        "max_wall_ms": 16.6766,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 13.3088,
+        "max_gpu_ms": 10.6847
+      },
+      "handoff-and-load": {
+        "max_wall_ms": 16.6754,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.9157,
+        "max_gpu_ms": 9.7209
+      },
+      "hall-R-torch": {
+        "max_wall_ms": 33.337,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 12.1729,
+        "max_gpu_ms": 12.9123
+      },
+      "open-door-101-R": {
+        "max_wall_ms": 16.6773,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.6566,
+        "max_gpu_ms": 10.7856
+      },
+      "room-entry-R-torch": {
+        "max_wall_ms": 16.677,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 11.1381,
+        "max_gpu_ms": 15.4108
+      },
+      "observe-LIST": {
+        "max_wall_ms": 16.6748,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 9.8004,
+        "max_gpu_ms": 14.8171
+      },
+      "observe-SOCKETS": {
+        "max_wall_ms": 16.6748,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 11.6196,
+        "max_gpu_ms": 14.9649
+      },
+      "observe-WHEELS": {
+        "max_wall_ms": 16.6747,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.0172,
+        "max_gpu_ms": 14.7679
+      },
+      "room-cross-R-torch": {
+        "max_wall_ms": 16.6769,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.6207,
+        "max_gpu_ms": 14.4536
+      },
+      "cabinet-approach": {
+        "max_wall_ms": 16.6764,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.0755,
+        "max_gpu_ms": 9.7378
+      },
+      "resolve-E12": {
+        "max_wall_ms": 16.6766,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.3275,
+        "max_gpu_ms": 7.9246
+      },
+      "store-R-torch": {
+        "max_wall_ms": 16.6768,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.6896,
+        "max_gpu_ms": 11.7655
+      },
+      "take-E11.drawing.1": {
+        "max_wall_ms": 16.6761,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.7316,
+        "max_gpu_ms": 6.9821
+      },
+      "take-E11.drawing.2": {
+        "max_wall_ms": 16.675,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.3759,
+        "max_gpu_ms": 6.1788
+      },
+      "take-E11.drawing.3": {
+        "max_wall_ms": 16.6752,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.9881,
+        "max_gpu_ms": 6.4532
+      },
+      "take-E11.drawing": {
+        "max_wall_ms": 16.6772,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.3713,
+        "max_gpu_ms": 6.7611
+      },
+      "take-E11.wristband": {
+        "max_wall_ms": 16.6764,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.2968,
+        "max_gpu_ms": 7.0951
+      },
+      "take-E11.transferNote": {
+        "max_wall_ms": 16.6757,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.0722,
+        "max_gpu_ms": 6.3708
+      },
+      "store-return": {
+        "max_wall_ms": 16.6796,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.6828,
+        "max_gpu_ms": 14.5495
+      },
+      "cabinet-return": {
+        "max_wall_ms": 16.6763,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 9.29,
+        "max_gpu_ms": 16.4117
+      },
+      "room-return": {
+        "max_wall_ms": 16.6787,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.72,
+        "max_gpu_ms": 16.6313
+      },
+      "verify-C01": {
+        "max_wall_ms": 16.6774,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.4796,
+        "max_gpu_ms": 10.7017
+      },
+      "an-vignette-R": {
+        "max_wall_ms": 16.6763,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 12.3952,
+        "max_gpu_ms": 15.2534
+      },
+      "gatekeeper-start": {
+        "max_wall_ms": 16.6753,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.0047,
+        "max_gpu_ms": 14.4135
+      },
+      "hall-junction": {
+        "max_wall_ms": 16.6762,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.9442,
+        "max_gpu_ms": 13.7371
+      },
+      "emergency-R-torch": {
+        "max_wall_ms": 16.6776,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.758,
+        "max_gpu_ms": 11.0599
+      },
+      "gatekeeper-resolve": {
+        "max_wall_ms": 16.6759,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 9.2568,
+        "max_gpu_ms": 6.7974
+      },
+      "finish": {
+        "max_wall_ms": 16.6752,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 8.4669,
+        "max_gpu_ms": 8.5264
+      },
+      "load-LOC05": {
+        "max_wall_ms": 16.675,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 4.6813,
+        "max_gpu_ms": 6.984
+      },
+      "ch03-handoff": {
+        "max_wall_ms": 49.987,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 8.147,
+        "max_gpu_ms": 6.1479
+      },
+      "ch03-stairs-and-archive": {
+        "max_wall_ms": 16.6799,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 35.6778,
+        "max_gpu_ms": 18.4974
+      },
+      "ch03-evidence-E03": {
+        "max_wall_ms": 16.6736,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.3873,
+        "max_gpu_ms": 5.4265
+      },
+      "ch03-evidence-E03.C02Note": {
+        "max_wall_ms": 16.6736,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.614,
+        "max_gpu_ms": 5.1288
+      },
+      "ch03-evidence-E03.C02YarnBag": {
+        "max_wall_ms": 16.6762,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.0046,
+        "max_gpu_ms": 5.2903
+      },
+      "ch03-evidence-E03.C12KeyBox": {
+        "max_wall_ms": 16.6758,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.2611,
+        "max_gpu_ms": 5.2539
+      },
+      "ch03-pz03": {
+        "max_wall_ms": 16.6774,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 14.1733,
+        "max_gpu_ms": 5.4899
+      },
+      "ch03-enter-M": {
+        "max_wall_ms": 33.3349,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 6.6664,
+        "max_gpu_ms": 5.1999
+      },
+      "ch03-return-R": {
+        "max_wall_ms": 16.6753,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 17.6637,
+        "max_gpu_ms": 9.0166
+      },
+      "ch03-t06-patrol": {
+        "max_wall_ms": 16.6752,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.7112,
+        "max_gpu_ms": 6.5355
+      },
+      "ch03-hunter-functional": {
+        "max_wall_ms": 49.9864,
+        "over_33_3": 1,
+        "max_cpu_main_ms": 29.21,
+        "max_gpu_ms": 9.6424
+      },
+      "ch03-return-to-duty": {
+        "max_wall_ms": 33.3372,
+        "over_33_3": 2,
+        "max_cpu_main_ms": 20.0153,
+        "max_gpu_ms": 13.1824
+      },
+      "ch03-duty-checkpoint": {
+        "max_wall_ms": 16.6754,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 12.6352,
+        "max_gpu_ms": 5.0526
+      },
+      "ch04-begin": {
+        "max_wall_ms": 16.6748,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 11.3379,
+        "max_gpu_ms": 4.8893
+      },
+      "ch04-evidence-E02": {
+        "max_wall_ms": 16.6752,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 6.4957,
+        "max_gpu_ms": 6.2656
+      },
+      "ch04-evidence-E09": {
+        "max_wall_ms": 16.6746,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 13.4989,
+        "max_gpu_ms": 4.5218
+      },
+      "ch04-evidence-E06a": {
+        "max_wall_ms": 16.6749,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 10.7239,
+        "max_gpu_ms": 4.6877
+      },
+      "ch04-meeting": {
+        "max_wall_ms": 16.6753,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 11.3408,
+        "max_gpu_ms": 4.8758
+      },
+      "ch04-to-technical-stair": {
+        "max_wall_ms": 16.6785,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 13.9516,
+        "max_gpu_ms": 13.0019
+      },
+      "load-LOC09": {
+        "max_wall_ms": 16.6776,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.0693,
+        "max_gpu_ms": 6.6765
+      },
+      "ch04-technical-stair": {
+        "max_wall_ms": 50.0056,
+        "over_33_3": 4,
+        "max_cpu_main_ms": 27.9307,
+        "max_gpu_ms": 10.8999
+      },
+      "ch04-power": {
+        "max_wall_ms": 16.6746,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.3517,
+        "max_gpu_ms": 7.3866
+      },
+      "ch04-morgue": {
+        "max_wall_ms": 16.6783,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 15.0084,
+        "max_gpu_ms": 8.521
+      },
+      "ch04-evidence-E04": {
+        "max_wall_ms": 16.6738,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 5.0042,
+        "max_gpu_ms": 7.6052
+      },
+      "ch04-evidence-E07": {
+        "max_wall_ms": 16.6737,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 7.1403,
+        "max_gpu_ms": 7.9001
+      },
+      "ch04-H05-PT02": {
+        "max_wall_ms": 16.6738,
+        "over_33_3": 0,
+        "max_cpu_main_ms": 4.4767,
+        "max_gpu_ms": 7.5056
+      }
+    }
+  }
+]

@@ -3,5 +3,6 @@ fbd073ca59c4918edbc6704f5393cf59021173af11714c00db4212c50117492b  windows-x64/Ca
 ac7a8f8eb962597404e5ece578c1053e0007ee613805f1e0084de4d976ea78e3  windows-x64/CaTrucCuoiCung_Data/Managed/Assembly-CSharp.dll  (954368 bytes)
 0b551aeb3e158a366df241bb9bc45ce5da24422c5287d5ec7d3d7bfae9986e0c  ch03-ch04-pz04-dual-route-gameplay.mp4  (13912793 bytes)
 d364804ca30bb9b111977d94837fedf2804ed780fe3b44a8046e8883fe8bb7f4  build-identity.txt  (1122 bytes)
+63ffdb501166c68fa837e724dcc8a8a64b7b576bcedb51be12f41f59629cd5f4  presentmon-60hz-summary.json  (45512 bytes)
 b17a9e3a39c04e9e142169a1e47804766e14861514eac952c268971f8b55bcd7  performance-summary-120hz.json  (44667 bytes)
-7519ca08fc22e25751ca1aa0181ec4202ab20e87642f5668aa116a0cea81e014  run-m32-presentmon-60hz.ps1  (7410 bytes)
+3a4a0ab40b3bfafa8134c2dd9a99c5f41594a9bea60ea4bc562083cb64e87611  run-m32-presentmon-60hz.ps1  (7407 bytes)
