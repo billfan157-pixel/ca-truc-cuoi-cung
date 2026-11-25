@@ -1076,12 +1076,11 @@ namespace CTCC
             yield return Until(() => !orderlyAi.IsActive ||
                 (orderlyAi.CurrentState == OrderlyState.Patrol &&
                  orderlyAi.ActiveActor.transform.position.x < 9.6f &&
-                 orderlyAi.ActiveActor.transform.position.z < 37.8f &&
+                 orderlyAi.ActiveActor.transform.position.z < 39.2f &&
                  orderlyAi.ActiveActor.transform.forward.z < -0.5f),
-                "CH05-B1 Hunter sweeps south past z=37.8 leaving west wall & LOC11 silent and clear", 35f);
+                "CH05-B1 Hunter sweeps south past z=39.2 leaving west wall & LOC11 silent and clear", 35f);
             yield return WalkWithInput(new Vector3(5.3f, -3.4f, 39.0f));
-            yield return WalkWithInput(new Vector3(5.3f, -3.4f, 42.6f));
-            yield return WalkWithInput(new Vector3(10.5f, -3.4f, 42.2f));
+            yield return WalkWithInput(new Vector3(5.3f, -3.4f, 42.2f));
             yield return WalkWithInput(new Vector3(12.5f, -3.4f, 42.2f));
             yield return WalkWithInput(new Vector3(12.5f, -3.4f, 50.4f));
             yield return WalkWithInput(new Vector3(35.8f, -3.4f, 50.4f));
