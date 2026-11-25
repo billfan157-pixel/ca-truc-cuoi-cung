@@ -228,7 +228,7 @@ namespace CTCC
                     if (Options.captions)
                         ui.Caption("[Tiếng rơ-le đóng mạch phía bắc phòng kỹ thuật — khóa điện nhà xác LOC10 mở]", 4.5f, true);
                     ui.Toast("ĐÃ CẤP ĐIỆN NHÀ XÁC · PZ05", "Khóa điện nhà xác và tủ khô LOC10 đã mở (Kho + Kỹ thuật).", 5f);
-                    orderlyAi?.TriggerDistraction(new Vector3(9.1f, -3.4f, 43.6f));
+                    orderlyAi?.TriggerDistraction(new Vector3(12.6f, -3.4f, 42.0f));
                 }
                 else if (Options.captions)
                     ui.Caption("[Tiếng rơ-le bảng điện Kỹ thuật B1 kêu tách]", 2.8f);

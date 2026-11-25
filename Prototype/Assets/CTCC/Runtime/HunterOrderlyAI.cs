@@ -92,11 +92,14 @@ namespace CTCC
             new() { Stop = OrderlyStop.WingBDoor, Label = "Cửa Khu B", Position = new(-0.8f, 4.0f, 36.6f), DwellSeconds = 5.5f, FacingYaw = -90f },
         };
 
+        // Canonical B1 Gatekeeper round: guards LOC11 (Khu C G06 vestibule, occluded from AP08/CH04_POWER)
+        // and sweeps north LOC09 without staring straight down the empty south room on spawn.
         private static readonly Vector3[] ServiceRound =
         {
-            new(8.9f, -3.4f, 40.2f),
-            new(9.1f, -3.4f, 43.6f),
-            new(6.0f, -3.4f, 43.8f)
+            new(12.8f, -3.4f, 40.2f),
+            new(12.6f, -3.4f, 42.2f),
+            new(8.6f, -3.4f, 42.4f),
+            new(6.2f, -3.4f, 43.8f)
         };
 
         private static readonly Vector3[] Ch03FallbackRound =
