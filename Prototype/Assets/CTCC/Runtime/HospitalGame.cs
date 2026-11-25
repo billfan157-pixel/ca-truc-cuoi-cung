@@ -494,7 +494,7 @@ namespace CTCC
             {
                 orderlyAi?.SyncState(State);
                 if (orderlyAi != null && (orderlyAi.IsActive || orderlyAi.UnrecordedActive))
-                    orderlyAi.Tick(State, Time.deltaTime, player.IsRunning, player.IsCrouching, player.IsMoving, Line);
+                    orderlyAi.Tick(State, FirstPerson.MovementDeltaTime, player.IsRunning, player.IsCrouching, player.IsMoving, Line);
             }
 
             if (transaction.OnPad(feet, "AN03") && State.chapter == "CH03" && anchorPressed)

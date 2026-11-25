@@ -1034,10 +1034,10 @@ namespace CTCC
             yield return WalkWithInput(new Vector3(7f, 0f, 21.17f));
             yield return Until(() => scene.RegionReady("LOC09", RegionStreamer.Service), "LOC09 preloaded before S2 descent");
             yield return WalkWithInput(new Vector3(7f, -3.4f, 32.4f));
-            // Wait safely on AP08 safe pad until CH05-B1 Hunter is behind LOC11 wall before inspecting LOC09 valve & blueprints
+            // Wait safely on AP08 safe pad until CH05-B1 Hunter is deep inside LOC11 before inspecting LOC09 valve & blueprints
             yield return Until(() => orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Hunter &&
-                orderlyAi.ActiveActor != null && orderlyAi.ActiveActor.transform.position.x > 10.6f,
-                "CH05-B1 Hunter occluded in LOC11 while waiting on AP08", 25f);
+                orderlyAi.ActiveActor != null && orderlyAi.ActiveActor.transform.position.x > 12.5f,
+                "CH05-B1 Hunter occluded in LOC11 while waiting on AP08", 30f);
             yield return WalkWithInput(new Vector3(6.0f, -3.4f, 35.6f));
             yield return AimAndUseHere("LOC09_VALVE");
             yield return Until(() => !busy && ui.IsModal && State.Happened(ChapterFive.FlagValveSabotage), "CH05 optional valve observed");
