@@ -54,6 +54,7 @@ namespace CTCC
             yield return VerifyKeyboard();
             yield return VerifyCh01RAdversarialSuite();
             yield return VerifyCh01WalkthroughSuite();
+            yield return VerifyM2FinalPhaseCDERegression();
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
             yield return VerifyScalableM3AndCh03();
             yield return VerifyCampusWorldQA();
@@ -2359,6 +2360,188 @@ namespace CTCC
                 rt.Release();
                 Destroy(rt);
             }
+        }
+
+        private IEnumerator VerifyM2FinalPhaseCDERegression()
+        {
+            var savedBefore = State.Copy();
+            var savedPos = player.Feet;
+
+            // --- Phase C (TASK007): CH01-Q05 alcove safety, CH01-Q09 depleted battery + mute + reduced motion,
+            //     CH01-Q10 [K] prompt, CH01-Q11 premature LOC04/stairs gate, CH01-Q12 E10a skip fallback, CH01-Q14 spoiler boundary ---
+            var accSettings = new VisitSettings
+            {
+                volume = 0f,
+                reduceMotion = true,
+                captions = true,
+                alternateBindings = true,
+                textScale = 1.3f,
+                storyMode = true
+            };
+            Apply(casework.Begin(scene.Pad("AP00").position, accSettings), "M2F begin accessible CH01");
+            scene.interactables?.ResetSessionProps();
+            if (scene.staffCrossDoor != null) scene.staffCrossDoor.isOpen = false;
+            player.Teleport(scene.Pad("AP00"));
+
+            // CH01-Q12: E10a already present even if player skips envelope flap/newspaper/FS04 inspection
+            Require(State.Has("E10a") && !State.Happened("FS04"), "CH01-Q12 E10a seeded without mandatory inspect");
+
+            // CH01-Q10: alternate bindings update UseKey & world prompt
+            Require(UseKey == "K", "CH01-Q10 UseKey switches to K");
+            var gateTarget = Array.Find(FindObjectsByType<SceneTarget>(FindObjectsInactive.Include, FindObjectsSortMode.None), t => t.id == "GATE-CONG");
+            Require(gateTarget != null && WorldPrompt(gateTarget).Contains("[K]"), "CH01-Q10 world prompt reflects [K] binding");
+
+            // CH01-Q09: depleted battery (0 s) + mute + reduced motion still progresses cleanly to CP04
+            player.SetBatteryForQa(0f);
+            player.SetTorchEnabled(true);
+            Require(!player.IsTorchOn && player.TorchIntensity == 0f && AudioListener.volume == 0f,
+                "CH01-Q09 depleted battery disables torch while master mute holds 0 volume");
+
+            Apply(casework.ReadLetter(player.Feet), "M2F SMS");
+            Apply(casework.OpenGate(player.Feet), "M2F gate");
+            player.Teleport(scene.Pad("AP02"));
+            Apply(casework.AtHub(player.Feet, out _), "M2F enter B");
+            player.Teleport(scene.Pad("AP02"));
+
+            // CH01-Q11: before G01 in CH01 B, emergency doors and upper/service connectors stay gated
+            Require(scene.emergencyDoorA != null && !scene.emergencyDoorA.isOpen &&
+                scene.emergencyDoorB != null && !scene.emergencyDoorB.isOpen &&
+                !GateService.G01(State) && !GateService.G02(State),
+                "CH01-Q11 premature LOC04 doors stay closed in CH01 before G01");
+
+            Apply(casework.Board(player.Feet), "M2F board");
+            player.Teleport(scene.Pad("AP04"));
+            Apply(casework.EnterRoom(player.Feet), "M2F enter 101");
+
+            // TASK009-C: Single-press toggle alternative to hold-and-drag across ALL 7 draggable world rigs
+            player.Teleport(scene.Pad("AP02"));
+            scene.interactables?.ResetSessionProps();
+            foreach (string propId in new[] { "DOOR-101", "DOOR-STAFF", "CURTAIN-101", "DRAWER-BED3", "DRAWER-DESK", "DRAWER-NURSE", "CHAIR-STAFF" })
+            {
+                float beforePose = scene.interactables.IntendedOpenness(propId);
+                ToggleWorldProp(propId);
+                yield return Until(() => !busy, "toggle open " + propId);
+                float midPose = scene.interactables.IntendedOpenness(propId);
+                Require(!scene.interactables.IsDragging && Mathf.Abs(midPose - beforePose) > 0.35f,
+                    $"TASK009-C single-press toggle changed {propId} without mouse drag ({beforePose:F2}->{midPose:F2})");
+                ToggleWorldProp(propId);
+                yield return Until(() => !busy, "toggle close " + propId);
+                float backPose = scene.interactables.IntendedOpenness(propId);
+                Require(Mathf.Abs(backPose - midPose) > 0.35f,
+                    $"TASK009-C single-press toggle reversed {propId} ({midPose:F2}->{backPose:F2})");
+            }
+            var seamTarget = Array.Find(FindObjectsByType<SceneTarget>(FindObjectsInactive.Include, FindObjectsSortMode.None), t => t.id == "SEAM");
+            Require(seamTarget != null && WorldPrompt(seamTarget).Contains("[K]"), "TASK009-C SEAM exposes single-press toggle key");
+
+            // CH01-Q05: standing inside Bed 4 alcove during F101 Affirmed partition denies mid-alcove swap and keeps AP04 unobstructed
+            player.Teleport(scene.Pad("AP04"));
+            Apply(casework.SubmitF101(FormStatus.Affirmed, null, player.Feet, out _), "CH01-Q05 affirm F101");
+            Vector3 alcovePoint = new(11.30f, 0.02f, 4.20f);
+            Require(casework.SwitchIn101(alcovePoint) == CommitResult.PadRequired &&
+                !HospitalScene.Occupied(scene.Pad("AP04").position),
+                "CH01-Q05 Bed 4 alcove swap requires safe pad and AP04 stays clear");
+
+            // Preserve Unverified as valid non-failing choice (F101 revision A->B, D=0) and reach CH01-CP04 with depleted battery
+            Apply(casework.SubmitF101(FormStatus.Unverified, null, player.Feet, out var unvEval), "M2F revise to Unverified");
+            Require(unvEval.Accepted && State.f101.current == FormStatus.Unverified &&
+                State.f101.firstDecision == FormStatus.Affirmed && FormService.Distortion(State) == 0,
+                "F101 Unverified preserved as valid zero-distortion revision");
+            player.Teleport(scene.Pad("AP02"));
+            Apply(casework.AtHub(player.Feet, out _), "M2F collapse R");
+            player.Teleport(scene.Pad("AP01"));
+            Apply(casework.OutsideAttempt(player.Feet), "M2F seam once");
+            player.Teleport(scene.Pad("AP02"));
+            Apply(casework.AtHub(player.Feet, out _), "M2F handoff CH02 CP04");
+            Require(transaction.Restore(SaveSlot.Auto, out var cp04Pad) == SaveRead.Valid && cp04Pad != null &&
+                State.chapter == "CH02" && State.layer == Reality.R && State.checkpoint == "CH01-CP04" &&
+                GateService.G01(State) && !GateService.G02(State),
+                "CH01-Q09/Q13 CP04 reached and reloaded cleanly under depleted battery + mute + reduced motion");
+            player.RestoreBattery(0);
+            Require(player.BatterySeconds >= 120, "CH01-Q09 reload enforces minimum 120s battery floor");
+
+            // CH01-Q14 / V30-Q01: CH01 dialogue contains zero AS-05 / Council spoilers and zero D16b
+            for (int i = 1; i <= 16; i++)
+            {
+                if (i == 15) continue;
+                string id = $"CH01-D{i:00}";
+                if (!dialogue.TryGetValue(id, out var d)) continue;
+                Require(d.copy.IndexOf("AS-05", StringComparison.OrdinalIgnoreCase) < 0 &&
+                    d.copy.IndexOf("Hội đồng", StringComparison.OrdinalIgnoreCase) < 0,
+                    "CH01-Q14/V30-Q01 no premature AS-05/Council spoiler in " + id);
+            }
+            Require(!MayDeliver("CH01-D16b", "B06") && !State.transcript.Exists(t => t.LineId == "CH01-D16b"),
+                "CH01-Q14 CH01-D16b strictly blocked in CH01/CH02");
+            verification.Add("TASK007 / CH01-Q04–Q14 PASS: alcove safety, depleted battery + mute + reduced motion to CP04, [K] prompt, premature LOC04/stairs gate, E10a skip fallback, and CH01 spoiler boundary.");
+
+            // --- Phase C (TASK008): CH02-Q02 missing EACH E11 part + duplicate idempotence, V30-Q01 CH02-D08,
+            //     CH02-Q03/Q05 Story Mode + mute + reduced motion + skip An, CH02-Q06 no spoiler ---
+            anDirector?.HideImmediately();
+            player.Teleport(scene.Pad("AP04"));
+            foreach (string id in new[] { "LIST", "SOCKETS", "WHEELS" }) Apply(casework.Observe(id, player.Feet), "M2F " + id);
+            Apply(casework.SolvePz01(player.Feet), "M2F E12");
+
+            // Missing each individual E11 piece blocks BundleComplete & G02
+            foreach (var missingPart in new[] { EvidenceRegistry.Drawing, EvidenceRegistry.Wristband, EvidenceRegistry.Transfer })
+            {
+                var probeState = State.Copy();
+                if (missingPart != EvidenceRegistry.Drawing)
+                    foreach (var frag in EvidenceRegistry.DrawingFragments)
+                        Require(EvidenceRegistry.Grant(probeState, frag, Reality.R, "LOC03"), "CH02-Q02 probe grant " + frag);
+                foreach (var p in new[] { EvidenceRegistry.Drawing, EvidenceRegistry.Wristband, EvidenceRegistry.Transfer })
+                    if (p != missingPart)
+                        Require(EvidenceRegistry.Grant(probeState, p, Reality.R, "LOC03"), "CH02-Q02 probe grant " + p);
+                Require(!EvidenceRegistry.BundleComplete(probeState) && !GateService.G02(probeState),
+                    "CH02-Q02 missing " + missingPart + " blocks E11 completion and G02");
+            }
+
+            // Duplicate pickup idempotence + E11 transfer-note CH02-D08 check (V30-Q01)
+            foreach (var frag in EvidenceRegistry.DrawingFragments) Apply(casework.Take(frag, player.Feet), "M2F " + frag);
+            Apply(casework.Take(EvidenceRegistry.Drawing, player.Feet), "M2F drawing");
+            Apply(casework.Take(EvidenceRegistry.Wristband, player.Feet), "M2F wristband");
+            Apply(casework.Take(EvidenceRegistry.Transfer, player.Feet), "M2F transferNote");
+            int evCountBeforeDup = State.evidence.Count;
+            Apply(casework.Take(EvidenceRegistry.Drawing, player.Feet), "M2F dup drawing");
+            Apply(casework.Take(EvidenceRegistry.Wristband, player.Feet), "M2F dup wristband");
+            Apply(casework.Take(EvidenceRegistry.Transfer, player.Feet), "M2F dup transferNote");
+            Require(State.evidence.Count == evCountBeforeDup && EvidenceRegistry.BundleComplete(State),
+                "CH02-Q02/Q04 duplicate E11 pickup does not duplicate evidence entries");
+            Require(dialogue.TryGetValue("CH02-D08", out var d08) &&
+                d08.copy.IndexOf("AS-05", StringComparison.OrdinalIgnoreCase) >= 0,
+                "V30-Q01 CH02-D08 transfer-note line present with AS-05 detail");
+
+            // CH02-Q03 / CH02-Q06: VerifyAn succeeds without An vignette, mute, reduced motion, no CH04+ spoiler
+            Apply(casework.VerifyAn(player.Feet), "M2F VerifyAn without An vignette");
+            Require(GateService.G02(State) && !GateService.H02(State) && !GateService.H05(State) &&
+                !State.Has(EvidenceRegistry.MorgueRegister) && !State.Has(EvidenceRegistry.LanRecovery),
+                "CH02-Q03/Q06 G02 achieved under mute+reduced motion without premature CH04+ spoilers");
+
+            // CH02-Q05 Story Mode + Mute + Reduced Motion Gatekeeper cameo verification
+            if (gatekeeperCameo != null && scene.GatekeeperActor != null)
+            {
+                player.Teleport(new Vector3(4.0f, 0.02f, 4.75f), Quaternion.identity);
+                Vector3 expectedSpawn = scene.GatekeeperWaypoints != null && scene.GatekeeperWaypoints.Length > 0
+                    ? scene.GatekeeperWaypoints[0].position : new Vector3(4.0f, 0f, -1.4f);
+                gatekeeperCameo.BeginCameo(State, Line);
+                Require(gatekeeperCameo.IsActive, "CH02-Q05 Story Mode cameo activated");
+                yield return Until(() => scene.GatekeeperActor.gameObject.activeSelf &&
+                    System.Linq.Enumerable.Any(voice.Transcript, t => t.LineId == "CH02-D05"),
+                    "CH02-Q05 Story Mode cameo silhouette and CH02-D05 transcript");
+                for (int f = 0; f < 10; f++) yield return null;
+                Require(gatekeeperCameo.IsActive && scene.GatekeeperActor.gameObject.activeSelf &&
+                    Vector3.Distance(scene.GatekeeperActor.transform.position, expectedSpawn) < 0.25f,
+                    "CH02-Q03/Q05 Story Mode cameo holds distant silhouette without closing distance");
+                yield return WaitForApplied(casework.SaveEmergencyAsync(scene.Pad("AP05").position, true, gatekeeperCameo.IsActive), "M2F Story Mode escape");
+                Require(State.Happened("CH02-T06") && !gatekeeperCameo.IsActive, "CH02-Q05 Story Mode escape commits T06 once");
+            }
+            verification.Add("TASK008 / CH02-Q01–Q06 & V30-Q01 PASS: each missing E11 part blocks G02, duplicate evidence idempotence, Story Mode + mute + reduced motion cameo hold & text warning, and E11/CH02-D08 boundary.");
+            verification.Add("TASK009-C ACCESSIBILITY & TOGGLE PASS: single-press E/K toggle alternative verified on all 7 draggable world rigs without mouse drag, 130% Large-Print, mute, reduced motion, and Story Mode.");
+
+            // Restore pre-test state cleanly so VerifyRender / VerifyScalableM3AndCh03 / VerifyCampusWorldQA continue unchanged
+            gatekeeperCameo?.StopAndHide();
+            anDirector?.HideImmediately();
+            Apply(transaction.Commit(savedBefore, savedPos, warp: false, geometryChanges: true), "M2F restore state");
+            player.Teleport(savedPos, Quaternion.identity);
+            player.RestoreBattery(savedBefore.torchSeconds);
         }
 
         private IEnumerator CaptureHospitalFrame(string name, Transform pose, float yaw)

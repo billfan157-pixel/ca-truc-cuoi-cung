@@ -149,6 +149,7 @@ namespace CTCC
         }
 
         public void RestoreBattery(int charge) => battery = Mathf.Max(120, charge);
+        internal void SetBatteryForQa(float seconds) => battery = Mathf.Max(0f, seconds);
 
         public void SetTorchEnabled(bool on)
         {
