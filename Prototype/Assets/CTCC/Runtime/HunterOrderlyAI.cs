@@ -14,14 +14,32 @@ namespace CTCC
         Return = 5
     }
 
+    public enum AIRole
+    {
+        None = 0,
+        Hunter = 1,
+        Orderly = 2,
+        Unrecorded = 3
+    }
+
+    public enum OrderlyStop
+    {
+        Corridor = 0,
+        Pharmacy = 1,
+        WingBDoor = 2
+    }
+
     /// <summary>
-    /// Generalized M3 Regional Hunter / Orderly AI Controller (TASK011-A..E, Core 06 §02.04, CH03-Q04).
-    /// Implements the 6-state patrol/perception/distraction/chase/search/return state machine with:
-    /// - Vision: <= 12.0 m range, 100 deg FOV, SolidMask raycast occlusion, 0.70 s sight accumulation
-    /// - Pre-chase warning: 2.0 s warning window with SFX-KEY + CH03-D05 before entering Chase
-    /// - Hearing: Walk 3.0 m, Crouch 1.5 m, Run 9.0 m, Distraction (LOC07 Radio) 14.0 m (0.5x when wall-occluded)
-    /// - Safe-Zone & Reading Non-Intrusion: Never enters AP06/AN03 safe pads, pauses perception during modal reading,
-    ///   physical inspection, R/B/M transitions, and Memory Vignettes (Reality.M).
+    /// Regional AI controller for Ca Trực Cuối Cùng (TASK011-A..E, Core 02 §4.2, Core 06 §03).
+    /// Cleanly separates three canonical roles without cross-floor/in-sight actor teleporting:
+    /// - CHAR005 Hunter (GatekeeperActor): 6-state Patrol -> Suspicious (2s warn) -> Investigate -> Chase -> Search (12.5s) -> Return;
+    ///   12m/100deg occluded LOS (0.70s), floor-bounded occluded hearing (walk 3m / crouch 1.5m / run 9m / door 12m / radio 14m),
+    ///   Story Mode non-capture, safe-zone breakoff, anti-camp search, and non-lethal recovery.
+    /// - CHAR006 Orderly (OrderlyActor + movable OrderlyCart): strict 3-waypoint schedule (Hành lang / Quầy thuốc / Cửa Khu B,
+    ///   4-8s dwell), Route A (default) vs Route B (observable reroute after valid PZ04 room-status cross-check), 2s warning,
+    ///   gentle station reset without evidence/journal loss, NEVER chases or hunts distractions.
+    /// - CHAR007 Unrecorded (UnrecordedActor): harmless translucent apparition in LOC10 (strictly outside AP09 and never C12),
+    ///   max 2 calm loops then fades out, NEVER chases, warns, or blocks the player.
     /// </summary>
     public sealed class HunterOrderlyAI : MonoBehaviour
     {
@@ -29,15 +47,73 @@ namespace CTCC
         public const float SightFovDegrees = 100.0f;
         public const float SightAccumulationSeconds = 0.70f;
         public const float PreChaseWarningSeconds = 2.00f;
+        public const float LoseSightChaseSeconds = 2.10f;
+        public const float SearchDurationSeconds = 12.5f;
+        public const float ReturnCooldownSeconds = 2.50f;
+        public const float PostRecoveryGraceSeconds = 60.0f;
 
         public const float NoiseWalkRadius = 3.0f;
         public const float NoiseCrouchRadius = 1.5f;
         public const float NoiseRunRadius = 9.0f;
+        public const float NoiseDoorRadius = 12.0f;
         public const float NoiseDistractionRadius = 14.0f;
 
         public const float PatrolSpeed = 1.65f;
-        public const float InvestigateSpeed = 1.78f;
-        public const float ChaseSpeed = 3.15f;
+        public const float InvestigateSpeed = 1.85f;
+        public const float ChaseSpeed = 3.60f;
+        public const float OrderlySpeed = 1.24f;
+        public const float UnrecordedSpeed = 0.78f;
+
+        public const int MaxUnrecordedLoops = 2;
+        private const float FloorIsolationMaxDeltaY = 2.2f;
+        private const float OrderlySightRange = 5.5f;
+        private const float OrderlyInterceptRange = 3.25f;
+        private const float CartForwardOffset = 0.82f;
+
+        private struct OrderlyWaypoint
+        {
+            public OrderlyStop Stop;
+            public string Label;
+            public Vector3 Position;
+            public float DwellSeconds;
+            public float FacingYaw;
+        }
+
+        private static readonly OrderlyWaypoint[] OrderlyDefaultRoute =
+        {
+            new() { Stop = OrderlyStop.Corridor, Label = "Hành lang phòng trực", Position = new(4.0f, 4.0f, 40.4f), DwellSeconds = 5.0f, FacingYaw = 180f },
+            new() { Stop = OrderlyStop.Pharmacy, Label = "Quầy thuốc Khu B", Position = new(5.8f, 4.0f, 36.8f), DwellSeconds = 6.0f, FacingYaw = 90f },
+            new() { Stop = OrderlyStop.WingBDoor, Label = "Cửa Khu B", Position = new(-0.8f, 4.0f, 36.6f), DwellSeconds = 4.5f, FacingYaw = -90f },
+        };
+
+        private static readonly OrderlyWaypoint[] OrderlyReroutedRoute =
+        {
+            new() { Stop = OrderlyStop.Pharmacy, Label = "Quầy thuốc Khu B", Position = new(5.8f, 4.0f, 36.8f), DwellSeconds = 7.0f, FacingYaw = 90f },
+            new() { Stop = OrderlyStop.WingBDoor, Label = "Cửa Khu B", Position = new(-0.8f, 4.0f, 36.6f), DwellSeconds = 5.5f, FacingYaw = -90f },
+        };
+
+        private static readonly Vector3[] ServiceRound =
+        {
+            new(7.3f, -3.4f, 37.0f),
+            new(8.9f, -3.4f, 41.7f),
+            new(6.6f, -3.4f, 43.8f)
+        };
+
+        private static readonly Vector3[] Ch03FallbackRound =
+        {
+            new(2.6f, 8.0f, 31.0f),
+            new(2.5f, 8.0f, 36.5f),
+            new(-0.35f, 8.0f, 37.25f)
+        };
+
+        // Strictly outside AP09 safe pad (1.5, -3.4, 39.0; r=1.65m) and clear of dry cabinet (-0.57, 39.0).
+        private static readonly Vector3[] MorgueTrace =
+        {
+            new(-0.2f, -3.4f, 41.15f),
+            new(3.3f, -3.4f, 41.15f)
+        };
+
+        private static readonly string[] SafePads = { "AP02", "AP04", "AP05", "AP06", "AN03", "AP07", "AP08", "AP09" };
 
         private HospitalScene scene;
         private VoiceDirector voice;
@@ -45,45 +121,72 @@ namespace CTCC
         private HospitalUI ui;
         private PhysicalInspector inspector;
 
+        private AIRole activeRole = AIRole.None;
+        private CharacterActor activeActor;
+        private string activeFloorKey = "";
         private OrderlyState currentState = OrderlyState.Patrol;
         private int patrolIndex;
         private float sightTimer;
         private float stateTimer;
+        private float loseSightTimer;
         private float keyJingleTimer;
-        private Vector3 stimulusPosition;
-        private bool activeInChapter;
+        private float returnCooldownUntil;
+        private float graceUntil;
+        private bool waitingAtStop;
+        private bool orderlyRouteAdjusted;
         private bool spokeCh03Warning;
+        private bool suspiciousFromHearing;
+        private Vector3 stimulusPosition;
+        private Vector3 lastSeenPosition;
+        private Vector3 searchSweepTarget;
+        private bool hasSearchSweepTarget;
+        private int searchSweepSteps;
+
         private NavMeshPath navPath;
         private Vector3[] corners = Array.Empty<Vector3>();
         private Vector3 pathDestination;
         private float repathAt;
         private float movementBlockedFor;
         private int cornerIndex;
-        private enum Role { None, Hunter, Orderly, Unrecorded }
-        private Role role;
-        private float graceUntil;
-        private bool waitingAtStop;
-        private static readonly Vector3[] WardRound = { new(0, 4, 36.9f), new(2.3f, 4, 34.8f), new(4f, 4, 41.3f) };
-        private static readonly Vector3[] ServiceRound = { new(7.3f, -3.4f, 37f), new(8.9f, -3.4f, 41.7f), new(6.6f, -3.4f, 43.8f) };
-        private static readonly Vector3[] MorgueTrace = { new(2.7f, -3.4f, 38f), new(2.7f, -3.4f, 40.6f) };
-        private float Pace => role == Role.Orderly ? 1.21f : role == Role.Unrecorded ? .78f : PatrolSpeed;
-        private bool CanChase => role == Role.Hunter;
-        private string SafeRecovery => role == Role.Orderly ? "AP07" : player.Feet.y < 0 ? "AP08" : "AN03";
+
+        // Independent CHAR007 Unrecorded apparition lifecycle (max 2 loops, never shares Hunter/Orderly transform).
+        private bool unrecordedActive;
+        private bool unrecordedFinished;
+        private bool unrecordedCaptioned;
+        private int unrecordedTargetIdx = 1;
+        private int unrecordedHalfLaps;
+        private float unrecordedAlpha;
+        private NavMeshPath unrecordedNavPath;
+
+        public OrderlyState CurrentState => currentState;
+        public AIRole ActiveRole => activeRole;
+        public CharacterActor ActiveActor => activeActor;
+        public bool IsActive => activeRole != AIRole.None && activeActor != null;
+        public Vector3 StimulusPosition => stimulusPosition;
+        public Vector3 LastSeenPosition => lastSeenPosition;
+        public float SightAccumulated => sightTimer;
+        public bool OrderlyRouteAdjusted => orderlyRouteAdjusted;
+        public OrderlyStop CurrentOrderlyStop => ActiveOrderlyRoute[patrolIndex % ActiveOrderlyRoute.Length].Stop;
+        public string CurrentOrderlyStopLabel => ActiveOrderlyRoute[patrolIndex % ActiveOrderlyRoute.Length].Label;
+        public bool OrderlyWaitingAtStop => activeRole == AIRole.Orderly && waitingAtStop;
+        public bool UnrecordedActive => unrecordedActive;
+        public int UnrecordedLoopsCompleted => unrecordedHalfLaps / 2;
+        public bool InReturnCooldown => Time.unscaledTime < returnCooldownUntil;
+        public float GraceRemaining => Mathf.Max(0f, graceUntil - Time.unscaledTime);
         public int PathQueries { get; private set; }
         public int InvalidPaths { get; private set; }
         public int BlockedSteps { get; private set; }
+        public int WarningCount { get; private set; }
+        public int EncounterResetCount { get; private set; }
+        public int DoorNoiseHeardCount { get; private set; }
 
-        private static readonly string[] SafePads = { "AP02", "AP04", "AP05", "AP06", "AN03", "AP07", "AP08", "AP09" };
-
-        public OrderlyState CurrentState => currentState;
-        public bool IsActive => activeInChapter;
-        public Vector3 StimulusPosition => stimulusPosition;
-        public float SightAccumulated => sightTimer;
+        private OrderlyWaypoint[] ActiveOrderlyRoute => orderlyRouteAdjusted ? OrderlyReroutedRoute : OrderlyDefaultRoute;
 
         public void Initialize(HospitalScene world, VoiceDirector voiceDirector, FirstPerson fps,
             HospitalUI hospitalUi, PhysicalInspector physicalInspector)
         {
             navPath ??= new NavMeshPath();
+            unrecordedNavPath ??= new NavMeshPath();
             scene = world;
             voice = voiceDirector;
             player = fps;
@@ -91,67 +194,249 @@ namespace CTCC
             inspector = physicalInspector;
         }
 
+        public void ResetForLoad()
+        {
+            DeactivatePrimary();
+            StopUnrecorded(resetCompleted: true);
+            graceUntil = 0f;
+            returnCooldownUntil = 0f;
+            spokeCh03Warning = false;
+            unrecordedCaptioned = false;
+        }
+
+        public void OnZoneUnregistering(ZoneRegion zone)
+        {
+            if (zone == null) return;
+            if (activeActor != null && (zone.gatekeeperActor == activeActor || zone.orderlyActor == activeActor))
+                DeactivatePrimary();
+            else if (zone.zoneId == "LOC05" && (activeFloorKey == "CH03-L3" || activeRole == AIRole.Orderly))
+                DeactivatePrimary();
+            else if (zone.zoneId == "LOC09" && activeFloorKey == "CH04-B1")
+                DeactivatePrimary();
+
+            if (zone.zoneId == "LOC09" || (zone.unrecordedActor != null && scene?.UnrecordedActor == zone.unrecordedActor))
+                StopUnrecorded(resetCompleted: false);
+        }
+
         public void SyncState(Investigation state)
         {
-            if (scene == null) return;
-            var actor = scene.GatekeeperActor;
-            if (actor == null)
-            {
-                activeInChapter = false;
-                InvalidatePath();
-                return;
-            }
+            if (scene == null || state == null) return;
 
-            Role next = Role.None;
-            if (state.layer == Reality.R && state.chapter == "CH03" && state.Has(EvidenceRegistry.PatientRegister) &&
-                !state.Happened("CH03-T07") && scene.HasZone("LOC05"))
-                next = Role.Hunter;
+            // Update CHAR007 Unrecorded independently so crossing LOC09 <-> LOC10 NEVER teleports Hunter!
+            SyncUnrecorded(state);
+
+            AIRole nextRole = AIRole.None;
+            string nextFloorKey = "";
+            if (state.layer == Reality.R && state.chapter == "CH03" && state.Happened("CH03-T06") &&
+                !state.Happened("CH03-T07") && scene.HasZone("LOC05") &&
+                (player == null || player.Feet.y > 6.2f))
+            {
+                nextRole = AIRole.Hunter;
+                nextFloorKey = "CH03-L3";
+            }
             else if (state.layer == Reality.R && state.chapter == "CH04" && !GateService.H05(state) && player != null)
             {
-                if (player.Feet.y > 3.4f && scene.HasZone("LOC05")) next = Role.Orderly;
-                else if (player.Feet.y < -2.5f && scene.HasZone("LOC09"))
-                    next = player.Feet.x < 4.45f ? Role.Unrecorded : Role.Hunter;
-            }
-            if (next == Role.None)
-            {
-                if (activeInChapter)
+                if (player.Feet.y > 3.2f && player.Feet.y < 6.2f && scene.HasZone("LOC05"))
                 {
-                    activeInChapter = false;
-                    role = Role.None;
-                    currentState = OrderlyState.Patrol;
-                    sightTimer = 0f;
-                    actor.gameObject.SetActive(false);
+                    nextRole = AIRole.Orderly;
+                    nextFloorKey = "CH04-L2";
                 }
+                else if (player.Feet.y < -2.4f && scene.HasZone("LOC09"))
+                {
+                    nextRole = AIRole.Hunter;
+                    nextFloorKey = "CH04-B1";
+                }
+            }
+
+            if (nextRole == AIRole.None)
+            {
+                DeactivatePrimary();
                 return;
             }
 
-            if (!activeInChapter || role != next || !actor.gameObject.activeSelf)
+            CharacterActor desiredActor = ResolveActorFor(nextRole);
+            if (desiredActor == null)
             {
-                role = next;
-                activeInChapter = true;
-                currentState = OrderlyState.Patrol;
-                patrolIndex = 0;
-                sightTimer = 0f;
-                stateTimer = 0f;
-                InvalidatePath();
-                actor.gameObject.SetActive(true);
-                actor.ReducedMotion = state.settings.reduceMotion;
-                actor.LookTarget = player != null && player.Eye != null ? player.Eye.transform : null;
-                for (int index = 0; index < GetPatrolPointCount(); index++)
+                DeactivatePrimary();
+                return;
+            }
+
+            bool routeChanged = nextRole == AIRole.Orderly &&
+                orderlyRouteAdjusted != state.Happened("PZ04.ScheduleUpdated");
+            if (routeChanged)
+            {
+                orderlyRouteAdjusted = state.Happened("PZ04.ScheduleUpdated");
+                if (activeRole == AIRole.Orderly && activeActor != null)
                 {
-                    if (Vector3.Distance(player.Feet, GetPatrolPoint(index)) < 3.0f) continue;
-                    patrolIndex = index;
-                    break;
+                    patrolIndex = 0; // Pharmacy stop (clears LOC06 corridor observably!)
+                    waitingAtStop = false;
+                    TransitionTo(OrderlyState.Patrol, 0f);
                 }
-                Vector3 startPt = GetPatrolPoint(patrolIndex);
-                if (Vector3.Distance(startPt, player.Feet) < 3.0f)
+            }
+
+            bool needsActivation = activeRole != nextRole || activeFloorKey != nextFloorKey ||
+                activeActor != desiredActor || !desiredActor.gameObject.activeSelf;
+            if (!needsActivation)
+            {
+                activeActor.ReducedMotion = state.settings.reduceMotion;
+                return;
+            }
+
+            DeactivatePrimary();
+            orderlyRouteAdjusted = state.Happened("PZ04.ScheduleUpdated");
+            activeRole = nextRole;
+            activeFloorKey = nextFloorKey;
+            activeActor = desiredActor;
+            currentState = OrderlyState.Patrol;
+            sightTimer = 0f;
+            stateTimer = 0f;
+            loseSightTimer = 0f;
+            waitingAtStop = false;
+            suspiciousFromHearing = false;
+            hasSearchSweepTarget = false;
+            searchSweepSteps = 0;
+            InvalidatePath();
+
+            int chosenIndex = PickSafeSpawnWaypointIndex(nextRole, nextFloorKey);
+            if (chosenIndex < 0)
+            {
+                activeRole = AIRole.None;
+                activeFloorKey = "";
+                activeActor = null;
+                return;
+            }
+
+            patrolIndex = chosenIndex;
+            Vector3 startPt = GetPatrolPoint(patrolIndex);
+            float startYaw = nextRole == AIRole.Orderly ? ActiveOrderlyRoute[patrolIndex % ActiveOrderlyRoute.Length].FacingYaw : 180f;
+            activeActor.gameObject.SetActive(true);
+            activeActor.ReducedMotion = state.settings.reduceMotion;
+            activeActor.LookTarget = player != null && player.Eye != null ? player.Eye.transform : null;
+            activeActor.transform.SetPositionAndRotation(startPt, Quaternion.Euler(0f, startYaw, 0f));
+            activeActor.PlayAction("GK_StalkWalk", 0.15f, restart: true);
+            SyncOrderlyCartPose(instant: true);
+        }
+
+        private CharacterActor ResolveActorFor(AIRole role) => role switch
+        {
+            AIRole.Hunter => scene.GatekeeperActor,
+            AIRole.Orderly => scene.OrderlyActor != null ? scene.OrderlyActor : scene.GatekeeperActor,
+            AIRole.Unrecorded => scene.UnrecordedActor,
+            _ => null
+        };
+
+        private void DeactivatePrimary()
+        {
+            if (activeActor != null)
+                activeActor.gameObject.SetActive(false);
+            activeRole = AIRole.None;
+            activeFloorKey = "";
+            activeActor = null;
+            currentState = OrderlyState.Patrol;
+            sightTimer = 0f;
+            stateTimer = 0f;
+            loseSightTimer = 0f;
+            waitingAtStop = false;
+            suspiciousFromHearing = false;
+            InvalidatePath();
+        }
+
+        private int PickSafeSpawnWaypointIndex(AIRole role, string floorKey)
+        {
+            int count = GetPatrolPointCount(role, floorKey);
+            if (count <= 0) return -1;
+            if (player == null) return 0;
+
+            Vector3 feet = player.Feet;
+            int bestUnseen = -1;
+            float bestUnseenDist = -1f;
+            int bestFarthest = -1;
+            float bestFarthestDist = -1f;
+
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 pt = GetPatrolPoint(role, floorKey, i);
+                // Ensure Orderly starts away from corridor chokepoint when player is at AP07 so cart rolls naturally into view.
+                float dist = Vector3.Distance(feet, pt);
+                if (dist < 3.2f) continue;
+                bool visibleToPlayer = PlayerHasDirectView(pt);
+                if (!visibleToPlayer && dist > bestUnseenDist)
                 {
-                    activeInChapter = false;
-                    actor.gameObject.SetActive(false);
-                    return;
+                    bestUnseenDist = dist;
+                    bestUnseen = i;
                 }
-                actor.transform.SetPositionAndRotation(startPt, Quaternion.Euler(0f, 180f, 0f));
-                actor.PlayAction("GK_StalkWalk", 0.15f, restart: true);
+                if (dist > bestFarthestDist)
+                {
+                    bestFarthestDist = dist;
+                    bestFarthest = i;
+                }
+            }
+            if (bestUnseen >= 0) return bestUnseen;
+            return bestFarthest;
+        }
+
+        private bool PlayerHasDirectView(Vector3 worldPos)
+        {
+            if (player == null || player.Eye == null) return false;
+            Vector3 eye = player.Eye.transform.position;
+            Vector3 target = worldPos + Vector3.up * 1.45f;
+            Vector3 toTarget = target - eye;
+            float dist = toTarget.magnitude;
+            if (dist < 0.25f) return true;
+            if (Vector3.Angle(player.Eye.transform.forward, toTarget / dist) > 65f) return false;
+            return !Physics.Linecast(eye, target, HospitalScene.SolidMask, QueryTriggerInteraction.Ignore);
+        }
+
+        private void SyncUnrecorded(Investigation state)
+        {
+            var ghost = scene.UnrecordedActor;
+            if (ghost == null)
+            {
+                unrecordedActive = false;
+                return;
+            }
+            bool shouldRun = state.layer == Reality.R && state.chapter == "CH04" &&
+                ChapterFour.MorguePower(state.servicePower) &&
+                scene.HasZone("LOC09") && player != null &&
+                player.Feet.y < -2.4f && player.Feet.x < 4.5f && !unrecordedFinished;
+
+            if (!shouldRun)
+            {
+                if (unrecordedActive) StopUnrecorded(resetCompleted: false);
+                return;
+            }
+            if (!unrecordedActive)
+            {
+                unrecordedActive = true;
+                unrecordedTargetIdx = 1;
+                unrecordedAlpha = 0.05f;
+                ghost.gameObject.SetActive(true);
+                ghost.ReducedMotion = state.settings.reduceMotion;
+                ghost.transform.SetPositionAndRotation(MorgueTrace[0], Quaternion.Euler(0f, 90f, 0f));
+                ghost.PlayAction("GK_StalkWalk", 0.20f, restart: true);
+                ghost.SetApparitionAlpha(unrecordedAlpha);
+                if (!unrecordedCaptioned)
+                {
+                    unrecordedCaptioned = true;
+                    ui?.Caption("[Dư ảnh mờ của bệnh nhân Khu C lướt qua phía bắc nhà xác — vô hại, không truy đuổi.]", 4.5f, false);
+                }
+            }
+        }
+
+        private void StopUnrecorded(bool resetCompleted)
+        {
+            unrecordedActive = false;
+            unrecordedAlpha = 0f;
+            if (resetCompleted)
+            {
+                unrecordedFinished = false;
+                unrecordedHalfLaps = 0;
+                unrecordedTargetIdx = 1;
+            }
+            if (scene?.UnrecordedActor != null)
+            {
+                scene.UnrecordedActor.SetApparitionAlpha(0f);
+                scene.UnrecordedActor.gameObject.SetActive(false);
             }
         }
 
@@ -172,10 +457,13 @@ namespace CTCC
 
         public void TriggerDistraction(Vector3 worldPos, float radius = NoiseDistractionRadius)
         {
-            if (!activeInChapter || scene?.GatekeeperActor == null || role == Role.Unrecorded) return;
-            Vector3 agentPos = scene.GatekeeperActor.transform.position;
+            // Strictly Hunter-only: Orderly follows fixed/updated schedule; Unrecorded is harmless apparition.
+            if (activeRole != AIRole.Hunter || activeActor == null) return;
+            Vector3 agentPos = activeActor.transform.position;
+            if (Mathf.Abs(agentPos.y - worldPos.y) > FloorIsolationMaxDeltaY) return;
             float dist = Vector3.Distance(agentPos, worldPos);
-            bool occluded = Physics.Linecast(agentPos + Vector3.up * 1.5f, worldPos + Vector3.up * 0.8f, HospitalScene.SolidMask);
+            bool occluded = Physics.Linecast(agentPos + Vector3.up * 1.5f, worldPos + Vector3.up * 0.8f,
+                HospitalScene.SolidMask, QueryTriggerInteraction.Ignore);
             float effectiveRadius = occluded ? radius * 0.65f : radius;
             if (dist <= effectiveRadius && currentState != OrderlyState.Chase)
             {
@@ -184,12 +472,32 @@ namespace CTCC
             }
         }
 
-        public bool CheckLineOfSight(Vector3 agentPos, Vector3 agentForward, Vector3 targetPos)
+        public void NotifyDoorNoise(Vector3 worldPos)
         {
+            if (activeRole != AIRole.Hunter || activeActor == null) return;
+            if (currentState == OrderlyState.Chase || currentState == OrderlyState.Suspicious) return;
+            Vector3 agentPos = activeActor.transform.position;
+            if (Mathf.Abs(agentPos.y - worldPos.y) > FloorIsolationMaxDeltaY) return;
+            bool occluded = Physics.Linecast(agentPos + Vector3.up * 1.4f, worldPos + Vector3.up * 1.0f,
+                HospitalScene.SolidMask, QueryTriggerInteraction.Ignore);
+            float radius = occluded ? NoiseDoorRadius * 0.5f : NoiseDoorRadius;
+            if (Vector3.Distance(agentPos, worldPos) <= radius)
+            {
+                DoorNoiseHeardCount++;
+                stimulusPosition = worldPos;
+                suspiciousFromHearing = true;
+                TransitionTo(OrderlyState.Suspicious, 0.65f);
+                EmitHunterWarningCue(agentPos, hearingAlert: true);
+            }
+        }
+
+        public bool CheckLineOfSight(Vector3 agentPos, Vector3 agentForward, Vector3 targetPos, float range = SightRange)
+        {
+            if (Mathf.Abs(agentPos.y - targetPos.y) > FloorIsolationMaxDeltaY) return false;
             Vector3 toTarget = targetPos - agentPos;
             toTarget.y = 0f;
             float dist = toTarget.magnitude;
-            if (Vector3.Distance(agentPos, targetPos) > SightRange || dist < 0.05f) return false;
+            if (Vector3.Distance(agentPos, targetPos) > range || dist < 0.05f) return false;
             float angle = Vector3.Angle(agentForward, toTarget / dist);
             if (angle > SightFovDegrees * 0.5f) return false;
             Vector3 eyeA = agentPos + Vector3.up * 1.62f;
@@ -200,141 +508,346 @@ namespace CTCC
         public void Tick(Investigation state, float dt, bool playerRunning, bool playerCrouching, bool playerMoving,
             Func<string, int, string> lineLookup)
         {
-            if (!activeInChapter || scene?.GatekeeperActor == null || player == null) return;
-            var actor = scene.GatekeeperActor;
-            if (!actor.gameObject.activeInHierarchy) return;
+            if (state == null || player == null) return;
 
-            // Pause perception & movement while player is reading documents, solving modals, or in Reality.M vignette!
-            if ((ui != null && ui.IsModal) || (inspector != null && inspector.IsInspecting) || state.layer == Reality.M)
+            bool paused = (ui != null && ui.IsModal) || (inspector != null && inspector.IsInspecting) ||
+                state.layer == Reality.M || state.layer == Reality.B;
+
+            // Tick CHAR007 Unrecorded independently (pauses calmly while reading/modals).
+            TickUnrecorded(dt, paused);
+
+            if (activeRole == AIRole.None || activeActor == null || !activeActor.gameObject.activeInHierarchy)
+                return;
+
+            if (paused)
             {
-                if (actor.ActiveActionName != "GK_IdleStill")
-                    actor.PlayAction("GK_IdleStill", 0.20f);
+                if (activeActor.ActiveActionName != "GK_IdleStill")
+                    activeActor.PlayAction("GK_IdleStill", 0.20f);
                 return;
             }
 
+            if (activeRole == AIRole.Orderly)
+                TickOrderly(state, dt);
+            else if (activeRole == AIRole.Hunter)
+                TickHunter(state, dt, playerRunning, playerCrouching, playerMoving, lineLookup);
+        }
+
+        private void TickUnrecorded(float dt, bool paused)
+        {
+            if (!unrecordedActive || scene?.UnrecordedActor == null) return;
+            var ghost = scene.UnrecordedActor;
+            if (!ghost.gameObject.activeInHierarchy) return;
+            if (paused)
+            {
+                if (ghost.ActiveActionName != "GK_IdleStill") ghost.PlayAction("GK_IdleStill", 0.20f);
+                return;
+            }
+
+            float targetAlpha = unrecordedHalfLaps >= MaxUnrecordedLoops * 2 ? 0f : 0.55f;
+            unrecordedAlpha = Mathf.MoveTowards(unrecordedAlpha, targetAlpha, dt * 0.45f);
+            ghost.SetApparitionAlpha(unrecordedAlpha);
+
+            if (unrecordedHalfLaps >= MaxUnrecordedLoops * 2)
+            {
+                if (unrecordedAlpha <= 0.02f)
+                {
+                    unrecordedFinished = true;
+                    StopUnrecorded(resetCompleted: false);
+                }
+                return;
+            }
+
+            Vector3 pos = ghost.transform.position;
+            Vector3 dest = MorgueTrace[unrecordedTargetIdx % MorgueTrace.Length];
+            if ((dest - pos).sqrMagnitude <= 0.16f * 0.16f)
+            {
+                unrecordedHalfLaps++;
+                unrecordedTargetIdx = (unrecordedTargetIdx + 1) % MorgueTrace.Length;
+                return;
+            }
+
+            // Stay strictly on valid NavMesh inside LOC10 (never teleports across walls).
+            Vector3 next = Vector3.MoveTowards(pos, dest, UnrecordedSpeed * dt);
+            if (NavMesh.SamplePosition(next, out var sampled, 0.50f, NavMesh.AllAreas))
+            {
+                FaceTarget(ghost, dest, dt * 180f);
+                ghost.transform.position = sampled.position;
+                if (ghost.ActiveActionName != "GK_StalkWalk")
+                    ghost.PlayAction("GK_StalkWalk", 0.22f);
+            }
+            else
+            {
+                StandStill(ghost);
+            }
+        }
+
+        private void TickOrderly(Investigation state, float dt)
+        {
+            var actor = activeActor;
             Vector3 agentPos = actor.transform.position;
             Vector3 agentFwd = actor.transform.forward;
             Vector3 playerFeet = player.Feet;
             bool playerSafe = IsInSafeZone(playerFeet, scene) || Time.unscaledTime < graceUntil;
 
-            // Safe-zone non-intrusion rule (TASK011-D / CH03-Q04): break off immediately if player reaches safe pad!
-            if (playerSafe && (currentState == OrderlyState.Suspicious || currentState == OrderlyState.Chase))
+            if (playerSafe && currentState == OrderlyState.Suspicious)
+            {
+                sightTimer = 0f;
+                TransitionTo(OrderlyState.Return, 2.5f);
+            }
+
+            bool seesPlayer = !playerSafe && CheckLineOfSight(agentPos, agentFwd, playerFeet, OrderlySightRange) &&
+                Vector3.Distance(agentPos, playerFeet) <= OrderlyInterceptRange;
+
+            if (seesPlayer && currentState == OrderlyState.Patrol)
+            {
+                sightTimer += dt;
+                stimulusPosition = playerFeet;
+                if (sightTimer >= 0.35f)
+                {
+                    WarningCount++;
+                    TransitionTo(OrderlyState.Suspicious, PreChaseWarningSeconds);
+                    scene.atmosphere?.From("trolleyRoll", agentPos + Vector3.up * 0.9f);
+                    string dir = scene.atmosphere?.DirectionTo(agentPos) ?? "phía hành lang";
+                    ui?.Caption($"[Xe thuốc dừng lại · {dir} — Cảnh báo 2 giây. Lùi lại hoặc chờ xe rẽ về quầy thuốc.]", 3.2f, true);
+                }
+            }
+            else if (!seesPlayer)
+            {
+                sightTimer = Mathf.Max(0f, sightTimer - dt * 1.6f);
+            }
+
+            stateTimer = Mathf.Max(0f, stateTimer - dt);
+            var route = ActiveOrderlyRoute;
+            var stop = route[patrolIndex % route.Length];
+
+            switch (currentState)
+            {
+                case OrderlyState.Patrol:
+                    if (waitingAtStop)
+                    {
+                        actor.transform.rotation = Quaternion.RotateTowards(actor.transform.rotation,
+                            Quaternion.Euler(0f, stop.FacingYaw, 0f), dt * 140f);
+                        StandStill(actor);
+                        if (stateTimer <= 0f)
+                        {
+                            waitingAtStop = false;
+                            patrolIndex = (patrolIndex + 1) % route.Length;
+                            InvalidatePath();
+                        }
+                    }
+                    else if (MoveAlongNavMesh(actor, stop.Position, OrderlySpeed, dt))
+                    {
+                        waitingAtStop = true;
+                        stateTimer = stop.DwellSeconds;
+                        StandStill(actor);
+                    }
+                    break;
+
+                case OrderlyState.Suspicious:
+                    FaceTarget(actor, stimulusPosition, dt * 180f);
+                    StandStill(actor);
+                    if (!seesPlayer && stateTimer <= PreChaseWarningSeconds - 0.5f)
+                    {
+                        // Player stepped clear during warning: resume scheduled route without resetting!
+                        TransitionTo(OrderlyState.Patrol, 0f);
+                    }
+                    else if (stateTimer <= 0f)
+                    {
+                        if (seesPlayer && !state.settings.storyMode)
+                        {
+                            ResetEncounter(state);
+                            // Advance past corridor chokepoint so player is never trapped on recovery.
+                            patrolIndex = (patrolIndex + 1) % route.Length;
+                            TransitionTo(OrderlyState.Return, 3.0f);
+                        }
+                        else
+                        {
+                            if (state.settings.storyMode && seesPlayer)
+                                ui?.Caption("[Chế độ Cốt truyện · Xe thuốc nhường đường qua hành lang.]", 3.2f, false);
+                            patrolIndex = (patrolIndex + 1) % route.Length;
+                            TransitionTo(OrderlyState.Patrol, 0f);
+                        }
+                    }
+                    break;
+
+                case OrderlyState.Return:
+                default:
+                    // Orderly NEVER chases or searches; Return smoothly rejoins the next scheduled stop.
+                    if (MoveAlongNavMesh(actor, stop.Position, OrderlySpeed, dt) || stateTimer <= 0f)
+                        TransitionTo(OrderlyState.Patrol, 0f);
+                    break;
+            }
+
+            SyncOrderlyCartPose(instant: false);
+        }
+
+        private void SyncOrderlyCartPose(bool instant)
+        {
+            if (activeRole != AIRole.Orderly || activeActor == null || scene?.OrderlyCart == null) return;
+            Vector3 desiredPos = activeActor.transform.position + activeActor.transform.forward * CartForwardOffset;
+            desiredPos.y = activeActor.transform.position.y;
+            // Prevent cart pushing through solid walls when Orderly turns near corners.
+            Vector3 origin = activeActor.transform.position + Vector3.up * 0.55f;
+            if (Physics.Raycast(origin, activeActor.transform.forward, out var hit, CartForwardOffset + 0.32f,
+                HospitalScene.SolidMask, QueryTriggerInteraction.Ignore))
+            {
+                float safeDist = Mathf.Max(0.32f, hit.distance - 0.34f);
+                desiredPos = activeActor.transform.position + activeActor.transform.forward * safeDist;
+                desiredPos.y = activeActor.transform.position.y;
+            }
+            Quaternion desiredRot = activeActor.transform.rotation * Quaternion.Euler(0f, 90f, 0f);
+            if (instant)
+                scene.OrderlyCart.SetPositionAndRotation(desiredPos, desiredRot);
+            else
+            {
+                scene.OrderlyCart.position = Vector3.Lerp(scene.OrderlyCart.position, desiredPos, Mathf.Clamp01(Time.deltaTime * 12f));
+                scene.OrderlyCart.rotation = Quaternion.Slerp(scene.OrderlyCart.rotation, desiredRot, Mathf.Clamp01(Time.deltaTime * 10f));
+            }
+        }
+
+        private void TickHunter(Investigation state, float dt, bool playerRunning, bool playerCrouching, bool playerMoving,
+            Func<string, int, string> lineLookup)
+        {
+            var actor = activeActor;
+            Vector3 agentPos = actor.transform.position;
+            Vector3 agentFwd = actor.transform.forward;
+            Vector3 playerFeet = player.Feet;
+            bool inMorgueRefuge = activeFloorKey == "CH04-B1" && playerFeet.x < 4.45f;
+            bool playerSafe = IsInSafeZone(playerFeet, scene) || inMorgueRefuge || Time.unscaledTime < graceUntil;
+
+            // Safe-zone non-intrusion rule & Story Mode immediate breakoff (TASK011-E).
+            if ((playerSafe || state.settings.storyMode) && currentState == OrderlyState.Chase)
+            {
+                sightTimer = 0f;
+                loseSightTimer = 0f;
+                returnCooldownUntil = Time.unscaledTime + ReturnCooldownSeconds;
+                TransitionTo(OrderlyState.Return, 5.0f);
+            }
+            else if (playerSafe && currentState == OrderlyState.Suspicious)
             {
                 sightTimer = 0f;
                 TransitionTo(OrderlyState.Return, 4.0f);
             }
 
-            // 1. Vision perception
-            bool seesPlayer = role != Role.Unrecorded && !playerSafe && CheckLineOfSight(agentPos, agentFwd, playerFeet);
+            // 1. Vision perception (<= 12m, 100deg FOV, SolidMask occlusion, 0.70s accumulation)
+            bool seesPlayer = !playerSafe && CheckLineOfSight(agentPos, agentFwd, playerFeet, SightRange);
             if (seesPlayer)
             {
                 sightTimer += dt;
                 stimulusPosition = playerFeet;
-                if (currentState == OrderlyState.Patrol || currentState == OrderlyState.Investigate ||
-                    currentState == OrderlyState.Search || currentState == OrderlyState.Return)
+                lastSeenPosition = playerFeet;
+                loseSightTimer = 0f;
+                if (currentState is OrderlyState.Patrol or OrderlyState.Investigate or OrderlyState.Search or OrderlyState.Return)
                 {
-                    if (sightTimer >= SightAccumulationSeconds)
+                    if (sightTimer >= SightAccumulationSeconds && !InReturnCooldown)
                     {
+                        suspiciousFromHearing = false;
+                        WarningCount++;
                         TransitionTo(OrderlyState.Suspicious, PreChaseWarningSeconds);
-                        scene.atmosphere?.From(role == Role.Orderly ? "trolleyRoll" : "keyJingle", agentPos + Vector3.up * 1.0f);
-                        if (role == Role.Orderly) ui?.Caption("[Xe thuốc dừng lại. Lùi về phía phòng trực.]", 3f, false);
-                        if (state.chapter == "CH03" && !spokeCh03Warning && lineLookup != null)
-                        {
-                            spokeCh03Warning = true;
-                            voice?.Speak("CH03-D05", "Kẻ Giữ Cửa", lineLookup("CH03-D05", 1),
-                                scene.GatekeeperVoiceAnchor, actor,
-                                directionalPrefix: "[Tiếng chùm chìa khóa · Hành lang ca trực]");
-                        }
+                        EmitHunterWarningCue(agentPos, hearingAlert: false, state, lineLookup);
                     }
                 }
             }
             else
             {
                 sightTimer = Mathf.Max(0f, sightTimer - dt * 1.2f);
+                if (currentState == OrderlyState.Chase) loseSightTimer += dt;
             }
 
-            // 2. Hearing perception (when not already chasing or suspicious)
-            if (CanChase && !playerSafe && playerMoving && currentState != OrderlyState.Chase && currentState != OrderlyState.Suspicious)
+            // 2. Hearing perception (same floor only, occluded 0.5x, walk 3m / crouch 1.5m / run 9m)
+            if (!playerSafe && playerMoving && currentState is OrderlyState.Patrol or OrderlyState.Return &&
+                Mathf.Abs(agentPos.y - playerFeet.y) <= FloorIsolationMaxDeltaY)
             {
                 float radius = playerRunning ? NoiseRunRadius : playerCrouching ? NoiseCrouchRadius : NoiseWalkRadius;
-                bool occluded = Physics.Linecast(agentPos + Vector3.up * 1.4f, playerFeet + Vector3.up * 1.0f, HospitalScene.SolidMask);
+                bool occluded = Physics.Linecast(agentPos + Vector3.up * 1.4f, playerFeet + Vector3.up * 1.0f,
+                    HospitalScene.SolidMask, QueryTriggerInteraction.Ignore);
                 if (occluded) radius *= 0.5f;
                 if (Vector3.Distance(agentPos, playerFeet) <= radius)
                 {
                     stimulusPosition = playerFeet;
-                    TransitionTo(OrderlyState.Investigate, 5.0f);
+                    suspiciousFromHearing = true;
+                    TransitionTo(OrderlyState.Suspicious, 0.65f);
+                    EmitHunterWarningCue(agentPos, hearingAlert: true);
                 }
             }
 
-            // 3. State machine execution
+            // 3. 6-State FSM Execution
             stateTimer = Mathf.Max(0f, stateTimer - dt);
             switch (currentState)
             {
                 case OrderlyState.Patrol:
                     Vector3 wp = GetPatrolPoint(patrolIndex);
-                    if (MoveAlongNavMesh(actor, wp, Pace, dt))
-                    {
-                        if (role == Role.Orderly && !waitingAtStop)
-                        {
-                            waitingAtStop = true;
-                            stateTimer = 4f + patrolIndex;
-                        }
-                        else if (role != Role.Orderly || stateTimer <= 0f)
-                        {
-                            waitingAtStop = false;
-                            patrolIndex = (patrolIndex + 1) % GetPatrolPointCount();
-                        }
-                        else StandStill(actor);
-                    }
+                    if (MoveAlongNavMesh(actor, wp, PatrolSpeed, dt))
+                        patrolIndex = (patrolIndex + 1) % GetPatrolPointCount();
                     break;
 
                 case OrderlyState.Suspicious:
-                    // 2.0s pre-chase warning window (Core 06 §02.04)
                     FaceTarget(actor, stimulusPosition, dt * 240f);
                     if (actor.ActiveActionName != "GK_InspectReach")
                         actor.PlayAction("GK_InspectReach", 0.20f);
                     if (stateTimer <= 0f)
                     {
-                        if (role == Role.Orderly && seesPlayer && Vector3.Distance(agentPos, playerFeet) < 3.4f && !state.settings.storyMode)
+                        if (!suspiciousFromHearing && seesPlayer && !state.settings.storyMode)
                         {
-                            ResetEncounter();
-                            TransitionTo(OrderlyState.Return, 5f);
+                            loseSightTimer = 0f;
+                            TransitionTo(OrderlyState.Chase, 12.0f);
                         }
-                        else if (CanChase && seesPlayer && !state.settings.storyMode)
-                            TransitionTo(OrderlyState.Chase, 7.0f);
                         else
-                            TransitionTo(OrderlyState.Investigate, 4.5f);
+                        {
+                            TransitionTo(OrderlyState.Investigate, 6.0f);
+                        }
                     }
                     break;
 
                 case OrderlyState.Investigate:
                     if (MoveAlongNavMesh(actor, stimulusPosition, InvestigateSpeed, dt) || stateTimer <= 0f)
-                        TransitionTo(OrderlyState.Search, 3.2f);
+                        EnterSearch(stimulusPosition);
                     break;
 
                 case OrderlyState.Chase:
-                    if (!seesPlayer && stateTimer <= 0f)
+                    if (state.settings.storyMode)
                     {
-                        TransitionTo(OrderlyState.Search, 3.5f);
+                        TransitionTo(OrderlyState.Return, 5.0f);
                         break;
                     }
-                    if (seesPlayer) stateTimer = 3.0f;
-                    MoveAlongNavMesh(actor, stimulusPosition, state.settings.storyMode ? InvestigateSpeed : ChaseSpeed, dt);
+                    if (!seesPlayer && loseSightTimer >= LoseSightChaseSeconds)
+                    {
+                        EnterSearch(lastSeenPosition);
+                        break;
+                    }
+                    MoveAlongNavMesh(actor, lastSeenPosition, ChaseSpeed, dt);
                     if (seesPlayer && Vector3.Distance(actor.transform.position, playerFeet) <= 1.35f)
                     {
-                        // Non-lethal interception: reset player cleanly to CH03 Nurse Station safe pad (AP06) without data loss!
                         scene.atmosphere?.From("keyJingle", actor.transform.position + Vector3.up);
-                        ResetEncounter();
-                        TransitionTo(OrderlyState.Return, 4.0f);
+                        ResetEncounter(state);
+                        patrolIndex = PickFarthestPatrolIndex(player.Feet);
+                        returnCooldownUntil = Time.unscaledTime + ReturnCooldownSeconds;
+                        TransitionTo(OrderlyState.Return, 6.0f);
                     }
                     break;
 
                 case OrderlyState.Search:
-                    if (actor.ActiveActionName != "GK_IdleStill")
-                        actor.PlayAction("GK_IdleStill", 0.25f);
-                    actor.transform.Rotate(0f, Mathf.Sin(Time.unscaledTime * 2.2f) * 35f * dt, 0f);
+                    if (hasSearchSweepTarget)
+                    {
+                        if (MoveAlongNavMesh(actor, searchSweepTarget, InvestigateSpeed * 0.85f, dt))
+                        {
+                            hasSearchSweepTarget = false;
+                            searchSweepSteps++;
+                        }
+                    }
+                    else
+                    {
+                        if (actor.ActiveActionName != "GK_IdleStill")
+                            actor.PlayAction("GK_IdleStill", 0.25f);
+                        actor.transform.Rotate(0f, Mathf.Sin(Time.unscaledTime * 2.1f) * 42f * dt, 0f);
+                        if (searchSweepSteps < 2 && stateTimer < SearchDurationSeconds - (searchSweepSteps + 1) * 3.5f)
+                            PickNextSearchSweepPoint(lastSeenPosition);
+                    }
                     if (stateTimer <= 0f)
-                        TransitionTo(OrderlyState.Return, 6.0f);
+                    {
+                        returnCooldownUntil = Time.unscaledTime + ReturnCooldownSeconds;
+                        TransitionTo(OrderlyState.Return, 7.0f);
+                    }
                     break;
 
                 case OrderlyState.Return:
@@ -345,24 +858,109 @@ namespace CTCC
             }
         }
 
-        private void ResetEncounter()
+        private void EmitHunterWarningCue(Vector3 agentPos, bool hearingAlert, Investigation state = null,
+            Func<string, int, string> lineLookup = null)
         {
-            if (scene.TryPad(SafeRecovery, out var safePad) && safePad != null)
+            scene.atmosphere?.From("keyJingle", agentPos + Vector3.up * 1.0f);
+            string dir = scene.atmosphere?.DirectionTo(agentPos) ?? "gần đây";
+            if (hearingAlert)
+            {
+                ui?.Caption($"[Tiếng chùm chìa khóa · {dir} — Kẻ Giữ Cửa quay về phía tiếng động.]", 3.0f, false);
+                return;
+            }
+            if (state != null && state.chapter == "CH03" && !spokeCh03Warning && lineLookup != null)
+            {
+                spokeCh03Warning = true;
+                voice?.Speak("CH03-D05", "Kẻ Giữ Cửa", lineLookup("CH03-D05", 1),
+                    scene.GatekeeperVoiceAnchor, activeActor,
+                    directionalPrefix: $"[Tiếng chùm chìa khóa · {dir}]");
+            }
+            else
+            {
+                ui?.Caption($"[Tiếng chùm chìa khóa · {dir} — Kẻ Giữ Cửa đã phát hiện Minh (cảnh báo 2 giây)!]", 3.2f, true);
+            }
+        }
+
+        private void EnterSearch(Vector3 anchor)
+        {
+            lastSeenPosition = anchor;
+            hasSearchSweepTarget = false;
+            searchSweepSteps = 0;
+            TransitionTo(OrderlyState.Search, SearchDurationSeconds);
+            PickNextSearchSweepPoint(anchor);
+        }
+
+        private void PickNextSearchSweepPoint(Vector3 anchor)
+        {
+            // Grounded local sweep around lastSeenPosition; strictly avoids safe pads and walls (no camp).
+            Vector3[] offsets =
+            {
+                new(2.0f, 0f, 0f), new(-2.0f, 0f, 0f), new(0f, 0f, 2.0f), new(0f, 0f, -2.0f)
+            };
+            int startIdx = (searchSweepSteps * 2) % offsets.Length;
+            for (int k = 0; k < offsets.Length; k++)
+            {
+                Vector3 candidate = anchor + offsets[(startIdx + k) % offsets.Length];
+                if (NavMesh.SamplePosition(candidate, out var hit, 1.0f, NavMesh.AllAreas) &&
+                    Mathf.Abs(hit.position.y - anchor.y) < 0.6f &&
+                    !IsInSafeZone(hit.position, scene))
+                {
+                    searchSweepTarget = hit.position;
+                    hasSearchSweepTarget = true;
+                    return;
+                }
+            }
+            hasSearchSweepTarget = false;
+        }
+
+        private string ResolveSafeRecoveryPad(Investigation state)
+        {
+            if (activeRole == AIRole.Orderly)
+                return player != null && player.Feet.z >= 38.2f ? "AP07" : "AP06";
+            if (activeFloorKey == "CH04-B1" || (player != null && player.Feet.y < -1.0f))
+                return "AP08";
+            if (state != null && state.chapter == "CH03" && player != null && player.Feet.y < 6.0f)
+                return "AP06";
+            return "AN03";
+        }
+
+        private void ResetEncounter(Investigation state)
+        {
+            EncounterResetCount++;
+            string padId = ResolveSafeRecoveryPad(state);
+            if (scene.TryPad(padId, out var safePad) && safePad != null && !HospitalScene.Occupied(safePad.position))
                 player.Teleport(safePad);
-            graceUntil = Time.unscaledTime + 60f;
-            ui?.Caption("[Lối đi bị chặn. Minh lùi về điểm an toàn.]", 4.2f, true);
+            graceUntil = Time.unscaledTime + (activeRole == AIRole.Orderly ? 12.0f : PostRecoveryGraceSeconds);
+            ui?.Caption(activeRole == AIRole.Orderly
+                ? "[Người điều dưỡng đẩy xe qua hành lang. Minh lùi về trạm an toàn — hồ sơ được giữ nguyên.]"
+                : "[Lối đi bị chặn. Minh lùi về điểm an toàn — không mất vật chứng hay sổ trực.]", 4.4f, true);
+        }
+
+        private int PickFarthestPatrolIndex(Vector3 fromPos)
+        {
+            int count = GetPatrolPointCount();
+            int best = 0;
+            float maxDist = -1f;
+            for (int i = 0; i < count; i++)
+            {
+                float d = Vector3.Distance(fromPos, GetPatrolPoint(i));
+                if (d > maxDist) { maxDist = d; best = i; }
+            }
+            return best;
         }
 
         public void TransitionTo(OrderlyState next, float duration)
         {
+            // Hard guard: Orderly NEVER enters Investigate, Chase, or Search.
+            if (activeRole == AIRole.Orderly && next is (OrderlyState.Investigate or OrderlyState.Chase or OrderlyState.Search))
+                next = OrderlyState.Patrol;
             currentState = next;
             stateTimer = duration;
             waitingAtStop = false;
             InvalidatePath();
-            var actor = scene?.GatekeeperActor;
+            var actor = activeActor;
             if (actor == null || !actor.gameObject.activeInHierarchy) return;
-            if (next == OrderlyState.Patrol || next == OrderlyState.Investigate ||
-                next == OrderlyState.Chase || next == OrderlyState.Return)
+            if (next is OrderlyState.Patrol or OrderlyState.Investigate or OrderlyState.Chase or OrderlyState.Return)
                 actor.PlayAction("GK_StalkWalk", 0.20f);
             else if (next == OrderlyState.Suspicious)
                 actor.PlayAction("GK_InspectReach", 0.20f, restart: true);
@@ -373,17 +971,18 @@ namespace CTCC
         private bool MoveAlongNavMesh(CharacterActor actor, Vector3 destination, float speed, float dt)
         {
             Vector3 pos = actor.transform.position;
-            if ((destination - pos).sqrMagnitude <= 0.13f * 0.13f)
+            if ((destination - pos).sqrMagnitude <= 0.14f * 0.14f)
                 return true;
 
             if (Time.unscaledTime >= repathAt &&
-                (cornerIndex >= corners.Length || (destination - pathDestination).sqrMagnitude >= 0.6f * 0.6f))
+                (cornerIndex >= corners.Length || (destination - pathDestination).sqrMagnitude >= 0.55f * 0.55f))
             {
-                repathAt = Time.unscaledTime + 0.35f;
+                repathAt = Time.unscaledTime + 0.30f;
                 pathDestination = destination;
                 PathQueries++;
+                // Reject both invalid and partial paths; NEVER fall back to raw teleport/wall-clipping!
                 if (!NavMesh.SamplePosition(pos, out var start, 0.45f, NavMesh.AllAreas) ||
-                    !NavMesh.SamplePosition(destination, out var end, 1.20f, NavMesh.AllAreas) ||
+                    !NavMesh.SamplePosition(destination, out var end, 1.15f, NavMesh.AllAreas) ||
                     !NavMesh.CalculatePath(start.position, end.position, NavMesh.AllAreas, navPath) ||
                     navPath.status != NavMeshPathStatus.PathComplete)
                 {
@@ -400,13 +999,14 @@ namespace CTCC
 
             Vector3 target = corners[cornerIndex];
             Vector3 step = Vector3.MoveTowards(pos, target, speed * dt);
-            // Respect moved doors and safe volumes even while the baked path is cached.
             Vector3 delta = step - pos;
             const float radius = 0.30f;
-            if (IsInSafeZone(step, scene) ||
+            bool blockedBySafeZone = IsInSafeZone(step, scene);
+            bool blockedByMorgueBoundary = activeRole == AIRole.Hunter && activeFloorKey == "CH04-B1" && step.x < 4.55f;
+            if (blockedBySafeZone || blockedByMorgueBoundary ||
                 NavMesh.Raycast(pos, step, out _, NavMesh.AllAreas) ||
-                Physics.CapsuleCast(pos + Vector3.up * 0.48f, pos + Vector3.up * 1.39f,
-                    radius, delta.normalized, delta.magnitude, HospitalScene.SolidMask, QueryTriggerInteraction.Ignore))
+                (delta.sqrMagnitude > 0.00001f && Physics.CapsuleCast(pos + Vector3.up * 0.48f, pos + Vector3.up * 1.39f,
+                    radius, delta.normalized, delta.magnitude, HospitalScene.SolidMask, QueryTriggerInteraction.Ignore)))
             {
                 BlockedSteps++;
                 movementBlockedFor += dt;
@@ -428,11 +1028,10 @@ namespace CTCC
             if (keyJingleTimer >= 1.45f)
             {
                 keyJingleTimer = 0f;
-                if (role != Role.Unrecorded)
-                    scene?.atmosphere?.From(role == Role.Orderly ? "trolleyRoll" : "keyJingle",
-                        actor.transform.position + Vector3.up * .95f, .55f);
+                scene?.atmosphere?.From(activeRole == AIRole.Orderly ? "trolleyRoll" : "keyJingle",
+                    actor.transform.position + Vector3.up * 0.95f, 0.55f);
             }
-            return (destination - step).sqrMagnitude <= 0.13f * 0.13f;
+            return (destination - step).sqrMagnitude <= 0.14f * 0.14f;
         }
 
         private void InvalidatePath()
@@ -456,23 +1055,35 @@ namespace CTCC
                 actor.transform.rotation = Quaternion.RotateTowards(actor.transform.rotation, Quaternion.LookRotation(dir), maxDegDelta);
         }
 
-        private int GetPatrolPointCount() =>
-            CustomRound?.Length ?? Mathf.Max(1, scene.Ch03PatrolWaypoints.Length);
+        private int GetPatrolPointCount() => GetPatrolPointCount(activeRole, activeFloorKey);
 
-        private Vector3[] CustomRound => role == Role.Orderly ? WardRound :
-            role == Role.Unrecorded ? MorgueTrace : player != null && player.Feet.y < -2.5f ? ServiceRound : null;
-
-        private Vector3 GetPatrolPoint(int idx)
+        private int GetPatrolPointCount(AIRole role, string floorKey)
         {
-            var round = CustomRound;
-            if (round != null) return round[idx % round.Length];
+            if (role == AIRole.Orderly) return ActiveOrderlyRoute.Length;
+            if (floorKey == "CH04-B1") return ServiceRound.Length;
+            if (scene?.Ch03PatrolWaypoints != null && scene.Ch03PatrolWaypoints.Length > 0)
+                return scene.Ch03PatrolWaypoints.Length;
+            return Ch03FallbackRound.Length;
+        }
+
+        private Vector3 GetPatrolPoint(int idx) => GetPatrolPoint(activeRole, activeFloorKey, idx);
+
+        private Vector3 GetPatrolPoint(AIRole role, string floorKey, int idx)
+        {
+            int safeIdx = Mathf.Abs(idx);
+            if (role == AIRole.Orderly)
+            {
+                var route = ActiveOrderlyRoute;
+                return route[safeIdx % route.Length].Position;
+            }
+            if (floorKey == "CH04-B1")
+                return ServiceRound[safeIdx % ServiceRound.Length];
             if (scene?.Ch03PatrolWaypoints != null && scene.Ch03PatrolWaypoints.Length > 0)
             {
-                var t = scene.Ch03PatrolWaypoints[Mathf.Abs(idx) % scene.Ch03PatrolWaypoints.Length];
+                var t = scene.Ch03PatrolWaypoints[safeIdx % scene.Ch03PatrolWaypoints.Length];
                 if (t != null) return t.position;
             }
-            // Default LOC06 Duty Corridor patrol route between Archive Door (z=22.4) and Duty Exit (z=29.2)
-            return (idx % 2 == 0) ? new Vector3(-3.2f, 0f, 22.4f) : new Vector3(-3.2f, 0f, 29.2f);
+            return Ch03FallbackRound[safeIdx % Ch03FallbackRound.Length];
         }
     }
 }

@@ -343,13 +343,6 @@ namespace CTCC
                 EvidenceRegistry.C02YarnBag, EvidenceRegistry.C12UnnamedBox })
                 foreach (var frame in BenchmarkCommit("ch03-evidence-" + id, casework.TakeCh03EvidenceAsync(id, "LOC07")))
                     yield return frame;
-            benchmarkStage = "ch03-hunter-functional";
-            var deadline = Time.realtimeSinceStartupAsDouble + 3;
-            while (Time.realtimeSinceStartupAsDouble < deadline)
-            {
-                orderlyAi.Tick(State, Time.unscaledDeltaTime, false, false, false, Line);
-                yield return null;
-            }
             foreach (var frame in BenchmarkCommit("ch03-pz03", casework.AttemptCh03Pu01Async("C02", true, player.Feet)))
                 yield return frame;
             foreach (var frame in BenchmarkCommit("ch03-enter-M", casework.SwitchMemoryVignetteAn03Async(player.Feet)))
@@ -357,6 +350,16 @@ namespace CTCC
             player.Teleport(scene.Pad("AN03"));
             foreach (var frame in BenchmarkCommit("ch03-return-R", casework.SwitchMemoryVignetteAn03Async(player.Feet)))
                 yield return frame;
+            foreach (var frame in BenchmarkCommit("ch03-t06-patrol", casework.RecordAsync("CH03-T06", player.Feet, "CH03-CP03")))
+                yield return frame;
+            benchmarkStage = "ch03-hunter-functional";
+            orderlyAi.SyncState(State);
+            var deadline = Time.realtimeSinceStartupAsDouble + 3;
+            while (Time.realtimeSinceStartupAsDouble < deadline)
+            {
+                orderlyAi.Tick(State, Time.unscaledDeltaTime, false, false, false, Line);
+                yield return null;
+            }
             foreach (var point in new[]
             {
                 new Vector3(-.60f, 0, 36.8f), new(-14.7f, 0, 36.8f), new(-14.7f, 0, 34.35f),

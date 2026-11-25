@@ -112,9 +112,83 @@ namespace CTCC.Editor
                     new(-.9f, BasementLevel, 39), -90f));
                 staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_ServiceLoadPanel", service,
                     new(9.98f, BasementLevel + 1.37f, 34.5f), 90f));
-                staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_MedicineCart", upper,
-                    new(3.05f, WardLevel, 42), 90f));
+
+                // Dynamic movable CHAR006 Orderly + Medicine Cart rig in LOC05/LOC06 (not static-batched!)
+                var cart = PlaceBlenderModel("CTCC_PROP_MedicineCart", upper,
+                    new(5.8f, WardLevel, 36.8f), 90f, pairRB: false);
+                foreach (var col in cart.GetComponentsInChildren<Collider>(true))
+                    UnityEngine.Object.DestroyImmediate(col);
+
+                var orderlyActor = PlaceCharacterActor("CTCC_CHR_Gatekeeper", upper,
+                    new Vector3(5.8f, WardLevel, 36.8f), 90f, "CHAR006_Orderly",
+                    isApparition: false, enableBlink: false, enableLipSync: false);
+                orderlyActor.gameObject.SetActive(false);
+
+                // Harmless translucent CHAR007 Unrecorded apparition in LOC10 (strictly outside AP09 & separate from C12)
+                var unrecordedActor = PlaceCharacterActor("CTCC_CHR_Gatekeeper", service,
+                    new Vector3(-0.2f, BasementLevel, 41.15f), 90f, "CHAR007_Unrecorded",
+                    isApparition: true, enableBlink: false, enableLipSync: false);
+                foreach (var col in unrecordedActor.GetComponentsInChildren<Collider>(true))
+                    UnityEngine.Object.DestroyImmediate(col);
+                unrecordedActor.gameObject.SetActive(false);
+
+                if (multiScene)
+                {
+                    zones["LOC05"].region.orderlyActor = orderlyActor;
+                    zones["LOC05"].region.orderlyCart = cart.transform;
+                    zones["LOC09"].region.unrecordedActor = unrecordedActor;
+                }
             }
+            else
+            {
+                var cartProxy = Box("Orderly · medicine cart proxy", new(5.8f, WardLevel + 0.48f, 36.8f),
+                    new(.55f, .92f, .86f), Mat("Steel"), upper, solid: false);
+                if (multiScene) zones["LOC05"].region.orderlyCart = cartProxy.transform;
+            }
+
+            // PZ04 physical schedule board, room-status slip, nursing status board, and observable route arrow indicator
+            var schedBoard = Group("PZ04 · Schedule & Status Board", upper, new(2.70f, WardLevel + 1.48f, 44.95f));
+            Box("Schedule frame", Vector3.zero, new(.05f, .64f, .88f), Mat("Wood"), schedBoard, solid: false, isStatic: true);
+            Box("Schedule sheet", new(.03f, 0f, 0f), new(.01f, .54f, .76f), Mat("Paper"), schedBoard, solid: false, isStatic: true);
+            CapsuleTarget("PZ04_SCHEDULE", "Bảng lịch đẩy xe thuốc · 3 điểm dừng (PZ04)",
+                new(2.74f, WardLevel + 1.48f, 44.95f), new(.42f, .76f, .92f), upper);
+
+            Box("PZ04 · Room status slip", new(5.26f, WardLevel + 1.24f, 45.25f), new(.04f, .34f, .28f), Mat("Paper"), upper, solid: false, isStatic: true);
+            CapsuleTarget("PZ04_ROOM_SLIP", "Phiếu tình trạng buồng Khu B (PZ04)",
+                new(5.20f, WardLevel + 1.24f, 45.25f), new(.44f, .52f, .48f), upper);
+
+            Box("PZ04 · Ward status board", new(5.58f, WardLevel + 1.22f, 34.35f), new(.06f, .46f, .64f), Mat("Paper"), upper, solid: false, isStatic: true);
+            CapsuleTarget("PZ04_STATUS_BOARD", "Bảng tình trạng buồng Khu B · Đối chiếu tuyến xe (PZ04)",
+                new(5.48f, WardLevel + 1.22f, 34.35f), new(.46f, .64f, .78f), upper);
+
+            // Observable route indicator arrows above LOC06 south doorway (visible from both LOC06 & LOC05!)
+            var arrowDefault = Group("PZ04 · Route Arrow Default", upper, new(4.0f, WardLevel + 2.52f, 44.08f));
+            Box("Route default plate", Vector3.zero, new(.76f, .18f, .06f), Mat("Brass"), arrowDefault, solid: false);
+            arrowDefault.gameObject.SetActive(false);
+
+            var arrowRerouted = Group("PZ04 · Route Arrow Rerouted", upper, new(4.0f, WardLevel + 2.52f, 44.08f));
+            Box("Route updated shaft", new(-.06f, 0f, 0f), new(.56f, .12f, .07f), Mat("LiveTube"), arrowRerouted, solid: false);
+            var tipA = Box("Route updated head A", new(.24f, .06f, 0f), new(.22f, .06f, .07f), Mat("LiveTube"), arrowRerouted, solid: false);
+            tipA.transform.localRotation = Quaternion.Euler(0f, 0f, -32f);
+            var tipB = Box("Route updated head B", new(.24f, -.06f, 0f), new(.22f, .06f, .07f), Mat("LiveTube"), arrowRerouted, solid: false);
+            tipB.transform.localRotation = Quaternion.Euler(0f, 0f, 32f);
+            arrowRerouted.gameObject.SetActive(false);
+
+            // AN05 handoff anchor in LOC06 (opens strictly after G04 + CH04-T06; CH05/G05/G06/E08 stay locked)
+            var an05Visual = Group("AN05 · Handoff Marker", upper, new(3.02f, WardLevel + 1.04f, 46.35f));
+            Box("AN05 base", Vector3.zero, new(.46f, .08f, .46f), Mat("Brass"), an05Visual, solid: false);
+            Box("AN05 strip", new(0f, .06f, 0f), new(.34f, .05f, .10f), Mat("LiveTube"), an05Visual, solid: false);
+            an05Visual.gameObject.SetActive(false);
+            CapsuleTarget("AN05", "Điểm neo Khu B · AN05 (Chuyển tiếp CH05)",
+                new(3.02f, WardLevel + 1.15f, 46.35f), new(.56f, .64f, .56f), upper);
+
+            if (multiScene)
+            {
+                zones["LOC05"].region.pz04RouteArrowDefault = arrowDefault.gameObject;
+                zones["LOC05"].region.pz04RouteArrowRerouted = arrowRerouted.gameObject;
+                zones["LOC05"].region.an05AnchorVisual = an05Visual.gameObject;
+            }
+
             CapsuleTarget("CH04_POWER", "Bảng tải điện khu kỹ thuật", new(9.72f, BasementLevel + 1.37f, 34.5f), new(.45f, .85f, 1.12f), service);
             CapsuleTarget("E04_E07", "Tủ khô · hồ sơ tiếp nhận", new(-.57f, BasementLevel + 1.25f, 39), new(.45f, .84f, 1.18f), service);
             CapsuleTarget("AN04", "Phòng trực · lịch và băng họp", new(3.88f, WardLevel + 1.16f, 46.78f), new(.7f, .8f, .4f), upper);

@@ -114,6 +114,9 @@ namespace CTCC
         public CharacterActor LanActor { get; private set; }
         public CharacterActor GatekeeperActor { get; private set; }
         public CharacterActor AnActor { get; private set; }
+        public CharacterActor OrderlyActor { get; private set; }
+        public CharacterActor UnrecordedActor { get; private set; }
+        public Transform OrderlyCart { get; private set; }
         public Transform[] GatekeeperWaypoints { get; private set; } = Array.Empty<Transform>();
         public Transform[] Ch03PatrolWaypoints { get; private set; } = Array.Empty<Transform>();
         public Transform Ch03RadioPoint { get; private set; }
@@ -152,6 +155,7 @@ namespace CTCC
         private bool lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate, lastThirdGate;
         private bool lastServiceGate, lastB07GateLatched, lastMemoryS1Discharge;
         private bool seamClosed, spareTaken;
+        private Investigation lastCaseworkState;
         public event Action<ZoneRegion> ZoneUnregistering;
         public event Action ZoneReloaded;
 
@@ -215,12 +219,21 @@ namespace CTCC
 
         public void PresentCasework(Investigation state)
         {
+            lastCaseworkState = state;
             lastServiceGate = state.chapter == "CH04";
             foreach (var region in registeredZones)
             {
                 Toggle(region.serviceConnector, !lastServiceGate || !HasZone("LOC09"));
                 region.PresentCasework(state);
             }
+        }
+
+        public bool RefreshZoneNavMesh(string zoneId)
+        {
+            if (string.IsNullOrEmpty(zoneId) || !zonesById.TryGetValue(zoneId, out var region) || region == null)
+                return false;
+            Physics.SyncTransforms();
+            return !region.participatesInNavMesh || region.RefreshRegionalNavMesh();
         }
 
         internal bool ServiceApproachBlocked =>
@@ -319,6 +332,8 @@ namespace CTCC
                     lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched,
                     memoryS1Discharge: lastMemoryS1Discharge);
                 PresentCheckpointProps(seamClosed, spareTaken);
+                if (lastCaseworkState != null) PresentCasework(lastCaseworkState);
+                Physics.SyncTransforms();
             }
             finally { smoothPresentation = restoreSmooth; }
             foreach (var region in registeredZones)
@@ -502,6 +517,9 @@ namespace CTCC
             if (region.lanActor != null) LanActor = region.lanActor;
             if (region.gatekeeperActor != null) GatekeeperActor = region.gatekeeperActor;
             if (region.anActor != null) AnActor = region.anActor;
+            if (region.orderlyActor != null) OrderlyActor = region.orderlyActor;
+            if (region.unrecordedActor != null) UnrecordedActor = region.unrecordedActor;
+            if (region.orderlyCart != null) OrderlyCart = region.orderlyCart;
             if (region.gatekeeperWaypoints != null && region.gatekeeperWaypoints.Length > 0)
                 GatekeeperWaypoints = region.gatekeeperWaypoints;
             if (region.ch03PatrolWaypoints != null && region.ch03PatrolWaypoints.Length > 0)
@@ -584,6 +602,9 @@ namespace CTCC
             if (LanActor == region.lanActor) LanActor = null;
             if (GatekeeperActor == region.gatekeeperActor) GatekeeperActor = null;
             if (AnActor == region.anActor) AnActor = null;
+            if (OrderlyActor == region.orderlyActor) OrderlyActor = null;
+            if (UnrecordedActor == region.unrecordedActor) UnrecordedActor = null;
+            if (OrderlyCart == region.orderlyCart) OrderlyCart = null;
             if (GatekeeperWaypoints == region.gatekeeperWaypoints) GatekeeperWaypoints = Array.Empty<Transform>();
             if (Ch03PatrolWaypoints == region.ch03PatrolWaypoints) Ch03PatrolWaypoints = Array.Empty<Transform>();
             if (Ch03RadioPoint == region.ch03RadioPoint) Ch03RadioPoint = null;

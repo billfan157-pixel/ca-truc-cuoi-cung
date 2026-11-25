@@ -57,6 +57,7 @@ namespace CTCC
             scene.atmosphere?.SetPenWriting(false, Vector3.zero);
             if (!Report(casework.Begin(player.Feet, startOptions))) return;
             ResetNotebookSession();
+            orderlyAi?.ResetForLoad();
             scene.interactables?.ResetSessionProps();
             if (scene.staffCrossDoor != null) scene.staffCrossDoor.isOpen = false;
             dreadDirector?.ResetSeed(State.dreadSeed);
@@ -121,6 +122,7 @@ namespace CTCC
             RestoreJournal(State);
             live = true;
             player.Teleport(safe);
+            orderlyAi?.ResetForLoad();
             orderlyAi?.SyncState(State);
             player.RestoreBattery(State.torchSeconds);
             CloseModal();

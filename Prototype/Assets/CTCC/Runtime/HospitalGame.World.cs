@@ -137,7 +137,11 @@ namespace CTCC
                     return;
                 }
                 if (id == "CHAIR-STAFF") rig.ToggleDrawer(id, scene.atmosphere);
-                else rig.ToggleDoor(id, scene.atmosphere);
+                else
+                {
+                    rig.ToggleDoor(id, scene.atmosphere);
+                    orderlyAi?.NotifyDoorNoise(player.Feet);
+                }
             }
             else if (id == "CURTAIN-101") rig.ToggleCurtain(scene.atmosphere);
             else rig.ToggleDrawer(id, scene.atmosphere, quiet: quietNurseDrawer);

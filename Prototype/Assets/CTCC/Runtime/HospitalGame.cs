@@ -206,6 +206,7 @@ namespace CTCC
                 }
                 if (zone.gatekeeperActor != null) gatekeeperCameo.StopAndHide();
                 if (zone.anActor != null) anDirector.HideImmediately();
+                orderlyAi?.OnZoneUnregistering(zone);
                 if (zone.zoneId == "LOC03") handPresenter?.ResetWorldBindings();
             };
             scene.ZoneReloaded += () => ApplyCommitted(State);
@@ -471,11 +472,12 @@ namespace CTCC
             // CH01-T11: Progressive gentle inactivity hints (60s / 120s / 180s, toggleable in Settings)
             UpdateProgressiveHints();
 
-            // CH03 Regional Patrol/Investigate/Chase/Search/Return AI (TASK011-A..E)
-            if (State.chapter == "CH04") orderlyAi?.SyncState(State);
-            if (State.chapter is ("CH03" or "CH04") && orderlyAi != null && orderlyAi.IsActive)
+            // Regional Patrol/Investigate/Chase/Search/Return AI & Orderly/Unrecorded sync (TASK011-A..E)
+            if (State.chapter is ("CH03" or "CH04"))
             {
-                orderlyAi.Tick(State, Time.deltaTime, player.IsRunning, player.IsCrouching, player.IsMoving, Line);
+                orderlyAi?.SyncState(State);
+                if (orderlyAi != null && (orderlyAi.IsActive || orderlyAi.UnrecordedActive))
+                    orderlyAi.Tick(State, Time.deltaTime, player.IsRunning, player.IsCrouching, player.IsMoving, Line);
             }
 
             if (transaction.OnPad(feet, "AN03") && State.chapter == "CH03" && anchorPressed)

@@ -821,8 +821,8 @@ namespace CTCC.Editor
             actor.isApparition = isApparition;
             actor.enableBlink = enableBlink;
             actor.enableLipSync = enableLipSync;
-            actor.enableLookAt = true;
-            ConfigureActorModel(prefab, inst, isApparition, key => Mat(key));
+            actor.enableLookAt = !isApparition;
+            ConfigureActorModel(prefab, inst, isApparition, charId, key => Mat(key));
 
             // Attach toggleable physical 3D F101 Clipboard prop directly onto Lan's right-hand ClipboardSocket_R!
             if (charId.Contains("CHAR002"))
@@ -864,10 +864,12 @@ namespace CTCC.Editor
             .Where(c => !c.name.StartsWith("__preview__", StringComparison.Ordinal))
             .ToArray();
 
-        private static void ConfigureActorModel(GameObject prefab, GameObject instance, bool apparition, Func<string, Material> resolve)
+        private static void ConfigureActorModel(GameObject prefab, GameObject instance, bool apparition, string charId, Func<string, Material> resolve)
         {
             var byName = prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true).ToDictionary(r => r.name);
             var levels = new[] { new List<Renderer>(), new List<Renderer>(), new List<Renderer>() };
+            bool isOrderly = charId != null && charId.Contains("CHAR006");
+            bool isUnrecorded = charId != null && charId.Contains("CHAR007_Unrecorded");
             foreach (var renderer in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
                 if (!byName.TryGetValue(renderer.name, out var source))
@@ -878,19 +880,22 @@ namespace CTCC.Editor
                 {
                     if (slots[i] == null) throw new InvalidOperationException($"Empty slot in {source.name}");
                     string key = CleanMatName(slots[i].name);
+                    if (isOrderly && key == "CharredBlouse")
+                        key = "NurseBlouse";
                     if (apparition)
                     {
                         key = key switch
                         {
-                            "AnSkin" => "AnSkin_Apparition",
+                            "AnSkin" or "ObscuredFace" => "AnSkin_Apparition",
                             "AnCotton" => "AnCotton_Apparition",
-                            "AnHairCard" => "AnHair_Apparition",
+                            "AnHairCard" or "GatekeeperHairCard" => "AnHair_Apparition",
                             "LanEye" => "AnEye_Apparition",
                             "LanEyebrow" => "AnEyebrow_Apparition",
                             "LanEyelash" => "AnEyelash_Apparition",
                             "LanTeeth" => "AnTeeth_Apparition",
                             "LanTongue" => "AnTongue_Apparition",
                             "SlipperYellow" => "AnSlipper_Apparition",
+                            _ when isUnrecorded => "AnCotton_Apparition",
                             _ => throw new InvalidOperationException($"Unknown apparition material {key}")
                         };
                     }
@@ -953,7 +958,7 @@ namespace CTCC.Editor
                     var model = group.gameObject;
                     string path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(model);
                     var source = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                    ConfigureActorModel(source, model, actor.isApparition, Generated);
+                    ConfigureActorModel(source, model, actor.isApparition, actor.characterId, Generated);
                     actor.clips = ActorClips(path);
                     EditorUtility.SetDirty(actor);
                 }

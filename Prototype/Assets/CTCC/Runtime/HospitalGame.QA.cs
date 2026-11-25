@@ -1022,7 +1022,8 @@ namespace CTCC
             Apply(casework.AttemptCh03Pu01("C12", true, an03.position), "PZ03 second wrong code");
             Require(PuzzleService.ShouldShowFieldHint(State, "CH03-PU01") && !GateService.G03(State),
                 "CH03-Q02 incorrect matching keeps G03 closed");
-            yield return VerifyArchiveNavigation(an03);
+            orderlyAi.SyncState(State);
+            Require(!orderlyAi.IsActive, "CH03 B03/B04 keeps archive quiet before CH03-T06");
             Apply(casework.AttemptCh03Pu01("C02", true, an03.position), "PZ03 correct code");
             Require(GateService.G03(State) && !State.PatientIdentityVerified("C02"), "CH03-Q01 gate opens on existence");
             Apply(casework.TakeCh03Evidence(EvidenceRegistry.C12UnnamedBox, "LOC07", an03.position), "Read C12 row and box");
@@ -1039,6 +1040,8 @@ namespace CTCC
                 State.layer == Reality.R && restoredFromM == an03 && State.Has(EvidenceRegistry.PatientRegister),
                 "CH03-Q04 restores at AN03 in R with E03");
             Require(!HunterOrderlyAI.IsInSafeZone(an03.position + Vector3.up * 4f, scene), "Safe zone is floor-aware");
+            Apply(casework.Record("CH03-T06", an03.position, "CH03-CP03"), "Trigger CH03-T06 patrol beat");
+            yield return VerifyArchiveNavigation(an03);
             yield return CaptureHospitalFrame("ch03-archive", an03, 18f);
             yield return CaptureHospitalFrame("ch03-ward", ap06, 35f);
 
@@ -1071,6 +1074,7 @@ namespace CTCC
                 Require(State.servicePower == (expectedFits[mask] ? mask : 0), "Save overload trip");
             }
             yield return WaitForApplied(ChapterFour.SetPower(transaction, 10), "Energize archive + service");
+            yield return VerifyTask011Ch04RolesAndNavMesh();
             yield return WaitForApplied(ChapterFour.Take(transaction, EvidenceRegistry.MorgueRegister, "LOC10"), "Take E04");
             Require(ChapterFour.MatchRecovery(transaction).GetAwaiter().GetResult() == CommitResult.PadRequired &&
                 !GateService.H05(State), "CH04-Q03 E04 alone excludes H05");
@@ -1092,16 +1096,42 @@ namespace CTCC
         {
             player.Teleport(safe);
             ui.Close();
+            orderlyAi.ResetForLoad();
             orderlyAi.SyncState(State);
             var actor = scene.GatekeeperActor;
-            Require(orderlyAi.IsActive && actor != null, "Archive hunter active after E03");
+            Require(orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Hunter && actor != null,
+                "TASK011-A: Archive hunter active on Floor 3 after CH03-T06");
+            Require(Mathf.Abs(actor.transform.position.y - 8f) < 0.35f &&
+                Vector3.Distance(actor.transform.position, safe.position) >= 3.0f,
+                "TASK011-E: Hunter spawns on Floor 3 clear of player safe pad");
             Require(!orderlyAi.CheckLineOfSight(new Vector3(.2f, 8f, 34f), Vector3.right, new Vector3(2.3f, 8f, 34f)),
-                "CH03-Q03 occluding shelf partition blocks line of sight");
+                "CH03-Q03 / TASK011-B: occluding shelf partition blocks line of sight");
+            Require(!orderlyAi.CheckLineOfSight(new Vector3(2.6f, 8f, 31f), Vector3.forward, new Vector3(2.6f, 4f, 34f)),
+                "TASK011-B: cross-floor LOS rejected");
+
             var start = scene.Ch03PatrolWaypoints[0].position;
             actor.transform.SetPositionAndRotation(start, Quaternion.identity);
+
+            // Cross-floor hearing isolation: door noise on Floor 2 (y=4) must NOT alert Floor 3 Hunter (y=8)!
+            int doorBefore = orderlyAi.DoorNoiseHeardCount;
+            orderlyAi.NotifyDoorNoise(new Vector3(2.6f, 4f, 31f));
+            Require(orderlyAi.DoorNoiseHeardCount == doorBefore && orderlyAi.CurrentState == OrderlyState.Patrol,
+                "TASK011-B: cross-floor door noise isolated");
+
+            // Same-floor door noise (12m) enters Suspicious -> Investigate!
+            orderlyAi.NotifyDoorNoise(new Vector3(2.5f, 8f, 36.5f));
+            Require(orderlyAi.DoorNoiseHeardCount == doorBefore + 1 && orderlyAi.CurrentState == OrderlyState.Suspicious,
+                "TASK011-B: same-floor door noise triggers Suspicious");
+            for (int i = 0; i < 45; i++) orderlyAi.Tick(State, 0.02f, false, false, false, Line);
+            Require(orderlyAi.CurrentState == OrderlyState.Investigate,
+                "TASK011-B: hearing Suspicious transitions to Investigate");
+            orderlyAi.TransitionTo(OrderlyState.Patrol, 0f);
+            actor.transform.SetPositionAndRotation(start, Quaternion.identity);
+
+            // Invalid/unreachable stimulus rejected without raw movement!
             int blockedBefore = orderlyAi.InvalidPaths;
             int queriesBefore = orderlyAi.PathQueries;
-            orderlyAi.TriggerDistraction(start - Vector3.up * 2.35f);
+            orderlyAi.TriggerDistraction(start - Vector3.up * 1.6f);
             Require(orderlyAi.CurrentState == OrderlyState.Investigate, "Unreachable stimulus entered investigate");
             double deadline = Time.realtimeSinceStartupAsDouble + .80;
             while (Time.realtimeSinceStartupAsDouble < deadline)
@@ -1112,7 +1142,9 @@ namespace CTCC
             int rejected = orderlyAi.InvalidPaths - blockedBefore;
             int queries = orderlyAi.PathQueries - queriesBefore;
             Require(Vector3.Distance(start, actor.transform.position) < .015f && rejected >= 1 && queries <= 4,
-                $"CH03-Q03 no raw movement after invalid path, rejected={rejected}, queries={queries}");
+                $"CH03-Q03 / TASK011-A: no raw movement after invalid path, rejected={rejected}, queries={queries}");
+
+            // Valid radio distraction navigates along NavMesh outside safe pads!
             orderlyAi.TriggerDistraction(scene.Ch03RadioPoint.position);
             deadline = Time.realtimeSinceStartupAsDouble + 1.8;
             while (Time.realtimeSinceStartupAsDouble < deadline)
@@ -1123,7 +1155,151 @@ namespace CTCC
             float travelled = Vector3.Distance(start, actor.transform.position);
             Require(travelled > .45f && !HunterOrderlyAI.IsInSafeZone(actor.transform.position, scene),
                 $"CH03-Q03 hunter navigates toward the radio and stays outside safe pads, displacement={travelled:F2}");
-            verification.Add($"CH03-Q03 local module PASS: partition blocks LOS; {rejected} invalid paths in {queries} queries over 0.8 s, zero raw movement, radio displacement {travelled:F2} m.");
+
+            // Full Hunter FSM: Patrol -> Suspicious (2s warn) -> Chase -> lose LOS (>2.1s) -> Search (12.5s) -> Return -> Patrol
+            actor.transform.SetPositionAndRotation(new Vector3(2.5f, 8f, 36.5f), Quaternion.Euler(0f, 180f, 0f));
+            player.Teleport(new Vector3(2.5f, 8.015f, 31.8f), Quaternion.identity);
+            orderlyAi.TransitionTo(OrderlyState.Patrol, 0f);
+            int warnsBefore = orderlyAi.WarningCount;
+            for (int i = 0; i < 45; i++) orderlyAi.Tick(State, 0.02f, false, false, false, Line);
+            Require(orderlyAi.CurrentState == OrderlyState.Suspicious && orderlyAi.WarningCount > warnsBefore,
+                $"TASK011-B/C: unobstructed LOS enters 2s Suspicious warning (got {orderlyAi.CurrentState})");
+            for (int i = 0; i < 110; i++) orderlyAi.Tick(State, 0.02f, false, false, false, Line);
+            Require(orderlyAi.CurrentState == OrderlyState.Chase,
+                $"TASK011-C: 2s warning transitions to Chase (got {orderlyAi.CurrentState})");
+
+            // Story Mode mid-chase immediately breaks off to Return!
+            var storyState = State.Copy();
+            storyState.settings.storyMode = true;
+            orderlyAi.Tick(storyState, 0.02f, false, false, false, Line);
+            Require(orderlyAi.CurrentState == OrderlyState.Return,
+                $"TASK011-E: Story Mode breaks off Chase immediately (got {orderlyAi.CurrentState})");
+
+            // Lose LOS behind partition -> Search -> Return -> Patrol!
+            actor.transform.SetPositionAndRotation(new Vector3(2.5f, 8f, 36.5f), Quaternion.Euler(0f, 180f, 0f));
+            orderlyAi.TransitionTo(OrderlyState.Chase, 12.0f);
+            player.Teleport(new Vector3(-1.8f, 8.015f, 34.0f), Quaternion.identity); // Occluded behind shelf partition (outside AN03 safe radius)
+            for (int i = 0; i < 120; i++) orderlyAi.Tick(State, 0.02f, false, false, false, Line);
+            Require(orderlyAi.CurrentState == OrderlyState.Search,
+                $"TASK011-C: losing LOS >2.1s transitions Chase -> Search (got {orderlyAi.CurrentState})");
+            for (int i = 0; i < 660; i++) orderlyAi.Tick(State, 0.02f, false, false, false, Line);
+            Require(orderlyAi.CurrentState is (OrderlyState.Return or OrderlyState.Patrol),
+                $"TASK011-C: Search completes cleanly to Return/Patrol (got {orderlyAi.CurrentState})");
+
+            // Safe pad non-intrusion breakoff & modal pause!
+            orderlyAi.TransitionTo(OrderlyState.Chase, 12.0f);
+            player.Teleport(safe);
+            orderlyAi.Tick(State, 0.02f, false, false, false, Line);
+            Require(orderlyAi.CurrentState == OrderlyState.Return,
+                "TASK011-E: reaching AN03 safe pad breaks off Hunter Chase");
+
+            verification.Add($"TASK011-A/B/C/E & CH03-Q03 PASS: LOS/partition, floor-isolated hearing & door noise, {rejected} invalid paths in {queries} queries (0 raw move), radio {travelled:F2} m, full 6-state FSM, Story Mode & safe-pad breakoff.");
+        }
+
+        private IEnumerator VerifyTask011Ch04RolesAndNavMesh()
+        {
+            // 1) Dynamic morgueLock NavMesh sync check (GAP-NAV-01)
+            var ap08 = scene.Pad("AP08");
+            var ap09 = scene.Pad("AP09");
+            var openPath = new NavMeshPath();
+            Require(NavMesh.SamplePosition(ap08.position, out var s8, 0.45f, NavMesh.AllAreas) &&
+                NavMesh.SamplePosition(ap09.position, out var s9, 0.45f, NavMesh.AllAreas) &&
+                NavMesh.CalculatePath(s8.position, s9.position, NavMesh.AllAreas, openPath) &&
+                openPath.status == NavMeshPathStatus.PathComplete,
+                "GAP-NAV-01: powered LOC09/LOC10 refreshes regional NavMesh cleanly (AP08 -> AP09 complete)");
+
+            // Runtime per-zone stitching across upper & service portals (GAP-NAV-02)
+            foreach (var pair in new[] { ("AP02", "AP06"), ("AP05", "AP06"), ("AP06", "AN03"), ("AP06", "AP07"), ("AP05", "AP08") })
+            {
+                var a = scene.Pad(pair.Item1);
+                var b = scene.Pad(pair.Item2);
+                var stitched = new NavMeshPath();
+                Require(NavMesh.SamplePosition(a.position, out var sa, 0.45f, NavMesh.AllAreas) &&
+                    NavMesh.SamplePosition(b.position, out var sb, 0.45f, NavMesh.AllAreas) &&
+                    NavMesh.CalculatePath(sa.position, sb.position, NavMesh.AllAreas, stitched) &&
+                    stitched.status == NavMeshPathStatus.PathComplete,
+                    $"GAP-NAV-02: runtime per-zone NavMesh disconnected for {pair.Item1} -> {pair.Item2}");
+            }
+
+            // 2) CHAR006 Orderly (TASK011-D): dedicated actor + cart, 3 stops, no chase, distraction immune, Route B update, gentle reset
+            player.Teleport(scene.Pad("AP07"));
+            ui.Close();
+            orderlyAi.ResetForLoad();
+            orderlyAi.SyncState(State);
+            Require(orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Orderly,
+                "TASK011-D: CHAR006 Orderly active on CH04 Floor 2");
+            Require(scene.OrderlyActor == null || ReferenceEquals(orderlyAi.ActiveActor, scene.OrderlyActor),
+                "TASK011-D: Orderly uses dedicated OrderlyActor (not stealing GatekeeperActor)");
+            Require(!orderlyAi.OrderlyRouteAdjusted, "TASK011-D: Orderly starts on default 3-stop Route A");
+
+            // Hard no-chase & distraction immunity check
+            orderlyAi.TriggerDistraction(new Vector3(4f, 4f, 36f));
+            Require(orderlyAi.CurrentState == OrderlyState.Patrol, "TASK011-D: Orderly ignores Hunter radio distractions");
+            orderlyAi.TransitionTo(OrderlyState.Chase, 5f);
+            Require(orderlyAi.CurrentState == OrderlyState.Patrol, "TASK011-D: Orderly strictly cannot enter Chase");
+
+            // Orderly gentle reset preserves evidence & moves player to safe station
+            var ordActor = orderlyAi.ActiveActor;
+            ordActor.transform.SetPositionAndRotation(new Vector3(4.0f, 4.0f, 40.4f), Quaternion.Euler(0f, 0f, 0f));
+            player.Teleport(new Vector3(4.0f, 4.015f, 42.4f), Quaternion.Euler(0f, 180f, 0f));
+            int evCountBefore = State.evidence.Count;
+            int resetsBefore = orderlyAi.EncounterResetCount;
+            for (int i = 0; i < 30; i++) orderlyAi.Tick(State, 0.02f, false, false, false, Line);
+            Require(orderlyAi.CurrentState == OrderlyState.Suspicious, "TASK011-D: Orderly emits 2s warning before gentle reset");
+            for (int i = 0; i < 110; i++) orderlyAi.Tick(State, 0.02f, false, false, false, Line);
+            Require(orderlyAi.EncounterResetCount == resetsBefore + 1 && State.evidence.Count == evCountBefore &&
+                HunterOrderlyAI.IsInSafeZone(player.Feet, scene),
+                "TASK011-D: Orderly gentle reset lands player on safe pad without losing evidence");
+
+            // Route B observable schedule update
+            var reroutedState = State.Copy();
+            reroutedState.Remember("PZ04.ScheduleUpdated");
+            orderlyAi.SyncState(reroutedState);
+            Require(orderlyAi.OrderlyRouteAdjusted && orderlyAi.CurrentOrderlyStop == OrderlyStop.Pharmacy,
+                "TASK011-D: Route B observably updates Orderly away from corridor chokepoint to Pharmacy/WingBDoor");
+
+            // 3) CHAR005 B1 Hunter + CHAR007 Unrecorded separation (no cross-role teleport at x=4.45!)
+            player.Teleport(ap08);
+            orderlyAi.ResetForLoad();
+            orderlyAi.SyncState(State);
+            Require(orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Hunter && !orderlyAi.UnrecordedActive,
+                "TASK011-E: B1 LOC09 activates Hunter without Unrecorded");
+            Vector3 hunterPosBeforeMorgue = orderlyAi.ActiveActor.transform.position;
+
+            // Step into LOC10 (AP09): Unrecorded apparition activates independently; Hunter is NOT teleported into LOC10!
+            player.Teleport(ap09);
+            orderlyAi.SyncState(State);
+            Require(Vector3.Distance(scene.GatekeeperActor.transform.position, hunterPosBeforeMorgue) < 0.05f &&
+                scene.GatekeeperActor.transform.position.x > 4.5f,
+                "TASK011-E: entering LOC10 never teleports Hunter across doorway into morgue");
+            if (scene.UnrecordedActor != null)
+            {
+                Require(orderlyAi.UnrecordedActive && orderlyAi.UnrecordedLoopsCompleted == 0 &&
+                    !HunterOrderlyAI.IsInSafeZone(scene.UnrecordedActor.transform.position, scene),
+                    "TASK011-E / V33-Q05: CHAR007 Unrecorded apparition activates outside AP09 safe pad");
+                // Tick Unrecorded through its strict max 2 loops and verify auto-fade deactivation!
+                for (int i = 0; i < 1400 && orderlyAi.UnrecordedActive; i++)
+                    orderlyAi.Tick(State, 0.02f, false, false, false, Line);
+                Require(!orderlyAi.UnrecordedActive && orderlyAi.UnrecordedLoopsCompleted == HunterOrderlyAI.MaxUnrecordedLoops &&
+                    !scene.UnrecordedActor.gameObject.activeSelf && !State.PatientIdentityVerified("C12"),
+                    $"TASK011-E / V33-Q05: Unrecorded completes exactly {HunterOrderlyAI.MaxUnrecordedLoops} loops, fades out, never chases, and stays separate from C12");
+            }
+
+            // 4) Unload safety: unloading LOC05 cleans up active Floor-2 Orderly cleanly
+            if (scene.IsAdditiveMode)
+            {
+                player.Teleport(scene.Pad("AP07"));
+                orderlyAi.ResetForLoad();
+                orderlyAi.SyncState(State);
+                Require(orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Orderly, "Orderly live before LOC05 unload");
+                yield return scene.UnloadZoneAsync(RegionStreamer.Upper);
+                Require(!orderlyAi.IsActive, "TASK011-E: unloading LOC05 cleanly stops Orderly AI without stale refs");
+                yield return scene.LoadZoneAsync(RegionStreamer.Upper);
+            }
+
+            player.Teleport(ap09);
+            orderlyAi.ResetForLoad();
+            verification.Add("TASK011-D/E & GAP-NAV-01/02 PASS: Orderly 3-stop + Route B + no-chase + gentle reset, Unrecorded max-2-loop apparition (!=C12), zero cross-doorway role teleport, dynamic morgueLock & multi-zone NavMesh stitching, and unload cleanup.");
         }
 
         private void VerifyLegacySave(int schema)

@@ -100,6 +100,12 @@ namespace CTCC
         public CharacterActor lanActor;
         public CharacterActor gatekeeperActor;
         public CharacterActor anActor;
+        public CharacterActor orderlyActor;
+        public CharacterActor unrecordedActor;
+        public Transform orderlyCart;
+        public GameObject pz04RouteArrowDefault;
+        public GameObject pz04RouteArrowRerouted;
+        public GameObject an05AnchorVisual;
         public Transform[] gatekeeperWaypoints = Array.Empty<Transform>();
         public Transform lanSilhouettePoint;
         public Transform lanDeskPoint;
@@ -169,6 +175,10 @@ namespace CTCC
             Toggle(morgueLock, !hasMorgue && !GateService.H05(state));
             foreach (var light in circuitLights)
                 if (light != null) light.enabled = hasMorgue;
+            bool rerouted = state.Happened("PZ04.ScheduleUpdated");
+            Toggle(pz04RouteArrowDefault, state.chapter == "CH04" && !rerouted);
+            Toggle(pz04RouteArrowRerouted, state.chapter == "CH04" && rerouted);
+            Toggle(an05AnchorVisual, GateService.G04(state) && state.Happened("CH04-T06"));
             Toggle(namedMemory, state.PatientIdentityVerified("C02"));
             if (memoryMotion != null) memoryMotion.enabled = !state.settings.reduceMotion;
         }

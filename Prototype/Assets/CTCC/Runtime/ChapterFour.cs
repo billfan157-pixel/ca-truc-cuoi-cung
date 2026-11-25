@@ -30,7 +30,11 @@ namespace CTCC
                 next.Remember("CH04-T04");
                 if (!GateService.H05(next)) next.checkpoint = "CH04-CP03";
             }
-            return await transaction.CommitEvidenceAsync(next);
+            bool lockChanged = MorguePower(next.servicePower) != MorguePower(state.servicePower);
+            var result = await transaction.CommitEvidenceAsync(next);
+            if (result == CommitResult.Applied && lockChanged)
+                HospitalScene.Instance?.RefreshZoneNavMesh("LOC09");
+            return result;
         }
 
         internal static Task<CommitResult> Take(RealityTransaction transaction, string id, string location)
