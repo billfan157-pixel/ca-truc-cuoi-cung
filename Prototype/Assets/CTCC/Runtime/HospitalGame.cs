@@ -489,8 +489,8 @@ namespace CTCC
             // CH01-T11: Progressive gentle inactivity hints (60s / 120s / 180s, toggleable in Settings)
             UpdateProgressiveHints();
 
-            // Regional Patrol/Investigate/Chase/Search/Return AI & Orderly/Unrecorded sync (TASK011-A..E)
-            if (State.chapter is ("CH03" or "CH04"))
+            // Regional Patrol/Investigate/Chase/Search/Return AI & Orderly/Unrecorded sync (TASK011-A..E, TASK013-C)
+            if (State.chapter is ("CH03" or "CH04" or "CH05"))
             {
                 orderlyAi?.SyncState(State);
                 if (orderlyAi != null && (orderlyAi.IsActive || orderlyAi.UnrecordedActive))

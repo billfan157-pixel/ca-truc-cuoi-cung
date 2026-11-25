@@ -965,6 +965,16 @@ namespace CTCC
             yield return Until(() => !ui.IsModal, "closed AN05 direction note");
             verification.Add("INPUT CH03–04 PASS: W capsule on three flights, PZ03, C12, R/M, CH03 radio distraction, PZ04 Route A + Route B on live Orderly, duty papers, circuit controls, H05, dialogue guard, B1 autosave menu, and AN05 handoff.");
 
+            // Switch video recorder cleanly to a dedicated ch05-full folder when -ctcc-record is active!
+            string recordRoot = Argument("-ctcc-record");
+            if (!string.IsNullOrEmpty(recordRoot))
+            {
+                captureExpansion = false;
+                yield return null;
+                captureExpansion = true;
+                StartCoroutine(CaptureExpansionFrames(Path.Combine(recordRoot, "ch05-full")));
+            }
+
             // ==================== CH05 FULL PLAYER INPUT WALKTHROUGH (B01–B08, ZERO NORMAL-ROUTE TELEPORT!) ====================
             yield return WalkWithInput(new Vector3(4f, 4f, 37.0f));
             yield return WalkWithInput(new Vector3(4f, 4f, 33.0f));

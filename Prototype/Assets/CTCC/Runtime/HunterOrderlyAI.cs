@@ -269,7 +269,7 @@ namespace CTCC
                     nextFloorKey = "CH05-B1";
                 }
                 else if (GateService.G05(state) && !state.Happened(ChapterFive.EvHandoff) &&
-                    player.Feet.y > 6.2f && scene.HasZone("LOC05"))
+                    player.Feet.y > 6.2f && player.Feet.x > -4.2f && scene.HasZone("LOC05"))
                 {
                     nextRole = AIRole.Hunter;
                     nextFloorKey = "CH05-L3";
