@@ -1,6 +1,6 @@
 # Bản thử localization NPR-01
 
-Thiết kế cho một bản dữ liệu offline, phục vụ duyệt trước khi làm runtime. Master là vi-VN. Bản mock so sánh một bản gốc, một bản kéo dài giả lập và một bản thiếu khóa. Locale giả lập chỉ cho đo giao diện. [Core 06 dự thảo](core-draft/06_Technical_Design_Document_NPR-01-Draft.docx) và [kế hoạch kỹ thuật](technical-plan.md) có ranh giới tích hợp.
+Thiết kế cho một bản dữ liệu offline, phục vụ duyệt trước khi làm runtime. Master là vi-VN. Bản mock so sánh một bản gốc, một bản kéo dài giả lập và một bản thiếu khóa. Locale giả lập chỉ cho đo giao diện. [Core 06 dự thảo](../06_Technical_Design_Document.docx) và [kế hoạch kỹ thuật](technical-plan.md) có ranh giới tích hợp.
 
 ## Dữ liệu và xuất bản
 

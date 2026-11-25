@@ -1,20 +1,20 @@
 # Bộ Core dự thảo NPR-01
 
-**Trạng thái ngày 25/11/2026.** Chủ dự án đã duyệt hướng A/B và cho phép soạn bộ Core nâng cấp dự thảo. Câu thoại, phương án canon và phương án sản xuất tiếp tục theo từng điều kiện trong [Decision Register](decision-register.md). Bộ chính thức là Core v3.3.1 Final Clean tại GitHub `main` `3c0b955`. [Nguồn sở hữu](../agent/README.md#bảy-nguồn-sở-hữu) · [SHA-256](../SHA256SUMS.txt)
+**Trạng thái ngày 25/11/2026.** Chủ dự án đã duyệt hướng A/B và cho phép soạn bộ Core nâng cấp dự thảo. Câu thoại, phương án canon và phương án sản xuất tiếp tục theo từng điều kiện trong [Decision Register](decision-register.md). Bộ chính thức là [Core v3.3.1 Final Clean tại GitHub main `3c0b955`](https://github.com/billfan157-pixel/ca-truc-cuoi-cung/tree/3c0b955de95bcf39853c30e2669b2bac24ad969e/docs). [Nguồn sở hữu](../agent/README.md#bảy-nguồn-sở-hữu) · [SHA-256 của baseline](../SHA256SUMS.txt)
 
 ## Bộ Core nâng cấp
 
-Sáu bản Word gồm trang hướng dẫn NPR-01 và nội dung Core để đối chiếu. Các sửa trong thân tài liệu được ghi ở Changelog. Workbook giữ 27 sheet và có các dòng NPR-01 trong Decisions/Changelog. Mỗi bản nằm dưới `core-draft/` và có hậu tố `NPR-01-Draft`.
+Sáu bản Word gồm trang hướng dẫn NPR-01 và nội dung Core để đối chiếu. Các sửa trong thân tài liệu được ghi ở Changelog. Workbook giữ 27 sheet và có các dòng NPR-01 trong Decisions/Changelog. Bảy tệp nằm ngay tại đường dẫn chuẩn `docs/01…07` trên nhánh NPR-01. Mở qua README dự án hoặc `project_docs.py` sẽ dùng trực tiếp bộ Core trên nhánh này.
 
 | Core | Nội dung chính |
 | --- | --- |
-| [01 · Game Design](core-draft/01_Game_Design_Document_NPR-01-Draft.docx) | Quyền lựa chọn, phạm vi M2 và đếm task theo Backlog. |
-| [02 · Narrative Bible](core-draft/02_Narrative_Bible_NPR-01-Draft.docx) | Ba tầng thông tin, hai manifest, Vĩnh–Lan và câu thử PZ10. |
-| [03 · World Architecture](core-draft/03_World_Architecture_Bible_NPR-01-Draft.docx) | Đường lưu LOC08/10, phạm vi hồ sơ ứng cứu và topology. |
-| [04 · Level & Chapter](core-draft/04_Level_Chapter_Design_NPR-01-Draft.docx) | AN05, CH07/08, CH07-D19, R1/R3 và coda END03. |
-| [05 · Art & Audio](core-draft/05_Art_Audio_Bible_NPR-01-Draft.docx) | Khung duyệt visual, cinematic, audio và asset handoff. |
-| [06 · Technical Design](core-draft/06_Technical_Design_Document_NPR-01-Draft.docx) | Hợp đồng gameplay, locale, ngân sách và build provenance. |
-| [07 · Production Database](core-draft/07_Production_Database_NPR-01-Draft.xlsx) | Dialogue, PZ10, Ending và Provenance dự thảo. Dashboard có cache theo ngày, giữ công thức và các nguồn nghiệm thu. |
+| [01 · Game Design](../01_Game_Design_Document.docx) | Quyền lựa chọn, phạm vi M2 và đếm task theo Backlog. |
+| [02 · Narrative Bible](../02_Narrative_Bible.docx) | Ba tầng thông tin, hai manifest, Vĩnh–Lan và câu thử PZ10. |
+| [03 · World Architecture](../03_World_Architecture_Bible.docx) | Đường lưu LOC08/10, phạm vi hồ sơ ứng cứu và topology. |
+| [04 · Level & Chapter](../04_Level_Chapter_Design.docx) | AN05, CH07/08, CH07-D19, R1/R3 và coda END03. |
+| [05 · Art & Audio](../05_Art_Audio_Bible.docx) | Khung duyệt visual, cinematic, audio và asset handoff. |
+| [06 · Technical Design](../06_Technical_Design_Document.docx) | Hợp đồng gameplay, locale, ngân sách và build provenance. |
+| [07 · Production Database](../07_Production_Database.xlsx) | Dialogue, PZ10, Ending và Provenance dự thảo. Dashboard có cache theo ngày, giữ công thức và các nguồn nghiệm thu. |
 
 ## Tài liệu dùng khi review
 

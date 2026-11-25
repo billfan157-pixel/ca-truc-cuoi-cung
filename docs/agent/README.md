@@ -2,6 +2,8 @@
 
 [AGENTS.md](../../AGENTS.md) chọn skill theo đầu việc. **Core v3.3.1 Final Clean — Design Lock** là nguồn chính thức của dự án. Bản phát hành ngày 24/11/2026 có [ghi chú phát hành](../RELEASE-NOTES.md), [nhật ký thay đổi](../CHANGELOG.md), [kiểm toán canon](../CANON-AUDIT.md) và [mã SHA-256](../SHA256SUMS.txt). Dùng [walkthrough CH01 B01–B08](../ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) và `DEC-CH01R-04` cho thao tác, cue và phục hồi. Áp dụng `DEC-V331-01` cho LOC01 sau T09.
 
+Trên nhánh `codex/npr-01-core-docs`, các đường dẫn Core 01–07 bên dưới mở [bộ dự thảo NPR-01](../npr-01/README.md). Đối chiếu canon đã khóa, điều kiện nghiệm thu và bản băm phát hành trên [baseline GitHub `main` tại `3c0b955`](https://github.com/billfan157-pixel/ca-truc-cuoi-cung/tree/3c0b955de95bcf39853c30e2669b2bac24ad969e/docs).
+
 ## Điều phối công việc
 
 ```mermaid
@@ -98,7 +100,7 @@ python docs/agent/project_docs.py check
 python docs/agent/project_docs.py hashes
 ```
 
-`status` đọc Roadmap và chọn milestone đầu còn task MUST theo Backlog. Có thể tra milestone cụ thể. `check` kiểm file, cấu trúc sheet/ID và đồ thị phụ thuộc. Công thức Excel được hiển thị cùng giá trị lưu sẵn nếu có. Đối chiếu kết quả rà nguồn với `V331-DOC01`. So mã SHA-256 từ thư mục `docs/` với bản kê phát hành.
+`status` đọc Roadmap và chọn milestone đầu còn task MUST theo Backlog. Có thể tra milestone cụ thể. `check` kiểm file, cấu trúc sheet/ID và đồ thị phụ thuộc. Công thức Excel được hiển thị cùng giá trị lưu sẵn nếu có. Đối chiếu kết quả rà nguồn với `V331-DOC01`. So bản kê SHA-256 phát hành với tệp tại revision phát hành. `hashes` in mã của các tệp đang mở trên nhánh hiện tại.
 
 ## Bằng chứng bàn giao
 

@@ -4,7 +4,7 @@
 
 | Kiểm tra | Căn cứ và kết quả |
 | --- | --- |
-| Baseline | 10/10 tệp khớp `docs/SHA256SUMS.txt`. Bảy bản nâng cấp ở thư mục draft. Diff NPR-01 thuộc phạm vi `docs/npr-01/`. |
+| Baseline | 10/10 tệp từ commit `3c0b955` khớp bản kê phát hành. Trên NPR-01, bảy tệp tại `docs/01…07` có cùng nội dung byte với bản review `4f4eaf7`. Diff ngoài bảy tệp Office gồm hồ sơ review và liên kết hướng dẫn. |
 | Core 01–06 | So OOXML với baseline. Chỉ có trang hướng dẫn, numbering kỹ thuật và 11 vị trí văn bản đã khai báo. Giữ bảng, hình, section sau và quan hệ gốc. Word xuất 118 trang gồm 6 trang hướng dẫn mới, mỗi file tăng đúng một trang. Rà trang mới/trang đổi và so với bản nguồn. |
 | Core 07 và DAG | 27 sheet, 96 Backlog. 143 Dialogue, 28 CH01, 18 Evidence Specs, 27 Timeline. Giữ Roadmap, Backlog, Chapter gates, Events, Puzzle specs, QA, Narrative QA và Evidence Specs. Hai bảng Decisions, Changelog có 11 dòng NPR-01 đối ứng và bao phủ đúng đến dòng 75/59. |
 | Dashboard | Tất cả 38 công thức giữ nguyên và có cache sau khi tính. Dashboard hiển thị 96 task, 25 hoàn thành, 0 DEC/TQA đúng phạm vi, 143 dòng thoại. Excel kiểm tính lại bằng một task và một quyết định giả lập trong phiên đọc, kết quả tăng lên 97 và 1. Phiên kiểm đóng mà không lưu dữ liệu thử. |
@@ -15,7 +15,7 @@
 
 ## Cách kiểm lại
 
-1. Chạy `python docs/agent/project_docs.py check` ở root, băm các tệp theo `docs/SHA256SUMS.txt`. Kiểm `git diff 3c0b955..HEAD` theo phạm vi. Đối chiếu Word, workbook và QA với [Changelog](changelog.md).
+1. Chạy `python docs/agent/project_docs.py check` ở root để đọc trực tiếp Core dự thảo. Đối chiếu các tệp tại `3c0b955` với bản kê `docs/SHA256SUMS.txt` của lần phát hành. Kiểm `git diff 3c0b955..HEAD` theo phạm vi. Đối chiếu Word, workbook và QA với [Changelog](changelog.md).
 2. Mở workbook dự thảo bằng Excel hoặc trình xem hỗ trợ cache. Đọc Dashboard B9/B10/B12 và F13, Dialogue và PZ10 Matrix. So bảng Decisions/Changelog và đưa bất kỳ thử thay đổi formula input nào vào phiên không lưu.
 3. Dùng báo cáo M2/M3.2 theo revision. 9 scene trên GitHub main khác bản bake M2. Đây là chênh lệch provenance của candidate M2. Phase F ghi M3.2 có bake sạch riêng. Mỗi lượt benchmark giữ counter và tần số riêng.
 4. Chuyển góp ý sang [Decision Register](decision-register.md) cùng dòng cần xử lý, ca ở [QA impact](qa-impact.md) và [ma trận gameplay](gameplay-technical-impact-matrix.md). Các bước cần owner hoặc chuyên gia ghi dấu vết ở đó.

@@ -14,4 +14,4 @@ Mốc mở nhánh là `3c0b955`, Core v3.3.1 Final Clean. Gói sơ bộ ở `69f
 | NPR-01-09 | Ledger theo task/revision; thêm 11 dòng ở `Decisions`, 11 dòng ở `Changelog` trong workbook dự thảo. | Trạng thái và hợp đồng Roadmap, Backlog, QA, Narrative QA. |
 | NPR-01-10/11 | Kế hoạch locale, năng lực máy và tái lập build. Năm tài liệu preproduction theo cảnh, nguồn và QA. Core 05/06 trỏ đến hợp đồng bàn giao. | Cấu hình dự án, phạm vi M3.2 và điều kiện art/audio. |
 
-Các thay đổi chỉ nằm trong `docs/npr-01`. [Core chính thức](../agent/README.md#bảy-nguồn-sở-hữu) và [mã băm](../SHA256SUMS.txt) tiếp tục làm chuẩn. [Decision Register](decision-register.md) sở hữu danh sách chờ duyệt. [Kiểm toán chéo](cross-audit.md) có cách xác minh.
+Bảy bản Core dự thảo được đặt tại đường dẫn chuẩn `docs/01…07` trên nhánh NPR-01. Hồ sơ review nằm trong `docs/npr-01`. [Core chính thức](https://github.com/billfan157-pixel/ca-truc-cuoi-cung/tree/3c0b955de95bcf39853c30e2669b2bac24ad969e/docs) và [mã băm phát hành](../SHA256SUMS.txt) thuộc baseline. [Decision Register](decision-register.md) sở hữu danh sách chờ duyệt. [Kiểm toán chéo](cross-audit.md) có cách xác minh.

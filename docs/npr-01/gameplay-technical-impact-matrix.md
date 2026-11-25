@@ -17,7 +17,7 @@ Thay đổi hiện có nằm trong DOCX, XLSX và tài liệu bổ trợ. Cột 
 | Phạm vi | Hiện trạng | Điều kiện trước khi đưa thay đổi vào đây |
 | --- | --- | --- |
 | M2 `c459aba` | Ứng viên có định danh và artifact riêng. E10a, 28 dòng CH01, F101, route và các cổng nằm trong phạm vi kiểm hiện có. | Giữ ứng viên và đường nghiệm thu riêng. Bất kỳ build mới nào có runtime khác phải có ID, hash và QA riêng trước khi dùng cho TASK010. |
-| M3.2 `feat/m32-ai-ch03-ch04` | Worktree riêng tại `9a6378b`. Phase F ghi ứng viên `c90a2eb` đã kiểm kỹ thuật TASK011/012. CH04 có guard H05/PT02 và hai tuyến PZ04 đã chạy. | Chỉ cân nhắc nhịp CH04 sau khi owner chốt phạm vi. Test lại guard, streaming và route trên một build của nhánh được giao. |
+| M3.2 `feat/m32-ai-ch03-ch04` | Worktree riêng tại `ae211dc`. Phase F ghi ứng viên `c90a2eb` đã kiểm kỹ thuật TASK011/012. CH04 có guard H05/PT02 và hai tuyến PZ04 đã chạy. | Chỉ cân nhắc nhịp CH04 sau khi owner chốt phạm vi. Test lại guard, streaming và route trên một build của nhánh được giao. |
 | CH05–CH08 | Phạm vi tài liệu trong NPR-01. | Dùng quyền triển khai theo Roadmap, đủ quyết định/QA áp dụng. Giữ topology, ID, thời điểm reveal, G01–G08 và Save v7. |
 
 Các phần phụ thuộc chéo về narrative xem [ma trận narrative](narrative-impact-matrix.md). Cách kiểm mỗi ca xem [QA impact](qa-impact.md).

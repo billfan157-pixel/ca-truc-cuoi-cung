@@ -2,6 +2,8 @@
 
 Đối chiếu 25/11/2026 theo Core v3.3.1 Final Clean tại `3c0b955`. Chủ dự án đã duyệt hướng NPR-01. Những mục có câu thay thế hoặc diễn xuất mới trong bộ Core dự thảo tiếp tục chờ duyệt tại [Decision Register](decision-register.md).
 
+Liên kết trong bản đồ mở tài liệu NPR-01 tại đường dẫn chuẩn trên nhánh review. [Bộ Core đã khóa](https://github.com/billfan157-pixel/ca-truc-cuoi-cung/tree/3c0b955de95bcf39853c30e2669b2bac24ad969e/docs) là căn cứ để xác minh dữ kiện hiện hành.
+
 ## Bản đồ quyền sở hữu
 
 | Nguồn | Quyết định tại nguồn | Bề mặt đối chiếu |
