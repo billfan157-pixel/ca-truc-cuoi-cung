@@ -750,34 +750,46 @@ namespace CTCC
                 next.ConfirmPatientExistence("C02");
                 next.Remember("CH03-T03");
                 next.Remember("G03.opened");
-                next.checkpoint = "CH03-CP03";
+                next.checkpoint = "CH03-CP02";
             }
             return CommitResult.Applied;
         }
 
-        public CommitResult SolveCh03Pu02OptionalIdentity(Vector3 feet)
+        public CommitResult SolveCh03Pu02OptionalIdentity(Vector3 feet) =>
+            AttemptCh03Pu02OptionalIdentity("C02", feet);
+
+        public Task<CommitResult> SolveCh03Pu02OptionalIdentityAsync() =>
+            AttemptCh03Pu02OptionalIdentityAsync("C02");
+
+        public CommitResult AttemptCh03Pu02OptionalIdentity(string selectedCode, Vector3 feet)
         {
-            var result = PrepareCh03Pu02(out var next);
+            var result = PrepareCh03Pu02(selectedCode, out var next, out _);
             return next == null ? result : reality.Commit(next, feet);
         }
 
-        public Task<CommitResult> SolveCh03Pu02OptionalIdentityAsync()
+        public Task<CommitResult> AttemptCh03Pu02OptionalIdentityAsync(string selectedCode)
         {
-            var result = PrepareCh03Pu02(out var next);
+            var result = PrepareCh03Pu02(selectedCode, out var next, out _);
             return next == null ? Task.FromResult(result) : reality.CommitEvidenceAsync(next);
         }
 
-        private CommitResult PrepareCh03Pu02(out Investigation next)
+        private CommitResult PrepareCh03Pu02(string selectedCode, out Investigation next, out bool solved)
         {
             next = null;
+            solved = false;
             if (State.chapter is not ("CH03" or "CH04") || State.layer != Reality.R || !State.PatientConfirmed("C02") ||
                 !State.Has(EvidenceRegistry.C02DaughterLetter) || !State.Has(EvidenceRegistry.C02YarnBag) ||
                 !State.Has(EvidenceRegistry.C02CareNote))
                 return CommitResult.PadRequired;
             if (State.PatientIdentityVerified("C02")) return CommitResult.Applied;
             next = State.Copy();
-            PuzzleService.RecordAttempt(next, "CH03-PU02", true);
-            next.VerifyPatientIdentity("C02", "Bà Lành");
+            bool correct = string.Equals(selectedCode, "C02", StringComparison.OrdinalIgnoreCase);
+            PuzzleService.RecordAttempt(next, "CH03-PU02", correct);
+            if (correct)
+            {
+                solved = true;
+                next.VerifyPatientIdentity("C02", "Bà Lành");
+            }
             return CommitResult.Applied;
         }
 
@@ -798,17 +810,18 @@ namespace CTCC
             next = null;
             if (State.chapter != "CH03" || !GateService.G03(State)) return false;
             next = State.Copy();
+            string cp = State.Happened("CH03-T06") ? "CH03-CP03" : "CH03-CP02";
             if (State.layer == Reality.R)
             {
                 next.layer = Reality.M;
-                next.checkpoint = GateService.G03(State) ? "CH03-CP03" : "CH03-CP02";
+                next.checkpoint = cp;
                 next.Remember("CH03-T04");
                 InventoryService.RecordMemoryRef(next, BackpackCatalog.MemVignetteC02, "LOC07");
             }
             else if (State.layer == Reality.M)
             {
                 next.layer = Reality.R;
-                next.checkpoint = GateService.G03(State) ? "CH03-CP03" : "CH03-CP02";
+                next.checkpoint = cp;
             }
             else return false;
             return true;

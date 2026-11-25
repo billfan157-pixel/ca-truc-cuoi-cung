@@ -382,7 +382,7 @@ namespace CTCC
             if (State.chapter == "CH03" && GateService.G03(State) && !State.Happened("CH03-T06") &&
                 Mathf.Abs(feet.y - 8f) < .25f && feet.z > 34.3f)
             {
-                SaveCheckpoint(() => casework.RecordAsync("CH03-T06", feet));
+                SaveCheckpoint(() => casework.RecordAsync("CH03-T06", feet, "CH03-CP03"));
                 return;
             }
             if (State.chapter == "CH04" && !State.Happened("CH04-T02") &&

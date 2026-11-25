@@ -1173,25 +1173,40 @@ namespace CTCC
         }
 
         private const string RegisterRows =
-            "C01     101/4     Đã chuyển\n" +
-            "····     B/2         Phiếu giữ đồ K-02\n" +
-            "C03     C04     C05     C06     C07\n" +
-            "C08     C09     C10     C11\n" +
-            "C12     C/12       Dấu chìa, tên bị xé khỏi trang";
+            "C01     101/4     Đã chuyển  ·  Tranh hai cửa / vòng tay\n" +
+            "····     B/2         Phiếu giữ đồ K-02  ·  Tay áo len rộng hơn một mũi\n" +
+            "C03 (Radio) · C04 (Nhẫn bạc) · C05 (Dép buộc chỉ xanh)\n" +
+            "C06 (Vở gấp mép) · C07 (Đồng hồ nhanh 5p) · C08 (Cassette)\n" +
+            "C09 (Hạt rau) · C10 (Phong bì còn niêm) · C11 (Gương tròn)\n" +
+            "C12     C/12       [thiếu niên ~15–16t, góc tên bị xé] · Dấu chìa";
+
+        private const string RegisterNotes =
+            "SỔ RIÊNG CỦA LAN · KHU C (10–11/2005)\n" +
+            "Mười hai dòng mã chia ba nhóm đầu vào: nhóm tài trợ miễn phí, nhóm chuyển diện “điều trị sang chấn” và ba ca đặc biệt. " +
+            "C01–C11 có đồ cá nhân để đối chiếu; C12 thiếu góc ghi tên, chỉ còn dấu chìa cạnh mã.\n\n" +
+            "• C02 xin cứ để tay áo len rộng hơn một mũi cho cháu mặc qua mùa sau.\n" +
+            "• C05 đêm nào cũng xoay mũi dép buộc chỉ xanh ra cửa.\n" +
+            "• C10 nhờ nếu có người nhà thì trả lại phong bì thư còn niêm.\n" +
+            "• Ghi chú của Lan: nhiều ca bắt đầu quên tên người quen sau các lần truyền AS-05; " +
+            "các ca cưỡng chế dễ sốc hoặc rò rỉ ký ức khi cầm vật neo. Mỗi người khác nhau.\n\n" +
+            RegisterRows;
 
         private void Ch03ReadRegister()
         {
-            ui.Show("SỔ ĐĂNG KÝ E03", "Mục bàn giao đồ cá nhân", RegisterRows,
-                new[]
-                {
-                    new ActionChoice("Chép sổ vào nhật ký", () =>
-                        SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.PatientRegister, "LOC07"), () =>
-                        {
-                            CloseModal();
-                            voice?.Speak("CH03-D01", "Minh", Line("CH03-D01"));
-                        })),
-                    new ActionChoice("Đặt sổ xuống", CloseModal)
-                }, CloseModal);
+            bool saved = State.Has(EvidenceRegistry.PatientRegister);
+            var choices = new List<ActionChoice>();
+            if (!saved)
+            {
+                choices.Add(new ActionChoice("Chép sổ vào nhật ký", () =>
+                    SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.PatientRegister, "LOC07"), () =>
+                    {
+                        CloseModal();
+                        voice?.Speak("CH03-D01", "Minh", Line("CH03-D01"));
+                    })));
+            }
+            choices.Add(new ActionChoice(saved ? "Đóng sổ (đã lưu E03)" : "Đặt sổ xuống", CloseModal));
+            ui.Show("SỔ ĐĂNG KÝ E03 · SỔ RIÊNG CỦA LAN", "Mười hai mã bệnh nhân và đồ cá nhân", RegisterNotes,
+                choices.ToArray(), CloseModal);
         }
 
         private void Ch03ArchiveAnchor()
@@ -1204,28 +1219,38 @@ namespace CTCC
             copy.AppendLine(registered ? RegisterRows : "Sổ E03 đặt trên giá đọc trong kho tầng 3.");
             copy.AppendLine(hasNote ? "\nGhi chú · B/2. Giữ khăn len đan dở trong túi có thẻ K-02." : "\nTìm mảnh ghi chú kẹp sợi len ở bàn đọc.");
             copy.AppendLine(hasBag ? "Túi vải · Thẻ K-02 buộc vào quai. Trong túi còn khăn len đỏ." : "Kiểm tra túi vải ở kệ 2.");
-            if (PuzzleService.ShouldShowFieldHint(State, "CH03-PU01"))
-                copy.AppendLine("\nĐối chiếu cột phiếu giữ đồ với thẻ buộc vào quai túi, rồi đọc thứ tự mã quanh dòng bị cạo.");
+            if (solved)
+            {
+                copy.AppendLine(State.PatientIdentityVerified("C02")
+                    ? "\nTrạng thái C02: Đã xác nhận tồn tại & đã xác thực danh tính tùy chọn (Bà Lành)."
+                    : "\nTrạng thái C02: Đã xác nhận sự tồn tại — Cửa G03 đã mở. (Thư tùy chọn ở kệ trên có thể đối chiếu sau.)");
+            }
+            if (!solved && PuzzleService.ShouldShowFieldHint(State, "CH03-PU01"))
+                copy.AppendLine("\nGợi ý: Đối chiếu đồng thời ghi chú B/2 với thẻ K-02 buộc ở quai túi len đỏ, rồi đọc thứ tự mã bị cạo giữa C01 và C03.");
             var choices = new List<ActionChoice>();
             if (!solved && registered && hasNote && hasBag)
             {
-                foreach (string code in new[] { "C02", "C03", "C12" })
-                    choices.Add(new ActionChoice("Ghi nhận " + code, () =>
-                        SaveCheckpoint(() => casework.AttemptCh03Pu01Async(code, true, player.Feet), () =>
+                void Attempt(string code, bool paired) =>
+                    SaveCheckpoint(() => casework.AttemptCh03Pu01Async(code, paired, player.Feet), () =>
+                    {
+                        if (GateService.G03(State))
                         {
-                            if (GateService.G03(State))
-                            {
-                                voice?.Speak("CH03-D02", "Minh", Line("CH03-D02"));
-                                ui.Toast("ĐÃ GHI NHẬN C02", Line("CH03-D06"), 5f);
-                            }
-                            else ui.Caption("Mã và phiếu giữ đồ chưa khớp.", 4f, true);
-                            Ch03ArchiveAnchor();
-                        })));
+                            voice?.Speak("CH03-D02", "Minh", Line("CH03-D02"));
+                            ui.Toast("ĐÃ GHI NHẬN C02 · G03 MỞ", Line("CH03-D06"), 5.5f);
+                        }
+                        else ui.Caption("Mã/chi tiết chăm sóc chưa khớp.", 4f, true);
+                        Ch03ArchiveAnchor();
+                    });
+
+                choices.Add(new ActionChoice("Ghi nhận C02 · Khớp ghi chú B/2 & túi K-02", () => Attempt("C02", true)));
+                choices.Add(new ActionChoice("Chỉ chép mã C02 (chưa ghép thẻ K-02)", () => Attempt("C02", false)));
+                choices.Add(new ActionChoice("Ghi nhận C03 · Khớp ghi chú B/2 & túi K-02", () => Attempt("C03", true)));
+                choices.Add(new ActionChoice("Ghi nhận C12 · Khớp ghi chú B/2 & túi K-02", () => Attempt("C12", true)));
             }
             if (solved && State.chapter == "CH03")
                 choices.Add(new ActionChoice("Xem ký ức trên chiếc ghế", StartKnittingMemory));
             choices.Add(new ActionChoice("Đặt sổ xuống", CloseModal));
-            ui.Show("KHO HỒ SƠ · TẦNG 3", solved ? "Vị trí người bệnh C02 đã được ghi nhận" : "Đối chiếu một dòng bị xóa",
+            ui.Show("KHO HỒ SƠ · TẦNG 3 (PZ03)", solved ? "Vị trí người bệnh C02 đã được ghi nhận" : "Đối chiếu dòng bị xóa và thẻ giữ đồ",
                 copy.ToString(), choices.ToArray(), CloseModal);
         }
 
@@ -1235,11 +1260,16 @@ namespace CTCC
             TransitionAsync(() => casework.SwitchMemoryVignetteAn03Async(player.Feet), true, () =>
             {
                 bool named = State.PatientIdentityVerified("C02");
-                string caption = named ? Line("CH03-D03") : "[Tiếng kim đan. Chiếc khăn vẫn vắt trên ghế.]";
-                ui.Show("KÝ ỨC · KHO HỒ SƠ", named ? "Bà Lành" : "Chiếc ghế cạnh cửa sổ", caption,
+                string caption = named ? Line("CH03-D03") : "[Tiếng kim đan. Chiếc khăn len đỏ vẫn vắt trên ghế cạnh cửa sổ.]";
+                ui.Show("KÝ ỨC · KHO HỒ SƠ (LỚP M)", named ? "C02 — Bà Lành" : "Chiếc ghế cạnh cửa sổ",
+                    caption + "\n\n(Lớp ký ức không tạo vật chứng có thể mang ra khỏi hiện trường.)",
                     new[] { new ActionChoice("Trở về kho hồ sơ", EndKnittingMemory) }, EndKnittingMemory);
                 if (named) voice?.Speak("CH03-D03", "Bà Lành", caption, directionalPrefix: "[Tiếng kim đan]");
-                else scene.atmosphere?.From("curtainSlide", scene.Pad("AN03").position, .4f);
+                else
+                {
+                    scene.atmosphere?.From("curtainSlide", scene.Pad("AN03").position, .4f);
+                    if (Options.captions) ui.Caption("[Tiếng kim đan lách cách · cạnh ghế bên cửa sổ]", 3.8f);
+                }
             });
         }
 
@@ -1252,40 +1282,79 @@ namespace CTCC
 
         private void Ch03InspectKnittingBag()
         {
+            bool saved = State.Has(EvidenceRegistry.C02YarnBag);
+            var choices = new List<ActionChoice>();
+            if (!saved)
+                choices.Add(new ActionChoice("Ghi lại thẻ và vật trong túi", () =>
+                    SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.C02YarnBag, "LOC07"), CloseModal)));
+            choices.Add(new ActionChoice(saved ? "Đóng (đã ghi túi K-02)" : "Đặt lại", CloseModal));
             ui.Show("KỆ 2", "Túi vải đan dở",
-                "Trên quai túi có thẻ K-02. Trong túi còn đôi kim tre và một đoạn khăn len đỏ chưa đan xong.",
-                new[]
-                {
-                    new ActionChoice("Ghi lại thẻ và vật trong túi", () =>
-                        SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.C02YarnBag, "LOC07"), CloseModal)),
-                    new ActionChoice("Đặt lại", CloseModal)
-                }, CloseModal);
+                "Trên quai túi có thẻ K-02. Trong túi còn đôi kim tre và một đoạn khăn len đỏ chưa đan xong — tay áo len được đan nới rộng thêm một mũi.",
+                choices.ToArray(), CloseModal);
         }
+
         private void Ch03InspectOptionalIdentityLetter()
         {
-            ui.Show("HỒ SƠ BỔ SUNG  /  CH03-PU02 (TÙY CHỌN)", "Phong thư thăm bệnh ở ngăn trên",
-                "Phong thư gửi bệnh nhân giường số 2 đề tên: 'Bà Lành'.\n\n" +
-                "Xác thực danh tính này là tùy chọn (CH03-PU02), tách biệt với việc xác nhận sự tồn tại của C02.",
-                new[]
-                {
-                    new ActionChoice("Thu thập thư & Ghi nhận danh tính: Bà Lành", () =>
+            bool hasLetter = State.Has(EvidenceRegistry.C02DaughterLetter);
+            bool c02Confirmed = State.PatientConfirmed("C02");
+            bool c02Named = State.PatientIdentityVerified("C02");
+            var copy = new StringBuilder();
+            copy.AppendLine("Phong thư thăm bệnh kẹp ở ngăn trên, đề gửi bệnh nhân giường B/2 (người đan khăn len đỏ): “Bà Lành”.");
+            copy.AppendLine("\nXác thực danh tính là nhánh tùy chọn (CH03-PU02), tách biệt với điều kiện mở cửa G03 và có thể quay lại đối chiếu ở CH04.");
+            if (!c02Confirmed)
+                copy.AppendLine("\nCần đối chiếu dòng bị xóa trên sổ E03 tại bàn đọc (AN03) trước khi gắn tên vào mã bệnh nhân.");
+            else if (c02Named)
+                copy.AppendLine("\nĐã xác thực danh tính tùy chọn: C02 — Bà Lành.");
+            else if (PuzzleService.ShouldShowFieldHint(State, "CH03-PU02"))
+                copy.AppendLine("\nGợi ý: Phong thư đề giường B/2 và khăn len đỏ — đối chiếu với mã có phiếu giữ đồ K-02 trên sổ E03.");
+
+            var choices = new List<ActionChoice>();
+            if (!hasLetter)
+            {
+                choices.Add(new ActionChoice("Thu thập phong thư thăm bệnh", () =>
+                    SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.C02DaughterLetter, "LOC07"),
+                        Ch03InspectOptionalIdentityLetter)));
+            }
+            if (c02Confirmed && !c02Named)
+            {
+                void MatchOptional(string code) =>
+                    SaveCheckpoint(async () =>
                     {
-                        SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.C02DaughterLetter, "LOC07"), () =>
+                        if (!State.Has(EvidenceRegistry.C02DaughterLetter))
                         {
-                            if (Report(casework.SolveCh03Pu02OptionalIdentity(player.Feet)))
-                                ui.Toast("ĐÃ XÁC THỰC DANH TÍNH C02", "C02 — Bà Lành (Sự tồn tại và danh tính được lưu tách biệt).", 5f);
+                            var take = await casework.TakeCh03EvidenceAsync(EvidenceRegistry.C02DaughterLetter, "LOC07");
+                            if (take != CommitResult.Applied) return take;
+                        }
+                        return await casework.AttemptCh03Pu02OptionalIdentityAsync(code);
+                    }, () =>
+                    {
+                        if (State.PatientIdentityVerified("C02"))
+                        {
+                            ui.Toast("ĐÃ XÁC THỰC DANH TÍNH C02", "C02 — Bà Lành (Sự tồn tại và danh tính được lưu tách biệt).", 5f);
                             CloseModal();
-                        });
-                    }),
-                    new ActionChoice("Đóng", CloseModal)
-                }, CloseModal);
+                        }
+                        else
+                        {
+                            ui.Caption("Phong thư giường B/2 không khớp mã này (C12 luôn giữ khuyết danh).", 4.5f, true);
+                            Ch03InspectOptionalIdentityLetter();
+                        }
+                    });
+
+                choices.Add(new ActionChoice("Đối chiếu thư & Ghi nhận danh tính C02: Bà Lành", () => MatchOptional("C02")));
+                choices.Add(new ActionChoice("Gắn thư vào mã C03", () => MatchOptional("C03")));
+                choices.Add(new ActionChoice("Gắn thư vào mã C12", () => MatchOptional("C12")));
+            }
+            choices.Add(new ActionChoice("Đóng", CloseModal));
+            ui.Show("HỒ SƠ BỔ SUNG  /  CH03-PU02 (TÙY CHỌN)", "Phong thư thăm bệnh ở ngăn trên",
+                copy.ToString(), choices.ToArray(), CloseModal);
         }
 
         private void Ch03InspectAnonymousBoxC12()
         {
-            var choices = new List<ActionChoice>
+            var choices = new List<ActionChoice>();
+            if (!State.Has(EvidenceRegistry.C12UnnamedBox))
             {
-                new("Ghi nhận sự tồn tại C12 (Giữ nguyên khuyết danh)", () =>
+                choices.Add(new ActionChoice("Ghi nhận sự tồn tại C12 (Giữ nguyên khuyết danh)", () =>
                 {
                     SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.C12UnnamedBox, "LOC07"), () =>
                     {
@@ -1293,20 +1362,20 @@ namespace CTCC
                         CloseModal();
                         Ch03CheckG03Unlocked();
                     });
-                })
-            };
-            if (State.chapter == "CH03" && GateService.G03(State))
+                }));
+            }
+            if (State.chapter is ("CH03" or "CH04") && GateService.G03(State))
                 choices.Add(new ActionChoice("Đọc ghi chú của Lan trong E03", Ch03ReadC12Note));
             choices.Add(new ActionChoice("Đóng", CloseModal));
             ui.Show("NGĂN KỆ C12  /  HỒ SƠ VÔ DANH", "Hộp đồ cá nhân không tên",
-                "Hộp trống. Dưới đáy còn một vết gỉ hình chiếc chìa khóa. Không có thẻ tên hay giấy tờ tùy thân.\n\n" +
-                "Sổ E03, dòng C/12: hồ sơ thiếu góc ghi tên.",
+                "Hộp trống. Dưới đáy còn một vết gỉ hình chiếc chìa khóa có răng sứt. Không có thẻ tên hay giấy tờ tùy thân.\n\n" +
+                "Sổ E03, dòng C/12: thiếu niên gầy khoảng 15–16 tuổi, hồ sơ thiếu góc ghi tên, chỉ còn dấu chìa và bốn chữ ‘tôi giữ chìa’.",
                 choices.ToArray(), CloseModal);
         }
 
         private void Ch03ReadC12Note()
         {
-            if (State.chapter != "CH03" || State.layer != Reality.R || !GateService.G03(State)) return;
+            if (State.chapter is not ("CH03" or "CH04") || State.layer != Reality.R || !GateService.G03(State)) return;
             string line = LineAtBeat("CH03-D07", 1, "B05");
             voice?.RecordTranscriptOnly("CH03-D07", "Minh", line, "B05");
             ui.Show("SỔ RIÊNG CỦA LAN · E03", "Ghi chú cạnh mã C12",
@@ -1321,6 +1390,8 @@ namespace CTCC
             Vector3 radioPos = scene.Ch03RadioPoint != null ? scene.Ch03RadioPoint.position : new Vector3(-1.85f, 0.85f, 35.85f);
             scene.atmosphere?.From("paStatic", radioPos);
             orderlyAi?.TriggerDistraction(radioPos, HunterOrderlyAI.NoiseDistractionRadius);
+            if (Options.captions)
+                ui.Caption("[Tiếng băng cassette rè vang từ góc phòng họp tầng 3 — kéo sự chú ý dọc dãy kệ]", 4.5f);
             ui.Toast("ĐÃ BẬT ĐÀI CASSETTE · ĐÁNH LẠC HƯỚNG", "Tiếng băng rè trong phòng họp nhỏ vang sang dãy kệ tầng 3.", 5f);
         }
 

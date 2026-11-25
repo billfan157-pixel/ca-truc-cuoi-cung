@@ -1016,31 +1016,70 @@ namespace CTCC
             yield return WaitForApplied(casework.BeginCh03Async(player.Feet), "CH03 begins at ER");
             Require(Vector3.Distance(er.position, player.Feet) < .01f && State.chapter == "CH03", "Chapter handoff stays on grade");
             Apply(casework.TakeCh03Evidence(EvidenceRegistry.PatientRegister, "LOC07", an03.position), "Take E03");
+            // CH03-Q04 part 1: save/reload right after reading E03 (before PZ03) keeps E03 intact without duplicates or early G03!
+            int evCountAfterE03 = State.evidence.Count;
+            Require(transaction.Restore(SaveSlot.Auto, out _) == SaveRead.Valid &&
+                State.Has(EvidenceRegistry.PatientRegister) && State.evidence.Count == evCountAfterE03 &&
+                !GateService.G03(State), "CH03-Q04 E03 save/reload keeps G03 closed without duplicates");
+            Apply(casework.TakeCh03Evidence(EvidenceRegistry.PatientRegister, "LOC07", an03.position), "Idempotent re-read E03");
+            Require(State.evidence.Count == evCountAfterE03, "CH03-Q04 re-reading E03 never duplicates evidence");
+
+            // Missing care note/bag keeps PZ03 locked & G03 closed!
+            Require(casework.AttemptCh03Pu01("C02", true, an03.position) == CommitResult.PadRequired && !GateService.G03(State),
+                "CH03-Q01 PZ03 rejects before care note & knitting bag are collected");
+
             Apply(casework.TakeCh03Evidence(EvidenceRegistry.C02CareNote, "LOC07", an03.position), "Take care note");
             Apply(casework.TakeCh03Evidence(EvidenceRegistry.C02YarnBag, "LOC07", an03.position), "Take yarn bag");
+            Apply(casework.AttemptCh03Pu01("C02", false, an03.position), "PZ03 unpaired note/bag rejected");
+            Require(!GateService.G03(State), "CH03-Q01 unpaired C02 keeps G03 closed");
             Apply(casework.AttemptCh03Pu01("C03", true, an03.position), "PZ03 wrong code");
             Apply(casework.AttemptCh03Pu01("C12", true, an03.position), "PZ03 second wrong code");
             Require(PuzzleService.ShouldShowFieldHint(State, "CH03-PU01") && !GateService.G03(State),
-                "CH03-Q02 incorrect matching keeps G03 closed");
+                "CH03-Q02 incorrect matching keeps G03 closed and activates 2-strike hint");
             orderlyAi.SyncState(State);
             Require(!orderlyAi.IsActive, "CH03 B03/B04 keeps archive quiet before CH03-T06");
             Apply(casework.AttemptCh03Pu01("C02", true, an03.position), "PZ03 correct code");
-            Require(GateService.G03(State) && !State.PatientIdentityVerified("C02"), "CH03-Q01 gate opens on existence");
+            Require(GateService.G03(State) && State.checkpoint == "CH03-CP02" && !State.PatientIdentityVerified("C02"),
+                "CH03-Q01 gate opens on existence at CH03-CP02 without requiring optional name");
+            Require(!RegisterNotes.Contains("Bà Lành") && !RegisterRows.Contains("Bà Lành"),
+                "Design-lock errata: mandatory E03 reading stays code/trace-only without revealing Bà Lành");
             Apply(casework.TakeCh03Evidence(EvidenceRegistry.C12UnnamedBox, "LOC07", an03.position), "Read C12 row and box");
             Require(State.Happened("FS19") && State.PatientConfirmed("C12") &&
-                !State.Copy().VerifyPatientIdentity("C12", "Invalid sample"), "CH03-Q02 C12 stays anonymous");
+                !State.Copy().VerifyPatientIdentity("C12", "Invalid sample") &&
+                !string.IsNullOrEmpty(LineAtBeat("CH03-D07", 1, "B05")), "CH03-Q02 C12 stays anonymous and CH03-D07 unlocks");
             Apply(casework.TakeCh03Evidence(EvidenceRegistry.C02DaughterLetter, "LOC07", an03.position), "Read optional letter");
+            Apply(casework.AttemptCh03Pu02OptionalIdentity("C12", an03.position), "CH03-PU02 rejects naming C12");
+            Apply(casework.AttemptCh03Pu02OptionalIdentity("C03", an03.position), "CH03-PU02 rejects wrong code C03");
+            Require(!State.PatientIdentityVerified("C12") && !State.PatientIdentityVerified("C02") &&
+                PuzzleService.ShouldShowFieldHint(State, "CH03-PU02"),
+                "CH03-Q02 optional identity rejects C12/C03 without fabricating identity or closing G03");
             Apply(casework.SolveCh03Pu02OptionalIdentity(an03.position), "Verify optional C02 identity");
+            Require(State.PatientIdentityVerified("C02"), "CH03-PU02 optional identity verified cleanly");
 
             player.Teleport(an03);
+            int evCountBeforeM = State.evidence.Count;
             Apply(casework.SwitchMemoryVignetteAn03(an03.position), "Enter M");
-            Require(State.layer == Reality.M && !orderlyAi.IsActive, "CH03-Q04 safe memory");
+            Require(State.layer == Reality.M && !orderlyAi.IsActive && State.evidence.Count == evCountBeforeM &&
+                InventoryService.FindByDef(State, BackpackCatalog.MemVignetteC02)?.status == BackpackItemStatus.MemoryRef &&
+                InventoryService.ValidState(State), "CH03-Q04 safe memory never exports physical evidence");
             yield return CaptureHospitalFrame("ch03-memory", an03, 32f);
             Require(transaction.Restore(SaveSlot.Auto, out var restoredFromM) == SaveRead.Valid &&
-                State.layer == Reality.R && restoredFromM == an03 && State.Has(EvidenceRegistry.PatientRegister),
-                "CH03-Q04 restores at AN03 in R with E03");
+                State.layer == Reality.R && restoredFromM == an03 && State.Has(EvidenceRegistry.PatientRegister) &&
+                State.evidence.Count == evCountBeforeM && new HashSet<string>(State.evidence).Count == State.evidence.Count,
+                "CH03-Q04 restores at AN03 in R with E03 and zero duplicate or M-exported evidence");
+            if (scene.IsAdditiveMode)
+            {
+                yield return scene.UnloadZoneAsync(RegionStreamer.Upper);
+                yield return scene.LoadZoneAsync(RegionStreamer.Upper);
+                Require(State.evidence.Count == evCountBeforeM && new HashSet<string>(State.evidence).Count == State.evidence.Count,
+                    "CH03-Q04 unload/reload LOC05 never duplicates archive evidence");
+                an03 = scene.Pad("AN03");
+                ap06 = scene.Pad("AP06");
+                ap07 = scene.Pad("AP07");
+            }
             Require(!HunterOrderlyAI.IsInSafeZone(an03.position + Vector3.up * 4f, scene), "Safe zone is floor-aware");
             Apply(casework.Record("CH03-T06", an03.position, "CH03-CP03"), "Trigger CH03-T06 patrol beat");
+            Require(State.checkpoint == "CH03-CP03", "CH03-T06 advances checkpoint to CH03-CP03");
             yield return VerifyArchiveNavigation(an03);
             yield return CaptureHospitalFrame("ch03-archive", an03, 18f);
             yield return CaptureHospitalFrame("ch03-ward", ap06, 35f);
