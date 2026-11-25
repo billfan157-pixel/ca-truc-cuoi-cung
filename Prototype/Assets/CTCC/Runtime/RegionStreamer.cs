@@ -35,25 +35,6 @@ namespace CTCC
         {
             if (!scene.IsAdditiveMode) yield break;
 
-            // Background campus wing interiors stream smoothly by 3D XYZ proximity regardless of CH02 gate
-            // (strictly non-playable observable interiors behind glazing / rear sunken court visual depth).
-            bool hasWingsScene = scene.HasConfiguredRegionalScene(CampusWings);
-            if (hasWingsScene)
-            {
-                bool wingsNeeded = WingsProximityCourtyard.Contains(feet) ||
-                    WingsProximityEmergency.Contains(feet) ||
-                    feet.y > 3.0f || feet.y < -1.0f || feet.x < -2.0f || feet.x > 13.0f;
-                if (wingsNeeded)
-                {
-                    wingsLastNeeded = Time.unscaledTime;
-                    if (!scene.HasZone("CAMPUS_WINGS")) yield return scene.LoadZoneAsync(CampusWings);
-                }
-                else if (Time.unscaledTime - wingsLastNeeded > 60f && scene.HasZone("CAMPUS_WINGS"))
-                {
-                    yield return scene.UnloadZoneAsync(CampusWings);
-                }
-            }
-
             bool secondGate = GateService.G02(state);
             string checkpoint = SafeCheckpoints.Pad(state.checkpoint);
             bool upperPinned = checkpoint is "AP06" or "AN03" or "AP07";
@@ -77,15 +58,27 @@ namespace CTCC
                 upperLastNeeded = Time.unscaledTime;
                 if (!scene.HasZone("LOC05")) yield return scene.LoadZoneAsync(Upper);
             }
+            else if (Time.unscaledTime - upperLastNeeded > 20f && scene.HasZone("LOC05"))
+                yield return scene.UnloadZoneAsync(Upper);
             if (serviceNeeded)
             {
                 serviceLastNeeded = Time.unscaledTime;
                 if (!scene.HasZone("LOC09")) yield return scene.LoadZoneAsync(Service);
             }
-            if (!upperNeeded && Time.unscaledTime - upperLastNeeded > 20f && scene.HasZone("LOC05"))
-                yield return scene.UnloadZoneAsync(Upper);
             if (secondGate && !serviceNeeded && Time.unscaledTime - serviceLastNeeded > 20f && scene.HasZone("LOC09"))
                 yield return scene.UnloadZoneAsync(Service);
+
+            // Handle the walkable regions before yielding to optional visual streaming.
+            if (!scene.HasConfiguredRegionalScene(CampusWings)) yield break;
+            bool wingsNeeded = WingsProximityCourtyard.Contains(feet) || WingsProximityEmergency.Contains(feet) ||
+                feet.y > 3.0f || feet.y < -1.0f || feet.x < -2.0f || feet.x > 13.0f;
+            if (wingsNeeded)
+            {
+                wingsLastNeeded = Time.unscaledTime;
+                if (!scene.HasZone("CAMPUS_WINGS")) yield return scene.LoadZoneAsync(CampusWings);
+            }
+            else if (Time.unscaledTime - wingsLastNeeded > 60f && scene.HasZone("CAMPUS_WINGS"))
+                yield return scene.UnloadZoneAsync(CampusWings);
         }
 
         internal static bool IsS1DischargeMemory(Investigation state) => state.chapter == "CH05" && state.layer == Reality.M;

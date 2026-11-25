@@ -638,7 +638,9 @@ namespace CTCC
                 if (branch == FormStatus.Affirmed)
                 {
                     long sequence = State.sequence;
-                    using (var slotLock = new FileStream(saves.SlotPath(SaveSlot.Auto) + ".lock", FileMode.Open,
+                    string autosave = saves.SlotPath(SaveSlot.Auto);
+                    byte[] before = File.ReadAllBytes(autosave);
+                    using (var slotLock = new FileStream(autosave + ".lock", FileMode.Open,
                         FileAccess.ReadWrite, FileShare.None))
                     {
                         yield return Choose("Đóng dấu");
@@ -646,6 +648,8 @@ namespace CTCC
                         Require(State.sequence == sequence && State.f101.revision == 0 && !GateService.G01(State) &&
                             !ActivePageContains("ĐÃ GHI SỔ") && formPage == FormPage.Seal,
                             "failed publication leaves the preview available, without signing or stamping");
+                        Require(before.SequenceEqual(File.ReadAllBytes(autosave)) && !File.Exists(autosave + ".tmp"),
+                            "the competing slot owner leaves the previous autosave byte-for-byte intact");
                         CaptureInvestigation("f101-save-blocked");
                         yield return null;
                     }
@@ -655,6 +659,13 @@ namespace CTCC
                 yield return Until(() => !busy && GateService.G01(State), $"F101 {branch} confirmation");
                 Require(State.f101.firstDecision == branch && State.f101.revision == 1 &&
                     FormService.Distortion(State) == (branch == FormStatus.Affirmed ? 1 : 0), $"F101 {branch} state");
+                if (branch == FormStatus.Affirmed)
+                {
+                    Require(saves.Read(SaveSlot.Auto, out var recovered) == SaveRead.Valid && recovered.f101.revision == 1 &&
+                        recovered.f101.firstDecision == branch && !File.Exists(saves.SlotPath(SaveSlot.Auto) + ".tmp"),
+                        "retry after disposal durably publishes one F101 decision to the primary slot");
+                    verification.Add("F101 SLOT RETRY PASS: lock disposal allows one durable publication without leaving a temp snapshot.");
+                }
                 yield return Until(() => !busy && State.HasDreadEvent(AmbientDreadDirector.F101ReactionId(branch)),
                     $"F101 {branch} cue follows the signature");
                 if (branch == FormStatus.Unverified)
@@ -792,12 +803,20 @@ namespace CTCC
                 new(-2.65f, 4f, 34.35f), new(-14.7f, 8f, 34.35f), new(-14.7f, 8f, 36.8f),
                 new(-2.4f, 8f, 36.8f)
             };
-            foreach (var point in route) yield return WalkWithInput(point);
+            foreach (var point in route)
+            {
+                yield return WalkWithInput(point);
+                Require(scene.HasZone("LOC05"), $"LOC05 stays resident during the S1 ascent at {point}");
+            }
             Require(State.chapter == "CH02" && !GateService.G02(State) && !GateService.G03(State) &&
                 !State.Happened("CH03-T01") && !State.Has(EvidenceRegistry.PatientRegister) && !scene.HasZone("LOC09"),
                 "Walking into LOC07 does not start CH03 or load B1 before G02");
 
-            for (int i = route.Length - 2; i >= 0; i--) yield return WalkWithInput(route[i]);
+            for (int i = route.Length - 2; i >= 0; i--)
+            {
+                yield return WalkWithInput(route[i]);
+                Require(scene.HasZone("LOC05"), $"LOC05 stays resident during the S1 descent at {route[i]}");
+            }
             for (int i = receptionApproach.Length - 1; i >= 0; i--) yield return WalkWithInput(receptionApproach[i]);
             yield return WalkWithInput(reception);
             Require(State.chapter == "CH02" && !GateService.G02(State), "S1 returns to the CH02 reception route");

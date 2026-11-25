@@ -2099,6 +2099,19 @@ namespace CTCC
                     scene.TryRefreshNavigation(scene.Pad("AP02").position);
                 }
                 VerifyS1CourtyardDischarge(early);
+                yield return streamer.Reconcile(early, new Vector3(-5.4f, 1.23f, -4f));
+                Require(scene.HasZone("LOC05") && !s1.activeSelf, "S1 keeps LOC05 across the transition out of the approach volume");
+                yield return streamer.Reconcile(early, new Vector3(4f, 0f, -9f));
+                Require(scene.HasZone("LOC05") && !s1.activeSelf, "leaving the approach does not unload LOC05 within its hysteresis window");
+                var unloadUpper = StartCoroutine(scene.UnloadZoneAsync(RegionStreamer.Upper));
+                Require(s1.activeSelf && s3.activeSelf && !scene.RegionReady("LOC05", RegionStreamer.Upper),
+                    "S1 is sealed as soon as LOC05 starts unloading");
+                yield return unloadUpper;
+                Require(!scene.HasZone("LOC05") && s1.activeSelf, "S1 stays sealed after LOC05 unregisters");
+                yield return streamer.Reconcile(early, nearS1);
+                Require(scene.RegionReady("LOC05", RegionStreamer.Upper) && !s1.activeSelf && s3.activeSelf,
+                    "re-entering the approach reopens only S1 after LOC05 reloads");
+                verification.Add("V33-Q05 S1 streaming PASS: stair transition, hysteresis, seal-before-unload and reopen-after-reload.");
                 verification.Add("V33-Q05 S1 pre-G02 PASS: R route, B closure, load-before-open, S3/B1 closure and unchanged CH03 gates.");
             }
             finally

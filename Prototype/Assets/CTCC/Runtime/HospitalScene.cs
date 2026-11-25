@@ -136,6 +136,7 @@ namespace CTCC
 
         private readonly List<ZoneRegion> registeredZones = new();
         private readonly HashSet<string> loading = new(StringComparer.Ordinal);
+        private readonly HashSet<string> unloading = new(StringComparer.Ordinal);
         private readonly Dictionary<string, ZoneRegion> zonesById = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, Transform> padsById = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<ReflectionProbe> allProbes = new();
@@ -286,7 +287,7 @@ namespace CTCC
 
         public IEnumerator LoadZoneAsync(string sceneName)
         {
-            while (loading.Contains(sceneName)) yield return null;
+            while (loading.Contains(sceneName) || unloading.Contains(sceneName)) yield return null;
             var sc = SceneManager.GetSceneByName(sceneName);
             if (sc.IsValid() && sc.isLoaded) yield break;
             loading.Add(sceneName);
@@ -326,20 +327,32 @@ namespace CTCC
 
         public IEnumerator UnloadZoneAsync(string sceneName)
         {
-            while (loading.Contains(sceneName)) yield return null;
+            while (loading.Contains(sceneName) || unloading.Contains(sceneName)) yield return null;
             var sc = SceneManager.GetSceneByName(sceneName);
             if (!sc.IsValid() || !sc.isLoaded) yield break;
             var timer = System.Diagnostics.Stopwatch.StartNew();
-            var op = SceneManager.UnloadSceneAsync(sc);
-            while (op != null && !op.isDone) yield return null;
-            Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate,
-                lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched,
-                memoryS1Discharge: lastMemoryS1Discharge);
+            unloading.Add(sceneName);
+            try
+            {
+                // Seal the entrance while the destination scene's colliders still exist.
+                UpdateRegionalConnectors();
+                Physics.SyncTransforms();
+                var op = SceneManager.UnloadSceneAsync(sc);
+                while (op != null && !op.isDone) yield return null;
+            }
+            finally
+            {
+                unloading.Remove(sceneName);
+                Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate,
+                    lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched,
+                    memoryS1Discharge: lastMemoryS1Discharge);
+            }
             Debug.Log($"CTCC_REGION_UNLOAD scene={sceneName} loaded={LoadedZoneCount} ms={timer.Elapsed.TotalMilliseconds:F2}");
         }
 
         public bool HasZone(string zoneId) => !string.IsNullOrEmpty(zoneId) && zonesById.ContainsKey(zoneId);
-        internal bool RegionReady(string zoneId, string sceneName) => HasZone(zoneId) && !loading.Contains(sceneName);
+        internal bool RegionReady(string zoneId, string sceneName) =>
+            HasZone(zoneId) && !loading.Contains(sceneName) && !unloading.Contains(sceneName);
 
         /// <summary>
         /// Registers an additive ZoneRegion while enforcing strict M2 Handoff uniqueness
@@ -850,13 +863,7 @@ namespace CTCC
             lastServiceGate = serviceGate;
             lastB07GateLatched = b07GateLatched;
             lastMemoryS1Discharge = memoryS1Discharge;
-            foreach (var zone in registeredZones)
-            {
-                bool hasOpenS1 = zone.zoneId == "LOC02" && ((!layerB && !layerM) || memoryS1Discharge);
-                foreach (var connector in zone.upperConnectors)
-                    Toggle(connector, !(secondGate || hasOpenS1) || !HasZone("LOC05"));
-                Toggle(zone.serviceConnector, !serviceGate || !HasZone("LOC09"));
-            }
+            UpdateRegionalConnectors();
 
             if (!themeReady || showedReport != layerB || showedMemory != layerM)
             {
@@ -953,6 +960,19 @@ namespace CTCC
             s1DischargeDoor?.Set(presentDay || (layerM && memoryS1Discharge));
             Toggle(s1DischargeSalvage, presentDay);
             Physics.SyncTransforms();
+        }
+
+        private void UpdateRegionalConnectors()
+        {
+            bool upperAvailable = HasZone("LOC05") && !unloading.Contains(RegionStreamer.Upper);
+            bool serviceAvailable = HasZone("LOC09") && !unloading.Contains(RegionStreamer.Service);
+            foreach (var zone in registeredZones)
+            {
+                bool hasOpenS1 = zone.zoneId == "LOC02" && ((!lastLayerB && !lastLayerM) || lastMemoryS1Discharge);
+                foreach (var connector in zone.upperConnectors)
+                    Toggle(connector, !(lastSecondGate || hasOpenS1) || !upperAvailable);
+                Toggle(zone.serviceConnector, !lastServiceGate || !serviceAvailable);
+            }
         }
 
         internal void PresentF101(bool layerB, FormStatus committed)
