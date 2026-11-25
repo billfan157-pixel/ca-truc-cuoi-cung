@@ -16,9 +16,14 @@ namespace CTCC
         [Serializable] private sealed class DialogueEntry { public string id, chapter, speaker, context, copy; }
         [Serializable] private sealed class DialogueSheet
         {
+            public string sourceRevision;
+            public string sourceFile;
+            public string sourceSha256;
             public DialogueEntry[] entries;
             public DialogueCondition[] conditions;
         }
+        private string dialogueSourceRevision = "";
+        private string dialogueSourceSha256 = "";
         private readonly Dictionary<string, DialogueEntry> dialogue = new();
         private readonly Dictionary<string, DialogueCondition> revealConditions = new();
         private readonly Queue<string> staffReactions = new();
@@ -95,6 +100,8 @@ namespace CTCC
 
             var lineSheet = Resources.Load<TextAsset>("CTCC/Dialogue");
             var sheet = JsonUtility.FromJson<DialogueSheet>(lineSheet.text);
+            dialogueSourceRevision = sheet.sourceRevision ?? "";
+            dialogueSourceSha256 = sheet.sourceSha256 ?? "";
             foreach (var entry in sheet.entries)
                 dialogue.Add(entry.id, entry);
             AddDialogueAlias("CH01-D11", "CH01-D10", 2);
