@@ -1040,14 +1040,14 @@ namespace CTCC
             yield return Choose("Ghi nhận nghi vấn");
             yield return Until(() => !ui.IsModal, "closed LOC09 valve modal");
 
-            // Step into LOC10 morgue refuge (x < 4.45) and let CH05-B1 Hunter sweep south (z < 38.8) so both PZ07 & LOC11 are clear behind its back!
+            // Step into LOC10 morgue refuge (x < 4.45) and wait until Hunter walks north inside LOC11 (~5.4s window) to solve PZ07 safely!
             yield return WalkWithInput(new Vector3(6.0f, -3.4f, 39.0f));
             yield return WalkWithInput(new Vector3(3.6f, -3.4f, 39.0f));
             yield return Until(() => !orderlyAi.IsActive ||
                 (orderlyAi.CurrentState == OrderlyState.Patrol &&
-                 orderlyAi.ActiveActor.transform.position.x < 9.6f &&
-                 orderlyAi.ActiveActor.transform.position.z < 38.8f),
-                "CH05-B1 Hunter sweeps south LOC09 leaving blueprints and LOC11 open", 35f);
+                 orderlyAi.ActiveActor.transform.position.x > 11.4f &&
+                 orderlyAi.ActiveActor.transform.forward.z > 0.3f),
+                "CH05-B1 Hunter patrolling north inside LOC11 before PZ07", 35f);
             yield return WalkWithInput(new Vector3(6.0f, -3.4f, 39.0f));
             yield return WalkWithInput(new Vector3(6.0f, -3.4f, 43.3f));
             yield return WalkWithInput(new Vector3(7.4f, -3.4f, 43.3f));
@@ -1069,7 +1069,18 @@ namespace CTCC
             yield return Choose("Đóng");
             yield return Until(() => !ui.IsModal, "closed PZ07 overlay modal");
 
-            // Slip east through LOC11 north doorway into E05b perimeter gallery while Hunter is south in LOC09!
+            // Duck back into LOC10 refuge and wait for Hunter to turn SOUTH in LOC09 (forward.z < -0.5), giving 9s clear to enter E05b gallery!
+            yield return WalkWithInput(new Vector3(6.0f, -3.4f, 43.3f));
+            yield return WalkWithInput(new Vector3(6.0f, -3.4f, 39.0f));
+            yield return WalkWithInput(new Vector3(3.6f, -3.4f, 39.0f));
+            yield return Until(() => !orderlyAi.IsActive ||
+                (orderlyAi.CurrentState == OrderlyState.Patrol &&
+                 orderlyAi.ActiveActor.transform.position.x < 9.6f &&
+                 orderlyAi.ActiveActor.transform.position.z < 41.2f &&
+                 orderlyAi.ActiveActor.transform.forward.z < -0.5f),
+                "CH05-B1 Hunter turns south in LOC09 leaving LOC11 north passage clear", 35f);
+            yield return WalkWithInput(new Vector3(6.0f, -3.4f, 39.0f));
+            yield return WalkWithInput(new Vector3(6.5f, -3.4f, 42.2f));
             yield return WalkWithInput(new Vector3(10.5f, -3.4f, 42.2f));
             yield return WalkWithInput(new Vector3(12.5f, -3.4f, 42.2f));
             yield return WalkWithInput(new Vector3(12.5f, -3.4f, 50.4f));
