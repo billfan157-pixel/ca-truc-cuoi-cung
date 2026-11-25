@@ -106,6 +106,15 @@ namespace CTCC
         public GameObject pz04RouteArrowDefault;
         public GameObject pz04RouteArrowRerouted;
         public GameObject an05AnchorVisual;
+        public GameObject loc08GateBlocker;
+        public GameObject ch05HandoffMarker;
+        public GameObject ch03MemoryStage;
+        public GameObject ch05MemoryStage;
+        public GameObject ch05SmokeVisuals;
+        public Transform ch05EvacWheelchair;
+        public CharacterActor ch05ColleagueActor;
+        public CharacterActor ch05VinhActor;
+        public CharacterActor[] ch05PatientActors = Array.Empty<CharacterActor>();
         public Transform[] gatekeeperWaypoints = Array.Empty<Transform>();
         public Transform lanSilhouettePoint;
         public Transform lanDeskPoint;
@@ -179,6 +188,11 @@ namespace CTCC
             Toggle(pz04RouteArrowDefault, state.chapter == "CH04" && !rerouted);
             Toggle(pz04RouteArrowRerouted, state.chapter == "CH04" && rerouted);
             Toggle(an05AnchorVisual, GateService.G04(state) && state.Happened("CH04-T06"));
+            Toggle(loc08GateBlocker, !GateService.G05(state));
+            Toggle(ch05HandoffMarker, GateService.G05(state));
+            Toggle(ch03MemoryStage, state.chapter == "CH03" && state.layer == Reality.M);
+            Toggle(ch05MemoryStage, state.chapter == "CH05" && state.layer == Reality.M);
+            Toggle(ch05SmokeVisuals, state.chapter == "CH05" && state.layer == Reality.M && !state.settings.reduceMotion);
             Toggle(namedMemory, state.PatientIdentityVerified("C02"));
             if (memoryMotion != null) memoryMotion.enabled = !state.settings.reduceMotion;
         }

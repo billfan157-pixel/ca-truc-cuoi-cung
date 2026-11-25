@@ -294,6 +294,10 @@ namespace CTCC
         public const string Ch02List = "LIST";
         public const string Ch02Sockets = "SOCKETS";
         public const string Ch02Wheels = "WHEELS";
+        public const string Ch05PostedMap = "OBS_CH05_POSTED_MAP";
+        public const string Ch05AsBuiltBlueprint = "OBS_CH05_ASBUILT_E05";
+        public const string Ch05ValveSabotage = "OBS_LOC09_VALVE_SABOTAGE";
+        public const string Ch05SealedWall = "OBS_LOC11_E05B_WALL";
 
         private static readonly ObservationSpec[] OrderedSpecs =
         {
@@ -471,7 +475,7 @@ namespace CTCC
                 ObservationCategory.Fact,
                 new[] { Reality.R },
                 new[] { "LOC03" },
-                new[] { "CH02", "CH03", "CH04" },
+                new[] { "CH02", "CH03", "CH04", "CH05" },
                 selectableForF101: false),
             new(
                 Ch02Sockets, "SOCKETS", "Bốn cụm ổ cắm và đầu gọi y tá (Hiện thực R)",
@@ -481,7 +485,7 @@ namespace CTCC
                 ObservationCategory.Fact,
                 new[] { Reality.R },
                 new[] { "LOC03" },
-                new[] { "CH02", "CH03", "CH04" },
+                new[] { "CH02", "CH03", "CH04", "CH05" },
                 selectableForF101: false),
             new(
                 Ch02Wheels, "WHEELS", "Vết bánh đẩy ngang sàn tới tủ kho (Hiện thực R)",
@@ -491,8 +495,76 @@ namespace CTCC
                 ObservationCategory.Fact,
                 new[] { Reality.R },
                 new[] { "LOC03" },
-                new[] { "CH02", "CH03", "CH04" },
-                selectableForF101: false)
+                new[] { "CH02", "CH03", "CH04", "CH05" },
+                selectableForF101: false),
+            new(
+                Ch05PostedMap, "SD-2005", "Sơ đồ thoát hiểm niêm yết 2005 (Nguồn đối nghịch)",
+                "Bản sơ đồ niêm yết trên bảng trực năm 2005 vẫn vẽ một cửa thoát hiểm phía Đông mở từ Khu C ra hào kỹ thuật ngoài trời.",
+                "Tài liệu đối nghịch: cần chồng lên bản hoàn công cải tạo tháng 06/2004 (E05) theo hai mốc cầu thang S2 và trục cột để kiểm mâu thuẫn.",
+                "Lớp R · Tủ bản vẽ khu kỹ thuật B1 (LOC09)",
+                ObservationCategory.Claim,
+                new[] { Reality.R },
+                new[] { "LOC09" },
+                new[] { "CH05" },
+                selectableForF101: false,
+                isDocument: true,
+                hasBackSide: false,
+                frontTexture: "Doc_Ch05_PostedMap2005",
+                detailLabels: new[]
+                {
+                    "Vẽ mũi tên thoát hiểm xuyên tường Đông tại trục tọa độ (34.5, 42).",
+                    "Đóng dấu lưu hành bảng trực Khu C năm 2005 nhưng không phản ánh cải tạo 06/2004."
+                }),
+            new(
+                Ch05AsBuiltBlueprint, "E05", "Bản vẽ hoàn công cải tạo B1 · 06/2004 (E05)",
+                "Bản hoàn công tháng 06/2004 có chữ ký phê duyệt của Giám đốc Phạm Đức Vĩnh: xây gạch đặc 220 mm, trát vữa hai mặt bít vĩnh viễn cửa thoát hiểm phía Đông (34.5, 42) và tháo bỏ tay nắm, khung cửa theo yêu cầu cô lập của đơn vị tài trợ Chương trình B1.",
+                "Chỉ riêng bản vẽ chưa đủ kết luận tình trạng hiện trường năm 2012 — cần quan sát thực địa bức tường ngoài tại LOC11 (E05b).",
+                "Lớp R · Tủ bản vẽ khu kỹ thuật B1 (LOC09)",
+                ObservationCategory.Fact,
+                new[] { Reality.R },
+                new[] { "LOC09" },
+                new[] { "CH05" },
+                selectableForF101: false,
+                isDocument: true,
+                hasBackSide: false,
+                frontTexture: "Doc_Ch05_AsBuilt2004_E05",
+                detailLabels: new[]
+                {
+                    "Ghi chú thi công: tường gạch đặc 220 mm trát kín hai mặt tại lối thoát Đông (34.5, 42).",
+                    "Phê duyệt: Giám đốc Phạm Đức Vĩnh · Tháng 06/2004 · Yêu cầu cô lập Chương trình B1."
+                }),
+            new(
+                Ch05ValveSabotage, "LOC09-VALVE", "Van bồn chứa dung môi AS-05 & tấm chắn gió (Tùy chọn)",
+                "Ổ khóa đồng thau rỉ sẫm trên van xả bồn dung môi kỹ thuật mang vết cắt/cạy cơ học đã cũ ám muội; ngay phía trên, một chốt thép rỉ chèn mở tấm chắn gió hướng sang Khu C.",
+                "Gợi nghi vấn có cơ sở về nguyên nhân vụ cháy khi đối chiếu với mùi dung môi lạ ghi trong sổ ca đêm E09 — nhưng tự thân dấu vết không đủ kết luận thủ phạm, nguồn phát lửa hay thời điểm can thiệp.",
+                "Lớp R · Khoang kỹ thuật B1 (LOC09)",
+                ObservationCategory.Context,
+                new[] { Reality.R },
+                new[] { "LOC09" },
+                new[] { "CH05" },
+                selectableForF101: false,
+                isDocument: false,
+                detailLabels: new[]
+                {
+                    "Vết cắt cơ học ám muội lâu năm trên ổ khóa van bồn dung môi.",
+                    "Tấm chắn gió bị chèn mở về phía thông gió Khu C."
+                }),
+            new(
+                Ch05SealedWall, "E05b", "Mảng tường gạch xây bít cửa Đông 2004 (E05b)",
+                "Quan sát thực địa tại hố quan sát phía Đông (LOC11): khối gạch đặc 220 mm và lớp vữa xi măng năm 2004 bít kín hoàn toàn ô cửa cũ, không còn khung hay tay nắm, bậc cấp bê tông nứt vỡ dẫn cụt vào tường.",
+                "Xác nhận trực tiếp tại hiện trường R rằng lối thoát phía Đông ghi trên sơ đồ 2005 đã bị bít vĩnh viễn từ trước vụ cháy.",
+                "Lớp R · Hào quan sát phía Đông B1 (LOC11)",
+                ObservationCategory.Fact,
+                new[] { Reality.R },
+                new[] { "LOC11" },
+                new[] { "CH05" },
+                selectableForF101: false,
+                isDocument: false,
+                detailLabels: new[]
+                {
+                    "Gạch đặc xây bít khít ô cửa cũ tại mốc x = 34.5, z = 42.",
+                    "Không có lối mở hay khe bí mật xuyên tường vào Khu C."
+                })
         };
 
         private static readonly Dictionary<string, ObservationSpec> ById;

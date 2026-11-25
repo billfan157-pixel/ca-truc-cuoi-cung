@@ -153,7 +153,7 @@ namespace CTCC
         private bool lastLayerB, lastLayerM;
         private int lastForm;
         private bool lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate, lastThirdGate;
-        private bool lastServiceGate, lastB07GateLatched, lastMemoryS1Discharge;
+        private bool lastServiceGate, lastFifthGate, lastB07GateLatched, lastMemoryS1Discharge;
         private bool seamClosed, spareTaken;
         private Investigation lastCaseworkState;
         public event Action<ZoneRegion> ZoneUnregistering;
@@ -222,7 +222,9 @@ namespace CTCC
         {
             lastCaseworkState = state;
             bool prevService = lastServiceGate;
-            lastServiceGate = state.chapter == "CH04";
+            bool prevFifth = lastFifthGate;
+            lastServiceGate = state.chapter is ("CH04" or "CH05");
+            lastFifthGate = GateService.G05(state);
             foreach (var region in registeredZones)
             {
                 Toggle(region.serviceConnector, !lastServiceGate || !HasZone("LOC09"));
@@ -230,7 +232,9 @@ namespace CTCC
             }
             if (prevService != lastServiceGate && HasZone("LOC04"))
                 RefreshZoneNavMesh("LOC04");
-            else if (registeredZones.Count > 0)
+            if (prevFifth != lastFifthGate && HasZone("LOC05"))
+                RefreshZoneNavMesh("LOC05");
+            if (prevService == lastServiceGate && prevFifth == lastFifthGate && registeredZones.Count > 0)
                 SyncPortalNavMeshLinks();
         }
 
@@ -983,10 +987,18 @@ namespace CTCC
 
                 if (Application.isPlaying) reflectionVersion++;
                 if (motion != null) motion.reportLayer = layerB;
-                if (atmosphere != null) atmosphere.ReportLayer = layerB;
+                if (atmosphere != null)
+                {
+                    atmosphere.ReportLayer = layerB;
+                    atmosphere.MemoryEvacuationLayer = layerM && memoryS1Discharge;
+                }
                 showedReport = layerB;
                 showedMemory = layerM;
                 themeReady = true;
+            }
+            else if (atmosphere != null)
+            {
+                atmosphere.MemoryEvacuationLayer = layerM && memoryS1Discharge;
             }
 
             // The denied bay has colliders and must be staged for the navigation preflight.

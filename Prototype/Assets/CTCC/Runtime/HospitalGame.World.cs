@@ -332,7 +332,7 @@ namespace CTCC
 
         private bool IsDepartureDeferred() =>
             State.layer == Reality.R && State.Happened("CH01-T09") &&
-            State.chapter is ("CH01" or "CH02" or "CH03" or "CH04");
+            State.chapter is ("CH01" or "CH02" or "CH03" or "CH04" or "CH05");
 
         private void RespondToDeparture()
         {

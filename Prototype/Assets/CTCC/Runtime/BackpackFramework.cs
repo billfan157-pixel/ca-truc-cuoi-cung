@@ -195,7 +195,11 @@ namespace CTCC
         public const string Ch04Tape = "CH04_TAPE";
         public const string Ch04Morgue = "CH04_MORGUE";
         public const string Ch04LanRecovery = "CH04_LAN_RECOVERY";
+        public const string Ch05PostedMap = "CH05_POSTED_MAP";
+        public const string Ch05AsBuiltE05 = "CH05_ASBUILT_E05";
+        public const string Ch05SealedWallE05b = "CH05_SEALED_E05B";
         public const string MemVignetteC02 = "MEM_VIGNETTE_C02";
+        public const string MemEvacKhuB = "MEM_EVAC_KHUB";
         public const string MemE08Trace = "MEM_E08_TRACE";
 
         private static readonly BackpackItemDef[] Ordered =
@@ -498,10 +502,56 @@ namespace CTCC
                 canPlace: false,
                 linkedEvidenceId: EvidenceRegistry.LanRecovery),
             new(
+                Ch05PostedMap,
+                "Sơ đồ thoát hiểm niêm yết 2005 (Đối nghịch)",
+                "Sơ đồ 2005",
+                "Bản sơ đồ niêm yết trên bảng trực năm 2005 vẽ cửa thoát hiểm phía Đông Khu C mở ra hào ngoài. Nguồn đối nghịch dùng để chồng đối chiếu với bản hoàn công 2004.",
+                "Tài liệu đối chiếu · Lớp R · LOC09",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: false,
+                canPlace: false,
+                linkedObservationId: ObservationRegistry.Ch05PostedMap,
+                frontTexture: "Doc_Ch05_PostedMap2005"),
+            new(
+                Ch05AsBuiltE05,
+                "Bản vẽ hoàn công cải tạo B1 · 06/2004 (E05)",
+                "Bản hoàn công E05",
+                "Bản vẽ hoàn công cải tạo bán hầm kỹ thuật B1 tháng 06/2004 do Giám đốc Phạm Đức Vĩnh phê duyệt: xây gạch đặc 220 mm bít vĩnh viễn cửa thoát hiểm phía Đông tại tọa độ (34.5, 42) theo yêu cầu cô lập của đơn vị tài trợ.",
+                "Vật chứng lớp R · LOC09 · 06/2004",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: false,
+                canPlace: false,
+                linkedEvidenceId: EvidenceRegistry.AsBuilt2004,
+                frontTexture: "Doc_Ch05_AsBuilt2004_E05"),
+            new(
+                Ch05SealedWallE05b,
+                "Ghi nhận hiện trường cửa bít 2004 (E05b)",
+                "Hiện trường E05b",
+                "Quan sát trực tiếp ngoài hố kỹ thuật phía Đông (LOC11): mảng gạch xây bít 220 mm, lớp vữa trát kín hai mặt năm 2004 và khung cửa đã tháo bỏ. Lối thoát phía Đông không thể mở từ bên trong.",
+                "Vật chứng lớp R · LOC11 · 2012",
+                ItemKind.PersistentPhysical,
+                BackpackCompartment.Papers,
+                canEquip: false,
+                canPlace: false,
+                linkedEvidenceId: EvidenceRegistry.SealedWallPhoto,
+                frontTexture: "Doc_Ch05_AsBuilt2004_E05"),
+            new(
                 MemVignetteC02,
                 "Ký ức kho hồ sơ · C02 (Lớp M)",
                 "Ký ức C02 (M)",
                 "Ghi nhớ phi vật chất từ lát cắt ký ức lớp M tại AN03. Tuyệt đối không phải vật chứng có thể xuất bản.",
+                "Ký ức lớp M · Không thể xuất chứng cứ",
+                ItemKind.MemoryOnly,
+                BackpackCompartment.Papers,
+                canEquip: false,
+                canPlace: false),
+            new(
+                MemEvacKhuB,
+                "Ký ức sơ tán Khu B · AN05 (Lớp M)",
+                "Ký ức Khu B (M)",
+                "Ghi nhớ phi vật chất từ ca sơ tán đêm 18/11/2005 tại Khu B (6 bệnh nhân được đưa ra sân qua cầu thang S1). Không phải vật chứng xuất và không thay đổi lịch sử.",
                 "Ký ức lớp M · Không thể xuất chứng cứ",
                 ItemKind.MemoryOnly,
                 BackpackCompartment.Papers,
@@ -965,12 +1015,17 @@ namespace CTCC
                     if (ev == "E10a" || ev == "E12") continue;
                     string loc = ev.StartsWith("E11", StringComparison.Ordinal) ? "LOC03"
                         : ev.StartsWith("E03", StringComparison.Ordinal) || ev == "FS19" ? "LOC07"
-                        : ev is "E04" or "E07" ? "LOC10" : "LOC06";
+                        : ev is "E04" or "E07" ? "LOC10"
+                        : ev == EvidenceRegistry.AsBuilt2004 ? "LOC09"
+                        : ev == EvidenceRegistry.SealedWallPhoto ? "LOC11"
+                        : "LOC06";
                     SyncFromEvidence(state, ev, loc);
                 }
             }
             if (state.Happened("CH03-T04"))
                 RecordMemoryRef(state, BackpackCatalog.MemVignetteC02, "LOC07");
+            if (state.Happened("CH05-T05"))
+                RecordMemoryRef(state, BackpackCatalog.MemEvacKhuB, "LOC05");
             if (state.layer != Reality.B)
                 ReconcileLayerBoundToMemory(state);
             PruneQuickSlots(state);
@@ -1162,6 +1217,18 @@ namespace CTCC
                     if (!GateService.G02(state))
                         return "Kho giường phía sau tủ sắt đã lộ ra. Có thể đặt các mảnh tranh lên bàn Phòng 101 hoặc mở ba lô để ghép và đối chiếu hồ sơ.";
                     return "Cửa khu Cấp cứu đã mở. Tới sổ giao ca Cấp cứu.";
+                }
+                if (state.chapter == "CH05")
+                {
+                    if (!state.Happened("CH05-T05"))
+                        return "Xe bệnh nhân tại Khu B gợi lại đêm sơ tán 18/11/2005 — sáu người ở Khu B được đưa ra sân qua cầu thang S1.";
+                    if (!state.Happened("PZ07.Aligned"))
+                        return "Cần xuống khu kỹ thuật B1 (LOC09) kiểm tra tủ bản vẽ, đối chiếu sơ đồ niêm yết 2005 với bản hoàn công tháng 06/2004 (E05).";
+                    if (!state.Has(EvidenceRegistry.SealedWallPhoto))
+                        return "Hai bản vẽ mâu thuẫn tại cửa thoát hiểm phía Đông (34.5, 42). Cần ra hành lang ngoài LOC11 kiểm chứng trực tiếp bức tường năm 2012 (E05b).";
+                    if (!GateService.G05(state))
+                        return "Đã có đủ bản hoàn công 2004 (E05) và dấu xây bít thực địa (E05b). Xác minh H03 để mở lối tới Phòng Hành chính (LOC08).";
+                    return "Cửa Phòng Hành chính (LOC08 · G05) trên tầng 3 đã mở. Tiến tới điểm kiểm tra báo cáo.";
                 }
                 return "Theo dõi các ghi chép thực tế đã kiểm chứng trong sổ hồ sơ.";
             }

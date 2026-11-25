@@ -88,7 +88,7 @@ namespace CTCC
                 {
                     switch (SafeCheckpoints.Pad(preview.checkpoint))
                     {
-                        case "AP06": case "AN03": case "AP07":
+                        case "AP06": case "AN03": case "AP07": case "AP10": case "AP11":
                             yield return scene.LoadZoneAsync(RegionStreamer.Upper);
                             break;
                         case "AP08": case "AP09":
@@ -140,6 +140,7 @@ namespace CTCC
                 "CH01" => "NGƯỜI TRỞ VỀ",
                 "CH03" => "NHỮNG CÁI TÊN BỊ XÓA",
                 "CH04" => "NGƯỜI DẪN ĐƯỜNG",
+                "CH05" => "ĐÊM SƠ TÁN",
                 _ => "PHÒNG BỆNH TRỐNG"
             };
             ui.Show(chapterTitle, "Tạm dừng",
@@ -1364,7 +1365,7 @@ namespace CTCC
                     });
                 }));
             }
-            if (State.chapter is ("CH03" or "CH04") && GateService.G03(State))
+            if (State.chapter is ("CH03" or "CH04" or "CH05") && GateService.G03(State))
                 choices.Add(new ActionChoice("Đọc ghi chú của Lan trong E03", Ch03ReadC12Note));
             choices.Add(new ActionChoice("Đóng", CloseModal));
             ui.Show("NGĂN KỆ C12  /  HỒ SƠ VÔ DANH", "Hộp đồ cá nhân không tên",
@@ -1375,7 +1376,7 @@ namespace CTCC
 
         private void Ch03ReadC12Note()
         {
-            if (State.chapter is not ("CH03" or "CH04") || State.layer != Reality.R || !GateService.G03(State)) return;
+            if (State.chapter is not ("CH03" or "CH04" or "CH05") || State.layer != Reality.R || !GateService.G03(State)) return;
             string line = LineAtBeat("CH03-D07", 1, "B05");
             voice?.RecordTranscriptOnly("CH03-D07", "Minh", line, "B05");
             ui.Show("SỔ RIÊNG CỦA LAN · E03", "Ghi chú cạnh mã C12",

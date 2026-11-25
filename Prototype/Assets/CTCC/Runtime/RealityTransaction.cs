@@ -173,8 +173,12 @@ namespace CTCC
             SaveRead result = saves.Read(slot, out var proposed);
             if (proposed == null)
                 return result;
-            // Core 04 / CH03-Q01: Reloading a save taken during a memory vignette (M) restores safely at the anchor pad in R.
-            if (proposed.layer == Reality.M)
+            // Core 04 / CH03-Q01: Reloading a save taken during a CH03 memory vignette (M) restores safely at the anchor pad in R.
+            // Core 04 / CH05-Q02: Reloading a mid-evacuation CH05 save taken between pairs preserves Layer M at AP10
+            // until CH05-T05 finishes or the player explicitly exits M back to R.
+            bool keepCh05MemorySegment = proposed.chapter == "CH05" && proposed.layer == Reality.M &&
+                proposed.Happened("CH05-T01") && !proposed.Happened("CH05-T05");
+            if (proposed.layer == Reality.M && !keepCh05MemorySegment)
                 proposed.layer = Reality.R;
             if (!scene.TryPad(SafeCheckpoints.Pad(proposed.checkpoint), out var checkpoint))
                 return SaveRead.Damaged;
@@ -249,7 +253,7 @@ namespace CTCC
             scene.Present(snapshot.layer == Reality.B, (int)snapshot.f101.current,
                 snapshot.Happened("CH01-T02"), snapshot.Happened("CH01-T05"),
                 snapshot.Has("E12"), GateService.G02(snapshot),
-                snapshot.layer == Reality.M, GateService.G03(snapshot), snapshot.chapter == "CH04", deferF101Visuals,
+                snapshot.layer == Reality.M, GateService.G03(snapshot), snapshot.chapter is ("CH04" or "CH05"), deferF101Visuals,
                 effectiveRoomPose, b07GateLatched, memoryS1Discharge: RegionStreamer.IsS1DischargeMemory(snapshot));
             if (restoreProps && scene.interactables != null)
             {
