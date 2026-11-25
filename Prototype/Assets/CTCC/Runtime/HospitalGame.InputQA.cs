@@ -1039,6 +1039,10 @@ namespace CTCC
             yield return WalkWithInput(new Vector3(7f, 0f, 21.17f));
             yield return Until(() => scene.RegionReady("LOC09", RegionStreamer.Service), "LOC09 preloaded before S2 descent");
             yield return WalkWithInput(new Vector3(7f, -3.4f, 32.4f));
+            // Wait safely on AP08 safe pad until CH05-B1 Hunter is behind LOC11 wall before inspecting LOC09 valve & blueprints
+            yield return Until(() => orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Hunter &&
+                orderlyAi.ActiveActor != null && orderlyAi.ActiveActor.transform.position.x > 10.6f,
+                "CH05-B1 Hunter occluded in LOC11 while waiting on AP08", 25f);
             yield return WalkWithInput(new Vector3(6.0f, -3.4f, 35.6f));
             yield return AimAndUseHere("LOC09_VALVE");
             yield return Until(() => !busy && ui.IsModal && State.Happened(ChapterFive.FlagValveSabotage), "CH05 optional valve observed");
@@ -1064,9 +1068,17 @@ namespace CTCC
             yield return Choose("Đóng");
             yield return Until(() => !ui.IsModal, "closed PZ07 overlay modal");
 
-            // Walk LOC09 -> LOC11 -> North door -> Perimeter gallery -> East sunken pit -> E05b -> Verify H03 & Open G05!
-            yield return WalkWithInput(new Vector3(9.6f, -3.4f, 42.0f));
-            yield return WalkWithInput(new Vector3(12.5f, -3.4f, 42.0f));
+            // Use LOC10 morgue doorway refuge (x < 4.45) to let CH05-B1 Hunter sweep south (z < 39.2), then slip behind into LOC11 -> E05b gallery!
+            yield return WalkWithInput(new Vector3(6.0f, -3.4f, 39.0f));
+            yield return WalkWithInput(new Vector3(3.6f, -3.4f, 39.0f));
+            yield return Until(() => !orderlyAi.IsActive ||
+                (orderlyAi.CurrentState == OrderlyState.Patrol &&
+                 orderlyAi.ActiveActor.transform.position.x < 9.6f &&
+                 orderlyAi.ActiveActor.transform.position.z < 39.2f),
+                "CH05-B1 Hunter sweeps south LOC09 leaving LOC11 north passage open", 30f);
+            yield return WalkWithInput(new Vector3(6.5f, -3.4f, 42.2f));
+            yield return WalkWithInput(new Vector3(10.5f, -3.4f, 42.2f));
+            yield return WalkWithInput(new Vector3(12.5f, -3.4f, 42.2f));
             yield return WalkWithInput(new Vector3(12.5f, -3.4f, 50.4f));
             yield return WalkWithInput(new Vector3(35.8f, -3.4f, 50.4f));
             yield return WalkWithInput(new Vector3(35.8f, -3.4f, 42.0f));
@@ -1093,10 +1105,9 @@ namespace CTCC
             Require(orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Hunter, "CH05-L3 Hunter active on Floor 3 post-G05");
             yield return AimAndUseHere("RADIO_LOC07");
             yield return Until(() => orderlyAi.CurrentState == OrderlyState.Investigate, "CH05-L3 radio distraction pulls Hunter");
-            // Circle south past AN03 & around the south end of the freestanding shelf (1.1, 34) while Hunter investigates north radio!
-            yield return WalkWithInput(new Vector3(-0.6f, 8f, 32.2f));
-            yield return WalkWithInput(new Vector3(-0.6f, 8f, 30.8f));
-            yield return WalkWithInput(new Vector3(2.4f, 8f, 30.8f));
+            // Circle north-east around the freestanding shelf (1.1, 34) while Hunter investigates south-west toward the radio!
+            yield return WalkWithInput(new Vector3(-0.9f, 8f, 36.8f));
+            yield return WalkWithInput(new Vector3(2.4f, 8f, 36.8f));
             yield return WalkWithInput(new Vector3(2.4f, 8f, 32.3f));
             yield return WalkWithInput(new Vector3(5.2f, 8f, 32.3f));
             yield return AimAndUseHere("CH05_HANDOFF");
