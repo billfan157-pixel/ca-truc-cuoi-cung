@@ -411,12 +411,12 @@ namespace CTCC
             bool use = keys[Options.alternateBindings ? Key.K : Key.E].wasPressedThisFrame;
             bool anchorPressed = keys.qKey.wasPressedThisFrame;
 
-            // CH01 B02: Spotting Lan's warm backlit silhouette behind reception glass pulls Minh voluntarily inside!
+            // CH01 B02: D02 is the route reaction; the optional glass-shadow cue belongs to AmbientDreadDirector.
             if (!heardLobbySilhouette && State.chapter == "CH01" && State.Happened("CH01-T02") && !State.Happened("CH01-T03") &&
                 feet.z > -10.5f && feet.z < -6.2f)
             {
                 heardLobbySilhouette = true;
-                voice?.Speak("CH01-D02", "Minh", Line("CH01-D02"), directionalPrefix: "[Bóng người sau ô kính quầy lễ tân]");
+                voice?.Speak("CH01-D02", "Minh", Line("CH01-D02"));
             }
 
             // Upgrade #5 (CH01-EX01): Corroborating 03:17 wall clock + AS-05B 03g17 timestamp unlocks Minh's chilling pre-collapse monologue!
