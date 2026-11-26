@@ -10,7 +10,7 @@ description: >-
 
 - Dùng §2–4, §6 và Hình 1 cho hình học vật lý, cao độ seed, tuyến công cộng/kỹ thuật và continuity. [Core 03](../../../docs/03_World_Architecture_Bible.docx)
 - Dùng §1 cho adjacency, luồng cửa, chốt chương, metrics chơi và điểm dàn cảnh. Mở heading chương và hình kết nối CH01 theo phạm vi cần làm. [Core 04](../../../docs/04_Level_Chapter_Design.docx)
-- Với CH01, đọc [walkthrough B01–B08](../../../docs/ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) cho cổng phụ, điểm nhìn kính, STAFF, DOOR-101, AN01/AN02 và handoff.
+- Với CH01, đọc trực tiếp `CH01 / Walkthrough B01–B08` trong [Core 04](../../../docs/04_Level_Chapter_Design.docx) (nguồn walkthrough duy nhất từ v3.6.2) cho hộp thư ngoài cổng `B01`, cổng phụ, điểm nhìn kính, `STAFF`, `DOOR-101`, `AN01/AN02`, seam `WR05` sau `T09` và handoff.
 - Tra `07/Locations`, `Chapter gates`, `Events`, `QA` và `Assets` theo LOC, CH, beat và asset ID. Ví dụ `python docs/agent/project_docs.py doc 04 --section "CH02 /"`.
 
 ## Dựng theo tuyến

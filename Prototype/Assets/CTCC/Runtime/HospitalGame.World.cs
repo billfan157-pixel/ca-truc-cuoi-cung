@@ -367,7 +367,7 @@ namespace CTCC
                 yield return new WaitForSecondsRealtime(Options.reduceMotion ? 0.14f : 0.46f);
                 TransitionAsync(() => casework.OutsideAttemptAsync(player.Feet), true, () =>
                 {
-                    voice?.Speak("CH01-D14", "Minh", Line("CH01-D14"));
+                    PresentLine("CH01-D14", 1, "B07");
                 });
             }
             finally

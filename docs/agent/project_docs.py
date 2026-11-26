@@ -426,7 +426,7 @@ def make_parser() -> argparse.ArgumentParser:
     source_group.add_argument(
         "--design-lock",
         action="store_true",
-        help="Đọc bộ nguồn khóa thiết kế chính thức Core v3.3.2 trên working tree (mặc định).",
+        help="Đọc bộ nguồn khóa thiết kế chính thức Core v3.6.2 trên working tree (mặc định).",
     )
     commands = parser.add_subparsers(dest="command", required=True)
     document = commands.add_parser("doc", help="Đọc nội dung Word hoặc tra heading.")

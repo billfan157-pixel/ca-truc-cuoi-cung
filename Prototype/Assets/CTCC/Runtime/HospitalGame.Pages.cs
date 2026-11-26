@@ -234,7 +234,7 @@ namespace CTCC
                 if (returnToBackpack) OpenBackpack(BackpackCompartment.Papers);
                 else CloseModal();
                 if (speakIntro)
-                    voice?.Speak("CH01-D01", "Minh", Line("CH01-D01"));
+                    PresentLine("CH01-D01");
             }
 
             string TabPageKey(int tab) => tab switch
@@ -1038,11 +1038,14 @@ namespace CTCC
                 if (!SameSignature() || ui.IsModal || busy || voice?.IsSpeaking == true) yield break;
 
                 string paId = choice == FormStatus.Affirmed ? "CH01-PA01" : choice == FormStatus.Unverified ? "CH01-PA02" : "CH01-PA03";
+                string reactionId = choice == FormStatus.Affirmed ? "CH01-D10"
+                    : choice == FormStatus.Unverified ? "CH01-D11" : "CH01-D12";
                 Vector3 paPosition = scene.PaSpeakerAnchor != null ? scene.PaSpeakerAnchor.transform.position : new Vector3(5.5f, 2.6f, 3.35f);
                 scene.atmosphere?.From("paStatic", paPosition, choice == FormStatus.Affirmed ? 0.20f : 0.46f);
                 string direction = scene.atmosphere?.DirectionTo(paPosition) ?? "ngoài cửa phòng 101";
                 voice?.Speak(paId, "Loa hành lang", Line(paId), scene.PaSpeakerAnchor,
-                    directionalPrefix: $"[Loa hành lang · {direction}]");
+                    directionalPrefix: $"[Loa hành lang · {direction}]",
+                    onComplete: _ => PresentLine(reactionId));
             }
             finally
             {

@@ -1,7 +1,7 @@
 # Ca Trực Cuối Cùng — M2 Specialist Review Dossiers (`TASK026`, `TASK027`, `TASK028`)
 
 - **Status:** **OPEN — AWAITING HUMAN SPECIALIST SIGN-OFF**
-- **Canonical Design Standard:** **Core v3.3.2 (NPR-01 Locked — Final Production Lock)** (`DEC-NPR01-01–05`, `DEC-V331-01–02`).
+- **Canonical Design Standard:** **Core v3.6.2 (Documentation Consolidation)** (`DEC-NPR01-01–05`, `DEC-VO-01`, `DEC-V34-01–03`, `DEC-V35-01`, `DEC-V36-CH01-01`, `DEC-V361-CH01-01`).
 - **Scope:** Review covers the M2 vertical slice (`LOC01–04`, candidate `c459aba`), full campus architectural layout (`Campus-v1`), Wing C basement section & neutral emergency-response sequence (`TASK027`), and medical provenance / Option A vs Option B custody review (`TASK028`).
 - **Evidence Package Linked for Reviewers:**
   - M2-FINAL technical candidate (`c459aba`) in [m2-final-candidate-report.md](m2-final-candidate-report.md) and Campus-v1 drawings in [an-sinh-full-campus-expansion-report.md](../campus/an-sinh-full-campus-expansion-report.md).
@@ -65,8 +65,8 @@ Record the source and revision, specialist name and credentials, dated findings 
      - Pediatric patient **C01 Bé An** is depicted with tenderness and restraint (translucent soft memory apparition asking *"Chú có thấy cửa nhà con không?"*, yellow honeycomb slippers, child's crayon drawing) — zero grotesque horror imagery, zero exploitation of child suffering.
      - **Trần Ngọc Lan (`CHAR002`)** retains full humanity and warmth — no demonic transformation or jumpscare vanish; she is simply absent after the 2005 facade collapses.
      - Player retains full agency (3 F101 routes including *Chưa đủ thông tin* + revision ability), upfront content warning on Main Menu, Reduced Motion, Directional Captions, and Story Mode safety toggle.
-  4. **Chain-of-Custody & 3-Tier Information Separation (`DEC-NPR01-02`, `CAN02`/`CAN08`):**
-     - **Locked Canonical Standard (Option A):** `E01-A/B` archived in `LOC08` (Director's office), `E04`/`E07`/`PROP-XK12` linked to `LOC10` (morgue records/dry cabinet), and Bảy's external duplicate manifest kept strictly separate across all 4 endings (`DEC-NPR01-01`).
+  4. **Chain-of-Custody & 3-Tier Information Separation (`DEC-NPR01-02`, `DEC-V34-01`, `CAN02`/`CAN08`):**
+     - **Locked Canonical Standard (Option A + `DEC-V34-01`):** `E01-A/B` archived in `LOC08` (Director's office side-lock — hidden by Vĩnh as reverse insurance per `DEC-V34-01`), `E04`/`E07`/`PROP-XK12` linked to `LOC10` (morgue records/dry cabinet), and Bảy's external duplicate submission kept strictly separate (2005–06 copies + `E10b` only, excluding `E01-B` and `PROP-XK12` per `DEC-V34-01`).
      - **Review Question — Option B Evaluation (Advisory only, does NOT open a parallel canon):** Assess whether Option A's custody split across `LOC08` / `LOC10` / Bảy's external copy is clinically and administratively plausible for a 2005–2012 provincial hospital audit, or whether any alternative custody arrangement (Option B) should be logged via `07/Decisions` before Art Lock.
      - *Open Uncertainty (`U-05`):* Confirm Vietnamese phrasing of `F101`, `TRANSFER`, `E04`/`PROP-XK12` separation (13 recovered bodies vs living transfer `C12` kept anonymous), and content warning meets ethical and clinical-tone standards for public release.
 - **Reviewer Sign-Off:** `PENDING HUMAN REVIEW` | Name/Credentials: `________________` | Date: `________` | Verdict: `[ ] Pass  [ ] Pass w/ Fixes  [ ] Revise`

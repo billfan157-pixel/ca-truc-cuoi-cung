@@ -17,7 +17,8 @@ description: >-
 | Thay đổi | Ca cần đối chiếu |
 | --- | --- |
 | F101, G01/G02, E11/E12 | CH01-Q01–Q05, Q07/Q13, CH02-Q01–Q05, LOG06-Q01. Chạy A/B chưa quan sát và C thiếu từng nguồn, dấu, liên kết hoặc kết luận hợp lệ. Thử sửa, ký lặp, lỗi ghi, load và G02 thiếu phiếu chuyển. |
-| Walkthrough CH01 B01–B08 | CH01-WT-Q01/Q02 và các ca CH01 liên quan. Kiểm T02 thiếu SMS/chìa. Theo `07/Events` (`CH01-T04`) và `DEC-CH01R-04`, Lan nhận ra Minh khi anh đến gần sau T03, cinematic chờ người chơi nhấn E/K, Skip giữ transcript và BOARD vẫn cần tương tác riêng. Kiểm giấy B ở tay/túi/kẹp, cue đồng hồ trước T08, seam một lần, Pocket Note A/B/C và CH02 R. [Walkthrough](../../../docs/ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) |
+| Walkthrough CH01 B01–B08 (Core 04 v3.6.2) | `V36-CH01-Q01..Q08` và `CH01-WT-Q01/Q02`. Kiểm `T01` hộp thư, `T02` yêu cầu đúng chìa + đủ nguồn `E10a` (không gate `SMSRead`), load save cũ giữ `E10a` acquired, 0 mandatory Journal CH01, `EX01` chọn đúng 03:17, `WR05` giới hạn hướng ra trước `G08` không collider vô hình, `D08` guard & `H08` recovery tại `LOC08`. Tra nguồn duy nhất `CH01 / Walkthrough B01–B08` trong [Core 04](../../../docs/04_Level_Chapter_Design.docx). |
+| Silent Exploration & VO (`DEC-VO-01`) | `VO-SILENT-Q01`, `AU05 (v3.3.3)`, `VAL-V3-01` (`TASK031-A/B`). Kiểm 0 rò VO trên `INNER_SUB_SILENT`/`CUT_TO_JOURNAL`/`UI_NON_VO`, độ tương phản WCAG AA `SilentThoughtSubtitle`, `ThoughtReadDurationScale` và `stageDirection` không rò vào `runtimeCopy`. |
 | Layer, collision, checkpoint | T02/T03/T08, LD01–04, các ca swap/load theo chương. Tại TASK025-B có 30 lượt thử swap theo Backlog. |
 | E05b, E06, E10 và G06 | CH05-Q03, CH06-Q02/Q05, W-Q03, V22-Q01. Thiếu một phần phải chỉ đường lấy lại. |
 | D16b, PT02, E08 | CH01-Q14, CH04-Q03/Q06, LOG10-Q01, V22-Q02/Q03, CH07-Q01–Q04. Test menu, VO, subtitle, transcript và cả reload. |

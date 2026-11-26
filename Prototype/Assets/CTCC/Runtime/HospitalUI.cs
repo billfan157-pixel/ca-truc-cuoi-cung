@@ -8,6 +8,13 @@ using UnityEngine.UI;
 
 namespace CTCC
 {
+    public enum SubtitleStyle
+    {
+        Standard,
+        Reaction,
+        SilentThought,
+    }
+
     internal readonly struct DocumentHotspot
     {
         public readonly Rect Uv;
@@ -48,13 +55,15 @@ namespace CTCC
 
         private readonly List<Button> focus = new();
         private Font standard, heading;
-        private RectTransform canvas, hud, modal, panel, reticleRect;
+        private RectTransform canvas, hud, modal, panel, reticleRect, cueRoot;
         private Image fade, cueBacking, promptBacking, modalBackdrop, panelBg, reticleImg, toastBacking, chapterBacking;
         private Text place, task, prompt, cue, help, toastTitle, toastBody, chapterEyebrow, chapterTitle;
+        private CanvasGroup cueGroup;
+        private SubtitleStyle cueStyle;
         private Action dismiss;
         private Action onCloseExtra;
         private ScrollRect readingScroll;
-        private float cueUntil, toastUntil, chapterUntil;
+        private float cueUntil, cueFadeInEnd, cueHideAt, toastUntil, chapterUntil;
         private float scale = 1f;
         private bool captions = true;
         private int selected;
@@ -116,12 +125,18 @@ namespace CTCC
             prompt = FillText("Prompt", Rect("PromptInset", tag, Vector2.zero, Vector2.one, new Vector2(18, 2), new Vector2(-18, -2)),
                 20, Ink, TextAnchor.MiddleCenter, true);
 
-            // Directional audio caption / subtitle strip
+            // Directional audio caption / subtitle strip.
+            // StandardSubtitle uses a soft box; SilentThoughtSubtitle is italic, boxless and lower.
             var subtitle = Fixed("Caption", hud, new Vector2(0.5f, 0.115f), Vector2.zero, new Vector2(1080, 70));
             subtitle.pivot = new Vector2(0.5f, 0.5f);
-            cueBacking = Graphic(subtitle, new Color(0.038f, 0.058f, 0.054f, 0.88f), false);
+            cueRoot = subtitle;
+            cueBacking = Graphic(subtitle, new Color(0.038f, 0.058f, 0.054f, 0.72f), false);
+            cueGroup = subtitle.gameObject.AddComponent<CanvasGroup>();
             cue = FillText("Subtitle", Rect("SubtitleInset", subtitle, Vector2.zero, Vector2.one, new Vector2(16, 2), new Vector2(-16, -2)),
                 21, Ink, TextAnchor.MiddleCenter);
+            var cueShadow = cue.gameObject.AddComponent<Shadow>();
+            cueShadow.effectColor = new Color(0f, 0f, 0f, 0.82f);
+            cueShadow.effectDistance = new Vector2(1.2f, -1.2f);
             cueBacking.gameObject.SetActive(false);
 
             // Non-blocking diegetic environmental observation toast (bottom-right, cleanly above Caption & QuickSlotBar!)
@@ -191,16 +206,40 @@ namespace CTCC
             }
         }
 
-        public void Caption(string text, float seconds = 4f, bool essential = false, bool aboveModal = false)
+        public void Caption(string text, float seconds = 4f, bool essential = false, bool aboveModal = false) =>
+            CaptionStyled(text, seconds, essential, aboveModal, SubtitleStyle.Standard);
+
+        public void CaptionStyled(string text, float seconds, bool essential, bool aboveModal, SubtitleStyle style)
         {
             if (!captions && !essential) return;
             var parent = aboveModal ? canvas : hud;
             if (cueBacking.transform.parent != parent)
                 cueBacking.transform.SetParent(parent, false);
+            cueStyle = style;
             cue.text = text;
-            cueUntil = Time.unscaledTime + seconds;
+            cue.fontStyle = style == SubtitleStyle.Standard ? FontStyle.Normal : FontStyle.Italic;
+            cue.color = style switch
+            {
+                SubtitleStyle.Reaction => new Color(0.902f, 0.914f, 0.894f, 1f),       // #E6E9E4
+                SubtitleStyle.SilentThought => new Color(0.851f, 0.831f, 0.765f, 1f),  // #D9D4C3
+                _ => new Color(0.949f, 0.957f, 0.949f, 1f),                            // #F2F4F2
+            };
+            cueBacking.enabled = style != SubtitleStyle.SilentThought;
+            cueBacking.color = style == SubtitleStyle.Reaction
+                ? new Color(0.038f, 0.058f, 0.054f, 0.55f)
+                : new Color(0.038f, 0.058f, 0.054f, 0.72f);
+            cueGroup.alpha = style == SubtitleStyle.SilentThought ? 0f : 1f;
+            cueRoot.anchoredPosition = style == SubtitleStyle.SilentThought ? new Vector2(0f, -22f) : Vector2.zero;
+            float now = Time.unscaledTime;
+            cueUntil = now + seconds;
+            cueFadeInEnd = now + (style == SubtitleStyle.SilentThought ? 0.35f : 0f);
+            cueHideAt = cueUntil + (style == SubtitleStyle.SilentThought ? 0.6f : 0f);
             cueBacking.gameObject.SetActive(true);
         }
+
+        /// <summary>Core v3.3.3 SilentThoughtSubtitle: italic, no speaker prefix, no heavy box.</summary>
+        public void SilentThought(string text, float seconds) =>
+            CaptionStyled(text, seconds, true, false, SubtitleStyle.SilentThought);
 
         internal void ClearCaption(string text)
         {
@@ -393,7 +432,21 @@ namespace CTCC
 
         private void Update()
         {
-            if (cueBacking != null && Time.unscaledTime > cueUntil) cueBacking.gameObject.SetActive(false);
+            if (cueBacking != null && cueBacking.gameObject.activeSelf)
+            {
+                float now = Time.unscaledTime;
+                if (cueStyle == SubtitleStyle.SilentThought && cueGroup != null)
+                {
+                    float alpha = 1f;
+                    if (now < cueFadeInEnd)
+                        alpha = Mathf.Clamp01(1f - (cueFadeInEnd - now) / 0.35f);
+                    else if (now > cueUntil)
+                        alpha = Mathf.Clamp01(1f - (now - cueUntil) / 0.6f);
+                    cueGroup.alpha = alpha;
+                    if (now >= cueHideAt) cueBacking.gameObject.SetActive(false);
+                }
+                else if (now > cueUntil) cueBacking.gameObject.SetActive(false);
+            }
             if (toastBacking != null && Time.unscaledTime > toastUntil) toastBacking.gameObject.SetActive(false);
             if (chapterBacking != null && Time.unscaledTime > chapterUntil) chapterBacking.gameObject.SetActive(false);
             if (modal == null || !IsModal || ModalInputBlocked || modalOpenedFrame == Time.frameCount) return;

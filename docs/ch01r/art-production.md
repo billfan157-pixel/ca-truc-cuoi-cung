@@ -2,7 +2,7 @@
 
 ## Phạm vi
 
-Đợt nâng cấp dựa trên Campus-v1 và hướng dẫn mỹ thuật của Core 05 v3.3.1. Các điểm chính là cổng phụ và sân trước LOC01, quầy tiếp nhận LOC02, hành lang STAFF, Phòng 101 và sân sáng LOC03. Dàn dựng B03 theo [walkthrough B01–B08](walkthrough-gameplay-B01-B08-investigation-v1.md) và DEC-CH01R-04. Lan ghi sổ phía sau quầy, ngẩng lên khi Minh đến gần và tiếp tục cảnh thoại khi người chơi chủ động tương tác.
+Đợt nâng cấp dựa trên Campus-v1 và hướng dẫn mỹ thuật của Core 05 v3.3.1. Các điểm chính là cổng phụ và sân trước LOC01, quầy tiếp nhận LOC02, hành lang STAFF, Phòng 101 và sân sáng LOC03. Dàn dựng B03 theo [walkthrough B01–B08 (lưu trữ)](../archive/ch01-history/walkthrough-gameplay-B01-B08-investigation-v1.md) và DEC-CH01R-04 (mốc trước Core v3.6.2). Lan ghi sổ phía sau quầy, ngẩng lên khi Minh đến gần và tiếp tục cảnh thoại khi người chơi chủ động tương tác.
 
 ## Hạng mục đã đưa vào bản dựng
 

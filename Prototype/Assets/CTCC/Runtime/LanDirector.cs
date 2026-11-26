@@ -563,6 +563,23 @@ namespace CTCC
                     }
                     if (skipRequested) break;
 
+                    // DEC-VO-01: D03b is a silent inner thought; D07b is CUT_TO_JOURNAL (no HUD).
+                    if (beat.id == "CH01-D03b")
+                    {
+                        voice.Present(beat.id, speaker, text, DialoguePresentationMode.INNER_SUB_SILENT);
+                        for (float hold = 2.4f; hold > 0f && !skipRequested;)
+                        {
+                            yield return null;
+                            if (!voice.IsPaused) hold -= Time.unscaledDeltaTime;
+                        }
+                        continue;
+                    }
+                    if (beat.id == "CH01-D07b")
+                    {
+                        voice.Present(beat.id, speaker, text, DialoguePresentationMode.CUT_TO_JOURNAL);
+                        continue;
+                    }
+
                     bool finished = false;
                     bool isLan = speaker == "Lan";
                     voice.Speak(beat.id, speaker, text,

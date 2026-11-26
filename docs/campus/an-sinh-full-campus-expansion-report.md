@@ -3,7 +3,7 @@
 **Dự án:** Ca Trực Cuối Cùng (*The Last Night Shift*)  
 **Nhánh triển khai:** `feat/an-sinh-full-campus-expansion` (từ `HEAD ac0c270`)  
 **Engine:** Unity `6000.3.28f1` / URP `17.3` (Forward+) · Blender `4.5.10 LTS`  
-**Tài liệu nguồn đối chiếu:** Core 01–07 (đặc biệt Core 03 `Campus-v0`), `DEC-WORLD-01`, `docs/ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md`, `docs/prototype/layout.json`, `docs/prototype/campus-layout-concept.json`.
+**Tài liệu nguồn đối chiếu:** Core 01–07 (đặc biệt Core 03 `Campus-v0`, Core 04 `CH01`), `DEC-WORLD-01`, [walkthrough B01–B08 (lưu trữ)](../archive/ch01-history/walkthrough-gameplay-B01-B08-investigation-v1.md), `docs/prototype/layout.json`, `docs/prototype/campus-layout-concept.json`.
 
 ---
 

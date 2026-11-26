@@ -5,6 +5,16 @@ using UnityEngine;
 
 namespace CTCC
 {
+    /// <summary>Core v3.3.3 / DEC-VO-01 dialogue presentation contract.</summary>
+    public enum DialoguePresentationMode
+    {
+        VO_DIALOGUE,
+        VO_REACTION_SFX,
+        INNER_SUB_SILENT,
+        CUT_TO_JOURNAL,
+        UI_NON_VO,
+    }
+
     [Serializable]
     public sealed class VoiceClipEntry
     {
@@ -188,6 +198,61 @@ namespace CTCC
             CharacterActor speakerActor = null, string directionalPrefix = null, Action<bool> onComplete = null,
             bool essential = true, string beat = null)
         {
+            SpeakInternal(lineId, speakerLabel, text, DialoguePresentationMode.VO_DIALOGUE,
+                spatialAnchor, speakerActor, directionalPrefix, onComplete, essential, beat, true);
+        }
+
+        /// <summary>
+        /// DEC-VO-01 router. VO_DIALOGUE and VO_REACTION_SFX play an AudioClip plus a subtitle;
+        /// INNER_SUB_SILENT never touches the AudioBus and renders an italic silent thought;
+        /// CUT_TO_JOURNAL stays out of the HUD and only updates the journal/transcript.
+        /// </summary>
+        public void Present(string lineId, string speakerLabel, string text, DialoguePresentationMode mode,
+            AudioSource spatialAnchor = null, CharacterActor speakerActor = null, string directionalPrefix = null,
+            Action<bool> onComplete = null, bool essential = true, string beat = null,
+            bool showSpeakerPrefix = true, bool italic = false)
+        {
+            if (!mayDeliver(lineId, beat) || string.IsNullOrWhiteSpace(text))
+            {
+                onComplete?.Invoke(false);
+                return;
+            }
+
+            if (mode == DialoguePresentationMode.CUT_TO_JOURNAL)
+            {
+                // Core 06: no HUD, no VO. A real (non-hidden) line may still enter the transcript.
+                if (!text.StartsWith("[ẨN", StringComparison.Ordinal))
+                    RecordTranscriptOnly(lineId, speakerLabel, text, beat);
+                onComplete?.Invoke(true);
+                return;
+            }
+
+            if (mode == DialoguePresentationMode.UI_NON_VO)
+            {
+                RecordTranscriptOnly(lineId, speakerLabel, text, beat);
+                onComplete?.Invoke(true);
+                return;
+            }
+
+            if (mode == DialoguePresentationMode.INNER_SUB_SILENT)
+            {
+                // Silent thought is text-only and never blocks player control.
+                RecordTranscriptOnly(lineId, speakerLabel, text, beat);
+                float hold = Mathf.Clamp(2.8f + text.Length * 0.025f, 2.8f, 4.5f);
+                ui?.SilentThought(text, hold);
+                onComplete?.Invoke(true);
+                return;
+            }
+
+            bool reaction = mode == DialoguePresentationMode.VO_REACTION_SFX;
+            SpeakInternal(lineId, speakerLabel, text, mode, spatialAnchor, speakerActor, directionalPrefix,
+                onComplete, essential, beat, reaction ? false : showSpeakerPrefix, reaction || italic);
+        }
+
+        private void SpeakInternal(string lineId, string speakerLabel, string text, DialoguePresentationMode mode,
+            AudioSource spatialAnchor, CharacterActor speakerActor, string directionalPrefix, Action<bool> onComplete,
+            bool essential, string beat, bool showSpeakerPrefix, bool italic = false)
+        {
             if (!mayDeliver(lineId, beat) || string.IsNullOrWhiteSpace(text))
             {
                 onComplete?.Invoke(false);
@@ -198,13 +263,19 @@ namespace CTCC
             RecordTranscriptOnly(lineId, speakerLabel, text, beat);
             activeSpeaker = speakerActor;
 
-            string caption = string.IsNullOrEmpty(directionalPrefix)
-                ? $"{speakerLabel} · {text}"
-                : $"{directionalPrefix} {speakerLabel} · {text}";
+            string caption = showSpeakerPrefix && !string.IsNullOrEmpty(speakerLabel)
+                ? (string.IsNullOrEmpty(directionalPrefix) ? $"{speakerLabel} · {text}" : $"{directionalPrefix} {speakerLabel} · {text}")
+                : (string.IsNullOrEmpty(directionalPrefix) ? text : $"{directionalPrefix} {text}");
 
             AudioClip clip = clipMap.TryGetValue(lineId, out var found) ? found : null;
+            // DEC-VO-01: only VO_DIALOGUE / VO_REACTION_SFX may reach the AudioBus.
+            if (mode == DialoguePresentationMode.INNER_SUB_SILENT ||
+                mode == DialoguePresentationMode.CUT_TO_JOURNAL ||
+                mode == DialoguePresentationMode.UI_NON_VO)
+                clip = null;
             float duration = clip != null ? Mathf.Max(clip.length + 0.45f, 2.6f) : Mathf.Clamp(2.2f + text.Length * 0.045f, 3.2f, 7.5f);
-            ui?.Caption(caption, duration, essential);
+            ui?.CaptionStyled(caption, duration, essential, false,
+                mode == DialoguePresentationMode.VO_REACTION_SFX ? SubtitleStyle.Reaction : SubtitleStyle.Standard);
 
             if (clip != null)
             {

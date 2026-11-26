@@ -2,8 +2,8 @@
 
 - **Milestone / Gate:** M2 Vertical Slice (`TASK010`)
 - **Status:** **Human Review Pending — OPEN (0/6 human sessions completed)**
-- **Canonical Design Standard:** `Core v3.3.2 (NPR-01 Locked — Final Production Lock)` (`DEC-NPR01-04`: `CH01–CH05` contracts & 28 CH01 lines remain 100% identical to the `Core v3.3.1` lock used to build `c459aba`; NPR-01 dialogue updates affect CH07/CH08 only).
-- **Approved Technical Candidate for Sessions:** `m2-final-cand-c459aba` (`revision=c459aba86192591b4adf5d267438e5fb4b77f704`, `development=False`, Unity `6000.3.28f1`, built against `Core v3.3.1 Final Clean`)
+- **Canonical Design Standard:** `Core v3.6.2 (Documentation Consolidation)` (`DEC-VO-01`, `DEC-V36-CH01-01`, `DEC-V361-CH01-01`). **Lưu ý:** candidate `c459aba` bên dưới được đóng gói từ `Core v3.3.1 Final Clean` (trước `DEC-VO-01` & `DEC-V36-CH01-01`); theo `07/Backlog` `TASK010`, cần bridge runtime CH01 v3.6 trước khi nghiệm thu playtest chính thức trên chuẩn mới.
+- **Approved Technical Candidate for Sessions (pre-v3.6 baseline):** `m2-final-cand-c459aba` (`revision=c459aba86192591b4adf5d267438e5fb4b77f704`, `development=False`, Unity `6000.3.28f1`, built against `Core v3.3.1 Final Clean`)
   - `exe_sha256`: `fbd073ca59c4918edbc6704f5393cf59021173af11714c00db4212c50117492b`
   - `assembly_sha256`: `373d7c91bfcc071a04969b664f6a2fd03c553ee66e39fb65f6fcb8b58b149cbc`
   - **Release Package:** [output/m2-final/m2-final-release-c459aba/CaTrucCuoiCung-M2-FINAL-c459aba-Windows-x64.zip](../../output/m2-final/m2-final-release-c459aba/CaTrucCuoiCung-M2-FINAL-c459aba-Windows-x64.zip) + [SHA256SUMS.txt](../../output/m2-final/m2-final-release-c459aba/SHA256SUMS.txt)

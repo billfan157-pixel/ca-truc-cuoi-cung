@@ -13,9 +13,23 @@ namespace CTCC
 {
     public sealed partial class HospitalGame : MonoBehaviour
     {
-        [Serializable] private sealed class DialogueEntry { public string id, chapter, speaker, context, copy; }
+        [Serializable] private sealed class DialogueVariant
+        {
+            public string variantId, branch, beat, presentationMode, displaySpeaker, runtimeCopy, uiAudioRule;
+            public bool needsVO, showSpeakerPrefix, isItalicSilentThought;
+        }
+        [Serializable] private sealed class DialogueEntry
+        {
+            public string id, chapter, speaker, displaySpeaker, context, presentationMode;
+            public bool needsVO, showSpeakerPrefix, isItalicSilentThought;
+            public string runtimeCopy, legacyCopy, uiAudioRule;
+            public string copy;
+            public DialogueVariant[] variants;
+        }
         [Serializable] private sealed class DialogueSheet
         {
+            public string schemaVersion;
+            public string decisionRef;
             public string sourceRevision;
             public string sourceFile;
             public string sourceSha256;
@@ -104,6 +118,10 @@ namespace CTCC
             dialogueSourceSha256 = sheet.sourceSha256 ?? "";
             foreach (var entry in sheet.entries)
                 dialogue.Add(entry.id, entry);
+            // DEC-VO-01 groups D10/D11/D12 and D13/D14 into one source row with explicit variants.
+            // Expand the variants into stable IDs so existing beat/transcript references keep working.
+            foreach (var entry in sheet.entries)
+                ExpandDialogueVariants(entry);
             AddDialogueAlias("CH01-D11", "CH01-D10", 2);
             AddDialogueAlias("CH01-D12", "CH01-D10", 3);
             AddDialogueAlias("CH01-D14", "CH01-D13", 2);
@@ -416,7 +434,8 @@ namespace CTCC
                 feet.z > -10.5f && feet.z < -6.2f)
             {
                 heardLobbySilhouette = true;
-                voice?.Speak("CH01-D02", "Minh", Line("CH01-D02"), directionalPrefix: "[Bóng người sau ô kính quầy lễ tân]");
+                // DEC-VO-01 CUT_TO_JOURNAL: the courtyard stays silent; rain and the glass silhouette carry the beat.
+                PresentLine("CH01-D02");
             }
 
             // Upgrade #5 (CH01-EX01): Corroborating 03:17 wall clock + AS-05B 03g17 timestamp unlocks Minh's chilling pre-collapse monologue!
@@ -427,8 +446,7 @@ namespace CTCC
             {
                 playedCh01Ex01Monologue = true;
                 scene.atmosphere?.From("clockTick", new Vector3(1.2f, 2.0f, -5.8f), 0.70f);
-                voice?.Speak("CH01-D19", "Minh", LineAtBeat("CH01-D19", 1, "B05"),
-                    directionalPrefix: "[Đồng hồ sảnh · 03:17 · trước khi sụp lớp B]", beat: "B05");
+                PresentLine("CH01-D19", 1, "B05");
             }
 
             // HE04: After handling F101 in B, walking back down corridor slows ceiling fans & cuts PA04 mid-sentence!
@@ -671,8 +689,8 @@ namespace CTCC
             {
                 RestoreJournal(State);
                 if (!StaffReactionContext() || ui.IsModal || voice.IsSpeaking || lanDirector.IsEncounterRunning) return;
-                staffReactionCaption = $"{speaker} · {copy}";
-                voice.Speak(lineId, speaker, copy, onComplete: _ => staffReactionCaption = null, beat: "STAFF");
+                staffReactionCaption = copy;
+                PresentLine(lineId, 1, "STAFF", onComplete: _ => staffReactionCaption = null);
             });
             return true;
         }
@@ -1063,7 +1081,7 @@ namespace CTCC
                 {
                     lanDirector?.StopEncounter(false);
                     scene.atmosphere?.SetPenWriting(false, Vector3.zero);
-                    voice?.Speak("CH01-D13", "Minh", Line("CH01-D13"));
+                    PresentLine("CH01-D13", 1, "B06");
                 }
                 else if (startingCh02)
                 {
@@ -1287,10 +1305,120 @@ namespace CTCC
                 : entry), id => dialogue.ContainsKey(id) &&
                 (!revealConditions.TryGetValue(id, out var condition) || condition.HasPrerequisites(state)));
 
-        private (string speaker, string text) LanEncounterLine(string id) =>
-            dialogue.TryGetValue(id, out var entry) ? (entry.speaker, Line(id)) : (null, null);
+        private (string speaker, string text) LanEncounterLine(string id)
+        {
+            if (!dialogue.TryGetValue(id, out var entry)) return (null, null);
+            string speaker = string.IsNullOrEmpty(entry.displaySpeaker) ? entry.speaker : entry.displaySpeaker;
+            return (speaker, Line(id));
+        }
 
         private string Line(string id, int ordinal = 1) => LineAtBeat(id, ordinal, null);
+
+        private static DialoguePresentationMode ParsePresentationMode(string mode) => mode switch
+        {
+            "VO_REACTION_SFX" => DialoguePresentationMode.VO_REACTION_SFX,
+            "INNER_SUB_SILENT" => DialoguePresentationMode.INNER_SUB_SILENT,
+            "CUT_TO_JOURNAL" => DialoguePresentationMode.CUT_TO_JOURNAL,
+            "UI_NON_VO" => DialoguePresentationMode.UI_NON_VO,
+            _ => DialoguePresentationMode.VO_DIALOGUE,
+        };
+
+        private void ExpandDialogueVariants(DialogueEntry entry)
+        {
+            if (entry?.variants == null || entry.variants.Length == 0) return;
+            DialogueVariant baseVariant = null;
+            foreach (var variant in entry.variants)
+            {
+                if (variant == null || string.IsNullOrEmpty(variant.variantId)) continue;
+                if (variant.variantId == entry.id)
+                {
+                    baseVariant = variant;
+                    continue;
+                }
+                if (dialogue.ContainsKey(variant.variantId)) continue;
+                dialogue.Add(variant.variantId, new DialogueEntry
+                {
+                    id = variant.variantId,
+                    chapter = entry.chapter,
+                    speaker = entry.speaker,
+                    displaySpeaker = string.IsNullOrEmpty(variant.displaySpeaker) ? entry.displaySpeaker : variant.displaySpeaker,
+                    context = entry.context,
+                    presentationMode = variant.presentationMode,
+                    needsVO = variant.needsVO,
+                    showSpeakerPrefix = variant.showSpeakerPrefix,
+                    isItalicSilentThought = variant.isItalicSilentThought,
+                    runtimeCopy = variant.runtimeCopy,
+                    legacyCopy = entry.legacyCopy,
+                    uiAudioRule = variant.uiAudioRule,
+                    copy = entry.copy,
+                    variants = Array.Empty<DialogueVariant>(),
+                });
+            }
+            if (baseVariant == null) return;
+            entry.displaySpeaker = string.IsNullOrEmpty(baseVariant.displaySpeaker) ? entry.displaySpeaker : baseVariant.displaySpeaker;
+            entry.presentationMode = baseVariant.presentationMode;
+            entry.needsVO = baseVariant.needsVO;
+            entry.showSpeakerPrefix = baseVariant.showSpeakerPrefix;
+            entry.isItalicSilentThought = baseVariant.isItalicSilentThought;
+            entry.runtimeCopy = baseVariant.runtimeCopy;
+            entry.uiAudioRule = baseVariant.uiAudioRule;
+        }
+
+        private DialogueVariant SelectVariant(DialogueEntry entry, int ordinal, string beat)
+        {
+            if (entry?.variants == null || entry.variants.Length == 0) return null;
+            if (!string.IsNullOrEmpty(beat))
+            {
+                foreach (var variant in entry.variants)
+                    if (variant != null && variant.beat == beat) return variant;
+            }
+            if (ordinal > 0 && ordinal <= entry.variants.Length)
+            {
+                var candidate = entry.variants[ordinal - 1];
+                if (candidate != null) return candidate;
+            }
+            return null;
+        }
+
+        private string RuntimeLine(DialogueEntry entry, int ordinal, string beat)
+        {
+            var variant = SelectVariant(entry, ordinal, beat);
+            string text = variant != null ? variant.runtimeCopy : entry.runtimeCopy;
+            if (!string.IsNullOrWhiteSpace(text))
+                return text.StartsWith("[ẨN", StringComparison.Ordinal) ? "" : text;
+            if (string.IsNullOrWhiteSpace(entry.copy)) return "";
+            var quotes = System.Text.RegularExpressions.Regex.Matches(entry.copy, "“([^”]+)”");
+            return ordinal <= quotes.Count ? quotes[ordinal - 1].Groups[1].Value : entry.copy;
+        }
+
+        /// <summary>Core v3.3.3 DEC-VO-01 presentation-aware line delivery.</summary>
+        private void PresentLine(string id, int ordinal = 1, string beat = null, AudioSource spatialAnchor = null,
+            CharacterActor speakerActor = null, string directionalPrefix = null, Action<bool> onComplete = null,
+            bool essential = true)
+        {
+            if (!MayDeliver(id, beat) || !dialogue.TryGetValue(id, out var entry))
+            {
+                onComplete?.Invoke(false);
+                return;
+            }
+            var variant = SelectVariant(entry, ordinal, beat);
+            string text = RuntimeLine(entry, ordinal, beat);
+            string speaker = variant != null && !string.IsNullOrEmpty(variant.displaySpeaker)
+                ? variant.displaySpeaker
+                : (string.IsNullOrEmpty(entry.displaySpeaker) ? entry.speaker : entry.displaySpeaker);
+            var mode = ParsePresentationMode(variant?.presentationMode ?? entry.presentationMode);
+            bool prefix = variant?.showSpeakerPrefix ?? entry.showSpeakerPrefix;
+            bool italic = variant?.isItalicSilentThought ?? entry.isItalicSilentThought;
+            voice?.Present(id, speaker, text, mode, spatialAnchor, speakerActor, directionalPrefix,
+                onComplete, essential, beat, prefix, italic);
+        }
+
+        internal DialoguePresentationMode PresentationModeOf(string id, string beat = null)
+        {
+            if (!dialogue.TryGetValue(id, out var entry)) return DialoguePresentationMode.VO_DIALOGUE;
+            var variant = SelectVariant(entry, 1, beat);
+            return ParsePresentationMode(variant?.presentationMode ?? entry.presentationMode);
+        }
 
         private void AddDialogueAlias(string id, string groupId, int ordinal)
         {
@@ -1302,11 +1430,8 @@ namespace CTCC
 
         private string LineAtBeat(string id, int ordinal, string beat)
         {
-            if (!MayDeliver(id, beat)) return "";
-            var entry = dialogue[id];
-            if (string.IsNullOrWhiteSpace(entry.copy)) return "";
-            var quotes = System.Text.RegularExpressions.Regex.Matches(entry.copy, "“([^”]+)”");
-            return ordinal <= quotes.Count ? quotes[ordinal - 1].Groups[1].Value : entry.copy;
+            if (!MayDeliver(id, beat) || !dialogue.TryGetValue(id, out var entry)) return "";
+            return RuntimeLine(entry, ordinal, beat);
         }
 
         private Texture Image(string id)

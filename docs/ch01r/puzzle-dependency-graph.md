@@ -5,7 +5,7 @@
 
 ---
 
-> Current design: [CH01 walkthrough B01–B08](walkthrough-gameplay-B01-B08-investigation-v1.md), DEC-CH01R-04.
+> **Tài liệu lịch sử mốc CH01-R (trước Core v3.6.2):** Xem bản thiết kế hiện hành tại `Core 04` (`CH01 / Walkthrough B01–B08`, `DEC-V36-CH01-01` / `DEC-V361-CH01-01`). Bản walkthrough rời cũ nằm ở [walkthrough CH01 (lưu trữ)](../archive/ch01-history/walkthrough-gameplay-B01-B08-investigation-v1.md).
 
 ## 1. Narrative Arc, Nonlinear Exploration Loop & F101 Deduction Flow
 

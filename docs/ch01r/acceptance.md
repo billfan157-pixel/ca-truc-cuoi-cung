@@ -1,5 +1,8 @@
 # CH01-R · Nghiệm thu Tái cấu trúc Gameplay Điều tra & Kinh dị Tâm lý
 
+> [!NOTE]
+> **Tài liệu lịch sử mốc CH01-R (trước Core v3.6.2).** Hợp đồng walkthrough CH01 B01–B08 và trình bày thoại hiện hành nằm tại **Core 04 (`04_Level_Chapter_Design.docx` — CH01 / Walkthrough B01–B08)** và `DEC-VO-01` / `DEC-V36-CH01-01` / `DEC-V361-CH01-01`.
+
 Tài liệu nghiệm thu kỹ thuật và thiết kế cho bản tái cấu trúc **CH01 — Người trở về** (`CH01-R`) trên nền M3.1 (`05a5bfa`) và chuẩn Core Design System v2.2 (`docs/01..07`, `LOCK-V22-01..03`, `DEC-CH02`, `LOCK-LOG06`, `LOCK-LOG10`).
 
 > **Trạng thái cổng con người:** Các cổng duyệt bằng con người và chuyên gia (**`TASK010`** 0/6 người chơi mới, **`TASK026`–`TASK028`** duyệt kiến trúc/y tế/PCCC/ngôn ngữ/âm thanh) tiếp tục ở trạng thái **MỞ**. Mọi kết quả dưới đây phân tách rạch ròi giữa kiểm chứng kỹ thuật/hệ thống trên build Windows x64 và các cổng chưa nghiệm thu bằng con người.
@@ -8,7 +11,7 @@ Tài liệu nghiệm thu kỹ thuật và thiết kế cho bản tái cấu trú
 
 ## Kiểm kỹ thuật tuyến B01–B08
 
-DEC-CH01R-04 áp dụng [walkthrough CH01](walkthrough-gameplay-B01-B08-investigation-v1.md) cho tuyến hoàn chỉnh. Ứng viên Windows x64 Unity 6000.3.28f1 từ a4f5a3f qua CH01-WT-Q01/Q02 trên Module và Input. Đã chạy B01–B08, ba nhánh F101, hợp nhất giấy B→R, guard đồng hồ, seam, Pocket Note/echo và chuyển CH02. Xem [định danh](evidence/walkthrough-build-identity.txt), [module](evidence/walkthrough-qa-module.txt) và [input](evidence/walkthrough-qa-input.txt).
+DEC-CH01R-04 áp dụng [walkthrough CH01 (đã lưu trữ)](../archive/ch01-history/walkthrough-gameplay-B01-B08-investigation-v1.md) cho tuyến hoàn chỉnh mốc trước v3.6.2. Ứng viên Windows x64 Unity 6000.3.28f1 từ a4f5a3f qua CH01-WT-Q01/Q02 trên Module và Input. Đã chạy B01–B08, ba nhánh F101, hợp nhất giấy B→R, guard đồng hồ, seam, Pocket Note/echo và chuyển CH02. Xem [định danh](evidence/walkthrough-build-identity.txt), [module](evidence/walkthrough-qa-module.txt) và [input](evidence/walkthrough-qa-input.txt).
 
 Thời lượng 20,5–30 phút của CH01 là mục tiêu thiết kế. M2 giữ tuyến rút gọn theo Roadmap. TASK010 và TASK026–028 còn mở. Các phần dưới ghi kết quả ở những mốc trước.
 

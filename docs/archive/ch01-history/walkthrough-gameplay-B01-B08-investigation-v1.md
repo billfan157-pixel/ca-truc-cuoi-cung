@@ -4,7 +4,10 @@
 **Thể loại:** Kinh dị tâm lý góc nhìn thứ nhất, khám phá hiện trường và điều tra bằng vật thể 3D.  
 **Bối cảnh:** Bệnh viện An Sinh; đêm 17/11/2012 và ca trực 17/11/2005.  
 **Thời lượng thiết kế:** 20,5–30 phút cho tuyến chính; thêm khoảng 6–10 phút nếu khám phá sâu. Thời lượng cần xác minh qua playtest.  
-**Trạng thái:** Đặc tả thiết kế CH01 B01–B08 theo DEC-CH01R-04. Build Windows từ a4f5a3f đã qua Module và Input QA trong phạm vi ghi ở [hồ sơ kiểm kỹ thuật](acceptance.md#kiểm-kỹ-thuật-tuyến-b01b08). Thời lượng, nhịp và khả năng tự hiểu chờ playtest. Tuyến M2 rút gọn theo Core 07/Roadmap.
+> [!NOTE]
+> **Tài liệu lưu trữ lịch sử (`DEC-CH01R-04` cũ).** Từ Core v3.6.2, toàn bộ walkthrough CH01 B01–B08 đã được hợp nhất trực tiếp vào [Core 04 — CH01 / Walkthrough B01–B08](../../04_Level_Chapter_Design.docx) làm nguồn duy nhất (`DEC-VO-01`, `DEC-V36-CH01-01`, `DEC-V361-CH01-01`).
+
+**Trạng thái:** Đặc tả thiết kế CH01 B01–B08 theo DEC-CH01R-04 (đã lưu trữ). Build Windows từ a4f5a3f đã qua Module và Input QA trong phạm vi ghi ở [hồ sơ kiểm kỹ thuật](../../ch01r/acceptance.md#kiểm-kỹ-thuật-tuyến-b01b08). Thời lượng, nhịp và khả năng tự hiểu chờ playtest. Tuyến M2 rút gọn theo Core 07/Roadmap.
 
 ---
 
@@ -38,7 +41,7 @@ Tuyến chính đi theo đường:
 
 **Xe máy và cổng phụ (LOC01/R) → sân và kính sảnh → quầy AN01 (R→B) → hành lang / STAFF tùy chọn → Phòng 101 (LOC03/B) → bảng ký F101 tại AN02 → quầy AN01 (B→R) → cổng phụ và vòng lặp một lần → AN01 → Chương 2 (R).**
 
-Theo [Core 03 Campus-v0](../03_World_Architecture_Bible.docx), đây là tuyến trực đêm. Tầm nhìn dự kiến từ sân cho thấy dãy khám và mái đón ở các tiếp cận riêng. Quầy Lan là quầy ngoài giờ. Cửa sổ Phòng 101 nhìn vào sân sáng và dãy phòng lân cận. Dùng các cảnh nền làm mốc định hướng. Phần người chơi đi được kết thúc tại ranh LOC04 trong CH01. Giữ T09 sau T08 và điểm trở về AP01 ở R theo thiết kế dưới đây.
+Theo [Core 03 Campus-v0](../../03_World_Architecture_Bible.docx), đây là tuyến trực đêm. Tầm nhìn dự kiến từ sân cho thấy dãy khám và mái đón ở các tiếp cận riêng. Quầy Lan là quầy ngoài giờ. Cửa sổ Phòng 101 nhìn vào sân sáng và dãy phòng lân cận. Dùng các cảnh nền làm mốc định hướng. Phần người chơi đi được kết thúc tại ranh LOC04 trong CH01. Giữ T09 sau T08 và điểm trở về AP01 ở R theo thiết kế dưới đây.
 
 Người chơi có thể quay lại các điểm chưa kiểm, đọc giấy theo thứ tự khác hoặc bỏ khám phá phụ. Riêng các thay đổi hiện thực R/B đều dùng giao dịch và checkpoint an toàn, không đưa Minh vào collider hoặc khóa lối khi quay về.
 
