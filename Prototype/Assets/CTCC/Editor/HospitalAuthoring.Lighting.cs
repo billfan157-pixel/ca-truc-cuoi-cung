@@ -19,8 +19,8 @@ namespace CTCC.Editor
             // Clear Unity default bright procedural skybox so dark hospital reflections NEVER glow white!
             RenderSettings.skybox = null;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.17f, 0.24f, 0.29f);
-            RenderSettings.ambientEquatorColor = new Color(0.115f, 0.155f, 0.175f);
+            RenderSettings.ambientSkyColor = new Color(.21f, .27f, .303f);
+            RenderSettings.ambientEquatorColor = new Color(.151f, .185f, .199f);
             RenderSettings.ambientGroundColor = new Color(0.068f, 0.064f, 0.055f);
             RenderSettings.fog = art;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
@@ -33,7 +33,8 @@ namespace CTCC.Editor
             var camera = rig.gameObject.AddComponent<Camera>();
             rig.tag = "MainCamera";
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(0.036f, 0.058f, 0.084f);
+            // Match R horizon fog (0.068, 0.105, 0.132) so 3-story An Sinh roofline, corrugated roof & water tower silhouette cleanly!
+            camera.backgroundColor = new Color(0.066f, 0.098f, 0.128f);
             camera.fieldOfView = 62f;
             camera.nearClipPlane = 0.055f;
             camera.farClipPlane = 190f;
@@ -49,31 +50,43 @@ namespace CTCC.Editor
             var moon = Group("Overcast monsoon moonlight", permanent).gameObject.AddComponent<Light>();
             moon.type = LightType.Directional;
             moon.transform.rotation = Quaternion.Euler(34f, 192f, 0f);
-            moon.color = new Color(0.60f, 0.78f, 0.94f);
+            moon.color = new Color(.69f, .79f, .88f);
             moon.intensity = art ? 1.38f : 1.7f;
             moon.shadows = LightShadows.Soft;
-            moon.shadowStrength = 0.86f;
+            moon.shadowStrength = .76f;
             moon.shadowBias = 0.04f;
             moon.shadowNormalBias = 0.35f;
 
             // --- R (2012) Atmospheric Warm/Cool Contrast Lighting (auto-routed to LOC01..04!) ---
             var coolNight = new Color(0.48f, 0.68f, 0.84f);
             var warmSodium = new Color(0.95f, 0.72f, 0.44f);
-            var subtleBounce = new Color(0.54f, 0.68f, 0.76f);
+            var subtleBounce = new Color(.65f, .73f, .76f);
 
             var canopyLamp = Lamp("Key below entry canopy", LightType.Spot, new Vector3(4.0f, 2.68f, -8.65f), 5.2f, 12.0f, warmSodium, permanent, shadow: art);
             canopyLamp.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
             canopyLamp.spotAngle = 124f;
             canopyLamp.innerSpotAngle = 68f;
             canopyLamp.shadowStrength = 0.85f;
-            Lamp("Street wash at the gate", LightType.Point, new Vector3(6.03f, 3.60f, -19.75f), 3.35f, 13.0f, new Color(0.76f, 0.78f, 0.70f), permanent);
+            Lamp("Street wash at the gate", LightType.Point, new Vector3(6.03f, 3.60f, -20.55f), 3.9f, 14.2f, new Color(.82f, .83f, .78f), permanent);
+            if (art)
+            {
+                Lamp("Sodium spill reflected by the wet court", LightType.Point, new Vector3(3.07f, 1.65f, -12.8f),
+                    1.45f, 11.2f, new Color(.85f, .78f, .65f), real);
+                var threshold = Lamp("Street-side wash along gate ironwork", LightType.Spot, new Vector3(3.9f, 3.36f, -23.1f),
+                    3.4f, 9.3f, new Color(.82f, .80f, .72f), real);
+                threshold.transform.LookAt(new Vector3(4.3f, 1.06f, -19.8f));
+                threshold.spotAngle = 91f;
+                threshold.innerSpotAngle = 51f;
+                Lamp("Return from under the entry eave", LightType.Point, new Vector3(5.42f, 1.53f, -10.8f),
+                    .91f, 8.6f, subtleBounce, real);
+            }
             Lamp("Bounced entry spill", LightType.Point, new Vector3(4.6f, 2.35f, -4.5f), 1.24f, 8.8f, coolNight, permanent);
             Lamp("Emergency glass return", LightType.Point, new Vector3(6.20f, 2.65f, 19.48f), 1.48f, 9.8f, coolNight, permanent);
             Lamp("Wayfinding on staff corridor", LightType.Point, new Vector3(0.2f, 2.66f, 8.3f), 0.72f, 11.0f, coolNight, permanent);
 
             // Calibrated horror bounce fills in R (deep atmospheric shadows without crushing clues or architectural depth!)
-            Lamp("Room 101 floor bounce R", LightType.Point, new Vector3(9.4f, 1.45f, 5.2f), 1.18f, 8.2f, subtleBounce, real);
-            Lamp("Back wall warm dust bounce R", LightType.Point, new Vector3(12.2f, 2.15f, 4.4f), 0.65f, 6.8f, new Color(0.80f, 0.74f, 0.60f), real);
+            Lamp("Room 101 floor bounce R", LightType.Point, new Vector3(9.32f, 1.76f, 5.46f), 1.92f, 8.7f, subtleBounce, real);
+            Lamp("Back wall warm dust bounce R", LightType.Point, new Vector3(12.15f, 2.50f, 4.02f), .93f, 6.4f, new Color(0.80f, 0.74f, 0.60f), real);
             Lamp("Dry store readable spill R", LightType.Point, new Vector3(15.6f, 2.45f, 3.65f), 1.66f, 6.2f, new Color(0.86f, 0.78f, 0.62f), real);
             var corrSpill = Lamp("Corridor doorway spill R", LightType.Spot, new Vector3(6.6f, 2.45f, 4.75f), 3.2f, 9.2f, coolNight, real, shadow: art);
             corrSpill.transform.LookAt(new Vector3(3.1f, 0.35f, 4.75f));
@@ -82,14 +95,18 @@ namespace CTCC.Editor
             Lamp("Corridor ambient depth R", LightType.Point, new Vector3(4.0f, 2.55f, 4.95f), 0.84f, 8.4f, coolNight, real);
             Lamp("Corridor mid bounce R", LightType.Point, new Vector3(4.0f, 2.55f, 10.6f), 0.96f, 8.2f, coolNight, real);
             Lamp("Corridor far red emergency hint R", LightType.Point, new Vector3(4.2f, 2.75f, 14.2f), 1.05f, 8.5f, new Color(0.88f, 0.28f, 0.22f), real);
-            Lamp("Desk readable spill R", LightType.Point, new Vector3(2.35f, 2.45f, -3.5f), 1.18f, 7.2f, new Color(0.72f, 0.78f, 0.74f), real);
-            Lamp("Reception desk lamp warm glow", LightType.Point, new Vector3(1.88f, 1.56f, -3.45f), 1.35f, 4.2f, new Color(0.98f, 0.76f, 0.46f), permanent);
+            Lamp("Desk readable spill R", LightType.Point, new Vector3(2.90f, 2.26f, -3.86f), 1.75f, 8.05f, new Color(0.72f, 0.78f, 0.74f), real);
+            // Subtle eerie warm desk lamp glow stays visible in R (walkthrough B02 uncanny cue); brighter active shift pool in B!
+            Lamp("Reception desk lamp warm glow", LightType.Point, new Vector3(1.31f, 1.46f, -4.21f), .55f, 3.10f, new Color(1f, .82f, .58f), permanent);
+            Lamp("Reception desk lamp active B", LightType.Point, new Vector3(1.36f, 1.48f, -4.18f), .68f, 3.40f, new Color(1f, .88f, .68f), report);
+            // Warm localized gooseneck reading lamp pool over STAFF nursing desk in 2005 B (dark & cold in 2012 R!)
+            Lamp("Staff desk sconce B", LightType.Point, new Vector3(0.54f, 1.56f, 3.22f), 1.35f, 4.2f, new Color(0.98f, 0.88f, 0.68f), report);
 
             // --- B (2005) Institutional Operational Fluorescent T8 Fixtures ---
-            var cleanTube = new Color(0.86f, 0.96f, 0.87f);
+            var cleanTube = new Color(.94f, .97f, .89f);
             Tube(new Vector3(4.00f, 3.59f, 4.75f), 0f, cleanTube, 3.1f, castShadow: art);
             Tube(new Vector3(4.00f, 3.59f, 10.60f), 0f, cleanTube, 2.3f, castShadow: false);
-            Tube(new Vector3(2.15f, 3.59f, -3.20f), 0f, cleanTube, 2.8f, castShadow: false);
+            Tube(new Vector3(1.28f, 3.59f, -3.21f), 0f, cleanTube, 2.24f, castShadow: false);
             Tube(new Vector3(6.32f, 3.59f, -4.58f), 0f, cleanTube, 2.2f, castShadow: false);
             Tube(new Vector3(7.80f, 3.59f, 5.00f), 90f, cleanTube, 3.4f, castShadow: art);
             var bed4Tube = Tube(new Vector3(11.55f, 3.59f, 5.20f), 90f, cleanTube, 3.1f, castShadow: art);
@@ -99,7 +116,7 @@ namespace CTCC.Editor
 
             Lamp("Room 101 GI bounce B", LightType.Point, new Vector3(9.65f, 0.85f, 5.0f), 0.82f, 8.8f, new Color(0.76f, 0.82f, 0.72f), report);
             Lamp("Corridor GI bounce B", LightType.Point, new Vector3(4.0f, 0.95f, 5.5f), 0.65f, 8.8f, new Color(0.74f, 0.80f, 0.72f), report);
-            Lamp("Reception GI bounce B", LightType.Point, new Vector3(4.0f, 1.05f, -3.5f), 0.78f, 8.5f, new Color(0.78f, 0.84f, 0.76f), report);
+            Lamp("Reception GI bounce B", LightType.Point, new Vector3(3.35f, 1.10f, -3.5f), .83f, 7.4f, new Color(.86f, .87f, .81f), report);
 
             if (!art)
                 return;
@@ -107,9 +124,9 @@ namespace CTCC.Editor
             // --- Hero Shadow-Casting Window Spotlights in R ---
             var winSpecs = new (float x, float intensity, bool shadow)[]
             {
-                (7.35f, 9.6f, true),
-                (10.28f, 8.9f, true),
-                (12.39f, 5.6f, false)
+                (7.35f, 8.3f, true),
+                (10.28f, 7.5f, true),
+                (12.39f, 5.0f, false)
             };
             foreach (var w in winSpecs)
             {
@@ -125,7 +142,7 @@ namespace CTCC.Editor
                     beam.shadowBias = 0.025f;
                     beam.shadowNormalBias = 0.22f;
                 }
-                LightShaft(new Vector3(w.x, 1.92f, 7.98f), to, w.x > 11.5f ? 0.65f : 0.96f, 1.05f, real);
+                if (w.shadow) LightShaft(new Vector3(w.x, 1.92f, 7.98f), to, .71f, .72f, real);
             }
             Lamp("Courtyard distant amber glow", LightType.Point, new Vector3(10.2f, 3.2f, 13.8f), 6.8f, 16f, new Color(0.92f, 0.64f, 0.36f), real);
 
@@ -149,8 +166,13 @@ namespace CTCC.Editor
             Fan(new Vector3(4.30f, 3.58f, -3.94f));
 
             // --- Weather & Atmosphere: Monsoon Rain, Exterior Courtyard Mist, Dust Motes & Volumetric Cones (Upgrade #7) ---
-            Rain(new Vector3(9.72f, 4.1f, 9.2f), new Vector3(9.2f, 0.18f, 2.2f), 380);
-            Rain(new Vector3(4, 4.6f, -13.6f), new Vector3(15, 0.21f, 13.5f), 460);
+            Rain("Light court rain", new Vector3(9.72f, 4.1f, 9.2f), new Vector3(9.2f, .18f, 2.2f), 285,
+                multiScene ? zones["LOC03"].real : real);
+            Rain("Exterior rain", new Vector3(4f, 4.6f, -15.18f), new Vector3(15f, .21f, 9.4f), 370, real);
+            Rain("Canopy eave runoff", new Vector3(5.94f, 2.73f, -11.06f), new Vector3(.66f, .025f, .060f), 23, real, runoff: true);
+            Rain("Ward 101 eave runoff", new Vector3(10.56f, 2.92f, 8.19f), new Vector3(.50f, .03f, .060f), 18,
+                multiScene ? zones["LOC03"].real : real, runoff: true);
+            if (multiScene) AddCh01Puddles();
             DustMotes("Room 101 floating dust motes R", new Vector3(9.35f, 1.65f, 5.85f), new Vector3(5.6f, 2.1f, 3.4f), real,
                 new Color(0.70f, 0.84f, 0.88f, 0.22f), maxParticles: 110, rate: 16f);
             DustMotes("Corridor floating dust motes B", new Vector3(4.00f, 2.15f, 7.60f), new Vector3(2.4f, 2.2f, 10.5f), report,
@@ -161,19 +183,18 @@ namespace CTCC.Editor
                 new Color(0.84f, 0.90f, 0.82f, 0.17f), maxParticles: 48, rate: 7.5f);
             CourtyardMist(new Vector3(4.0f, 0.72f, -15.6f), new Vector3(14.5f, 0.85f, 12.6f), real);
 
-            // Volumetric downward light cones under corridor fluorescent tubes & exterior canopy
-            VolumetricCone("Corridor tube cone S B", new Vector3(4.00f, 3.54f, 4.75f), new Vector3(4.00f, 0.45f, 4.75f), 0.42f, 1.48f, "BeamFluorescent", report);
-            VolumetricCone("Corridor tube cone N B", new Vector3(4.00f, 3.54f, 10.60f), new Vector3(4.00f, 0.55f, 10.60f), 0.42f, 1.42f, "BeamFluorescent", report);
-            VolumetricCone("Reception counter cone B", new Vector3(2.15f, 3.54f, -3.20f), new Vector3(2.35f, 0.85f, -3.20f), 0.36f, 1.32f, "BeamFluorescent", report);
-            VolumetricCone("Canopy sodium cone", new Vector3(4.00f, 2.66f, -8.65f), new Vector3(4.00f, 0.10f, -9.20f), 0.34f, 1.95f, "BeamWarm", permanent);
+            // Volumetric downward light cones under corridor fluorescent tubes & exterior canopy (ALL use smooth _CTCC_ROUND_BEAM!)
+            VolumetricCone("Corridor tube cone S B", new Vector3(4.00f, 3.54f, 4.75f), new Vector3(4.00f, 0.85f, 4.75f), 0.36f, 1.18f, "BeamFluorescent", report, "CH01_HallBeamS");
+            VolumetricCone("Corridor tube cone N B", new Vector3(4.00f, 3.54f, 10.60f), new Vector3(4.00f, 0.85f, 10.60f), 0.36f, 1.18f, "BeamFluorescent", report, "CH01_HallBeamN");
+            VolumetricCone("Canopy sodium cone", new Vector3(4.00f, 2.66f, -8.65f), new Vector3(4.00f, 0.10f, -9.20f), 0.34f, 1.85f, "BeamWarm", permanent, "CH01_CanopyBeam");
 
             // --- Cinematic Horror URP Post-Processing Profiles (Calibrated R 2012 vs B 2005!) ---
-            world.realGrade = Grade("2012", exposure: 0.42f, saturation: -12f, contrast: 12f,
-                filter: new Color(0.92f, 0.97f, 1.0f), vignette: 0.26f, grain: 0.17f, ca: 0.045f,
-                shadowTone: new Color(0.30f, 0.44f, 0.52f), highlightTone: new Color(0.88f, 0.84f, 0.76f));
-            world.reportGrade = Grade("2005", exposure: -0.02f, saturation: -6f, contrast: 10f,
-                filter: new Color(0.96f, 1.0f, 0.94f), vignette: 0.16f, grain: 0.07f, ca: 0.022f,
-                shadowTone: new Color(0.36f, 0.48f, 0.44f), highlightTone: new Color(0.95f, 0.98f, 0.91f));
+            world.realGrade = Grade("2012", exposure: .53f, saturation: -12f, contrast: 5f,
+                filter: new Color(.955f, .976f, 1f), vignette: .21f, grain: .13f, ca: .022f,
+                shadowTone: new Color(.42f, .48f, .51f), highlightTone: new Color(.64f, .59f, .54f), bloomStrength: .21f);
+            world.reportGrade = Grade("2005", exposure: .05f, saturation: -8f, contrast: 6f,
+                filter: new Color(.987f, 1f, .972f), vignette: .14f, grain: .07f, ca: .012f,
+                shadowTone: new Color(.463f, .51f, .49f), highlightTone: new Color(.57f, .55f, .50f), bloomStrength: .14f);
 
             var motion = Group("Ceiling fans and fabric", permanent).gameObject.AddComponent<EnvironmentMotion>();
             motion.blades = movingFans.ToArray();
@@ -212,6 +233,9 @@ namespace CTCC.Editor
             AddGrid(1.0f, 7.0f, 3, -22.0f, -9.0f, 5, exteriorHeights);
             // LOC02 Reception Lobby & Desk (around Lan!)
             AddGrid(0.2f, 7.8f, 4, -7.2f, -0.8f, 3, interiorHeights);
+            // Four levels of falloff across the glass and the chair, shared between the R/B bakes.
+            AddGrid(.32f, 2.28f, 3, -3.94f, -2.66f, 3, new[] { 1.20f, 1.94f });
+            AddGrid(2.05f, 5.98f, 3, -11.05f, -10.44f, 2, new[] { .44f, 1.42f });
             // LOC03 Main Corridor + Staff Corridor
             AddGrid(3.0f, 5.0f, 2, 0.8f, 15.2f, 6, interiorHeights);
             AddGrid(-0.5f, 0.8f, 2, 1.0f, 15.0f, 4, new[] { 0.7f, 1.8f });
@@ -456,7 +480,7 @@ namespace CTCC.Editor
         }
 
         private Volume Grade(string key, float exposure, float saturation, float contrast, Color filter,
-            float vignette, float grain, float ca, Color shadowTone, Color highlightTone)
+            float vignette, float grain, float ca, Color shadowTone, Color highlightTone, float bloomStrength)
         {
             string path = Root + "/Generated/" + key + "-grade.asset";
             var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
@@ -487,8 +511,8 @@ namespace CTCC.Editor
             split.balance.Override(-15f);
 
             var bloom = Part<Bloom>();
-            bloom.intensity.Override(0.30f);
-            bloom.threshold.Override(1.06f);
+            bloom.intensity.Override(bloomStrength);
+            bloom.threshold.Override(1.18f);
             bloom.scatter.Override(0.62f);
 
             var vig = Part<Vignette>();
@@ -546,13 +570,13 @@ namespace CTCC.Editor
             renderer.shadowCastingMode = ShadowCastingMode.Off;
         }
 
-        private void VolumetricCone(string name, Vector3 top, Vector3 bottom, float topRadius, float bottomRadius, string matKey, Transform parent)
+        private void VolumetricCone(string name, Vector3 top, Vector3 bottom, float topRadius, float bottomRadius, string matKey, Transform parent, string roundMatName = null)
         {
             var node = Group(name, ResolveParent(parent, top));
-            const int segs = 12;
+            const int segs = 16;
             var verts = new Vector3[(segs + 1) * 2];
             var uvs = new Vector2[(segs + 1) * 2];
-            var tris = new int[segs * 12]; // Double-sided open frustum — smooth from EVERY camera angle, zero crossed-plane seam!
+            var tris = new int[segs * 6]; // Single-sided outward open frustum (half the overdraw, zero hard back-face double-blend!)
             int ti = 0;
             for (int i = 0; i <= segs; i++)
             {
@@ -566,18 +590,28 @@ namespace CTCC.Editor
                 if (i < segs)
                 {
                     int a0 = i * 2, a1 = a0 + 1, b0 = a0 + 2, b1 = a0 + 3;
-                    tris[ti++] = a0; tris[ti++] = b0; tris[ti++] = a1;
-                    tris[ti++] = b0; tris[ti++] = b1; tris[ti++] = a1;
+                    // Unity left-handed clockwise outward front-face winding (works with _Cull = Back!)
                     tris[ti++] = a0; tris[ti++] = a1; tris[ti++] = b0;
                     tris[ti++] = b0; tris[ti++] = a1; tris[ti++] = b1;
                 }
             }
             var mesh = new Mesh { name = name, vertices = verts, uv = uvs, triangles = tris };
+            mesh.RecalculateNormals();
             mesh.RecalculateBounds();
             StoreMesh(mesh);
             node.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = node.gameObject.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = Mat(matKey);
+            Material mat = Mat(matKey);
+            if (!string.IsNullOrEmpty(roundMatName))
+            {
+                mat = RebirthMaterial(roundMatName, mat);
+                mat.SetVector("_ConeTop", new Vector4(top.x, top.y, top.z, 0f));
+                mat.SetVector("_ConeBottom", new Vector4(bottom.x, bottom.y, bottom.z, 0f));
+                mat.SetFloat("_Cull", (float)CullMode.Back);
+                mat.EnableKeyword("_CTCC_ROUND_BEAM");
+                EditorUtility.SetDirty(mat);
+            }
+            renderer.sharedMaterial = mat;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
         }
 
@@ -667,17 +701,18 @@ namespace CTCC.Editor
             else atmosphericParticles.Add(p);
         }
 
-        private void Rain(Vector3 position, Vector3 footprint, float rate)
+        private void Rain(string name, Vector3 position, Vector3 footprint, float rate, Transform parent, bool runoff = false)
         {
-            var p = Group("Exterior rain", ResolveParent(real, position), position).gameObject.AddComponent<ParticleSystem>();
+            var p = Group(name, ResolveParent(parent, position), position).gameObject.AddComponent<ParticleSystem>();
             var main = p.main;
             main.loop = true;
-            main.startLifetime = 0.68f;
+            main.startLifetime = runoff ? new ParticleSystem.MinMaxCurve(.48f, .62f) : new ParticleSystem.MinMaxCurve(.48f, .65f);
             main.startSpeed = 0f;
-            main.startSize = 0.012f;
-            main.startColor = new Color(0.62f, 0.78f, 0.88f, 0.36f);
+            main.startSize = runoff ? new ParticleSystem.MinMaxCurve(.007f, .013f) : new ParticleSystem.MinMaxCurve(.004f, .009f);
+            main.startColor = new ParticleSystem.MinMaxGradient(new Color(.48f, .57f, .66f, .19f),
+                new Color(.66f, .76f, .84f, runoff ? .50f : .37f));
             main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.maxParticles = 620;
+            main.maxParticles = runoff ? 24 : 270;
             var shape = p.shape;
             shape.shapeType = ParticleSystemShapeType.Box;
             shape.scale = footprint;
@@ -686,9 +721,9 @@ namespace CTCC.Editor
             var velocity = p.velocityOverLifetime;
             velocity.enabled = true;
             velocity.space = ParticleSystemSimulationSpace.World;
-            velocity.x = 0.92f;
-            velocity.y = -9.2f;
-            velocity.z = -0.32f;
+            velocity.x = runoff ? new ParticleSystem.MinMaxCurve(-.10f, .14f) : new ParticleSystem.MinMaxCurve(1.06f, 1.83f);
+            velocity.y = runoff ? new ParticleSystem.MinMaxCurve(-5.0f, -4.55f) : new ParticleSystem.MinMaxCurve(-9.7f, -7.3f);
+            velocity.z = runoff ? new ParticleSystem.MinMaxCurve(-.08f, .08f) : new ParticleSystem.MinMaxCurve(-.61f, -.14f);
             const string path = Root + "/Generated/Materials/WeatherRain.mat";
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat == null)
@@ -696,13 +731,15 @@ namespace CTCC.Editor
                 mat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
                 AssetDatabase.CreateAsset(mat, path);
             }
-            Transparent(mat, new Color(0.71f, 0.84f, 0.92f, 0.34f));
+            Transparent(mat, new Color(.79f, .87f, .92f, .62f));
             var renderer = p.GetComponent<ParticleSystemRenderer>();
             renderer.sharedMaterial = mat;
             renderer.renderMode = ParticleSystemRenderMode.Stretch;
-            renderer.lengthScale = 2.8f;
-            renderer.velocityScale = 0.085f;
+            renderer.lengthScale = runoff ? 1.45f : 2.1f;
+            renderer.velocityScale = runoff ? .018f : .037f;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
+            var particles = multiScene ? ZoneForTransform(p.transform).atmosphericParticles : atmosphericParticles;
+            particles.Add(p);
         }
 
         private EnvironmentalAudio BuildAudio()
@@ -744,7 +781,8 @@ namespace CTCC.Editor
             AddLoop("Roof", new Vector3(9.4f, 2.3f, 8.85f), 0.72f, 15, false, occluded: true);
             AddLoop("Roof", new Vector3(-16.0f, 3.2f, -10.0f), 0.44f, 28, false, occluded: true);
             AddLoop("Rumble", new Vector3(5.52f, 2.2f, -10.0f), 0.48f, 24, false, occluded: true);
-            AddLoop("Drips", new Vector3(9.85f, 0.39f, 7.65f), 0.72f, 9, false, occluded: false);
+            AddLoop("Drips", new Vector3(5.97f, .30f, -10.98f), .25f, 6.5f, false);
+            AddLoop("Drips", new Vector3(10.42f, .37f, 8.46f), .50f, 8f, false);
             AddLoop("Drips", new Vector3(35.8f, -2.5f, 42.0f), 0.56f, 10, false, occluded: false);
             AddLoop("Fan", new Vector3(1.36f, 2.85f, -3.77f), 0.56f, 13, true);
             AddLoop("Fan", new Vector3(9.31f, 2.94f, 5.41f), 0.64f, 11, true);

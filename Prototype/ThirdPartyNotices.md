@@ -34,6 +34,12 @@ Toàn bộ tài sản môi trường/đạo cụ (36 tài sản M1 kế thừa +
 - Bản chơi phân phối WAV đã hậu kỳ và dữ liệu khẩu hình 30 Hz của dự án (11 track nhân vật gồm `CH03-D03` & `CH03-D05`). Các chương trình dựng, mô hình AI và preset giọng dùng ngoài bản chơi. Nguồn và dấu vân tay WAV tại `docs/m2/evidence/audio/masters.json` và `docs/m3/evidence/ch03-audio-masters.json`. Bộ thoại là ứng viên M2/M3.0. Đánh giá nội dung và diễn xuất thuộc `TASK009-B`/`TASK028`.
 - **9 URP 17.3 HLSL shader gốc (SRP Batcher & Forward+):** 4 shader M2-A (`RainWindowGlass.shader`, `TropicalFoliage.shader`, `WindowLight.shader`, `ApparitionSoft.shader`) + 5 shader Digital Human M2-C (`DigitalHumanSkin.shader`, `DigitalHumanEye.shader`, `DigitalHumanHair.shader`, `DigitalHumanFabric.shader`, `ApparitionHuman.shader`).
 
+## Mỹ thuật Chương 01 (2026-11-26)
+
+- Nhóm dự án tự tạo ống thoát mái, cửa chớp thay thế, ghế trực, kệ hồ sơ, sổ làm việc và bộ vật dụng phòng 101. Bản nguồn Blender trong `ArtSource/Blender`, FBX trong `Prototype/Assets/CTCC/Art/Meshes` và trình dựng `tools/blender_assets/build_ch01_art.py`. Đạo cụ dùng vật liệu gốc của An Sinh và các bản đồ CC0 đã ghi ở trên. Sáu mẫu này dùng trong build thương mại của dự án.
+- `tools/bake_ch01_art.py` tạo năm lớp vệt cục bộ và bản đồ độ nhám mặt sân. Bản đồ thớ giấy dùng nhiễu sinh tại chỗ. Shader kính quầy và gợn mưa do dự án viết. Tiếng giọt mái dùng lại loop `Drips` đã có của An Sinh, lấy từ cùng nhóm âm thanh tổng hợp.
+- Ba clip Lan ghi sổ, lắng nghe và chỉ về BOARD được tạo bằng `HospitalAuthoring.LanReception.cs` từ rig và thư viện chuyển động hiện có. Các nguồn CC0 MakeHuman và ghi nhận CMU ở trên tiếp tục áp dụng. Các clip dùng rig và tên nhân vật của dự án.
+
 ## Typeface
 
 [Be Vietnam Pro](https://github.com/google/fonts/tree/main/ofl/bevietnampro), Be Vietnam Pro Project Authors, theo SIL Open Font License 1.1. Văn bản giấy phép ở [OFL.txt](Assets/CTCC/Art/Resources/CTCC/OFL.txt).
@@ -44,7 +50,7 @@ Toàn bộ tài sản môi trường/đạo cụ (36 tài sản M1 kế thừa +
 
 ## Bộ đạo cụ kỹ thuật M3.1
 
-Bậc terrazzo, xe thuốc, tủ khô và bảng tải là thiết kế hư cấu do dự án dựng bằng Blender 4.5, với mã dựng tại `tools/blender_assets/build_m31_service_kit.py`. Tệp `.blend` và FBX cùng tên đi kèm mã nguồn. Vật liệu dùng thư viện nội bộ và các lớp PBR CC0 đã kê ở trên. Không đưa ảnh hồ sơ, nhãn bệnh viện hoặc bản vẽ nhà sản xuất vào bản chơi. Tham chiếu và các chi tiết cần duyệt được ghi trong [mặt cắt M3.1](../docs/m3/m31-world.md).
+Bậc terrazzo, xe thuốc, tủ khô và bảng tải là thiết kế hư cấu do dự án dựng bằng Blender 4.5, với mã dựng tại `tools/blender_assets/build_m31_service_kit.py`. Tệp `.blend` và FBX cùng tên đi kèm mã nguồn. Vật liệu dùng thư viện nội bộ và các lớp PBR CC0 đã kê ở trên. Không đưa ảnh hồ sơ, nhãn bệnh viện hoặc bản vẽ nhà sản xuất vào bản chơi. Tham chiếu và các chi tiết cần duyệt được ghi trong [mặt cắt M3.1](../docs/archive/m3-history/m31/m31-world.md).
 
 ## Foley walkthrough CH01
 

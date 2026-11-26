@@ -88,47 +88,55 @@ def build_hospital_facade():
 
 def build_gatehouse():
     """Brick & weathered limewash Vietnamese hospital security guardhouse (nhà bảo vệ: 2.6 x 2.3 x 2.85 m)
-    beside LOC01 side gate, with overhanging awning roof, sliding counter window, interior wooden desk & stool."""
+    beside LOC01 side gate (placed at x=8.55, z=-18.55). Both SOUTH (-Y, facing exterior approach) AND
+    WEST (-X, facing the entry gate!) have brick plinths, concrete sills, sliding guard windows & caged porch lamp!"""
     objs = []
     # Concrete base pad
     objs.append(C.make_box("GH_Pad", (0, 0, 0.06), (2.85, 2.55, 0.12), "BaseTrim", bevel=0.012, uv_scale=1.5))
-    # Lower brick wainscot walls (3 closed sides + counter front wall up to Z=1.08 m)
-    objs.append(C.make_box("GH_BackWall", (0, 1.05, 1.38), (2.50, 0.18, 2.52), "ExteriorFacade", bevel=0.012, uv_scale=2.0))
-    objs.append(C.make_box("GH_LeftWall", (-1.16, 0, 1.38), (0.18, 2.28, 2.52), "ExteriorFacade", bevel=0.012, uv_scale=2.0))
+    # Back (+Y) and East (+X) solid masonry walls w/ brick lower plinth so every angle looks grounded
+    objs.append(C.make_box("GH_BackLower", (0, 1.05, 0.60), (2.50, 0.18, 1.06), "WeatheredBrick", bevel=0.010, uv_scale=1.2))
+    objs.append(C.make_box("GH_BackUpper", (0, 1.05, 1.88), (2.50, 0.18, 1.52), "ExteriorFacade", bevel=0.012, uv_scale=2.0))
     objs.append(C.make_box("GH_RightLower", (1.16, 0, 0.60), (0.18, 2.28, 1.06), "WeatheredBrick", bevel=0.010, uv_scale=1.2))
-    objs.append(C.make_box("GH_RightUpper", (1.16, 0, 2.40), (0.18, 2.28, 0.48), "ExteriorFacade", bevel=0.010, uv_scale=1.8))
+    objs.append(C.make_box("GH_RightUpper", (1.16, 0, 1.88), (0.18, 2.28, 1.52), "ExteriorFacade", bevel=0.012, uv_scale=2.0))
+    # Gate-facing WEST (-X) and Approach-facing SOUTH (-Y) counter walls with sliding security windows!
+    objs.append(C.make_box("GH_LeftLower", (-1.16, 0, 0.60), (0.18, 2.28, 1.06), "WeatheredBrick", bevel=0.010, uv_scale=1.2))
+    objs.append(C.make_box("GH_LeftUpper", (-1.16, 0, 2.40), (0.18, 2.28, 0.48), "ExteriorFacade", bevel=0.010, uv_scale=1.8))
     objs.append(C.make_box("GH_FrontLower", (0, -1.05, 0.60), (2.50, 0.18, 1.06), "WeatheredBrick", bevel=0.010, uv_scale=1.2))
     objs.append(C.make_box("GH_FrontUpper", (0, -1.05, 2.40), (2.50, 0.18, 0.48), "ExteriorFacade", bevel=0.010, uv_scale=1.8))
     # Corner masonry piers
     for cx in (-1.16, 1.16):
         for cy in (-1.05, 1.05):
-            objs.append(C.make_box(f"GH_Corner_{cx:.1f}_{cy:.1f}", (cx, cy, 1.38), (0.24, 0.24, 2.54), "ExteriorFacade", bevel=0.012))
+            objs.append(C.make_box(f"GH_Corner_{cx:.1f}_{cy:.1f}", (cx, cy, 1.38), (0.24, 0.24, 2.54), "ExteriorFacade", bevel=0.012, uv_scale=2.0))
 
-    # Front & gate-facing sliding steel window frames + dusty glass panes + outer concrete ledge
+    # Front (-Y) & Gate-facing West (-X) sliding steel window frames + dusty glass panes + outer concrete sills
     objs.append(C.make_box("GH_FrontSill", (0, -1.14, 1.12), (2.30, 0.34, 0.07), "BaseTrim", bevel=0.008))
-    objs.append(C.make_box("GH_RightSill", (1.24, 0, 1.12), (0.34, 2.08, 0.07), "BaseTrim", bevel=0.008))
+    objs.append(C.make_box("GH_LeftSill", (-1.24, 0, 1.12), (0.34, 2.08, 0.07), "BaseTrim", bevel=0.008))
     objs.append(C.make_box("GH_FrontGlassL", (-0.52, -1.05, 1.65), (1.02, 0.02, 1.00), "FrostedGlass", bevel=0.002))
     objs.append(C.make_box("GH_FrontGlassR", (0.56, -1.02, 1.65), (0.94, 0.02, 1.00), "Glass", bevel=0.002))
-    objs.append(C.make_box("GH_RightGlass", (1.16, 0, 1.65), (0.02, 1.92, 1.00), "Glass", bevel=0.002))
-    # Steel window muntins
+    objs.append(C.make_box("GH_LeftGlassS", (-1.16, -0.48, 1.65), (0.02, 0.94, 1.00), "Glass", bevel=0.002))
+    objs.append(C.make_box("GH_LeftGlassN", (-1.13, 0.48, 1.65), (0.02, 0.94, 1.00), "FrostedGlass", bevel=0.002))
+    # Steel window muntins & top/bottom steel casement bars
     for wx in (-1.02, 0.0, 1.02):
         objs.append(C.make_box(f"GH_FBar_{wx:.1f}", (wx, -1.05, 1.65), (0.04, 0.05, 1.04), "Frame", bevel=0.004))
     for wy in (-0.95, 0.0, 0.95):
-        objs.append(C.make_box(f"GH_RBar_{wy:.1f}", (1.16, wy, 1.65), (0.05, 0.04, 1.04), "Frame", bevel=0.004))
+        objs.append(C.make_box(f"GH_LBar_{wy:.1f}", (-1.16, wy, 1.65), (0.05, 0.04, 1.04), "Frame", bevel=0.004))
+    objs.append(C.make_box("GH_LMidRail", (-1.16, 0, 1.92), (0.05, 1.94, 0.036), "Frame", bevel=0.003))
+    objs.append(C.make_box("GH_FMidRail", (0, -1.05, 1.92), (2.06, 0.05, 0.036), "Frame", bevel=0.003))
 
-    # Sloped overhanging monsoon concrete awning roof + rain gutter fascia
-    objs.append(C.make_box("GH_Roof", (0, -0.06, 2.74), (3.25, 3.05, 0.16), "BaseTrim", bevel=0.016, rot=(math.radians(5), 0, 0), uv_scale=1.6))
-    objs.append(C.make_box("GH_RoofFascia", (0, -1.56, 2.62), (3.30, 0.08, 0.22), "MetalOld", bevel=0.006))
+    # Sloped overhanging monsoon concrete awning roof + weathered metal fascia
+    objs.append(C.make_box("GH_Roof", (0, -0.06, 2.74), (3.32, 3.08, 0.16), "BaseTrim", bevel=0.016, rot=(math.radians(5), 0, 0), uv_scale=1.6))
+    objs.append(C.make_box("GH_RoofFasciaS", (0, -1.58, 2.62), (3.36, 0.08, 0.22), "MetalOld", bevel=0.006))
+    objs.append(C.make_box("GH_RoofFasciaW", (-1.66, -0.06, 2.72), (0.08, 3.10, 0.20), "MetalOld", bevel=0.006, rot=(math.radians(5), 0, 0)))
 
-    # Interior storytelling: guard desk, stool, open register & thermos silhouette visible through glass!
-    objs.append(C.make_box("GH_DeskTop", (0.35, -0.35, 0.78), (1.35, 0.65, 0.05), "Wood", bevel=0.005))
-    for dx in (-0.28, 0.98):
-        for dy in (-0.62, -0.08):
+    # Interior storytelling: guard desk, ledger & dark interior backdrop visible through both windows!
+    objs.append(C.make_box("GH_DeskTop", (-0.25, -0.30, 0.78), (1.35, 0.65, 0.05), "Wood", bevel=0.005, uv_rot90=True))
+    for dx in (-0.88, 0.38):
+        for dy in (-0.58, -0.04):
             objs.append(C.make_box(f"GH_Leg_{dx:.1f}_{dy:.1f}", (dx, dy, 0.42), (0.05, 0.05, 0.70), "Wood", bevel=0.004))
-    objs.append(C.make_box("GH_Ledger", (0.55, -0.42, 0.82), (0.34, 0.24, 0.03), "Paper", bevel=0.002, rot=(0, 0, 0.18)))
-    # Exterior caged bulkhead porch lamp on front-right pier
-    objs.append(C.make_cylinder("GH_LampBase", (1.28, -0.82, 2.28), (1.34, -0.82, 2.28), 0.085, "MetalOld", segments=14))
-    objs.append(C.make_sphere("GH_LampGlobe", (1.36, -0.82, 2.28), (0.11, 0.13, 0.13), "WarmGlow", segs=14, rings=8))
+    objs.append(C.make_box("GH_Ledger", (-0.42, -0.36, 0.82), (0.34, 0.24, 0.03), "Paper", bevel=0.002, rot=(0, 0, 0.18)))
+    # Exterior caged bulkhead porch lamp mounted on GATE-FACING (-X) front-west corner pier!
+    objs.append(C.make_cylinder("GH_LampBase", (-1.28, -0.82, 2.26), (-1.34, -0.82, 2.26), 0.082, "MetalOld", segments=14))
+    objs.append(C.make_sphere("GH_LampGlobe", (-1.36, -0.82, 2.26), (0.095, 0.115, 0.115), "WarmGlow", segs=14, rings=8))
     return objs
 
 
@@ -153,22 +161,23 @@ def build_courtyard_fence_bay():
 
 def build_reception_partition():
     """Authentic 1990s-2000s Vietnamese hospital reception counter glazed timber partition (length 2.55 m, height 1.15 m above counter).
-    Leaves open right-side passway for Lan to step cleanly out from behind the desk!"""
+    Horizontal rails align wood grain lengthwise (uv_rot90=True) to eliminate vertical zebra striping!"""
     objs = []
-    # Base wooden sill rail resting on counter top (Z=0)
-    objs.append(C.make_box("RP_Sill", (0, 0, 0.03), (0.10, 2.56, 0.06), "WoodDoor", bevel=0.005))
-    objs.append(C.make_box("RP_Header", (0, 0, 1.12), (0.11, 2.58, 0.08), "WoodDoor", bevel=0.006))
-    # 4 Vertical timber mullions creating 3 bays (center bay has classic pass-through speaking slot!)
+    # Base wooden sill rail & top header with lengthwise wood grain (uv_rot90=True)
+    objs.append(C.make_box("RP_Sill", (0, 0, 0.03), (0.10, 2.56, 0.06), "WoodDoor", bevel=0.005, uv_scale=0.85, uv_rot90=True))
+    objs.append(C.make_box("RP_Header", (0, 0, 1.12), (0.11, 2.58, 0.08), "WoodDoor", bevel=0.006, uv_scale=0.85, uv_rot90=True))
+    # Subtle cornice cap lip along top header for authentic Vietnamese joinery profile
+    objs.append(C.make_box("RP_HeaderCap", (0, 0, 1.17), (0.135, 2.62, 0.026), "WoodDoor", bevel=0.004, uv_scale=0.85, uv_rot90=True))
+    # 4 Vertical timber mullions creating 3 bays (vertical grain)
     for my in (-1.24, -0.42, 0.42, 1.24):
-        objs.append(C.make_box(f"RP_Mullion_{my:.2f}", (0, my, 0.58), (0.085, 0.07, 1.08), "WoodDoor", bevel=0.005))
-    # Side bay glass panes (full height)
+        objs.append(C.make_box(f"RP_Mullion_{my:.2f}", (0, my, 0.58), (0.085, 0.07, 1.08), "WoodDoor", bevel=0.005, uv_scale=0.85))
+    # Side bay glass panes (full height) + horizontal mid transom rail (lengthwise grain)
     for gy in (-0.83, 0.83):
         objs.append(C.make_box(f"RP_Glass_{gy:.2f}", (0, gy, 0.58), (0.016, 0.76, 1.00), "Glass", bevel=0.001))
-        # Subtle mid transom rail
-        objs.append(C.make_box(f"RP_MidBar_{gy:.2f}", (0, gy, 0.84), (0.045, 0.78, 0.035), "WoodDoor", bevel=0.003))
+        objs.append(C.make_box(f"RP_MidBar_{gy:.2f}", (0, gy, 0.84), (0.048, 0.78, 0.036), "WoodDoor", bevel=0.003, uv_scale=0.85, uv_rot90=True))
     # Center bay glass starts above Z=0.26m leaving realistic document pass-through slit + stainless tray!
     objs.append(C.make_box("RP_CenterGlass", (0, 0, 0.69), (0.016, 0.76, 0.78), "Glass", bevel=0.001))
-    objs.append(C.make_box("RP_PassBar", (0, 0, 0.28), (0.045, 0.78, 0.032), "WoodDoor", bevel=0.003))
+    objs.append(C.make_box("RP_PassBar", (0, 0, 0.28), (0.048, 0.78, 0.034), "WoodDoor", bevel=0.003, uv_scale=0.85, uv_rot90=True))
     objs.append(C.make_box("RP_SteelTray", (0, 0, 0.065), (0.28, 0.62, 0.014), "Steel", bevel=0.004))
     # Overhead steel mounting posts connecting header to reception ceiling
     for py in (-1.18, 1.18):

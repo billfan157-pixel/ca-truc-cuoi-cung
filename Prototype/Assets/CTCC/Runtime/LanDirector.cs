@@ -32,14 +32,11 @@ namespace CTCC
 
         private static readonly (Vector3 pos, Vector3 lookAt, float fov)[] CinematicShots =
         {
-            // Shot 0: Over-the-desk medium two-shot
-            (new Vector3(3.92f, 1.56f, -2.28f), new Vector3(2.48f, 1.44f, -3.55f), 54f),
-            // Shot 1: Closer semi-profile reaction
-            (new Vector3(3.52f, 1.54f, -2.66f), new Vector3(2.54f, 1.48f, -3.66f), 47f),
-            // Shot 2: Wider counter angle keeping the stopped 03:17 wall clock in background (no auto-observation!)
-            (new Vector3(4.24f, 1.60f, -3.32f), new Vector3(1.52f, 1.66f, -3.45f), 60f),
-            // Shot 3: Desk-and-clipboard framing as Lan points toward Room 101 assignment (no auto-pickup!)
-            (new Vector3(3.46f, 1.50f, -2.00f), new Vector3(2.34f, 1.29f, -3.22f), 51f),
+            // Four intimate reception-side compositions (>2.2m) framed cleanly through the upper glass above RP_PassBar.
+            (new Vector3(2.32f, 1.56f, -3.14f), new Vector3(.48f, 1.37f, -3.23f), 38f),
+            (new Vector3(2.26f, 1.53f, -3.34f), new Vector3(.48f, 1.39f, -3.23f), 33f),
+            (new Vector3(2.54f, 1.58f, -3.12f), new Vector3(.24f, 1.54f, -3.25f), 47f),
+            (new Vector3(2.58f, 1.56f, -2.84f), new Vector3(.88f, 1.30f, -3.12f), 43f),
         };
 
         private HospitalScene scene;
@@ -156,33 +153,40 @@ namespace CTCC
             pose = next;
             lan.gameObject.SetActive(pose != ReceptionPose.Absent);
             lan.SetHeldClipboardVisible(false);
+            if (lan.receptionPen != null) lan.receptionPen.SetActive(pose == ReceptionPose.AtCounter);
             if (pose == ReceptionPose.Absent)
             {
                 UpdatePenWritingLoop(false);
                 return;
             }
 
-            var mark = pose == ReceptionPose.BehindGlass ? scene.LanSilhouettePoint : scene.LanStepOutPoint;
+            var mark = pose == ReceptionPose.BehindGlass ? scene.LanSilhouettePoint : scene.LanDeskPoint;
             if (mark == null) mark = scene.LanDeskPoint;
             if (mark != null)
             {
                 lan.transform.SetPositionAndRotation(mark.position, mark.rotation);
                 silhouetteBasePos = mark.position;
             }
-            lan.LookTarget = pose == ReceptionPose.AtCounter ? MinhEye : null;
-            lan.EnableCloseUpAversion = pose == ReceptionPose.AtCounter;
-            lan.GazeYawBias = pose == ReceptionPose.AtCounter ? 9.5f : 0f;
-            lan.GazePitchBias = pose == ReceptionPose.AtCounter ? 3.5f : 0f;
-            lan.SetExpression(0.24f, 0.12f, 0f);
-            lan.PlayAction("Lan_IdleDesk", 0.2f);
+            lan.EnableCloseUpAversion = false;
+            lan.SetExpression(.20f, .12f, 0f);
+            if (pose == ReceptionPose.AtCounter)
+                ResumeWriting(lan, .20f);
+            else
+            {
+                lan.LookTarget = null;
+                lan.GazeYawBias = lan.GazePitchBias = 0f;
+                lan.PlayAction("Lan_IdleDesk", .20f);
+            }
             UpdatePenWritingLoop(pose == ReceptionPose.AtCounter);
         }
 
         private void UpdatePenWritingLoop(bool writing)
         {
             if (scene?.atmosphere == null) return;
-            Vector3 deskPos = scene.LanStepOutPoint != null ? scene.LanStepOutPoint.position + Vector3.up * 1.1f
-                : new Vector3(2.35f, 1.15f, -3.50f);
+            var deskMark = scene.LanDeskPoint;
+            Vector3 deskPos = deskMark != null
+                ? deskMark.position + deskMark.forward * .435f + Vector3.up * 1.15f
+                : new Vector3(.83f, 1.15f, -3.24f);
             scene.atmosphere.SetPenWriting(writing && pose == ReceptionPose.AtCounter, deskPos);
         }
 
@@ -290,9 +294,9 @@ namespace CTCC
 
             Vector3 lanPos = stagedActor.transform.position;
             float dist = Vector2.Distance(new Vector2(player.Feet.x, player.Feet.z), new Vector2(lanPos.x, lanPos.z));
-            if (dist > 3.65f) return;
+            if (dist > 3.65f || player.Feet.x < 2.15f) return;
 
-            Vector3 toLan = (lanPos + Vector3.up * 1.48f) - player.Eye.transform.position;
+            Vector3 toLan = (lanPos + Vector3.up * 1.39f) - player.Eye.transform.position;
             float align = toLan.sqrMagnitude > 0.04f ? Vector3.Dot(player.Eye.transform.forward, toLan.normalized) : 1f;
             if (align < 0.44f) return;
 
@@ -304,11 +308,11 @@ namespace CTCC
         {
             UpdatePenWritingLoop(false);
             lan.LookTarget = MinhEye;
-            lan.GazeYawBias = 5.0f;
-            lan.GazePitchBias = 1.6f;
+            lan.GazeYawBias = 2.8f;
+            lan.GazePitchBias = .8f;
             lan.TriggerMicroBlink();
             lan.SetExpression(0.42f, 0.14f, 0.02f);
-            lan.PlayAction("Lan_Listen", 0.28f);
+            lan.PlayAction("Lan_ReceptionListen", .32f);
 
             // B02 glass-study consequence: Lan holds eye contact 1 beat longer (~0.9s) before speaking!
             float hold = studiedGlass ? 1.55f : 0.65f;
@@ -333,10 +337,8 @@ namespace CTCC
 
             if (!cinematicActive && pose == ReceptionPose.AtCounter && lan != null && lan.gameObject.activeInHierarchy)
             {
-                lan.GazeYawBias = 9.5f;
-                lan.GazePitchBias = 3.5f;
-                lan.SetExpression(0.28f, 0.14f, 0.02f);
-                lan.PlayAction("Lan_IdleDesk", 0.35f);
+                lan.SetExpression(.24f, .14f, .02f);
+                ResumeWriting(lan, .35f);
             }
             recognitionRoutine = null;
         }
@@ -373,7 +375,7 @@ namespace CTCC
             lan.GazeYawBias = 2.0f;
             lan.GazePitchBias = 8.0f;
             lan.LookTarget = MinhEye;
-            lan.PlayAction("Lan_Listen", 0.26f);
+            lan.PlayAction("Lan_ReceptionListen", .26f);
 
             for (float t = 0f; t < 1.75f; t += Time.unscaledDeltaTime)
             {
@@ -383,10 +385,8 @@ namespace CTCC
 
             if (!cinematicActive && pose == ReceptionPose.AtCounter && lan != null && lan.gameObject.activeInHierarchy)
             {
-                lan.GazeYawBias = 9.5f;
-                lan.GazePitchBias = 3.5f;
-                lan.SetExpression(0.24f, 0.14f, 0.02f);
-                lan.PlayAction("Lan_IdleDesk", 0.38f);
+                lan.SetExpression(.24f, .14f, .02f);
+                ResumeWriting(lan, .38f);
             }
             drawerLookRoutine = null;
         }
@@ -442,20 +442,26 @@ namespace CTCC
 
             lan.TriggerMicroBlink();
             lan.SetExpression(0.20f, 0.19f, 0.045f);
-            lan.PlayAction("Lan_Listen", 0.32f);
+            ResumeWriting(lan, .32f);
         }
 
         public void PlayOptionalLine(string lineId, string speaker, string text, float warm, float concern, float sorrow)
         {
             StopEncounter(true);
+            voice?.StopCurrent();
             UpdatePenWritingLoop(false);
             var lan = scene?.LanActor;
             if (lan != null && lan.gameObject.activeInHierarchy)
             {
                 lan.SetExpression(warm, concern, sorrow);
-                lan.PlayAction("Lan_TalkGesture", 0.25f);
+                lan.LookTarget = MinhEye;
+                lan.PlayAction("Lan_ReceptionListen", .25f);
             }
-            voice?.Speak(lineId, speaker, text, scene?.LanVoiceAnchor, lan);
+            voice?.Speak(lineId, speaker, text, scene?.LanVoiceAnchor, lan, onComplete: _ =>
+            {
+                if (lan != null && lan == stagedActor && pose == ReceptionPose.AtCounter && !IsEncounterRunning)
+                    ResumeWriting(lan, .32f);
+            });
         }
 
         public void StopEncounter(bool keepMotifQuietly)
@@ -473,8 +479,8 @@ namespace CTCC
             var lan = scene?.LanActor;
             if (lan != null && lan.gameObject.activeInHierarchy)
             {
-                lan.LookTarget = pose == ReceptionPose.AtCounter ? MinhEye : null;
-                lan.PlayAction("Lan_IdleDesk", 0.35f);
+                if (pose == ReceptionPose.AtCounter) ResumeWriting(lan, .35f);
+                else lan.LookTarget = null;
             }
         }
 
@@ -512,14 +518,13 @@ namespace CTCC
                 ui?.Prompt(null);
                 ui?.SetCinematicOverlay(true, reducedMotion);
 
-                lan.LookTarget = MinhEye;
-                lan.EnableCloseUpAversion = true;
-                lan.GazeYawBias = 9f;
-                lan.GazePitchBias = 3f;
-                lan.SetExpression(0.32f, 0.12f, 0f);
+                ResumeWriting(lan, .16f);
+                lan.SetExpression(.29f, .12f, 0f);
 
-                // Initial blend from FPS eye to Shot 0
-                yield return BlendCameraToShot(0, reducedMotion ? 0f : 0.72f);
+                // Keep the book in view through the approach before Lan lifts her eyes.
+                yield return BlendCameraToShot(0, reducedMotion ? 0f : .76f);
+                lan.LookTarget = MinhEye;
+                lan.PlayAction("Lan_ReceptionListen", .37f);
 
                 int activeShot = 0;
                 foreach (var beat in EncounterBeats)
@@ -543,14 +548,13 @@ namespace CTCC
                     }
 
                     lan.SetExpression(beat.warm, beat.concern, beat.sorrow);
-                    lan.GazeYawBias = beat.yawBias;
-                    lan.GazePitchBias = beat.pitchBias;
+                    lan.GazeYawBias = beat.yawBias * (beat.lookAtBoard ? .65f : .34f);
+                    lan.GazePitchBias = beat.pitchBias * .48f;
                     lan.LookTarget = beat.lookAtBoard && scene.ReceptionBoard != null ? scene.ReceptionBoard.transform : MinhEye;
                     if (beat.microBlink) lan.TriggerMicroBlink();
-                    string action = speaker != "Lan" || beat.id is "CH01-D04" or "CH01-D04c" or "CH01-D05b"
-                        ? "Lan_Listen"
-                        : beat.id == "CH01-D05" && !reducedMotion ? "Lan_TalkGesture" : "Lan_IdleDesk";
-                    lan.PlayAction(action, 0.32f);
+                    string action = beat.id == "CH01-D05c" && !reducedMotion
+                        ? "Lan_ReceptionBoard" : "Lan_ReceptionListen";
+                    lan.PlayAction(action, .34f, restart: action == "Lan_ReceptionBoard");
 
                     for (float pause = beat.pause; pause > 0f && !skipRequested;)
                     {
@@ -621,16 +625,20 @@ namespace CTCC
                 RestoreCinematicState();
                 if (lan != null && lan.gameObject.activeInHierarchy)
                 {
-                    lan.LookTarget = MinhEye;
-                    lan.GazeYawBias = 10f;
-                    lan.GazePitchBias = 4f;
-                    lan.SetExpression(0.25f, 0.15f, 0.04f);
-                    lan.PlayAction("Lan_IdleDesk", 0.32f);
+                    lan.SetExpression(.25f, .15f, .04f);
+                    ResumeWriting(lan, .32f);
                 }
                 encounterRoutine = null;
             }
 
             onComplete?.Invoke();
+        }
+
+        private static void ResumeWriting(CharacterActor lan, float blend)
+        {
+            lan.LookTarget = null;
+            lan.GazeYawBias = lan.GazePitchBias = 0f;
+            lan.PlayAction("Lan_ReceptionWrite", blend);
         }
 
         private IEnumerator BlendCameraToShot(int shotIndex, float duration)
@@ -682,9 +690,8 @@ namespace CTCC
                 lan.GazePitchBias = beat.pitchBias;
                 lan.LookTarget = beat.lookAtBoard && scene.ReceptionBoard != null ? scene.ReceptionBoard.transform : MinhEye;
                 if (beat.microBlink) lan.TriggerMicroBlink();
-                string action = speaker != "Lan" || beat.id is "CH01-D04" or "CH01-D04c" or "CH01-D05b"
-                    ? "Lan_Listen"
-                    : beat.id == "CH01-D05" && !lan.ReducedMotion ? "Lan_TalkGesture" : "Lan_IdleDesk";
+                string action = beat.id == "CH01-D05c" && !lan.ReducedMotion
+                    ? "Lan_ReceptionBoard" : "Lan_ReceptionListen";
                 lan.PlayAction(action, 0.35f);
 
                 for (float pause = beat.pause; pause > 0f;)
@@ -710,7 +717,7 @@ namespace CTCC
             lan.GazeYawBias = 10f;
             lan.GazePitchBias = 4f;
             lan.SetExpression(0.25f, 0.15f, 0.04f);
-            lan.PlayAction("Lan_IdleDesk", 0.32f);
+            ResumeWriting(lan, .32f);
             encounterRoutine = null;
         }
     }

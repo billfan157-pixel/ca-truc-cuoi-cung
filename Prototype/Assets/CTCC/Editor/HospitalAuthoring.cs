@@ -422,6 +422,7 @@ namespace CTCC.Editor
             BuildFurnishing();
             BuildM2ZoneDressing();
             BuildFullCampus();
+            if (art && multiScene) DressChapterOneSurfaces();
             MarkInteractions();
             LightAndStage();
             if (multiScene)
@@ -658,13 +659,14 @@ namespace CTCC.Editor
             if (!art)
                 Box("Approach at grade", new Vector3(4, -0.1f, -22), new Vector3(9, 0.2f, 4), Mat("Exterior"), solid: true, tile: 2f, isStatic: true);
 
-            // Courtyard perimeter low walls using authentic WeatheredBrick in M2 art mode
+            // Courtyard perimeter low walls: keep exact solid colliders; in art mode CTCC_ENV_CourtyardFenceBay
+            // sits flush at y=0 (0.90m brick plinth + coping + iron spear railings + 2.28m piers, zero double-stacking!).
             if (art)
             {
-                Box("West yard brick wall", new Vector3(-5f, 0.425f, -14f), new Vector3(0.22f, 0.85f, 12f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true);
-                Box("East yard brick wall", new Vector3(13f, 0.425f, -14f), new Vector3(0.22f, 0.85f, 12f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true);
-                Box("Front yard brick wall L", new Vector3(-1.1f, 0.86f, -20f), new Vector3(7.8f, 1.72f, 0.24f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true);
-                Box("Front yard brick wall R", new Vector3(9.1f, 0.86f, -20f), new Vector3(7.8f, 1.72f, 0.24f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true);
+                Box("West yard brick wall", new Vector3(-5f, 0.425f, -14f), new Vector3(0.22f, 0.85f, 12f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true).GetComponent<Renderer>().enabled = false;
+                Box("East yard brick wall", new Vector3(13f, 0.425f, -14f), new Vector3(0.22f, 0.85f, 12f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true).GetComponent<Renderer>().enabled = false;
+                Box("Front yard brick wall L", new Vector3(-1.1f, 0.86f, -20f), new Vector3(7.8f, 1.72f, 0.24f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true).GetComponent<Renderer>().enabled = false;
+                Box("Front yard brick wall R", new Vector3(9.1f, 0.86f, -20f), new Vector3(7.8f, 1.72f, 0.24f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true).GetComponent<Renderer>().enabled = false;
             }
             else
             {

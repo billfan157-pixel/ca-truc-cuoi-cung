@@ -154,6 +154,7 @@ namespace CTCC
         private int lastForm;
         private bool lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate, lastThirdGate;
         private bool lastServiceGate, lastFifthGate, lastB07GateLatched, lastMemoryS1Discharge;
+        private float? lastRoomDoorOpenness;
         private bool seamClosed, spareTaken;
         private Investigation lastCaseworkState;
         public event Action<ZoneRegion> ZoneUnregistering;
@@ -390,8 +391,8 @@ namespace CTCC
             try
             {
                 Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate,
-                    lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched,
-                    memoryS1Discharge: lastMemoryS1Discharge);
+                    lastLayerM, lastThirdGate, lastServiceGate, roomDoorOpenness: lastRoomDoorOpenness,
+                    b07GateLatched: lastB07GateLatched, memoryS1Discharge: lastMemoryS1Discharge);
                 PresentCheckpointProps(seamClosed, spareTaken);
                 if (lastCaseworkState != null) PresentCasework(lastCaseworkState);
                 Physics.SyncTransforms();
@@ -423,8 +424,8 @@ namespace CTCC
             {
                 unloading.Remove(sceneName);
                 Present(lastLayerB, lastForm, lastEntered, lastAcceptedBoard, lastClosetOpen, lastSecondGate,
-                    lastLayerM, lastThirdGate, lastServiceGate, b07GateLatched: lastB07GateLatched,
-                    memoryS1Discharge: lastMemoryS1Discharge);
+                    lastLayerM, lastThirdGate, lastServiceGate, roomDoorOpenness: lastRoomDoorOpenness,
+                    b07GateLatched: lastB07GateLatched, memoryS1Discharge: lastMemoryS1Discharge);
                 Physics.SyncTransforms();
                 foreach (var region in registeredZones)
                     if (region != null && region.isActiveAndEnabled && region.participatesInNavMesh)
@@ -737,6 +738,7 @@ namespace CTCC
         public void ApplyAtmosphereSettings(bool reducedMotion)
         {
             reducedMotionAtmosphere = reducedMotion;
+            Shader.SetGlobalFloat("_CTCCReduceWeatherMotion", reducedMotion ? 1f : 0f);
             for (int i = 0; i < allAtmosphericParticles.Count; i++)
             {
                 var ps = allAtmosphericParticles[i];
@@ -957,6 +959,7 @@ namespace CTCC
             lastSecondGate = secondGate;
             lastThirdGate = thirdGate;
             lastServiceGate = serviceGate;
+            lastRoomDoorOpenness = roomDoorOpenness;
             lastB07GateLatched = b07GateLatched;
             lastMemoryS1Discharge = memoryS1Discharge;
             UpdateRegionalConnectors();
@@ -1133,15 +1136,27 @@ namespace CTCC
             if (f101CorridorSlip == null)
             {
                 if (form == FormStatus.Pending) return;
-                var slip = new GameObject("Phòng 101 · Phiếu ngoài cửa", typeof(RectTransform), typeof(Canvas),
+                // Slotted dark institutional metal/timber holder framing the ward door status card
+                var holder = new GameObject("Phòng 101 · Khung phiếu ngoài cửa", typeof(RectTransform), typeof(Canvas),
                     typeof(UnityEngine.UI.Image));
-                slip.transform.SetParent(transform, false);
-                slip.transform.SetPositionAndRotation(new Vector3(5.46f, 1.66f, 3.78f), Quaternion.LookRotation(Vector3.right));
-                slip.transform.localScale = Vector3.one * 0.00078f;
-                ((RectTransform)slip.transform).sizeDelta = new Vector2(480f, 144f);
-                slip.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+                holder.transform.SetParent(transform, false);
+                holder.transform.SetPositionAndRotation(new Vector3(5.475f, 1.66f, 3.78f), Quaternion.LookRotation(Vector3.right));
+                holder.transform.localScale = Vector3.one * 0.00072f;
+                ((RectTransform)holder.transform).sizeDelta = new Vector2(512f, 168f);
+                holder.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+                var frameImg = holder.GetComponent<UnityEngine.UI.Image>();
+                frameImg.color = new Color(0.14f, 0.16f, 0.14f);
+                frameImg.raycastTarget = false;
+
+                var slip = new GameObject("Phòng 101 · Phiếu ngoài cửa", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+                slip.transform.SetParent(holder.transform, false);
+                var slipRect = (RectTransform)slip.transform;
+                slipRect.anchorMin = Vector2.zero;
+                slipRect.anchorMax = Vector2.one;
+                slipRect.offsetMin = new Vector2(14f, 12f);
+                slipRect.offsetMax = new Vector2(-14f, -12f);
                 var paper = slip.GetComponent<UnityEngine.UI.Image>();
-                paper.color = new Color(0.61f, 0.59f, 0.51f);
+                paper.color = new Color(0.68f, 0.65f, 0.56f);
                 paper.raycastTarget = false;
 
                 var label = new GameObject("Dòng bàn giao", typeof(RectTransform));
@@ -1153,13 +1168,13 @@ namespace CTCC
                 rect.offsetMax = new Vector2(-19f, -9f);
                 f101CorridorSlip = label.AddComponent<UnityEngine.UI.Text>();
                 f101CorridorSlip.font = Resources.Load<Font>("CTCC/BeVietnamPro-SemiBold");
-                f101CorridorSlip.fontSize = 38;
+                f101CorridorSlip.fontSize = 36;
                 f101CorridorSlip.lineSpacing = 0.86f;
                 f101CorridorSlip.alignment = TextAnchor.MiddleLeft;
                 f101CorridorSlip.raycastTarget = false;
             }
 
-            f101CorridorSlip.transform.parent.gameObject.SetActive(form != FormStatus.Pending);
+            f101CorridorSlip.transform.parent.parent.gameObject.SetActive(form != FormStatus.Pending);
             f101CorridorSlip.color = form == FormStatus.Refuted ? new Color(0.30f, 0.11f, 0.085f) : new Color(0.105f, 0.14f, 0.14f);
             f101CorridorSlip.text = "PHÒNG 101\n" + (form switch
             {
@@ -1194,8 +1209,8 @@ namespace CTCC
             else
             {
                 // Calibrated R (2012) moonlight bounce — preserves deep shadow tension while keeping multi-wing campus readable!
-                RenderSettings.ambientSkyColor = new Color(0.17f, 0.24f, 0.29f);
-                RenderSettings.ambientEquatorColor = new Color(0.115f, 0.155f, 0.175f);
+                RenderSettings.ambientSkyColor = new Color(.21f, .27f, .303f);
+                RenderSettings.ambientEquatorColor = new Color(.151f, .185f, .199f);
                 RenderSettings.ambientGroundColor = new Color(0.068f, 0.064f, 0.055f);
                 RenderSettings.fogColor = new Color(0.068f, 0.105f, 0.132f);
                 RenderSettings.fogDensity = 0.0082f;

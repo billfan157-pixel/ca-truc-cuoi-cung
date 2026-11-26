@@ -27,7 +27,7 @@ namespace CTCC
             if (hud == null) return;
             if (heldBadgeBacking == null)
             {
-                var box = Fixed("HeldItemBadge", hud, new Vector2(1, 0), new Vector2(-396, 86), new Vector2(356, 40));
+                var box = Fixed("HeldItemBadge", hud, new Vector2(1, 0), new Vector2(-496, 90), new Vector2(456, 46));
                 heldBadgeBacking = Graphic(box, new Color(0.040f, 0.064f, 0.056f, 0.86f), false);
                 Graphic(Rect("HeldAccent", box, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(3, 0)), Accent, false);
                 heldBadgeText = FillText("HeldLabel", Rect("HeldInset", box, Vector2.zero, Vector2.one, new Vector2(14, 0), new Vector2(-10, 0)),
@@ -36,9 +36,9 @@ namespace CTCC
             }
             if (quickSlotBar == null)
             {
-                var bar = Fixed("QuickSlotBar", hud, new Vector2(1, 0), new Vector2(-786, 28), new Vector2(746, 44));
+                var bar = Fixed("QuickSlotBar", hud, new Vector2(1, 0), new Vector2(-856, 28), new Vector2(816, 48));
                 quickSlotBar = bar.gameObject;
-                const float slotW = 180f;
+                const float slotW = 198f;
                 const float gap = 8f;
                 for (int i = 0; i < InventoryService.MaxQuickSlots; i++)
                 {
@@ -47,7 +47,7 @@ namespace CTCC
                     slot.anchorMin = slot.anchorMax = new Vector2(0f, 0.5f);
                     slot.pivot = new Vector2(0f, 0.5f);
                     slot.anchoredPosition = new Vector2(i * (slotW + gap), 0f);
-                    slot.sizeDelta = new Vector2(slotW, 40f);
+                    slot.sizeDelta = new Vector2(slotW, 46f);
                     quickSlotBg[i] = Graphic(slot, new Color(0.038f, 0.058f, 0.052f, 0.82f), false);
                     quickSlotBorder[i] = Graphic(Rect("Rule", slot, new Vector2(0, 0), new Vector2(1, 0), Vector2.zero, new Vector2(0, 2)), Frame, false);
                     quickSlotText[i] = FillText("Label", Rect("Inset", slot, Vector2.zero, Vector2.one, new Vector2(8, 0), new Vector2(-8, 0)),
@@ -68,7 +68,7 @@ namespace CTCC
                 cinematicBarBottom = bot.gameObject;
                 cinematicBarBottom.SetActive(false);
 
-                var skip = Fixed("CinematicSkip", canvas, new Vector2(1, 1), new Vector2(-320, -34), new Vector2(280, 38));
+                var skip = Fixed("CinematicSkip", canvas, new Vector2(1, 1), new Vector2(-376, -34), new Vector2(340, 44));
                 cinematicSkipBacking = Graphic(skip, new Color(0.042f, 0.065f, 0.058f, 0.82f), false);
                 cinematicSkipText = FillText("SkipLabel", skip, 17, Accent, TextAnchor.MiddleCenter, true);
                 cinematicSkipText.text = "[Space / Esc]  Bỏ qua cảnh";
@@ -208,17 +208,18 @@ namespace CTCC
             Place(binding, split, 0, split, 1, new Vector2(-3, 14), new Vector2(3, -15));
 
             string[] tabs = { "Dụng cụ & đồ vật", "Giấy tờ & vật chứng", "Pocket Note" };
+            int tabFont = show3DStageOnLeft ? 16 : 18;
             for (int i = 0; i < tabs.Length; i++)
             {
                 int idx = i;
-                float x = .012f + i * .260f;
-                var tab = NotebookButton(notebookRoot, x, 1, x + .250f, 1.068f,
+                float x = .010f + i * .254f;
+                var tab = NotebookButton(notebookRoot, x, 1, x + .246f, 1.070f,
                     new ActionChoice(tabs[i], () => selectCompartment(idx)),
-                    i == compartment ? PaperLight : new Color(.68f, .70f, .60f), true);
+                    i == compartment ? PaperLight : new Color(.68f, .70f, .60f), true, size: tabFont);
                 if (i == compartment) notebookDefaultFocus = tab.Button;
             }
-            NotebookButton(notebookRoot, .796f, 1, .988f, 1.068f,
-                new ActionChoice("Khép ba lô · Esc", close), Paper, true);
+            NotebookButton(notebookRoot, .776f, 1, .990f, 1.070f,
+                new ActionChoice("Khép ba lô · Esc", close), Paper, true, size: tabFont);
 
             string headingText = compartment switch
             {

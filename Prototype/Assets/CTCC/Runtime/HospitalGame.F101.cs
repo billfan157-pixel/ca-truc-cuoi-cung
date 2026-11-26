@@ -100,12 +100,14 @@ namespace CTCC
                 }
 
             var link = State.f101Annotations;
+            int markCount = link.marks != null ? link.marks.Count : 0;
             string linkLabel = link.HasLink
                 ? $"{ClipLabel(link.linkFrom.observationId, "")}   ↔   {ClipLabel(link.linkTo.observationId, "")}"
                 : pickingLink ? (linkStart == null ? "Chọn đầu nối thứ nhất." : "Chọn đầu nối thứ hai.") :
+                    markCount > 0 ? $"Đã đánh dấu {markCount} mục trên giấy · Chọn nguồn để kẹp hoặc nối." :
                     "Kéo nguồn sang phiếu hoặc chọn để kẹp.";
             ui.NotebookIndex(rows, drafting ? "Nguồn đã xem sẽ xuất hiện ở đây." : "",
-                drafting ? "Nguồn kẹp vào phiếu" : "Bản gốc F101", .245f);
+                drafting ? "Nguồn kẹp vào phiếu" : "Bản gốc F101", .268f);
             ui.NotebookFormSourceControls($"{reportDraft.SourceCount} nguồn đã chọn", linkLabel, drafting,
                 new ActionChoice("Mở trang đối chiếu", CompareFromForm, drafting),
                 new ActionChoice(pickingLink ? "Hủy thao tác nối" : link.HasLink ? "Tháo liên kết" : "Nối hai nguồn",
@@ -185,7 +187,7 @@ namespace CTCC
                 if (task.IsFaulted || task.Result == CommitResult.SaveUnavailable)
                     formFeedback = "Chưa lưu được liên kết. Mình có thể thử lại.";
                 else if (task.Result != CommitResult.Applied)
-                    formFeedback = "Hai mục này chưa nối được. Xem lại chi tiết đã đánh dấu trên nguồn.";
+                    formFeedback = "Chưa nối được: cần đánh dấu chi tiết trên giấy (mở Đối chiếu hoặc Soi 3D) trước khi nối hai nguồn.";
             }
             finally
             {

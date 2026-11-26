@@ -20,7 +20,8 @@ namespace CTCC
         {
             string fault = Argument("-ctcc-qa-probe");
             CheckCharacter(scene.LanActor, "Lan", new[] { "Uniform", "Teeth", "Tongue", "HairClip" },
-                new[] { "IdleDesk", "StepOut", "Listen", "TalkGesture", "Handover" }, "ClipboardSocket_R",
+                new[] { "IdleDesk", "StepOut", "Listen", "TalkGesture", "Handover",
+                    "ReceptionWrite", "ReceptionListen", "ReceptionBoard" }, "ClipboardSocket_R",
                 fault == "char-mesh");
             CheckCharacter(scene.AnActor, "An", new[] { "Clothes", "Teeth", "Tongue" },
                 new[] { "IdleLook", "TurnFade" });

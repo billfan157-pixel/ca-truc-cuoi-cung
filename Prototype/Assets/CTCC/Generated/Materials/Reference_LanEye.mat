@@ -34,14 +34,14 @@ Material:
     m_Ints: []
     m_Floats:
     - _BumpScale: 0.72
-    - _CausticStrength: 1.25
-    - _CorneaRoughness: 0.026
-    - _CorneaSpecIntensity: 1.45
+    - _CausticStrength: 1.15
+    - _CorneaRoughness: 0.028
+    - _CorneaSpecIntensity: 1.48
     - _IrisRadius: 0.122
-    - _LimbalDarkening: 0.38
+    - _LimbalDarkening: 0.36
     - _RefractionDepth: 0.015
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _CausticTint: {r: 0.68, g: 0.38, b: 0.18, a: 1}
+    - _CausticTint: {r: 0.7, g: 0.4, b: 0.19, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

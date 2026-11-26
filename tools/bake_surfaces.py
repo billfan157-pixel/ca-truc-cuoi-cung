@@ -168,9 +168,28 @@ def build_walls():
     vertical_wash = fbm_aniso(SIZE, [16, 32, 64], [4, 8, 16], seed=1014)
     roller = fbm_aniso(SIZE, [32, 64], [8, 16], seed=1015)
 
-    # Hairline plaster settlement cracks (sharp ridge mask)
-    crack_field = fbm(SIZE, [6, 12, 24, 48], seed=1016)
-    cracks = np.clip(1.0 - np.abs(crack_field - 0.5) * 75.0, 0.0, 1.0) * (macro > 0.42)
+    # Sparse, natural hairline vertical/diagonal shrinkage fractures (never repeating contour loops!)
+    crack_img = Image.new("L", (SIZE, SIZE), 0)
+    dc = ImageDraw.Draw(crack_img)
+    r_crk = rng(1019)
+    for _ in range(10):
+        cx = float(r_crk.uniform(96, SIZE - 96))
+        cy = float(r_crk.uniform(96, SIZE - 96))
+        ang = float(r_crk.uniform(0.35, math.pi - 0.35))
+        steps = int(r_crk.integers(12, 28))
+        pts = [(cx, cy)]
+        for _s in range(steps):
+            ang += float(r_crk.uniform(-0.32, 0.32))
+            step_l = float(r_crk.uniform(6.0, 14.0))
+            cx = (cx + math.cos(ang) * step_l) % SIZE
+            cy = (cy + math.sin(ang) * step_l) % SIZE
+            if abs(cx - pts[-1][0]) < 56 and abs(cy - pts[-1][1]) < 56:
+                pts.append((cx, cy))
+            else:
+                break
+        if len(pts) > 2:
+            dc.line(pts, fill=int(r_crk.integers(70, 140)), width=1)
+    cracks = np.asarray(crack_img.filter(ImageFilter.GaussianBlur(0.8)), dtype=np.float32) / 255.0
 
     # Localized limewash flaking (large organic islands, NOT polka dots)
     flake_base = macro * 0.65 + mid * 0.35
@@ -183,16 +202,16 @@ def build_walls():
     # Subtle mildew clouding only in low-value macro damp zones (no harsh spots)
     mildew = np.clip((1.0 - macro * 0.7 - vertical_wash * 0.3 - 0.42) * 3.8, 0.0, 1.0) * (0.45 + 0.55 * fine)
 
-    trowel_detail = center(plaster_col) * 0.28 + center(plaster_disp) * 0.14
-    trowel_ao = ao_from_height(plaster_disp, radius=8, strength=0.45)
+    trowel_detail = center(plaster_col) * 0.22 + center(plaster_disp) * 0.10
+    trowel_ao = ao_from_height(plaster_disp, radius=8, strength=0.36)
 
-    # --- PlasterB (2005 operational: warm ivory-sage institutional limewash) ---
-    pb_col = np.full((SIZE, SIZE, 3), (0.76, 0.77, 0.69), dtype=np.float32)
-    pb_col += trowel_detail[..., None] * 0.65 + center(roller)[..., None] * 0.035 + center(macro)[..., None] * 0.03
-    pb_col -= cracks[..., None] * 0.05
-    pb_norm = blend_normals(plaster_norm, normal_from_height(plaster_disp - cracks * 0.15, 2.2), 0.35)
-    pb_smooth = np.clip(0.16 + (1.0 - plaster_rough) * 0.10 + center(roller) * 0.04, 0.08, 0.28)
-    pb_ao = np.clip(trowel_ao * 0.96 + 0.04 - cracks * 0.12, 0.65, 1.0)
+    # --- PlasterB (2005 operational: maintained warm ivory-sage institutional limewash, clean smooth finish) ---
+    pb_col = np.full((SIZE, SIZE, 3), (0.77, 0.77, 0.69), dtype=np.float32)
+    pb_col += trowel_detail[..., None] * 0.52 + center(roller)[..., None] * 0.028 + center(macro)[..., None] * 0.026
+    pb_col -= cracks[..., None] * 0.022
+    pb_norm = blend_normals(plaster_norm, normal_from_height(plaster_disp * 0.75 + roller * 0.14 - cracks * 0.08, 1.8), 0.32)
+    pb_smooth = np.clip(0.15 + (1.0 - plaster_rough) * 0.09 + center(roller) * 0.045, 0.08, 0.27)
+    pb_ao = np.clip(trowel_ao * 0.96 + 0.04 - cracks * 0.06, 0.72, 1.0)
     map_set("PlasterB", pb_col, pb_norm, pb_smooth, pb_ao)
 
     # --- PlasterR (2012 abandoned: weathered cool damp limewash, yellow-ochre old coat & grey mortar) ---
@@ -240,13 +259,11 @@ def build_walls():
 
 
 def build_floor_tiles():
-    """Authentic Vietnamese 20x20 cm pressed cement tiles (gạch bông) with beveled grout joints,
-    classic octagonal/star-corner motif, per-tile shade variation, real grout normal & AO,
-    and believable traffic polish vs damp grit."""
-    terrazzo_col = luma(source("Terrazzo013", "Color"))
-    terrazzo_disp = luma(source("Terrazzo013", "Displacement"))
-    terrazzo_norm = source("Terrazzo013", "NormalGL")
-    terrazzo_rough = luma(source("Terrazzo013", "Roughness"))
+    """Authentic Vietnamese 20x20 cm pressed cement tiles (gạch bông) with fine smooth pigment cement paste
+    (zero coarse terrazzo boulder overlay!), subtle hand-laid per-tile micro-tilt & bevels, crisp recessed grout,
+    classic octagonal/star-corner motif, and distinct B (2005 waxed satin) vs R (2012 gritty aged) surface feel."""
+    plaster_disp = luma(source("PaintedPlaster017", "Displacement"))
+    plaster_rough = luma(source("PaintedPlaster017", "Roughness"))
 
     tiles_per_side = 8  # 1.6 m tile scale => exact 0.20 m per cement tile!
     s = SIZE // tiles_per_side
@@ -255,16 +272,19 @@ def build_floor_tiles():
     u = (xx % s) / float(s)
     v = (yy % s) / float(s)
 
-    # Per-tile deterministic slight tonal & smoothness variation (real handcrafted cement tiles)
+    # Per-tile deterministic slight tonal, gloss & hand-laid lippage/tilt variation (breaks sterile tube reflections!)
     r = rng(2020)
-    tile_tone = r.uniform(-0.028, 0.028, (tiles_per_side, tiles_per_side)).astype(np.float32)[ty, tx]
-    tile_gloss = r.uniform(-0.045, 0.045, (tiles_per_side, tiles_per_side)).astype(np.float32)[ty, tx]
+    tile_tone = r.uniform(-0.024, 0.024, (tiles_per_side, tiles_per_side)).astype(np.float32)[ty, tx]
+    tile_gloss = r.uniform(-0.055, 0.055, (tiles_per_side, tiles_per_side)).astype(np.float32)[ty, tx]
+    tile_tilt_x = r.uniform(-0.036, 0.036, (tiles_per_side, tiles_per_side)).astype(np.float32)[ty, tx]
+    tile_tilt_y = r.uniform(-0.036, 0.036, (tiles_per_side, tiles_per_side)).astype(np.float32)[ty, tx]
+    tile_lip = (u - 0.5) * tile_tilt_x + (v - 0.5) * tile_tilt_y
     checker = ((tx + ty) % 2).astype(np.float32)
 
     # Distance from tile edge (0 at grout center)
     edge = np.minimum(np.minimum(u, 1.0 - u), np.minimum(v, 1.0 - v))
     grout = np.clip(1.0 - edge / 0.015, 0.0, 1.0)
-    bevel = np.clip(1.0 - edge / 0.036, 0.0, 1.0)
+    bevel = np.clip(1.0 - edge / 0.040, 0.0, 1.0)
 
     # Classic Vietnamese hospital gạch bông geometric motif (symmetric, crisp, understated):
     du = np.abs(u - 0.5)
@@ -285,79 +305,84 @@ def build_floor_tiles():
     rosette = ((radial > 0.105) & (radial < 0.142)).astype(np.float32)
     cross_arm = (((du < 0.024) & (dv < 0.115)) | ((dv < 0.024) & (du < 0.115))).astype(np.float32)
 
-    motif_dark = np.clip(border_frame * 0.72 + diamond * 0.88 + corner_dot * 0.75 + cross_arm * 0.58, 0.0, 1.0)
-    motif_mid = np.clip(corner_arc * 0.62 + rosette * 0.55, 0.0, 1.0)
+    motif_dark = np.clip(border_frame * 0.70 + diamond * 0.86 + corner_dot * 0.72 + cross_arm * 0.55, 0.0, 1.0)
+    motif_mid = np.clip(corner_arc * 0.60 + rosette * 0.52, 0.0, 1.0)
 
     # Soften motif edges slightly like real hydraulically pressed pigment paste
-    motif_dark = np.asarray(Image.fromarray(np.uint8(motif_dark * 255)).filter(ImageFilter.GaussianBlur(0.8)), dtype=np.float32) / 255.0
-    motif_mid = np.asarray(Image.fromarray(np.uint8(motif_mid * 255)).filter(ImageFilter.GaussianBlur(0.8)), dtype=np.float32) / 255.0
+    motif_dark = np.asarray(Image.fromarray(np.uint8(motif_dark * 255)).filter(ImageFilter.GaussianBlur(0.85)), dtype=np.float32) / 255.0
+    motif_mid = np.asarray(Image.fromarray(np.uint8(motif_mid * 255)).filter(ImageFilter.GaussianBlur(0.85)), dtype=np.float32) / 255.0
 
     wear = fbm(SIZE, [6, 12, 24, 48], seed=2021)
     grit = fbm(SIZE, [32, 64, 128, 256], seed=2022)
+    cement_micro = fbm(SIZE, [96, 192, 384], seed=2024)
     scratches = fbm_aniso(SIZE, [64, 128], [16, 32], seed=2023)
-    chip_mask = np.clip((wear * 0.55 + grit * 0.45 - 0.72) * 8.0, 0.0, 1.0) * (bevel > 0.25)
+    chip_mask = np.clip((wear * 0.55 + grit * 0.45 - 0.73) * 8.0, 0.0, 1.0) * (bevel > 0.25)
 
-    agg = center(terrazzo_col) * 0.22 + center(terrazzo_disp) * 0.10
+    # Fine pressed mineral cement paste (clean & tactile, zero chunky terrazzo boulders!)
+    paste_grain = center(cement_micro) * 0.036 + center(plaster_disp) * 0.028 + center(grit) * 0.022
 
     for name, base_rgb, dark_rgb, mid_rgb, age in (
-        ("FloorB", (0.66, 0.65, 0.56), (0.24, 0.34, 0.29), (0.45, 0.50, 0.43), 0.20),
-        ("FloorR", (0.48, 0.49, 0.43), (0.20, 0.26, 0.23), (0.35, 0.38, 0.34), 1.00),
+        ("FloorB", (0.67, 0.66, 0.58), (0.24, 0.35, 0.30), (0.45, 0.51, 0.44), 0.18),
+        ("FloorR", (0.49, 0.50, 0.45), (0.20, 0.27, 0.24), (0.35, 0.38, 0.34), 1.00),
     ):
         col = np.full((SIZE, SIZE, 3), base_rgb, dtype=np.float32)
-        col += agg[..., None] + tile_tone[..., None] + (checker - 0.5)[..., None] * 0.022
-        fade = 1.0 - age * np.clip(wear - 0.35, 0.0, 1.0) * 0.48
+        col += paste_grain[..., None] + tile_tone[..., None] + (checker - 0.5)[..., None] * 0.018
+        fade = 1.0 - age * np.clip(wear - 0.32, 0.0, 1.0) * 0.46
         m1 = motif_dark * fade
         m2 = motif_mid * fade
-        col = col * (1.0 - m2[..., None] * 0.55) + np.array(mid_rgb) * (m2[..., None] * 0.55)
-        col = col * (1.0 - m1[..., None] * 0.75) + np.array(dark_rgb) * (m1[..., None] * 0.75)
-        # Dust & trapped dirt in grout + chipped corners in R
-        grout_col = np.array([0.20, 0.21, 0.18]) if age > 0.5 else np.array([0.34, 0.34, 0.30])
-        col = col * (1.0 - grout[..., None] * 0.82) + grout_col * (grout[..., None] * 0.82)
+        col = col * (1.0 - m2[..., None] * 0.54) + np.array(mid_rgb) * (m2[..., None] * 0.54)
+        col = col * (1.0 - m1[..., None] * 0.74) + np.array(dark_rgb) * (m1[..., None] * 0.74)
+        # Dust & trapped dirt in grout + subtle chalky grime & chipped corners in R
+        grout_col = np.array([0.19, 0.20, 0.17]) if age > 0.5 else np.array([0.36, 0.36, 0.32])
+        col = col * (1.0 - grout[..., None] * 0.84) + grout_col * (grout[..., None] * 0.84)
         if age > 0.5:
-            col -= (grit[..., None] * 0.09 + chip_mask[..., None] * 0.14)
-            col += center(wear)[..., None] * 0.07
+            dust_film = np.clip((wear * 0.6 + grit * 0.4 - 0.38) * 1.9, 0.0, 1.0)
+            col = col * (1.0 - dust_film[..., None] * 0.24) + np.array([0.32, 0.33, 0.29]) * (dust_film[..., None] * 0.24)
+            col -= chip_mask[..., None] * 0.14
+        else:
+            col += center(wear)[..., None] * 0.025
 
-        # Real physical height: tile face + beveled edge + recessed grout + chipped edges + subtle aggregate relief
-        tile_h = 0.82 - bevel * 0.16 - grout * 0.44 - chip_mask * age * 0.24 + center(terrazzo_disp) * 0.14
-        tile_n = blend_normals(normal_from_height(tile_h, 6.2), terrazzo_norm, 0.45)
+        # Real physical height: slight per-tile hand-laid tilt + beveled edge + recessed grout + fine mineral relief
+        tile_h = 0.82 + tile_lip * (1.0 - grout) - bevel * 0.17 - grout * 0.46 - chip_mask * age * 0.24 + center(cement_micro) * 0.035 + center(plaster_disp) * 0.03
+        tile_n = normal_from_height(tile_h, 6.4)
 
-        # Physically accurate smoothness: grout is very matte (0.06), tiles have varied semi-gloss/satin wear
-        base_sm = 0.49 if age < 0.5 else 0.34
-        sm = base_sm + tile_gloss + center(wear) * 0.16 + center(1.0 - terrazzo_rough) * 0.10 + center(scratches) * 0.05
-        sm = sm * (1.0 - grout) + 0.06 * grout - chip_mask * age * 0.16
-        sm = np.clip(sm, 0.05, 0.68)
+        # Physically accurate smoothness: grout is matte (0.06), B has waxed satin hospital patina, R is dusty/scuffed
+        base_sm = 0.44 if age < 0.5 else 0.27
+        sm = base_sm + tile_gloss + center(wear) * 0.14 + center(1.0 - plaster_rough) * 0.06 + center(scratches) * 0.05
+        sm = sm * (1.0 - grout) + 0.06 * grout - chip_mask * age * 0.14
+        sm = np.clip(sm, 0.05, 0.62 if age < 0.5 else 0.48)
 
-        # Real grout & chip AO (G channel has genuine deep crevice darkening!)
-        ao = np.clip(1.0 - grout * 0.52 - bevel * 0.10 - chip_mask * age * 0.22 - (1.0 - ao_from_height(terrazzo_disp, 5, 0.35)) * 0.45, 0.32, 1.0)
+        # Crisp recessed grout & chip crevice AO
+        ao = np.clip(1.0 - grout * 0.54 - bevel * 0.11 - chip_mask * age * 0.22 - (1.0 - ao_from_height(plaster_disp, 5, 0.22)) * 0.28, 0.34, 1.0)
         map_set(name, col, tile_n, sm, ao)
 
 
 def build_wood_and_metals():
     """Dedicated PBR textures for Vietnamese varnished timber doors, painted hospital iron/steel,
     brushed stainless steel, vinyl mattress, cotton linen, ceramic, and exterior concrete."""
-    # --- WoodDoorB / WoodDoorR (Vietnamese hardwood xoan đào / chò, varnished walnut-teak) ---
+    # --- WoodDoorB / WoodDoorR (Vietnamese hardwood xoan đào / chò, physically calibrated so grain reads under dim lighting!) ---
     yy, xx = np.mgrid[:SIZE, :SIZE].astype(np.float32) / SIZE
     warp = fbm(SIZE, [4, 8, 16], seed=3001) * 0.18
-    rings = np.sin((xx * 26.0 + warp * 14.0) * math.tau) * 0.5 + 0.5
+    rings = np.sin((xx * 24.0 + warp * 13.0) * math.tau) * 0.5 + 0.5
     fibers = fbm_aniso(SIZE, [96, 192], [8, 16], seed=3002)
-    pores = np.clip((fbm_aniso(SIZE, [128, 256], [16, 32], seed=3003) - 0.72) * 5.0, 0.0, 1.0)
+    pores = np.clip((fbm_aniso(SIZE, [128, 256], [16, 32], seed=3003) - 0.74) * 4.8, 0.0, 1.0)
     wear = fbm(SIZE, [6, 12, 24], seed=3004)
-    grain_h = rings * 0.35 + fibers * 0.45 - pores * 0.35
+    grain_h = rings * 0.35 + fibers * 0.45 - pores * 0.32
 
     for name, dark_c, light_c, sm_base, age in (
-        ("WoodDoorB", (0.21, 0.13, 0.075), (0.37, 0.24, 0.14), 0.46, 0.15),
-        ("WoodDoorR", (0.15, 0.10, 0.065), (0.29, 0.20, 0.125), 0.28, 1.00),
+        ("WoodDoorB", (0.28, 0.175, 0.105), (0.48, 0.32, 0.19), 0.50, 0.15),
+        ("WoodDoorR", (0.22, 0.150, 0.098), (0.38, 0.265, 0.17), 0.32, 1.00),
     ):
         t = np.clip(rings * 0.55 + fibers * 0.45, 0.0, 1.0)
         col = np.array(dark_c) * (1.0 - t[..., None]) + np.array(light_c) * t[..., None]
-        col -= pores[..., None] * 0.06
+        col -= pores[..., None] * 0.05
         if age > 0.5:
-            # Faded dust & worn varnish patches
-            faded = np.clip((wear - 0.55) * 3.0, 0.0, 1.0)
-            col = col * (1.0 - faded[..., None] * 0.32) + np.array([0.24, 0.21, 0.17]) * (faded[..., None] * 0.32)
-        norm = normal_from_height(grain_h, 3.6)
-        sm = np.clip(sm_base + center(rings) * 0.06 - pores * 0.18 - age * np.clip(wear - 0.45, 0, 1) * 0.16, 0.08, 0.62)
-        ao = np.clip(0.95 - pores * 0.26 - (1.0 - rings) * 0.08, 0.55, 1.0)
+            # Sun/humidity faded dust & worn varnish patches along edges/rails
+            faded = np.clip((wear - 0.50) * 2.8, 0.0, 1.0)
+            col = col * (1.0 - faded[..., None] * 0.34) + np.array([0.31, 0.27, 0.21]) * (faded[..., None] * 0.34)
+        norm = normal_from_height(grain_h, 3.4)
+        sm = np.clip(sm_base + center(rings) * 0.06 - pores * 0.16 - age * np.clip(wear - 0.42, 0, 1) * 0.16, 0.10, 0.64)
+        ao = np.clip(0.95 - pores * 0.22 - (1.0 - rings) * 0.07, 0.58, 1.0)
         map_set(name, col, norm, sm, ao)
 
     # --- PaintedMetalB / PaintedMetalR (bed frames, window frames, steel cabinets) ---

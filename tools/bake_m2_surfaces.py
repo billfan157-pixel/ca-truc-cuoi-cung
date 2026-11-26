@@ -124,31 +124,36 @@ def build_exterior_materials():
     plaster_disp = BS.luma(BS.source("PaintedPlaster017", "Displacement"))
     plaster_norm = BS.source("PaintedPlaster017", "NormalGL")
 
-    # 1. WetAsphalt (2048x2048): Rain-slicked Vietnamese hospital courtyard concrete/asphalt with glossy puddle reflections!
-    puddle = BS.fbm(SIZE, [3, 6, 12, 24], seed=7201)
-    grit = BS.fbm(SIZE, [48, 96, 192, 384], seed=7202)
-    moss = np.clip((BS.fbm(SIZE, [8, 16, 32], seed=7203) - 0.62) * 3.8, 0.0, 1.0)
-    wet_mask = np.clip((puddle - 0.48) * 5.2, 0.0, 1.0)
-    damp_col = np.full((SIZE, SIZE, 3), (0.20, 0.21, 0.21), dtype=np.float32) + BS.center(grit)[..., None] * 0.10 + BS.center(terrazzo_col)[..., None] * 0.08
-    puddle_col = damp_col * 0.55 + np.array([0.02, 0.03, 0.038], dtype=np.float32)
-    asph_col = damp_col * (1.0 - wet_mask[..., None]) + puddle_col * wet_mask[..., None]
-    asph_col = asph_col * (1.0 - moss[..., None] * 0.40) + np.array([0.11, 0.16, 0.10]) * (moss[..., None] * 0.40)
-    # Puddles flatten micro-normal so specular reflections mirror canopy light & sky!
-    asph_h = (grit * 0.55 + terrazzo_disp * 0.45) * (1.0 - wet_mask * 0.92)
-    asph_norm = BS.normal_from_height(asph_h, 5.0)
-    asph_sm = np.clip(0.30 + BS.center(grit) * 0.08 + wet_mask * 0.60 - moss * 0.15, 0.12, 0.94)
-    asph_ao = np.clip(BS.ao_from_height(grit, 6, 0.55) * (1.0 - wet_mask * 0.12), 0.35, 1.0)
+    # 1. WetAsphalt (2048x2048): Rain-slicked Vietnamese hospital bitumen/macadam with fine mineral aggregate
+    # (zero giant terrazzo boulders, zero mottled cow-spots — realistic monsoon dampness & soft rainwater film!)
+    puddle = BS.fbm(SIZE, [4, 8, 16, 32], seed=7201)
+    grit = BS.fbm(SIZE, [64, 128, 256, 512], seed=7202)
+    pebble = BS.fbm(SIZE, [128, 256, 512], seed=7204)
+    moss = np.clip((BS.fbm(SIZE, [6, 12, 24], seed=7203) - 0.66) * 3.2, 0.0, 1.0)
+    # Continuous subtle rain-film pooling rather than high-contrast camouflage spots
+    wet_film = np.clip((puddle - 0.38) * 2.2, 0.0, 1.0)
+    damp_col = np.full((SIZE, SIZE, 3), (0.145, 0.155, 0.160), dtype=np.float32) + BS.center(grit)[..., None] * 0.055 + BS.center(pebble)[..., None] * 0.045
+    puddle_col = damp_col * 0.72 + np.array([0.012, 0.018, 0.022], dtype=np.float32)
+    asph_col = damp_col * (1.0 - wet_film[..., None]) + puddle_col * wet_film[..., None]
+    asph_col = asph_col * (1.0 - moss[..., None] * 0.32) + np.array([0.095, 0.135, 0.090]) * (moss[..., None] * 0.32)
+    # Fine asphalt aggregate relief dampened gently where rain sheet pools
+    asph_h = (grit * 0.52 + pebble * 0.48) * (1.0 - wet_film * 0.58)
+    asph_norm = BS.normal_from_height(asph_h, 4.4)
+    asph_sm = np.clip(0.38 + BS.center(pebble) * 0.09 + wet_film * 0.30 - moss * 0.14, 0.22, 0.74)
+    asph_ao = np.clip(BS.ao_from_height(grit * 0.6 + pebble * 0.4, 5, 0.42) * (1.0 - wet_film * 0.08), 0.48, 1.0)
     BS.map_set("WetAsphalt", asph_col, asph_norm, asph_sm, asph_ao)
 
     # 2. ExteriorFacade (2048x2048): 1987 Vietnamese provincial hospital ochre-cream weathered masonry limewash
+    # Keep tiling texture subtle and non-repetitive; localized heavy runoff lives on architectural decals!
     macro = BS.fbm(SIZE, [4, 8, 16, 32], seed=7210)
-    streaks = BS.fbm_aniso(SIZE, [24, 48, 96], [3, 6, 12], seed=7211)
-    moss_run = np.clip((streaks * 0.65 + (1.0 - macro) * 0.35 - 0.54) * 3.8, 0.0, 1.0)
-    ef_col = np.full((SIZE, SIZE, 3), (0.64, 0.59, 0.44), dtype=np.float32) + BS.center(macro)[..., None] * 0.10 + BS.center(plaster_disp)[..., None] * 0.08
-    ef_col = ef_col * (1.0 - moss_run[..., None] * 0.55) + np.array([0.16, 0.19, 0.15]) * (moss_run[..., None] * 0.55)
-    ef_norm = BS.blend_normals(plaster_norm, BS.normal_from_height(plaster_disp * 0.6 + streaks * 0.25, 4.2), 0.55)
-    ef_sm = np.clip(0.16 + moss_run * 0.12 + BS.center(macro) * 0.06, 0.06, 0.36)
-    ef_ao = np.clip(BS.ao_from_height(plaster_disp, 8, 0.55) - moss_run * 0.18, 0.38, 1.0)
+    fine = BS.fbm(SIZE, [48, 96, 192], seed=7212)
+    streaks = BS.fbm_aniso(SIZE, [16, 32, 64], [4, 8, 16], seed=7211)
+    moss_run = np.clip((streaks * 0.48 + (1.0 - macro) * 0.52 - 0.58) * 2.4, 0.0, 1.0) * (0.65 + 0.35 * fine)
+    ef_col = np.full((SIZE, SIZE, 3), (0.66, 0.61, 0.47), dtype=np.float32) + BS.center(macro)[..., None] * 0.075 + BS.center(plaster_disp)[..., None] * 0.065
+    ef_col = ef_col * (1.0 - moss_run[..., None] * 0.28) + np.array([0.26, 0.28, 0.22]) * (moss_run[..., None] * 0.28)
+    ef_norm = BS.blend_normals(plaster_norm, BS.normal_from_height(plaster_disp * 0.58 + streaks * 0.14, 3.6), 0.50)
+    ef_sm = np.clip(0.15 + moss_run * 0.09 + BS.center(macro) * 0.05, 0.06, 0.30)
+    ef_ao = np.clip(BS.ao_from_height(plaster_disp, 8, 0.46) - moss_run * 0.10, 0.48, 1.0)
     BS.map_set("ExteriorFacade", ef_col, ef_norm, ef_sm, ef_ao)
 
     # 3. WeatheredBrick (1024x1024): Southern Vietnamese perimeter wall & gatehouse plinth brickwork

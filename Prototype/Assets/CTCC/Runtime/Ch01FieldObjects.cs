@@ -51,7 +51,7 @@ namespace CTCC
             new("CH01_GUTTER", "Rãnh thoát nước", "LOC01", "LOC01", new(6.25f, .075f, -13.80f), new(.55f, .13f, .80f),
                 "Tiếng mưa dồn xuống rãnh cạnh lối đi. Nước đọng lại một lúc giữa hai nắp gang.",
                 prompt: "Nghe mưa dưới rãnh"),
-            new(Calendar, "Lịch bàn trực", "LOC02", "LOC02", new(-.92f, 1.56f, -4.65f), new(.14f, .469f, .37f),
+            new(Calendar, "Lịch bàn trực", "LOC02", "LOC02", new(-.92f, 1.56f, -5.85f), new(.14f, .469f, .37f),
                 "Tờ lịch ngày thứ Sáu, 18/11/2005. Mép tờ hôm trước còn kẹp sau lá lịch.",
                 image: "Calendar2005", backImage: "Calendar2005_Previous", prompt: "Giở lịch bàn trực"),
             new(Handset, "Điện thoại bàn", "LOC02", "LOC02", new(1.65f, 1.23f, -3.55f), new(.23f, .18f, .21f),

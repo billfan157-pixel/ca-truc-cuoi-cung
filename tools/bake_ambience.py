@@ -113,7 +113,7 @@ if __name__ == "__main__":
     tf = time_arr(0.24)
     heel = np.exp(-tf * 28) * np.clip(tf / 0.005, 0, 1)
     save("Step", (noise(0.24, 65, 520) * 0.20 + np.sin(2 * np.pi * tf * 95) * 0.12) * heel)
-    save("StepWet", (noise(0.24, 65, 520) * 0.14 + noise(0.24, 1400, 7500) * 0.22 * np.exp(-tf * 14)) * np.clip(tf / 0.004, 0, 1))
+    save("StepWet", ((noise(0.24, 65, 520) * 0.14 + noise(0.24, 1400, 7500) * 0.22 * np.exp(-tf * 14)) * np.clip(tf / 0.004, 0, 1)) * 0.38)
     save("StepCorridor", (noise(0.24, 120, 1600) * 0.21 + np.sin(2 * np.pi * tf * 145) * 0.10) * heel)
 
     # Heavy wooden hospital ward door hinge creak + metallic latch click
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     caster_rumble = noise(1.35, 45, 360) * 0.24
     metal_rattle = noise(1.35, 950, 4400) * 0.10 * (0.5 + 0.5 * np.sin(2 * np.pi * tr * 9.5) ** 2)
     squeak = np.sin(2 * np.pi * (420 * tr + 15 * np.sin(2 * np.pi * tr * 3))) * 0.045
-    save("CabinetRoll", (caster_rumble + metal_rattle + squeak) * np.sin(np.pi * tr / 1.35) ** 0.9)
+    save("CabinetRoll", ((caster_rumble + metal_rattle + squeak) * np.sin(np.pi * tr / 1.35) ** 0.9) * 0.67)
 
     # Reality shift (Switch default + dedicated SwitchToB fluorescent surge & SwitchToR power cut)
     tw = time_arr(0.90)

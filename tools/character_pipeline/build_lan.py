@@ -271,20 +271,20 @@ def finish_lan_hair(hair_obj, human_head_obj, rig_obj, hair_mat, clip_mat):
     crown_z = max(h_zs) - 0.010
     part_x = -0.012  # natural subtle left-of-center part
 
-    # Layer A: 12 Front Hairline & Temple Framing Locks (tightly hugging the cap & forehead skin with 0.8mm offset!)
+    # Layer A: 12 Front Hairline & Temple Framing Locks (sampled from dense vertical strand strips in LanHair_Color.png!)
     front_specs = [
-        (-1.0, -0.004, -0.060, -0.048, -0.072, 0.042, -0.068, 0.010, 0.015, 0.008, 0.28, 0.54),
-        (-1.0, -0.012, -0.066, -0.056, -0.066, 0.032, -0.070, -0.002, 0.016, 0.009, 0.30, 0.56),
-        (-1.0, -0.022, -0.070, -0.063, -0.056, 0.022, -0.070, -0.012, 0.015, 0.008, 0.56, 0.78),
-        (-1.0, -0.034, -0.066, -0.067, -0.044, 0.012, -0.066, -0.020, 0.014, 0.007, 0.28, 0.52),
-        (-1.0, -0.044, -0.056, -0.069, -0.030, 0.002, -0.058, -0.026, 0.013, 0.007, 0.56, 0.78),
-        (-1.0, -0.008, -0.072, -0.042, -0.076, 0.046, -0.062, 0.018, 0.012, 0.006, 0.80, 0.98),
-        (1.0, 0.004, -0.060, 0.046, -0.073, 0.042, 0.066, 0.010, 0.015, 0.008, 0.28, 0.54),
-        (1.0, 0.012, -0.067, 0.055, -0.067, 0.032, 0.069, -0.002, 0.016, 0.009, 0.30, 0.56),
-        (1.0, 0.022, -0.070, 0.062, -0.056, 0.022, 0.069, -0.012, 0.015, 0.008, 0.56, 0.78),
-        (1.0, 0.034, -0.066, 0.067, -0.044, 0.012, 0.066, -0.020, 0.014, 0.007, 0.28, 0.52),
-        (1.0, 0.044, -0.056, 0.069, -0.030, 0.002, 0.058, -0.026, 0.013, 0.007, 0.56, 0.78),
-        (1.0, 0.008, -0.072, 0.040, -0.076, 0.046, 0.060, 0.018, 0.012, 0.006, 0.80, 0.98),
+        (-1.0, -0.004, -0.060, -0.048, -0.072, 0.042, -0.068, 0.010, 0.016, 0.009, 0.15, 0.34),
+        (-1.0, -0.012, -0.066, -0.056, -0.066, 0.032, -0.070, -0.002, 0.017, 0.010, 0.17, 0.35),
+        (-1.0, -0.022, -0.070, -0.063, -0.056, 0.022, -0.070, -0.012, 0.016, 0.009, 0.65, 0.84),
+        (-1.0, -0.034, -0.066, -0.067, -0.044, 0.012, -0.066, -0.020, 0.015, 0.008, 0.18, 0.36),
+        (-1.0, -0.044, -0.056, -0.069, -0.030, 0.002, -0.058, -0.026, 0.014, 0.008, 0.66, 0.85),
+        (-1.0, -0.008, -0.072, -0.042, -0.076, 0.046, -0.062, 0.018, 0.013, 0.006, 0.22, 0.36),
+        (1.0, 0.004, -0.060, 0.046, -0.073, 0.042, 0.066, 0.010, 0.016, 0.009, 0.15, 0.34),
+        (1.0, 0.012, -0.067, 0.055, -0.067, 0.032, 0.069, -0.002, 0.017, 0.010, 0.17, 0.35),
+        (1.0, 0.022, -0.070, 0.062, -0.056, 0.022, 0.069, -0.012, 0.016, 0.009, 0.65, 0.84),
+        (1.0, 0.034, -0.066, 0.067, -0.044, 0.012, 0.066, -0.020, 0.015, 0.008, 0.18, 0.36),
+        (1.0, 0.044, -0.056, 0.069, -0.030, 0.002, 0.058, -0.026, 0.014, 0.008, 0.66, 0.85),
+        (1.0, 0.008, -0.072, 0.040, -0.076, 0.046, 0.060, 0.018, 0.013, 0.006, 0.22, 0.36),
     ]
     for _sgn, sx, sy, tx, ty, tz_off, ex, ez_off, wr, wt, u0, u1 in front_specs:
         p0_raw = Vector((part_x + sx, sy, crown_z - 0.008))
@@ -299,12 +299,12 @@ def finish_lan_hair(hair_obj, human_head_obj, rig_obj, hair_mat, clip_mat):
             iu = 1.0 - u
             raw_p = (anchors[0] * (iu ** 3) + anchors[1] * (3 * u * (iu ** 2)) +
                      anchors[2] * (3 * (u ** 2) * iu) + anchors[3] * (u ** 3))
-            proj_p, proj_n = DH.project_to_surface(cap_bvh, raw_p, offset_m=0.0008)
+            proj_p, proj_n = DH.project_to_surface(cap_bvh, raw_p, offset_m=0.0011)
             pts.append(proj_p)
             nrms.append(proj_n)
-        DH.build_hair_card_strip(bm_h, uv_h, pts, nrms, wr, wt, u0, u1, arch=0.0006)
+        DH.build_hair_card_strip(bm_h, uv_h, pts, nrms, wr, wt, u0, u1, arch=0.0009, v_root=0.84, v_tip=0.22)
 
-    # Layer B: 6 Woven Low-Bun Wrap Cards + 4 Delicate Sideburn/Nape Baby-Hair Wisps
+    # Layer B: 6 Woven Low-Bun Wrap Cards + 4 Delicate Sideburn/Nape Baby-Hair Wisps (real dense strand UVs!)
     for bi in range(6):
         ang0 = (bi / 6.0) * math.tau
         r_bun = 0.025
@@ -316,7 +316,7 @@ def finish_lan_hair(hair_obj, human_head_obj, rig_obj, hair_mat, clip_mat):
             n = offset.normalized()
             pts.append(p)
             nrms.append(n)
-        DH.build_hair_card_strip(bm_h, uv_h, pts, nrms, 0.014, 0.009, 0.04, 0.28, arch=0.0012)
+        DH.build_hair_card_strip(bm_h, uv_h, pts, nrms, 0.015, 0.010, 0.16, 0.35, arch=0.0014, v_root=0.82, v_tip=0.28)
 
     for sgn in (-1.0, 1.0):
         for wisp_pts in (
@@ -329,10 +329,10 @@ def finish_lan_hair(hair_obj, human_head_obj, rig_obj, hair_mat, clip_mat):
         ):
             pts, nrms = [], []
             for rp in wisp_pts:
-                pp, pn = DH.project_to_surface(head_bvh, rp, offset_m=0.0014)
+                pp, pn = DH.project_to_surface(head_bvh, rp, offset_m=0.0015)
                 pts.append(pp)
                 nrms.append(pn)
-            DH.build_hair_card_strip(bm_h, uv_h, pts, nrms, 0.010, 0.005, 0.80, 0.98, arch=0.0005)
+            DH.build_hair_card_strip(bm_h, uv_h, pts, nrms, 0.011, 0.005, 0.66, 0.84, arch=0.0006, v_root=0.80, v_tip=0.18)
 
     bmesh.ops.recalc_face_normals(bm_h, faces=list(bm_h.faces))
     bm_h.to_mesh(hair_obj.data)
@@ -597,10 +597,10 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
     neck_base_z = rig_obj.data.bones["mixamorig:Neck"].head_local.z
 
     def blouse_pred(c, f):
-        if c.z < 0.675 or c.z > neck_base_z + 0.014:
+        if c.z < 0.675 or c.z > neck_base_z + 0.002:
             return False
-        # Carve a natural V-neck throat notch in the front center so no horizontal bar crosses the throat!
-        if c.y < -0.035 and abs(c.x) < 0.044 and c.z > neck_base_z - 0.028 * (1.0 - abs(c.x) / 0.044):
+        # Carve clean V-neck throat & collar bed so folded Lan_Collar sits cleanly over the blouse without burial!
+        if c.y < -0.028 and abs(c.x) < 0.054 and c.z > neck_base_z - 0.038 * (1.0 - abs(c.x) / 0.054):
             return False
         # Exclude forearms/hands past 3/4 nurse sleeve cutoff
         if abs(c.x) > sleeve_cutoff_x:
@@ -702,14 +702,22 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
     DH.run_cloth_simulation(blouse, comb_col, "Pin", frames=24, mass=0.25, tension=24.0, bending=2.4)
     blouse.vertex_groups.clear()
 
-    # Post-sim Sternum & Bust Tension Bridge Pass: guarantees woven cotton poplin bridges smoothly across the front chest
+    # Post-sim Sternum & Bust Tension Bridge + Smooth Pass: starched woven cotton poplin drapes cleanly with zero bust-tip cones
     for v in blouse.data.vertices:
         co = v.co
-        if 0.88 <= co.z <= 1.25 and co.y < -0.03 and abs(co.x) < 0.160:
+        if 0.88 <= co.z <= 1.25 and co.y < -0.03 and abs(co.x) < 0.165:
             wz = math.sin(max(0.0, min(1.0, (co.z - 0.88) / 0.37)) * math.pi)
-            wx = max(0.0, 1.0 - (abs(co.x) / 0.160) ** 2)
-            coat_front_y = -0.143 + 0.024 * ((abs(co.x) / 0.155) ** 2) + 0.012 * ((co.z - 1.12) / 0.18) ** 2
-            co.y = co.y * (1.0 - 0.88 * wz * wx) + coat_front_y * (0.88 * wz * wx)
+            wx = max(0.0, 1.0 - (abs(co.x) / 0.165) ** 2)
+            coat_front_y = -0.145 + 0.026 * ((abs(co.x) / 0.160) ** 2) + 0.014 * ((co.z - 1.11) / 0.18) ** 2
+            co.y = co.y * (1.0 - 0.94 * wz * wx) + coat_front_y * (0.94 * wz * wx)
+    bm_sm = bmesh.new()
+    bm_sm.from_mesh(blouse.data)
+    chest_verts = [v for v in bm_sm.verts if 0.94 <= v.co.z <= 1.24 and v.co.y < -0.045 and abs(v.co.x) < 0.16]
+    if chest_verts:
+        for _ in range(10):
+            bmesh.ops.smooth_vert(bm_sm, verts=chest_verts, factor=0.48, use_axis_x=False, use_axis_y=True, use_axis_z=False)
+    bm_sm.to_mesh(blouse.data)
+    bm_sm.free()
     blouse.data.update()
 
     # Apply subtle clean cloth thickness (2.2 mm) so hem & cuffs have solid tailored edges!
@@ -752,23 +760,44 @@ def build_lan_garments(body_clean_copy, rig_obj, mats):
             dy = math.sin(theta)
             base_z = neck_base_z + 0.002 - 0.018 * front_w
             if ri == 0:
-                r_scale, dz = 1.00, -0.006
+                r_scale, dz = 1.00, -0.008
             elif ri == 1:
-                r_scale, dz = 0.98, 0.012 + 0.005 * back_w
+                r_scale, dz = 0.99, 0.012 + 0.005 * back_w
             elif ri == 2:
-                r_scale, dz = 1.05, 0.022 + 0.006 * back_w
+                r_scale, dz = 1.07, 0.023 + 0.006 * back_w
             elif ri == 3:
-                # Folded outer collar leaf flaring cleanly onto shoulders & pointing toward front V-lapels
-                r_scale = 1.30 + 0.14 * front_w
-                dz = 0.002 - 0.010 * front_w
+                # Folded outer collar leaf flaring cleanly OVER shoulders & front V-lapels
+                r_scale = 1.38 + 0.18 * front_w
+                dz = 0.004 - 0.009 * front_w
             else:
-                # 4.5 mm pale-blue piping border (`NurseTrim`, material index 1)
-                r_scale = 1.38 + 0.17 * front_w
-                dz = -0.003 - 0.013 * front_w
+                # Crisp 5.5 mm pale-blue MoH 1895/1997 piping border (`NurseTrim`, material index 1)
+                r_scale = 1.49 + 0.22 * front_w
+                dz = -0.002 - 0.013 * front_w
             px = dx * rx0 * r_scale
             py = neck_cy + dy * ry0 * r_scale
             pz = base_z + dz
-            ring_vs.append(bm_col.verts.new(Vector((px, py, pz))))
+            pt = Vector((px, py, pz))
+            # Push outer folded leaf & blue piping rings strictly OUTSIDE blouse_bvh so ZERO collar burial occurs!
+            if ri >= 2:
+                rad_dir = Vector((dx, dy, 0.32)).normalized()
+                # Check outward ray from neck axis + downward ray from above shoulder onto draped blouse
+                axis_pt = Vector((0.0, neck_cy, pz - 0.006))
+                hit_out, nrm_out, _, _ = blouse_bvh.ray_cast(axis_pt, Vector((dx, dy, 0.0)).normalized(), 0.24)
+                if hit_out is not None:
+                    r_hit = math.hypot(hit_out.x, hit_out.y - neck_cy)
+                    r_cur = math.hypot(pt.x, pt.y - neck_cy)
+                    clearance = 0.0045 if ri == 2 else (0.0065 if ri == 3 else 0.0080)
+                    if r_cur < r_hit + clearance:
+                        scale_push = (r_hit + clearance) / max(r_cur, 1e-4)
+                        pt.x *= scale_push
+                        pt.y = neck_cy + (pt.y - neck_cy) * scale_push
+                hit_top, nrm_top, _, _ = blouse_bvh.ray_cast(Vector((pt.x, pt.y, pz + 0.09)), Vector((0.0, 0.0, -1.0)), 0.18)
+                if hit_top is not None:
+                    min_z = hit_top.z + (0.0045 if ri == 3 else 0.0055)
+                    if pt.z < min_z:
+                        pt.z = min_z
+                        pt += rad_dir * 0.0015
+            ring_vs.append(bm_col.verts.new(pt))
         col_rings.append(ring_vs)
 
     for ri in range(4):
@@ -1125,18 +1154,18 @@ def build_lan_animations(rig_obj):
         RC.add_world_delta(rig, "mixamorig:Neck", rx_deg=0.8 + 1.4 * s2, ry_deg=1.6 * c1, rz_deg=1.8 * s1)
         RC.add_world_delta(rig, "mixamorig:Head", rx_deg=-0.6 + 1.8 * s2, ry_deg=2.2 * c1, rz_deg=2.0 * s1)
 
-        # Right arm: calm waist-to-lower-chest conversational emphasis gesture (open palm, never above chest!)
-        r_arm_dir = Vector((-0.16, -0.14 - 0.16 * gest_r, -0.97 + 0.08 * gest_r))
-        r_for_dir = Vector((0.18 - 0.10 * gest_r, -0.62 - 0.24 * gest_r, -0.72 + 0.42 * gest_r))
-        r_hnd_dir = Vector((0.20 - 0.12 * gest_r, -0.68 - 0.22 * gest_r, -0.66 + 0.46 * gest_r))
+        # Right arm: calm waist-to-lower-chest conversational emphasis gesture (clear of hip pockets!)
+        r_arm_dir = Vector((-0.22, -0.20 - 0.16 * gest_r, -0.95 + 0.08 * gest_r))
+        r_for_dir = Vector((0.12 - 0.10 * gest_r, -0.76 - 0.22 * gest_r, -0.60 + 0.42 * gest_r))
+        r_hnd_dir = Vector((0.14 - 0.10 * gest_r, -0.82 - 0.18 * gest_r, -0.54 + 0.46 * gest_r))
         RC.aim_bone_world(rig, "mixamorig:RightArm", r_arm_dir)
         RC.aim_bone_world(rig, "mixamorig:RightForeArm", r_for_dir)
         RC.aim_bone_world(rig, "mixamorig:RightHand", r_hnd_dir)
 
-        # Left arm: poised softly near front waist / counter edge with gentle responsive lift
-        l_arm_dir = Vector((0.16, -0.12 - 0.10 * gest_l, -0.98 + 0.05 * gest_l))
-        l_for_dir = Vector((-0.34 - 0.12 * gest_l, -0.58 - 0.16 * gest_l, -0.72 + 0.24 * gest_l))
-        l_hnd_dir = Vector((-0.38 - 0.10 * gest_l, -0.62 - 0.14 * gest_l, -0.66 + 0.24 * gest_l))
+        # Left arm: poised softly forward in front of waist / counter edge (zero pocket clip!)
+        l_arm_dir = Vector((0.22, -0.18 - 0.10 * gest_l, -0.96 + 0.05 * gest_l))
+        l_for_dir = Vector((-0.26 - 0.10 * gest_l, -0.74 - 0.14 * gest_l, -0.60 + 0.24 * gest_l))
+        l_hnd_dir = Vector((-0.28 - 0.08 * gest_l, -0.78 - 0.12 * gest_l, -0.54 + 0.24 * gest_l))
         RC.aim_bone_world(rig, "mixamorig:LeftArm", l_arm_dir)
         RC.aim_bone_world(rig, "mixamorig:LeftForeArm", l_for_dir)
         RC.aim_bone_world(rig, "mixamorig:LeftHand", l_hnd_dir)
@@ -1166,14 +1195,14 @@ def build_lan_animations(rig_obj):
         RC.add_world_delta(rig, "mixamorig:Neck", rx_deg=0.6 + 0.5 * s2, ry_deg=0.8 * c1, rz_deg=1.2 * s1)
         RC.add_world_delta(rig, "mixamorig:Head", rx_deg=-0.5 + 0.6 * s2, ry_deg=1.0 * c1, rz_deg=1.4 * s1)
 
-        # Natural relaxed arms hanging down along sides with soft bent elbows & hands resting gently near front thighs!
-        RC.aim_bone_world(rig, "mixamorig:LeftArm", Vector((0.15 + 0.015 * s1, -0.08, -0.985)))
-        RC.aim_bone_world(rig, "mixamorig:LeftForeArm", Vector((-0.14, -0.44 - 0.03 * s2, -0.88)))
-        RC.aim_bone_world(rig, "mixamorig:LeftHand", Vector((-0.18, -0.48, -0.86)))
+        # Natural relaxed arms hanging down along sides with soft bent elbows & hands resting cleanly clear of hip pockets
+        RC.aim_bone_world(rig, "mixamorig:LeftArm", Vector((0.21 + 0.015 * s1, -0.12, -0.970)))
+        RC.aim_bone_world(rig, "mixamorig:LeftForeArm", Vector((-0.08, -0.56 - 0.03 * s2, -0.82)))
+        RC.aim_bone_world(rig, "mixamorig:LeftHand", Vector((-0.10, -0.60, -0.79)))
 
-        RC.aim_bone_world(rig, "mixamorig:RightArm", Vector((-0.15 + 0.015 * s1, -0.10, -0.983)))
-        RC.aim_bone_world(rig, "mixamorig:RightForeArm", Vector((0.16, -0.48 - 0.03 * s2, -0.86)))
-        RC.aim_bone_world(rig, "mixamorig:RightHand", Vector((0.20, -0.50, -0.84)))
+        RC.aim_bone_world(rig, "mixamorig:RightArm", Vector((-0.21 + 0.015 * s1, -0.14, -0.968)))
+        RC.aim_bone_world(rig, "mixamorig:RightForeArm", Vector((0.10, -0.58 - 0.03 * s2, -0.80)))
+        RC.aim_bone_world(rig, "mixamorig:RightHand", Vector((0.12, -0.62, -0.77)))
 
         lan_relaxed_hands(rig, open_r=0.10, open_l=0.10)
         return Vector((0.010 * s1, 0.0, 0.0))

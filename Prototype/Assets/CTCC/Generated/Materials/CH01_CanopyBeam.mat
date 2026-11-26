@@ -32,6 +32,6 @@ Material:
     m_Colors:
     - _ConeBottom: {r: 4, g: 0.1, b: -9.2, a: 0}
     - _ConeTop: {r: 4, g: 2.66, b: -8.65, a: 0}
-    - _Tint: {r: 0.95, g: 0.72, b: 0.42, a: 0.083}
+    - _Tint: {r: 0.94, g: 0.76, b: 0.46, a: 0.052}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

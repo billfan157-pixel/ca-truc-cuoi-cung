@@ -32,6 +32,9 @@ namespace CTCC
         private float equipBlend = 1f;
         private float usePulse;
         private float swayPhase;
+        private float walkBobPhase;
+        private Vector3 lastEyeWorldPos;
+        private bool hasEyeWorldPos;
 
         // Cached 3D tool templates for PhysicalInspector
         private GameObject gateKeyTemplate;
@@ -514,8 +517,27 @@ namespace CTCC
             if (!reducedMotion)
             {
                 swayPhase += dt * 1.9f;
-                swayX = Mathf.Sin(swayPhase) * 0.0035f;
-                swayY = Mathf.Cos(swayPhase * 1.7f) * 0.0028f;
+                float moveSpeed = 0f;
+                if (eye != null)
+                {
+                    Vector3 cur = eye.transform.position;
+                    if (hasEyeWorldPos && dt > 0.0001f)
+                    {
+                        Vector3 d = cur - lastEyeWorldPos;
+                        d.y = 0f;
+                        moveSpeed = Mathf.Clamp(d.magnitude / dt, 0f, 4.5f);
+                    }
+                    lastEyeWorldPos = cur;
+                    hasEyeWorldPos = true;
+                }
+                float moveBlend = Mathf.Clamp01(moveSpeed / 2.6f);
+                walkBobPhase += dt * Mathf.Lerp(1.6f, 8.2f, moveBlend);
+                swayX = Mathf.Sin(swayPhase) * 0.0032f + Mathf.Cos(walkBobPhase * 0.5f) * 0.0055f * moveBlend;
+                swayY = Mathf.Cos(swayPhase * 1.7f) * 0.0024f + Mathf.Abs(Mathf.Sin(walkBobPhase * 0.5f)) * -0.0065f * moveBlend;
+            }
+            else
+            {
+                hasEyeWorldPos = false;
             }
             float thrust = Mathf.Sin(usePulse * Mathf.PI) * 0.065f;
             Vector3 rest = new(0.24f + swayX, -0.20f + swayY, 0.44f + thrust);

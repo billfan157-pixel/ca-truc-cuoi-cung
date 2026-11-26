@@ -6,6 +6,7 @@ Shader "CTCC/InspectPaperRaking"
         _BaseColor("Base Tint", Color) = (0.84, 0.83, 0.80, 1)
         _IndentNormalMap("Indentation Normal", 2D) = "bump" {}
         _IndentMaskMap("Indentation Groove Mask", 2D) = "black" {}
+        [Normal] _PaperFiber("Fine paper tooth", 2D) = "bump" {}
         _IndentScale("Indentation Relief Scale", Range(0, 3)) = 1.65
         _RakingReveal("Raking Grazing Reveal", Range(0, 1)) = 0
         _LightDirWS("Key Light Dir WS", Vector) = (0.45, 0.50, -0.74, 0)
@@ -35,6 +36,8 @@ Shader "CTCC/InspectPaperRaking"
             SAMPLER(sampler_IndentNormalMap);
             TEXTURE2D(_IndentMaskMap);
             SAMPLER(sampler_IndentMaskMap);
+            TEXTURE2D(_PaperFiber);
+            SAMPLER(sampler_PaperFiber);
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _BaseMap_ST;
@@ -89,6 +92,8 @@ Shader "CTCC/InspectPaperRaking"
                 half3 normalTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_IndentNormalMap, sampler_IndentNormalMap, input.uv), effectiveScale);
                 float3x3 tbn = float3x3(normalize(input.tangentWS), normalize(input.bitangentWS), normalize(input.normalWS));
                 float3 N = normalize(mul(normalTS, tbn));
+                half3 fiber = UnpackNormalScale(SAMPLE_TEXTURE2D(_PaperFiber, sampler_PaperFiber, input.uv), .16h);
+                float3 fiberN = normalize(mul(normalize(normalTS + half3(fiber.xy, 0)), tbn));
                 float3 flatN = normalize(input.normalWS);
 
                 float3 V = normalize(GetWorldSpaceViewDir(input.posWS));
@@ -98,7 +103,8 @@ Shader "CTCC/InspectPaperRaking"
                 // Calibrated key + soft rim + gentle ambient keeping paper typography crisp with zero white washout
                 half ndlKey = saturate(dot(N, Lkey));
                 half flatNdl = saturate(dot(flatN, Lkey));
-                half ndlRim = saturate(dot(N, Lrim));
+                half ndlRim = saturate(dot(fiberN, Lrim));
+                half ndlPaper = saturate(dot(fiberN, Lkey));
 
                 // Grazing raking specular catch + directional groove shadow along depressed pen strokes
                 float3 H = normalize(Lkey + V);
@@ -109,7 +115,7 @@ Shader "CTCC/InspectPaperRaking"
                 half grooveRimSpec = pow(ndh, 24.0h) * indentMask * (0.45h + 1.35h * _RakingReveal);
 
                 half3 ambient = half3(0.46h, 0.45h, 0.43h);
-                half3 diffuse = ambient + _LightColor.rgb * (ndlKey * 0.56h) + _RimColor.rgb * (ndlRim * 0.18h);
+                half3 diffuse = ambient + _LightColor.rgb * (ndlPaper * 0.56h) + _RimColor.rgb * (ndlRim * 0.18h);
                 half3 lit = albedo * diffuse;
 
                 // Under grazing light, ballpoint indentation troughs darken slightly while pressed ridge edges catch warm light!

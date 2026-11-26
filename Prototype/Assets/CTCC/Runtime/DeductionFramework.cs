@@ -838,10 +838,17 @@ namespace CTCC
                  submission.annotations?.SupportsRefutation(state) != true ||
                  !unique.Contains(ObservationRegistry.F101Sheet)))
             {
+                string detailMessage = !unique.Contains(ObservationRegistry.F101Sheet)
+                    ? "Cần kẹp cả tờ phiếu F101 vào nhóm nguồn phản bác để chỉ rõ con số đang đối chiếu."
+                    : submission.annotations == null || string.IsNullOrEmpty(submission.annotations.MarkedHotspot(ObservationRegistry.F101Sheet))
+                        ? "Chưa đánh dấu dòng cần đối chiếu trên tờ F101 (chọn trực tiếp trên phiếu hoặc ở trang Đối chiếu)."
+                        : !submission.annotations.HasLink
+                            ? "Mình đã có nguồn, nhưng chưa nối liên kết giữa tài liệu và dấu vết hiện trường (dùng nút Nối hai nguồn ở trang trái)."
+                            : "Mình đã có nguồn, nhưng chưa chỉ rõ những dòng và dấu vết nào đang vênh nhau. Cần xem lại các nét đánh dấu và liên kết đã kẹp vào phiếu.";
                 return HypothesisEvaluation.Reject(
                     HypothesisOutcome.InsufficientEvidence,
                     "Mình chưa nối đúng chỗ vênh giữa giấy và phòng",
-                    "Mình đã có nguồn, nhưng chưa chỉ rõ những dòng và dấu vết nào đang vênh nhau. Cần xem lại các nét đánh dấu và liên kết đã kẹp vào phiếu.");
+                    detailMessage);
             }
 
             var claim = GetClaim(submission.claimId);

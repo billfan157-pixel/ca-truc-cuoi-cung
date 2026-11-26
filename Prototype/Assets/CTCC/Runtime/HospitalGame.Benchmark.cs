@@ -79,7 +79,8 @@ namespace CTCC
             var timing = new FrameTiming[1];
             bool passed = false;
             Exception error = null;
-            using var route = BenchmarkRoute();
+            bool weatherProfile = Argument("-ctcc-art-profile") == "weather";
+            using var route = weatherProfile ? BenchmarkCh01Weather() : BenchmarkRoute();
             try
             {
                 if (Screen.width != 1920 || Screen.height != 1080 || player.Eye.targetTexture != null)
@@ -95,7 +96,7 @@ namespace CTCC
                 {
                     if (!route.MoveNext())
                     {
-                        passed = State.Happened("M1-complete") && GateService.G02(State) &&
+                        passed = weatherProfile ? samples.Count >= 180 : State.Happened("M1-complete") && GateService.G02(State) &&
                             (Argument("-ctcc-expansion") != "true" || (GateService.G04(State) && GateService.G05(State)));
                         break;
                     }
@@ -153,6 +154,59 @@ namespace CTCC
             }
             yield return PrepareForQuit();
             Application.Quit(passed ? 0 : 1);
+        }
+
+        private IEnumerator<IDisposable> BenchmarkCh01Weather()
+        {
+            var courtyard = new Vector3(4.94f, .015f, -14.24f);
+            var ward = new Vector3(9.50f, .015f, 5.85f);
+            var rain = FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None);
+            var surfaces = FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+            var exteriorRain = rain.Single(p => p.name == "Exterior rain").gameObject;
+            var eave = rain.Single(p => p.name == "Canopy eave runoff").gameObject;
+            var puddles = surfaces.Where(p => p.name == "Rain rings on shallow water" && p.transform.position.z < 0)
+                .Select(p => p.gameObject).ToArray();
+            var foliage = surfaces.Where(r => r.transform.position.z < 0 &&
+                r.sharedMaterials.Any(m => m != null && m.shader.name == "CTCC/TropicalFoliage")).ToArray();
+            Require(puddles.Length == 4 && foliage.Length > 0 && scene.motion != null,
+                "CH01 weather benchmark requires the authored courtyard and ward effects");
+
+            var studies = new (string name, Vector3 feet, Vector3 toward, Action<bool> show)[]
+            {
+                ("rain", courtyard, new Vector3(5.35f, .93f, -8.96f), exteriorRain.SetActive),
+                ("runoff", courtyard, new Vector3(5.35f, .93f, -8.96f), eave.SetActive),
+                ("ripples", courtyard, new Vector3(5.35f, .93f, -8.96f),
+                    visible => { foreach (var puddle in puddles) puddle.SetActive(visible); }),
+                ("foliage-draw", new Vector3(6.78f, .015f, -17.24f), new Vector3(8.75f, 1.5f, -14.1f),
+                    visible => { foreach (var leaf in foliage) leaf.enabled = visible; }),
+                ("curtain-motion", ward, new Vector3(10.87f, 1.30f, 4.35f),
+                    visible => scene.motion.reducedMotion = !visible),
+            };
+
+            var camera = player.Eye.transform;
+            foreach (var study in studies)
+            {
+                player.Teleport(study.feet, Quaternion.identity);
+                camera.LookAt(study.toward);
+                try
+                {
+                    // ABBA sampling keeps startup, temperature drift and cubemap jobs out of the measured windows.
+                    foreach (bool visible in new[] { true, false, false, true })
+                    {
+                        study.show(visible);
+                        benchmarkStage = "weather-warmup";
+                        double until = Time.realtimeSinceStartupAsDouble + .9;
+                        while (Time.realtimeSinceStartupAsDouble < until) yield return null;
+                        benchmarkStage = "weather-" + study.name + (visible ? "-on" : "-off");
+                        until = Time.realtimeSinceStartupAsDouble + 2.4;
+                        while (Time.realtimeSinceStartupAsDouble < until) yield return null;
+                    }
+                }
+                finally
+                {
+                    study.show(true);
+                }
+            }
         }
 
         private static long Counter(ProfilerRecorder recorder) => recorder.Valid ? recorder.LastValue : 0;

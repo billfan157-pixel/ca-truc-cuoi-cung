@@ -192,7 +192,7 @@ def set_smooth_by_angle(obj, angle_deg=38.0):
     mesh.update()
 
 
-def add_box_uv(obj, scale=1.0):
+def add_box_uv(obj, scale=1.0, rot90=False):
     """Metric-scaled tri-planar box UV projection so tileable PBR textures never stretch."""
     mesh = obj.data
     if not isinstance(mesh, bpy.types.Mesh) or len(mesh.polygons) == 0:
@@ -208,14 +208,15 @@ def add_box_uv(obj, scale=1.0):
         for li in poly.loop_indices:
             v = mat_w @ mesh.vertices[mesh.loops[li].vertex_index].co
             if az >= ax and az >= ay:
-                uv_layer[li].uv = (v.x * inv_scale, v.y * inv_scale)
+                u, w = v.x * inv_scale, v.y * inv_scale
             elif ax >= ay:
-                uv_layer[li].uv = (v.y * inv_scale, v.z * inv_scale)
+                u, w = v.y * inv_scale, v.z * inv_scale
             else:
-                uv_layer[li].uv = (v.x * inv_scale, v.z * inv_scale)
+                u, w = v.x * inv_scale, v.z * inv_scale
+            uv_layer[li].uv = (w, u) if rot90 else (u, w)
 
 
-def finalize_mesh(obj, name, key, smooth_angle=38.0, uv_scale=1.0, apply_mods=True):
+def finalize_mesh(obj, name, key, smooth_angle=38.0, uv_scale=1.0, apply_mods=True, uv_rot90=False):
     obj.name = name
     assign_mat(obj, key)
     if apply_mods and obj.type == "MESH" and len(obj.modifiers) > 0:
@@ -236,11 +237,11 @@ def finalize_mesh(obj, name, key, smooth_angle=38.0, uv_scale=1.0, apply_mods=Tr
         obj.name = name
         assign_mat(obj, key)
     set_smooth_by_angle(obj, smooth_angle)
-    add_box_uv(obj, uv_scale)
+    add_box_uv(obj, uv_scale, rot90=uv_rot90)
     return obj
 
 
-def make_box(name, loc, size, key, bevel=0.005, segments=2, rot=(0, 0, 0), uv_scale=1.0):
+def make_box(name, loc, size, key, bevel=0.005, segments=2, rot=(0, 0, 0), uv_scale=1.0, uv_rot90=False):
     bpy.ops.mesh.primitive_cube_add(size=1.0, location=loc, rotation=rot)
     obj = bpy.context.object
     obj.dimensions = size
@@ -251,7 +252,7 @@ def make_box(name, loc, size, key, bevel=0.005, segments=2, rot=(0, 0, 0), uv_sc
         b.width = min(bevel, max_b)
         b.segments = segments
         b.limit_method = "ANGLE"
-    return finalize_mesh(obj, name, key, smooth_angle=42.0, uv_scale=uv_scale)
+    return finalize_mesh(obj, name, key, smooth_angle=42.0, uv_scale=uv_scale, uv_rot90=uv_rot90)
 
 
 def make_cylinder(name, start, end, radius, key, segments=18, r_end=None, cap=True, bevel=0.0, uv_scale=1.0):

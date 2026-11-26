@@ -44,6 +44,7 @@ Shader "CTCC/Window Light"
                 float2 uv : TEXCOORD0;
                 float eyeDepth : TEXCOORD1;
                 float3 posWS : TEXCOORD2;
+                float3 normalWS : TEXCOORD3;
             };
 
             Varyings Vert(Attributes input)
@@ -54,6 +55,7 @@ Shader "CTCC/Window Light"
                 output.uv = input.uv;
                 output.eyeDepth = -position.positionVS.z;
                 output.posWS = position.positionWS;
+                output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 return output;
             }
 
@@ -61,15 +63,19 @@ Shader "CTCC/Window Light"
             {
                 float2 screenUV = GetNormalizedScreenSpaceUV(input.positionCS);
                 float solidDepth = LinearEyeDepth(SampleSceneDepth(screenUV), _ZBufferParams);
-                half edges = pow(saturate(sin(input.uv.x * PI)), 1.9);
+                float3 towardEye = GetWorldSpaceNormalizeViewDir(input.posWS);
+                half edges = pow(saturate(sin(input.uv.x * PI)), 2.2);
                 #if defined(_CTCC_ROUND_BEAM)
                 float3 axis = lerp(_ConeTop.xyz, _ConeBottom.xyz, input.uv.y);
                 float3 radial = SafeNormalize(float3(input.posWS.x - axis.x, 0, input.posWS.z - axis.z));
-                float3 towardEye = GetWorldSpaceNormalizeViewDir(input.posWS);
-                edges = smoothstep(0.06, 0.68, abs(dot(radial, towardEye)));
+                edges = pow(smoothstep(0.14, 0.88, abs(dot(radial, towardEye))), 1.75);
+                #else
+                // Grazing-angle fade prevents hard glowing slivers on crossed window shaft planes
+                float3 nWS = SafeNormalize(input.normalWS);
+                edges *= smoothstep(0.10, 0.58, abs(dot(nWS, towardEye)));
                 #endif
-                half decay = pow(1.0 - smoothstep(0.02, 0.98, input.uv.y), 1.35) * smoothstep(0.01, 0.14, input.uv.y);
-                half proximity = smoothstep(0.22, 0.85, input.eyeDepth) * saturate((solidDepth - input.eyeDepth) / 0.48);
+                half decay = pow(1.0 - smoothstep(0.02, 0.96, input.uv.y), 1.55) * smoothstep(0.01, 0.18, input.uv.y);
+                half proximity = smoothstep(0.28, 0.95, input.eyeDepth) * saturate((solidDepth - input.eyeDepth) / 0.55);
                 // Subtle animated drifting dust-mist bands inside the volumetric window shaft
                 float drift1 = sin(input.posWS.x * 3.8 + input.posWS.y * 2.4 + _Time.y * 0.28) * 0.5 + 0.5;
                 float drift2 = sin(input.posWS.z * 4.5 - input.posWS.y * 3.1 - _Time.y * 0.19) * 0.5 + 0.5;

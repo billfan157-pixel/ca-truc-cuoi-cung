@@ -117,11 +117,13 @@ namespace CTCC
         // Walkthrough Peak Horror #1 (P-SC05 Bed-4 silhouette) & Peak Horror #2 (B07 gate slam) coordination
         private GameObject bed4SilhouetteRoot;
         private Material bed4SilhouetteMat;
+        private Texture2D bed4SilhouetteTex;
         private float bed4LureWindow;
         private float bed4SilhouetteTimer;
         private float bed4SilhouetteDuration;
         private GameObject gateBarShadow;
         private Material gateBarShadowMat;
+        private Texture2D gateBarShadowTex;
         private float gateShadowTimer;
         public float LastPeakScareUnscaledTime { get; private set; } = -999f;
 
@@ -776,64 +778,120 @@ namespace CTCC
         private void EnsureBed4Silhouette()
         {
             if (bed4SilhouetteRoot != null) return;
-            var lit = Shader.Find("Universal Render Pipeline/Lit");
-            bed4SilhouetteMat = CreateTransparentShadowMat(lit, "CTCC_Bed4SilhouetteMat");
+            bed4SilhouetteTex = BuildSilhouetteTexture(seated: true);
+            bed4SilhouetteMat = CreateTransparentShadowMat("CTCC_Bed4SilhouetteMat", bed4SilhouetteTex);
 
             bed4SilhouetteRoot = new GameObject("P_SC05_Bed4Silhouette");
             bed4SilhouetteRoot.transform.position = new Vector3(11.82f, 0f, 3.68f);
             bed4SilhouetteRoot.transform.rotation = Quaternion.LookRotation(new Vector3(-1f, 0f, 0.25f));
 
-            // Restrained seated human silhouette (no facial detail, no collider, vanishes <1.8s)
-            AddShadowPart(bed4SilhouetteRoot, "Torso", PrimitiveType.Capsule, new Vector3(0f, 0.86f, 0f), new Vector3(0.36f, 0.34f, 0.24f), bed4SilhouetteMat);
-            AddShadowPart(bed4SilhouetteRoot, "Shoulders", PrimitiveType.Sphere, new Vector3(0f, 1.04f, 0f), new Vector3(0.42f, 0.18f, 0.24f), bed4SilhouetteMat);
-            AddShadowPart(bed4SilhouetteRoot, "Head", PrimitiveType.Sphere, new Vector3(0f, 1.26f, 0.03f), new Vector3(0.20f, 0.23f, 0.21f), bed4SilhouetteMat);
-            AddShadowPart(bed4SilhouetteRoot, "SeatedLap", PrimitiveType.Cube, new Vector3(0f, 0.52f, 0.14f), new Vector3(0.34f, 0.18f, 0.36f), bed4SilhouetteMat);
+            // Soft, unlit, edge-feathered seated human shadow card (no facial detail, no collider, vanishes <1.8s)
+            AddShadowCard(bed4SilhouetteRoot, "SeatedShadowFront", new Vector3(0f, 0.88f, 0.02f), new Vector3(0.72f, 1.18f, 1f), Quaternion.identity, bed4SilhouetteMat);
+            AddShadowCard(bed4SilhouetteRoot, "SeatedShadowDepth", new Vector3(0f, 0.88f, 0.02f), new Vector3(0.64f, 1.16f, 1f), Quaternion.Euler(0f, 34f, 0f), bed4SilhouetteMat);
             bed4SilhouetteRoot.SetActive(false);
         }
 
         private void EnsureGateBarShadow()
         {
             if (gateBarShadow != null) return;
-            var lit = Shader.Find("Universal Render Pipeline/Lit");
-            gateBarShadowMat = CreateTransparentShadowMat(lit, "CTCC_GateSlamShadowMat");
-            gateBarShadow = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            gateBarShadow.name = "B07_GateSlamShadow";
-            var col = gateBarShadow.GetComponent<Collider>();
-            if (col != null) Destroy(col);
-            gateBarShadow.transform.localScale = new Vector3(0.52f, 0.92f, 0.22f);
-            var mr = gateBarShadow.GetComponent<MeshRenderer>();
-            mr.sharedMaterial = gateBarShadowMat;
-            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            gateBarShadowTex = BuildSilhouetteTexture(seated: false);
+            gateBarShadowMat = CreateTransparentShadowMat("CTCC_GateSlamShadowMat", gateBarShadowTex);
+            gateBarShadow = new GameObject("B07_GateSlamShadow");
+            AddShadowCard(gateBarShadow, "PassingShadow", Vector3.zero, new Vector3(0.95f, 1.88f, 1f), Quaternion.identity, gateBarShadowMat);
             gateBarShadow.SetActive(false);
         }
 
-        private static Material CreateTransparentShadowMat(Shader lit, string name)
+        private static Material CreateTransparentShadowMat(string name, Texture2D alphaMap)
         {
-            var m = new Material(lit) { name = name };
+            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Universal Render Pipeline/Lit");
+            var m = new Material(shader) { name = name };
             m.SetFloat("_Surface", 1f);
             m.SetFloat("_Blend", 0f);
             m.SetFloat("_ZWrite", 0f);
+            m.SetFloat("_Cull", 0f);
             m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
             m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
             m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             m.renderQueue = 3000;
-            m.SetColor("_BaseColor", new Color(0.03f, 0.04f, 0.045f, 0f));
-            m.SetFloat("_Smoothness", 0.02f);
+            m.SetColor("_BaseColor", new Color(0.02f, 0.028f, 0.032f, 0f));
+            if (alphaMap != null) m.SetTexture("_BaseMap", alphaMap);
             return m;
         }
 
-        private static void AddShadowPart(GameObject parent, string name, PrimitiveType type, Vector3 pos, Vector3 scale, Material mat)
+        private static void AddShadowCard(GameObject parent, string name, Vector3 pos, Vector3 scale, Quaternion rot, Material mat)
         {
-            var go = GameObject.CreatePrimitive(type);
+            var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
             go.name = name;
             var col = go.GetComponent<Collider>();
             if (col != null) Destroy(col);
             go.transform.SetParent(parent.transform, false);
             go.transform.localPosition = pos;
+            go.transform.localRotation = rot;
             go.transform.localScale = scale;
             var mr = go.GetComponent<MeshRenderer>();
             mr.sharedMaterial = mat;
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+        }
+
+        private static Texture2D BuildSilhouetteTexture(bool seated)
+        {
+            const int w = 96;
+            const int h = 144;
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, mipChain: false)
+            {
+                name = seated ? "CTCC_SeatedShadowTex" : "CTCC_PassingShadowTex",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+            var px = new Color[w * h];
+            for (int y = 0; y < h; y++)
+            {
+                float v = (y + 0.5f) / h; // 0 bottom, 1 top
+                for (int x = 0; x < w; x++)
+                {
+                    float u = (x + 0.5f) / w;
+                    float dx = u - 0.5f;
+                    float d;
+                    if (seated)
+                    {
+                        // Soft hunched seated figure: head (0.78), sloped shoulders (0.60), torso & lap (0.36..0.58)
+                        float head = EllipseSdf(dx, v - 0.77f, 0.125f, 0.115f);
+                        float neck = EllipseSdf(dx, v - 0.67f, 0.075f, 0.06f);
+                        float shoulders = EllipseSdf(dx, v - 0.56f, 0.28f, 0.135f);
+                        float torso = EllipseSdf(dx, v - 0.40f, 0.24f, 0.22f);
+                        float lap = EllipseSdf(dx - 0.02f, v - 0.22f, 0.30f, 0.14f);
+                        d = Mathf.Min(head, Mathf.Min(neck, Mathf.Min(shoulders, Mathf.Min(torso, lap))));
+                    }
+                    else
+                    {
+                        // Tall fast-passing human figure outside gate bars (slight forward motion lean)
+                        float lean = (v - 0.5f) * 0.07f;
+                        float head = EllipseSdf(dx - lean, v - 0.83f, 0.105f, 0.088f);
+                        float shoulders = EllipseSdf(dx - lean, v - 0.68f, 0.23f, 0.12f);
+                        float coat = EllipseSdf(dx - lean * 0.5f, v - 0.42f, 0.20f, 0.30f);
+                        float stride = EllipseSdf(dx, v - 0.16f, 0.22f, 0.16f);
+                        d = Mathf.Min(head, Mathf.Min(shoulders, Mathf.Min(coat, stride)));
+                    }
+                    // Wide feathered edge so the silhouette reads as ambient darkness rather than a cutout sticker
+                    float core = 1f - Mathf.SmoothStep(-0.08f, 0.14f, d);
+                    float halo = (1f - Mathf.SmoothStep(0.0f, 0.30f, d)) * 0.28f;
+                    float edgeFade = Mathf.SmoothStep(0f, 0.12f, u) * Mathf.SmoothStep(1f, 0.88f, u) *
+                                     Mathf.SmoothStep(0f, 0.14f, v) * Mathf.SmoothStep(1f, 0.90f, v);
+                    float a = Mathf.Clamp01((core + halo) * edgeFade);
+                    px[y * w + x] = new Color(1f, 1f, 1f, a);
+                }
+            }
+            tex.SetPixels(px);
+            tex.Apply(false, true);
+            return tex;
+        }
+
+        private static float EllipseSdf(float x, float y, float rx, float ry)
+        {
+            float nx = x / rx;
+            float ny = y / ry;
+            return (Mathf.Sqrt(nx * nx + ny * ny) - 1f) * Mathf.Min(rx, ry);
         }
 
         private void OnDestroy()
@@ -842,6 +900,8 @@ namespace CTCC
             if (gateBarShadow != null) Destroy(gateBarShadow);
             if (bed4SilhouetteMat != null) Destroy(bed4SilhouetteMat);
             if (gateBarShadowMat != null) Destroy(gateBarShadowMat);
+            if (bed4SilhouetteTex != null) Destroy(bed4SilhouetteTex);
+            if (gateBarShadowTex != null) Destroy(gateBarShadowTex);
         }
     }
 }

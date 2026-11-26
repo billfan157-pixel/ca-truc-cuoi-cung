@@ -37,17 +37,17 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _BackScatter: 0.14
+    - _BackScatter: 0.24
     - _BumpScale: 0.55
-    - _Cutoff: 0.34
+    - _Cutoff: 0.45
     - _ShiftPrimary: -0.1
     - _ShiftSecondary: 0.14
-    - _SpecIntensity: 0.05
-    - _SpecPowerPrimary: 128
-    - _SpecPowerSecondary: 48
+    - _SpecIntensity: 0.04
+    - _SpecPowerPrimary: 84
+    - _SpecPowerSecondary: 30
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _SpecColorPrimary: {r: 0.34, g: 0.28, b: 0.24, a: 1}
-    - _SpecColorSecondary: {r: 0.24, g: 0.14, b: 0.09, a: 1}
+    - _SpecColorPrimary: {r: 0.76, g: 0.68, b: 0.62, a: 1}
+    - _SpecColorSecondary: {r: 0.48, g: 0.3, b: 0.19, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
