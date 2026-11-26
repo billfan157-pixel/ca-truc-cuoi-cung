@@ -119,6 +119,11 @@ namespace CTCC
                 if (State.PatientConfirmed("C02")) copy += State.PatientIdentityVerified("C02") ? "\n\nC02 · Bà Lành." : "\n\nC02 · Đã ghi nhận người bệnh.";
                 if (State.PatientConfirmed("C12")) copy += "\n\nC12 · Chưa biết danh tính.";
                 if (GateService.H05(State)) copy += "\n\nĐã đối chiếu thẻ Lan với hồ sơ tiếp nhận và phiếu thu hồi.";
+                if (State.Happened("CH05-T05")) copy += "\n\nĐã qua ký ức sơ tán Khu B (AN05 · 6/6 người qua cầu thang S1).";
+                if (State.Happened("PZ07.Aligned")) copy += "\n\nĐã đối chiếu sơ đồ 2005 và bản hoàn công 06/2004 (E05) tại LOC09.";
+                if (State.Has(EvidenceRegistry.SealedWallPhoto)) copy += "\n\nĐã kiểm chứng tường xây bít 2004 ngoài hố kỹ thuật LOC11 (E05b).";
+                if (State.Happened("ValveSabotageFound")) copy += "\n\nGhi chú tùy chọn LOC09: vết cắt cơ học trên ổ khóa van dung môi và chốt chèn tấm chắn gió (nghi vấn đối chiếu E09, chưa đủ xác định thủ phạm).";
+                if (GateService.G05(State)) copy += "\n\nH03 đã xác minh · Cửa Phòng Hành chính (LOC08 · G05) đã mở.";
                 ui.NotebookPage("Những nơi đã xem", copy);
             }
         }
@@ -130,6 +135,14 @@ namespace CTCC
             "STAFF" => "Bàn điều dưỡng",
             "HALL" => "Hành lang",
             "LOC03" => "Phòng 101",
+            "LOC04" => "Khu Cấp cứu",
+            "LOC05" => "Khu B · Tầng 2",
+            "LOC06" => "Phòng trực Khu B",
+            "LOC07" => "Kho hồ sơ · Tầng 3",
+            "LOC08" => "Phòng Hành chính · Tầng 3",
+            "LOC09" => "Khu kỹ thuật B1",
+            "LOC10" => "Nhà xác B1",
+            "LOC11" => "Hành lang bao B1 · Cửa Đông",
             _ => id
         };
 

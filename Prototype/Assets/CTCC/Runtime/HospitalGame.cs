@@ -16,9 +16,14 @@ namespace CTCC
         [Serializable] private sealed class DialogueEntry { public string id, chapter, speaker, context, copy; }
         [Serializable] private sealed class DialogueSheet
         {
+            public string sourceRevision;
+            public string sourceFile;
+            public string sourceSha256;
             public DialogueEntry[] entries;
             public DialogueCondition[] conditions;
         }
+        private string dialogueSourceRevision = "";
+        private string dialogueSourceSha256 = "";
         private readonly Dictionary<string, DialogueEntry> dialogue = new();
         private readonly Dictionary<string, DialogueCondition> revealConditions = new();
         private readonly Queue<string> staffReactions = new();
@@ -95,6 +100,8 @@ namespace CTCC
 
             var lineSheet = Resources.Load<TextAsset>("CTCC/Dialogue");
             var sheet = JsonUtility.FromJson<DialogueSheet>(lineSheet.text);
+            dialogueSourceRevision = sheet.sourceRevision ?? "";
+            dialogueSourceSha256 = sheet.sourceSha256 ?? "";
             foreach (var entry in sheet.entries)
                 dialogue.Add(entry.id, entry);
             AddDialogueAlias("CH01-D11", "CH01-D10", 2);
@@ -482,12 +489,12 @@ namespace CTCC
             // CH01-T11: Progressive gentle inactivity hints (60s / 120s / 180s, toggleable in Settings)
             UpdateProgressiveHints();
 
-            // Regional Patrol/Investigate/Chase/Search/Return AI & Orderly/Unrecorded sync (TASK011-A..E)
-            if (State.chapter is ("CH03" or "CH04"))
+            // Regional Patrol/Investigate/Chase/Search/Return AI & Orderly/Unrecorded sync (TASK011-A..E, TASK013-C)
+            if (State.chapter is ("CH03" or "CH04" or "CH05"))
             {
                 orderlyAi?.SyncState(State);
                 if (orderlyAi != null && (orderlyAi.IsActive || orderlyAi.UnrecordedActive))
-                    orderlyAi.Tick(State, Time.deltaTime, player.IsRunning, player.IsCrouching, player.IsMoving, Line);
+                    orderlyAi.Tick(State, FirstPerson.MovementDeltaTime, player.IsRunning, player.IsCrouching, player.IsMoving, Line);
             }
 
             if (transaction.OnPad(feet, "AN03") && State.chapter == "CH03" && anchorPressed)
@@ -760,10 +767,17 @@ namespace CTCC
             "CH03_DOOR" => false,
             "DOOR-101" => State.Happened("CH01-T05") || State.layer == Reality.R,
             "CURTAIN-101" => scene.interactables != null && scene.interactables.curtainCloth != null && scene.interactables.curtainCloth.gameObject.activeInHierarchy,
-            "E03" or "C02_NOTE" or "AN03" or "C02_BAG" or "C02_LETTER" or "C12_BOX" or "FS10_LOCK" or "RADIO_LOC07" or "G03" => State.chapter is "CH03" or "CH04",
+            "AN03" => State.chapter is ("CH03" or "CH04" or "CH05") && !(State.chapter == "CH05" && State.layer == Reality.M),
+            "E03" or "C02_NOTE" or "C02_BAG" or "C02_LETTER" or "C12_BOX" or "FS10_LOCK" or "RADIO_LOC07" or "G03" =>
+                State.chapter is ("CH03" or "CH04" or "CH05") && State.layer == Reality.R,
             "CH03_EXIT" => State.chapter == "CH03" && GateService.G03(State),
-            "AN04" or "CH04_POWER" or "E04_E07" or "PZ04_SCHEDULE" or "PZ04_ROOM_SLIP" or "PZ04_STATUS_BOARD" => State.chapter == "CH04",
-            "AN05" => State.chapter == "CH04" && GateService.G04(State) && State.Happened("CH04-T06"),
+            "AN04" or "CH04_POWER" or "E04_E07" => State.chapter is ("CH04" or "CH05") && State.layer == Reality.R,
+            "PZ04_SCHEDULE" or "PZ04_ROOM_SLIP" or "PZ04_STATUS_BOARD" => State.chapter == "CH04" && State.layer == Reality.R,
+            "AN05" or "AN05_HANDOFF_NOTE" => State.chapter is ("CH04" or "CH05") && State.layer == Reality.R && GateService.G04(State) && State.Happened("CH04-T06"),
+            "CH05_M_PAIR1" or "CH05_M_PAIR2" or "CH05_M_PAIR3_ASSEMBLY" or "CH05_M_EXIT" => State.chapter == "CH05" && State.layer == Reality.M,
+            "CH05_BLUEPRINTS" or "LOC09_VALVE" or "E05B_SEALED_DOOR" => State.chapter == "CH05" && State.layer == Reality.R,
+            "LOC08_GATE" => State.chapter is ("CH03" or "CH04" or "CH05") && State.layer == Reality.R && !GateService.G05(State),
+            "CH05_HANDOFF" => State.chapter == "CH05" && State.layer == Reality.R && GateService.G05(State),
             Ch01FieldObjects.BinInterior => State.chapter == "CH01" && scene.PedalBin?.CanSeeInside == true,
             _ when target.fieldObject != null => target.fieldObject.Observation.AllowsChapter(State.chapter) &&
                 target.fieldObject.Observation.AllowsLayer(State.layer) &&
@@ -946,7 +960,37 @@ namespace CTCC
                     Ch04WardStatusBoard();
                     break;
                 case "AN05":
-                    Ch04An05Handoff();
+                    Ch05An05Anchor();
+                    break;
+                case "AN05_HANDOFF_NOTE":
+                    Ch05An05DirectionNote();
+                    break;
+                case "CH05_M_PAIR1":
+                    Ch05MemoryPair1();
+                    break;
+                case "CH05_M_PAIR2":
+                    Ch05MemoryPair2();
+                    break;
+                case "CH05_M_PAIR3_ASSEMBLY":
+                    Ch05MemoryPair3Assembly();
+                    break;
+                case "CH05_M_EXIT":
+                    Ch05MemoryControlModal();
+                    break;
+                case "CH05_BLUEPRINTS":
+                    Ch05BlueprintsLoc09();
+                    break;
+                case "LOC09_VALVE":
+                    Ch05OptionalValveLoc09();
+                    break;
+                case "E05B_SEALED_DOOR":
+                    Ch05SealedWallE05b();
+                    break;
+                case "LOC08_GATE":
+                    Ch05Loc08GatePrompt();
+                    break;
+                case "CH05_HANDOFF":
+                    Ch05HandoffLoc08();
                     break;
                 case "CH04_POWER":
                     Ch04PowerBoard();
@@ -1204,7 +1248,9 @@ namespace CTCC
             if (Report(outcome))
             {
                 if (switchedLayer && reduced)
-                    ui.Caption(State.layer == Reality.B ? "[Chuyển sang B · Bản báo cáo 2005]" : "[Trở về R · Hiện trường 2012]", 3.5f, true);
+                    ui.Caption(State.layer == Reality.M ? "[Chuyển sang M · Ký ức 18/11/2005]"
+                        : State.layer == Reality.B ? "[Chuyển sang B · Bản báo cáo 2005]"
+                        : "[Trở về R · Hiện trường 2012]", 3.5f, true);
                 after?.Invoke();
             }
         }
@@ -1291,8 +1337,19 @@ namespace CTCC
                 : !ChapterFour.MorguePower(State.servicePower) && !GateService.H05(State) ? "Qua Cấp cứu xuống B1. Tìm bảng tải ở khu kỹ thuật."
                 : !GateService.H05(State) ? "Đối chiếu hồ sơ tiếp nhận và phiếu thu hồi ở nhà xác."
                 : !State.Happened("CH04-T06") ? "Nói chuyện với Lan ở cạnh tủ hồ sơ."
-                : !State.Happened("CH04-AN05.reached") ? "Quay lại tầng 2 tới điểm neo AN05 trong phòng trực Khu B."
-                : "Đã hoàn tất CH04 và chốt điểm neo AN05 (CH05 khóa trong bản M3.2)."
+                : "Quay lại tầng 2 tới xe bệnh nhân AN05 tại sảnh Khu B."
+                : State.chapter == "CH05"
+                ? State.layer == Reality.M
+                    ? !State.Happened(ChapterFive.EvPair1) ? "Ký ức M (0/6) · Mở lối cửa Khu B và đưa Nhóm 1 ra hành lang S1."
+                    : !State.Happened(ChapterFive.EvPair2) ? "Ký ức M (2/6) · Dọc hành lang Tây S1, gọi đồng nghiệp tại điểm hẹn A để đẩy Nhóm 2 qua vật cản."
+                    : !State.Happened(ChapterFive.EvPair3) ? "Ký ức M (4/6) · Xuống cầu thang S1 qua cửa xả sân ngoài đưa Nhóm 3 tới điểm tập kết 6/6."
+                    : "Ký ức M (6/6) · Gặp Giám đốc Vĩnh và trở về hiện trường 2012 tại xe bệnh nhân AN05."
+                : !State.Happened(ChapterFive.EvReturnR) ? "Chạm vào xe bệnh nhân AN05 ở sảnh Khu B để bước vào ký ức sơ tán."
+                : !State.Happened(ChapterFive.FlagOverlayAligned) ? "Xuống khu kỹ thuật B1 (LOC09) mở tủ bản vẽ và căn chồng PZ07 (E05)."
+                : !State.Has(EvidenceRegistry.SealedWallPhoto) ? "Qua cửa Đông LOC09 → LOC11 → hành lang ngoài kiểm chứng tường bít 2004 (E05b)."
+                : !GateService.G05(State) ? "Đã đủ E05 và E05b — xác minh H03 để mở khóa Phòng Hành chính LOC08 (G05)."
+                : !State.Happened(ChapterFive.EvHandoff) ? "Lên tầng 3 (LOC07) qua cửa G05 vào Phòng Hành chính LOC08."
+                : "Đã chốt CH05-CP03 tại ngưỡng LOC08 (CH06–08 khóa theo phạm vi M3.3)."
                 : State.Happened("M1-complete") ? "Hồ sơ 101 đã lưu."
                 : GateService.G02(State) ? "Đến sổ giao ca ở cấp cứu."
                 : State.layer == Reality.B ? "Trở về hiện trường qua bảng kẹp phòng 101."

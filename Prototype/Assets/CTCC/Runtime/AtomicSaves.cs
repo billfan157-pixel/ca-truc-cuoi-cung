@@ -247,7 +247,7 @@ namespace CTCC
         {
             if (s == null || s.schemaVersion != Investigation.Schema || s.sequence < 0 || s.settings == null || s.f101 == null ||
                 s.events == null || s.evidence == null || s.observed == null ||
-                s.chapter is not ("CH01" or "CH02" or "CH03" or "CH04") ||
+                s.chapter is not ("CH01" or "CH02" or "CH03" or "CH04" or "CH05") ||
                 SafeCheckpoints.Pad(s.checkpoint) == null || !Enum.IsDefined(typeof(Reality), s.layer) ||
                 !Enum.IsDefined(typeof(FormStatus), s.f101.current) || !Enum.IsDefined(typeof(FormStatus), s.f101.firstDecision))
                 return false;
@@ -263,21 +263,26 @@ namespace CTCC
             if (s.Has(EvidenceRegistry.Drawing) && !EvidenceRegistry.HaveFragments(s) ||
                 s.Happened("C01.verified") && (!EvidenceRegistry.BundleComplete(s) || !s.Has("E12")) ||
                 s.chapter != "CH01" && (!GateService.G01(s) || !s.Happened("CH01-T10")) ||
-                s.chapter is ("CH03" or "CH04") && !GateService.G02(s) ||
+                s.chapter is ("CH03" or "CH04" or "CH05") && !GateService.G02(s) ||
                 s.chapter == "CH04" && (!GateService.G03(s) ||
                     !s.checkpoint.StartsWith("CH04-", StringComparison.Ordinal) || s.layer != Reality.R) ||
+                s.chapter == "CH05" && (!GateService.G03(s) || !GateService.G04(s) || !s.Happened("CH04-T06") ||
+                    !s.checkpoint.StartsWith("CH05-", StringComparison.Ordinal) || s.layer == Reality.B) ||
                 s.chapter == "CH01" && s.evidence.Count != 1)
                 return false;
             if (s.Happened("C12.verified") || !FormService.ValidExtras(s) ||
                 !ChapterFour.ValidPower(s.servicePower) ||
-                s.chapter != "CH04" && s.servicePower != 0 ||
+                s.chapter is not ("CH04" or "CH05") && s.servicePower != 0 ||
                 s.Happened("H05.verified") && !GateService.H05(s) ||
                 s.Happened("PT02.presented") && !GateService.H05(s) ||
-                s.Happened("CH04-T06") && !GateService.G04(s))
+                s.Happened("CH04-T06") && !GateService.G04(s) ||
+                s.Happened("H03.verified") && !GateService.H03(s) ||
+                s.Happened("G05.opened") && !GateService.G05(s) ||
+                s.Happened("G06.opened") || s.Has("E08") || s.Has("E01") || s.Has("E06") || s.Has("E10b"))
                 return false;
             var puzzles = new HashSet<string>(StringComparer.Ordinal);
             if (s.puzzles != null && s.puzzles.Exists(p => p == null ||
-                p.puzzleId is not ("CH01-F101" or "CH03-PU01" or "CH03-PU02" or "CH04-PU01" or "CH04-PU02" or "CH04-PU03") || !puzzles.Add(p.puzzleId) ||
+                p.puzzleId is not ("CH01-F101" or "CH03-PU01" or "CH03-PU02" or "CH04-PU01" or "CH04-PU02" or "CH04-PU03" or "CH05-PU01" or "CH05-PU02") || !puzzles.Add(p.puzzleId) ||
                 p.failedAttempts < 0 || p.solved != s.Happened(p.puzzleId + ".solved")))
                 return false;
             if (s.observed.Exists(id => !ObservationRegistry.Registered(id)))

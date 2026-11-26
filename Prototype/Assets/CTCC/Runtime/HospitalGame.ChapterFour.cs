@@ -33,13 +33,16 @@ namespace CTCC
                     "• 03:17: mất liên lạc C (chưa xác định giờ tử vong).\n" +
                     "• 07:40: phiếu nội bộ ký lưu.")),
                 new("Đọc bản chép băng họp · E06a", Ch04Meeting),
-                new("Xem lịch đi xe thuốc (PZ04)", Ch04OrderlySchedule)
             };
+            if (State.chapter == "CH04")
+                choices.Add(new ActionChoice("Xem lịch đi xe thuốc (PZ04)", Ch04OrderlySchedule));
             if (CanCompareInventoryTime())
                 choices.Add(new ActionChoice("Đối chiếu mốc 02:50", Ch04CompareInventoryTime));
             choices.Add(new("Rời phòng trực", CloseModal));
-            ui.Show("PHÒNG TRỰC · TẦNG 2 (LOC06)", "Lịch trực và tủ hồ sơ",
-                State.Happened("PT01.presented") ? "Xuống cầu thang Cấp cứu, theo biển Kỹ thuật B1. (Quan sát tuyến xe thuốc hoặc đối chiếu phiếu buồng Khu B.)" : Line("CH04-D01"),
+            string dutyPrompt = State.chapter == "CH05"
+                ? "Phòng trực Khu B (LOC06): có thể đối chiếu lại sổ bàn giao chìa E02, sổ trực đêm 02:58 E09 và băng họp E06a."
+                : State.Happened("PT01.presented") ? "Xuống cầu thang Cấp cứu, theo biển Kỹ thuật B1. (Quan sát tuyến xe thuốc hoặc đối chiếu phiếu buồng Khu B.)" : Line("CH04-D01");
+            ui.Show("PHÒNG TRỰC · TẦNG 2 (LOC06)", "Lịch trực và tủ hồ sơ", dutyPrompt,
                 choices.ToArray(), CloseModal);
         }
 
@@ -149,7 +152,7 @@ namespace CTCC
         }
 
         private bool CanCompareInventoryTime() =>
-            State.chapter == "CH04" && State.layer == Reality.R &&
+            State.chapter is ("CH04" or "CH05") && State.layer == Reality.R &&
             State.Has(EvidenceRegistry.DutyOrders) && State.Has(EvidenceRegistry.DutyLog);
 
         private void Ch04CompareInventoryTime()
@@ -323,7 +326,7 @@ namespace CTCC
                 if (!string.IsNullOrEmpty(afterLine))
                     voice?.RecordTranscriptOnly("CH04-D07", "Minh", afterLine);
                 CloseModal();
-                ui.Toast("G04 ĐÃ MỞ · ĐIỂM NEO AN05", "Quay lại tầng 2 tới điểm neo AN05 trong phòng trực Khu B.", 5.5f);
+                ui.Toast("G04 ĐÃ MỞ · ĐIỂM NEO AN05", "Quay lại tầng 2 tới xe bệnh nhân AN05 ở sảnh Khu B.", 5.5f);
             }
             ui.Show("NHÀ XÁC · SAU ĐỐI CHIẾU", "Lan", LineAtBeat("CH04-D06", 1, beat),
                 new[]
@@ -337,28 +340,6 @@ namespace CTCC
                     }),
                     new ActionChoice("Quay về cầu thang", FinishLanConversation)
                 }, FinishLanConversation);
-        }
-
-        private void Ch04An05Handoff()
-        {
-            if (!GateService.G04(State) || !State.Happened("CH04-T06"))
-            {
-                ui.Caption("Cần hoàn tất đối chiếu H05 (E04 + E07) và gặp Lan ở nhà xác B1 trước khi mở điểm neo AN05.", 5f, true);
-                return;
-            }
-            SaveCheckpoint(() => ChapterFour.ReachAn05Handoff(transaction), () =>
-            {
-                string routeSummary = State.Happened("PZ04.RouteA") && State.Happened("PZ04.RouteB")
-                    ? "Đã kiểm chứng cả Tuyến A (nhịp xe) và Tuyến B (đối chiếu phiếu)"
-                    : State.Happened("PZ04.RouteB") ? "Tuyến B (đối chiếu phiếu buồng)"
-                    : State.Happened("PZ04.RouteA") ? "Tuyến A (quan sát nhịp 3 điểm)" : "Đang mở";
-                ui.Show("ĐIỂM NEO KHU B · AN05 (CH04 → CH05)", "Chuyển tiếp Chương 04 đã sẵn sàng",
-                    "• Cổng G04: ĐÃ MỞ (H05 + PT01 + PT02 đã xác thực).\n" +
-                    $"• Tuyến xe thuốc PZ04: {routeSummary}.\n" +
-                    "• Sổ trực, băng họp E06a, biên bản E04, thẻ/phiếu E07 và nhật ký thoại đã lưu an toàn.\n\n" +
-                    "Phạm vi M3.2 dừng tại chốt chuyển tiếp AN05. Chương 05–08, cổng G05/G06 và vật chứng E08 tiếp tục giữ khóa theo thiết kế.",
-                    new[] { new ActionChoice("Tiếp tục ở tầng 2", CloseModal) }, CloseModal);
-            });
         }
     }
 }

@@ -29,6 +29,7 @@ namespace CTCC
         public AudioClip lanMotif;
 
         public bool ReportLayer { get; set; }
+        public bool MemoryEvacuationLayer { get; set; }
         internal FormStatus F101Report { get; set; }
 
         private sealed class CueVoice
@@ -64,6 +65,8 @@ namespace CTCC
         private AudioSource penWriteLoop;
         private bool penWriteActive;
         private float penWriteGain;
+        private AudioSource fireBellLoop;
+        private float fireBellGain;
         private float tensionDipUntil;
         private float tensionDipFloor = 1f;
         private float tensionGain = 1f;
@@ -215,7 +218,10 @@ namespace CTCC
                     activeLoops.RemoveAt(i);
                     continue;
                 }
-                loop.mixLevel = Mathf.MoveTowards(loop.mixLevel, ReportLayer == loop.report ? 1f : 0f, dt / 0.75f);
+                bool loopActive = MemoryEvacuationLayer
+                    ? false
+                    : ReportLayer == loop.report;
+                loop.mixLevel = Mathf.MoveTowards(loop.mixLevel, loopActive ? 1f : 0f, dt / 0.75f);
 
                 if (loop.exteriorOccluded && loop.filter != null && listener != null)
                 {
@@ -250,6 +256,33 @@ namespace CTCC
                 float penDist = mono ? DistanceGain(penWriteLoop, listener) : 1f;
                 penWriteLoop.volume = 0.42f * penWriteGain * sfxScale * duckGain * penDist;
                 if (penWriteGain <= 0.001f && penWriteLoop.isPlaying) penWriteLoop.Stop();
+            }
+
+            if (MemoryEvacuationLayer && fireBellLoop == null)
+            {
+                var clip = Resources.Load<AudioClip>("CTCC/CH05_FireBell");
+                if (clip != null)
+                {
+                    var go = new GameObject("CH05 Evacuation Fire Bell Loop");
+                    go.transform.SetParent(transform, false);
+                    fireBellLoop = go.AddComponent<AudioSource>();
+                    fireBellLoop.clip = clip;
+                    fireBellLoop.loop = true;
+                    fireBellLoop.playOnAwake = false;
+                    fireBellLoop.spatialBlend = 0f;
+                    fireBellLoop.reverbZoneMix = 0f;
+                    fireBellLoop.volume = 0f;
+                    if (propCue != null) fireBellLoop.outputAudioMixerGroup = propCue.outputAudioMixerGroup;
+                    fireBellLoop.Play();
+                }
+            }
+            if (fireBellLoop != null)
+            {
+                float targetBell = MemoryEvacuationLayer ? 1f : 0f;
+                fireBellGain = Mathf.MoveTowards(fireBellGain, targetBell, dt * (targetBell < fireBellGain ? 4.5f : 1.2f));
+                if (MemoryEvacuationLayer && !fireBellLoop.isPlaying) fireBellLoop.Play();
+                fireBellLoop.volume = 0.24f * fireBellGain * ambienceScale * duckGain;
+                if (fireBellGain <= 0.001f && fireBellLoop.isPlaying) fireBellLoop.Stop();
             }
 
             double now = AudioSettings.dspTime;

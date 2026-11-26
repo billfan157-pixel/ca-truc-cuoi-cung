@@ -400,7 +400,8 @@ namespace CTCC.Editor
                     "Sign_MainArch", "Sign_KB_Outpatient", "Sign_KC_Inpatient", "Sign_KD_Emergency",
                     "Sign_KE_Admin", "Sign_KF_Service", "Sign_NightGate", "Sign_AmbulanceGate",
                     "Sign_MorgueService", "Sign_CampusMap", "Sign_Pharmacy", "Sign_XRay",
-                    "Sign_Ward102", "Sign_Ward201", "Sign_Ward202"
+                    "Sign_Ward102", "Sign_Ward201", "Sign_Ward202",
+                    "Doc_Ch05_PostedMap2005", "Doc_Ch05_AsBuilt2004_E05"
                 })
                 {
                     var m = Lit(name, 1f, 1f, 1f, smooth: name is "Room101" or "Welcome" or "Emergency" or "Sign_HospitalGate" or "Sign_ReceptionWindow" or "Sign_NursingAlcove" or "Sign_MainArch" or "Sign_KB_Outpatient" or "Sign_KC_Inpatient" or "Sign_CampusMap" ? 0.42f : 0.14f, twoSided: true);
@@ -1526,6 +1527,7 @@ namespace CTCC.Editor
                 "Doc_ShiftGuide", "Doc_ShiftGuide_Back",
                 "Doc_WardOverflow", "Doc_DutyRoster", "Calendar2005",
                 "Doc_BayEnvelopeFront", "Doc_BayLetter", "Doc_BayLetter_Back",
+                "Doc_Ch05_PostedMap2005", "Doc_Ch05_AsBuilt2004_E05",
                 "BedList", "Transfer", "Drawing",
                 "DrawingPiece1", "DrawingPiece2", "DrawingPiece3"
             }, id => new InspectImage { id = id, image = Tex(id) });

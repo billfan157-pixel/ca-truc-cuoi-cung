@@ -1,4 +1,7 @@
 {
+  "sourceRevision": "3c0b955de95bcf39853c30e2669b2bac24ad969e",
+  "sourceFile": "docs/07_Production_Database.xlsx",
+  "sourceSha256": "adbec7e5a354b74a6a0105174862c6a73fcaadeedb7401fee56e0e4f25f3f7d6",
   "entries": [
     {
       "id": "CH01-D01",
@@ -260,6 +263,48 @@
       "copy": "Anh cần biết mình đã bỏ sót điều gì."
     },
     {
+      "id": "CH05-D01",
+      "chapter": "CH05",
+      "speaker": "Đồng nghiệp",
+      "context": "M",
+      "copy": "Minh, đưa hai người này ra hành lang. Tôi sẽ đỡ phía sau."
+    },
+    {
+      "id": "CH05-D02",
+      "chapter": "CH05",
+      "speaker": "Bệnh nhân",
+      "context": "M",
+      "copy": "Tôi ra được rồi phải không bác sĩ?"
+    },
+    {
+      "id": "CH05-D03",
+      "chapter": "CH05",
+      "speaker": "Minh",
+      "context": "M",
+      "copy": "Bác cứ theo chị ấy. Đừng quay lại."
+    },
+    {
+      "id": "CH05-D04",
+      "chapter": "CH05",
+      "speaker": "Vĩnh",
+      "context": "Sau nhóm 3",
+      "copy": "Cậu làm tốt lắm."
+    },
+    {
+      "id": "CH05-D05",
+      "chapter": "CH05",
+      "speaker": "Minh",
+      "context": "R, E05",
+      "copy": "Sơ đồ này có cửa. Nhưng bản sửa năm 2004..."
+    },
+    {
+      "id": "CH05-D06",
+      "chapter": "CH05",
+      "speaker": "Minh",
+      "context": "E05b",
+      "copy": "Tường xây kín. Lối này không thể dùng được."
+    },
+    {
       "id": "CH01-D15",
       "chapter": "CH01",
       "speaker": "Bảy (SMS)",
@@ -365,6 +410,20 @@
       "copy": "Khoan đã... Thi thể số mười hai là đàn ông khoảng năm mươi tuổi, có sẹo mổ cũ? Trong sổ của Lan, C12 chỉ là một thiếu niên gầy, tầm mười lăm mười sáu tuổi..."
     },
     {
+      "id": "CH05-D07",
+      "chapter": "CH05",
+      "speaker": "Vĩnh (Loa M)",
+      "context": "CH05 B02; loa hành lang trong Ký ức M Khu B (FS22)",
+      "copy": "Cảnh báo khẩn cấp toàn khối K-A! Phát hiện rò rỉ tác nhân sinh học cấp độ 4 tại bán hầm B1. Cấm tuyệt đối mở cửa Khu C!"
+    },
+    {
+      "id": "CH05-D08",
+      "chapter": "CH05",
+      "speaker": "Minh",
+      "context": "CH05 B06; quan sát dấu can thiệp cũ trên cụm khóa van bồn dung môi AS-05 tại LOC09 Lớp R",
+      "copy": "Vết đứt trên móc khóa van này không giống cháy nổ tự nhiên, chốt cửa gió cũng bị chèn hở sang Khu C... Ghép với mùi dung môi lạ trong sổ trực, đám cháy đêm đó có thể không phải chập điện."
+    },
+    {
       "id": "CH04-D09",
       "chapter": "CH04",
       "speaker": "Minh",
@@ -380,6 +439,22 @@
       "requiredEvents": [
         "H05.verified",
         "PT02.presented"
+      ]
+    },
+    {
+      "id": "CH05-D04",
+      "chapter": "CH05",
+      "beat": "B05",
+      "requiredEvents": [
+        "CH05-T04"
+      ]
+    },
+    {
+      "id": "CH05-D06",
+      "chapter": "CH05",
+      "beat": "B07",
+      "requiredEvents": [
+        "CH05-T05"
       ]
     },
     {
@@ -414,6 +489,14 @@
       "requiredEvents": [
         "CH01-T07",
         "CH01-EX01"
+      ]
+    },
+    {
+      "id": "CH05-D08",
+      "chapter": "CH05",
+      "beat": "B06",
+      "requiredEvents": [
+        "ValveSabotageFound"
       ]
     }
   ]

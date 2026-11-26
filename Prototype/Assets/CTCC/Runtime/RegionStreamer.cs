@@ -37,7 +37,7 @@ namespace CTCC
 
             bool secondGate = GateService.G02(state);
             string checkpoint = SafeCheckpoints.Pad(state.checkpoint);
-            bool upperPinned = checkpoint is "AP06" or "AN03" or "AP07";
+            bool upperPinned = checkpoint is "AP06" or "AN03" or "AP07" or "AP10" or "AP11";
             bool servicePinned = checkpoint is "AP08" or "AP09";
 
             bool atReceptionS1 = ReceptionS1Portal.Contains(feet);
@@ -51,7 +51,7 @@ namespace CTCC
                 ? upperPinned || UpperStackVolume.Contains(feet) || feet.y > 0.3f || atReceptionS1 || atEmergencyS3
                 : earlyS1Access;
             bool serviceNeeded = secondGate && (servicePinned || BasementStackVolume.Contains(feet) || feet.y < -0.25f ||
-                (state.chapter == "CH04" && atEmergencyS2));
+                (state.chapter is ("CH04" or "CH05") && atEmergencyS2));
 
             if (upperNeeded)
             {
@@ -65,7 +65,7 @@ namespace CTCC
                 serviceLastNeeded = Time.unscaledTime;
                 if (!scene.HasZone("LOC09")) yield return scene.LoadZoneAsync(Service);
             }
-            if (secondGate && !serviceNeeded && Time.unscaledTime - serviceLastNeeded > 20f && scene.HasZone("LOC09"))
+            if (!serviceNeeded && Time.unscaledTime - serviceLastNeeded > 20f && scene.HasZone("LOC09"))
                 yield return scene.UnloadZoneAsync(Service);
 
             // Handle the walkable regions before yielding to optional visual streaming.

@@ -106,6 +106,15 @@ namespace CTCC
         public GameObject pz04RouteArrowDefault;
         public GameObject pz04RouteArrowRerouted;
         public GameObject an05AnchorVisual;
+        public GameObject loc08GateBlocker;
+        public GameObject ch05HandoffMarker;
+        public GameObject ch03MemoryStage;
+        public GameObject ch05MemoryStage;
+        public GameObject ch05SmokeVisuals;
+        public Transform ch05EvacWheelchair;
+        public CharacterActor ch05ColleagueActor;
+        public CharacterActor ch05VinhActor;
+        public CharacterActor[] ch05PatientActors = Array.Empty<CharacterActor>();
         public Transform[] gatekeeperWaypoints = Array.Empty<Transform>();
         public Transform lanSilhouettePoint;
         public Transform lanDeskPoint;
@@ -179,8 +188,69 @@ namespace CTCC
             Toggle(pz04RouteArrowDefault, state.chapter == "CH04" && !rerouted);
             Toggle(pz04RouteArrowRerouted, state.chapter == "CH04" && rerouted);
             Toggle(an05AnchorVisual, GateService.G04(state) && state.Happened("CH04-T06"));
+            Toggle(loc08GateBlocker, !GateService.G05(state));
+            Toggle(ch05HandoffMarker, GateService.G05(state));
+            Toggle(ch03MemoryStage, state.chapter == "CH03" && state.layer == Reality.M);
+            Toggle(ch05MemoryStage, state.chapter == "CH05" && state.layer == Reality.M);
+            Toggle(ch05SmokeVisuals, state.chapter == "CH05" && state.layer == Reality.M && !state.settings.reduceMotion);
+            PresentCh05EvacuationStage(state);
             Toggle(namedMemory, state.PatientIdentityVerified("C02"));
             if (memoryMotion != null) memoryMotion.enabled = !state.settings.reduceMotion;
+        }
+
+        private void PresentCh05EvacuationStage(Investigation state)
+        {
+            if (ch05MemoryStage == null) return;
+            bool inCh05Memory = state.chapter == "CH05" && state.layer == Reality.M;
+            if (!inCh05Memory)
+            {
+                if (ch05ColleagueActor != null) ch05ColleagueActor.gameObject.SetActive(false);
+                if (ch05VinhActor != null) ch05VinhActor.gameObject.SetActive(false);
+                if (ch05PatientActors != null)
+                    for (int i = 0; i < ch05PatientActors.Length; i++)
+                        if (ch05PatientActors[i] != null) ch05PatientActors[i].gameObject.SetActive(false);
+                return;
+            }
+
+            int pair = ChapterFive.ActivePairIndex(state);
+            if (ch05EvacWheelchair != null)
+            {
+                ch05EvacWheelchair.position = pair switch
+                {
+                    1 => new Vector3(-1.35f, 4f, 36.65f),
+                    2 => new Vector3(-12.25f, 4f, 22.15f),
+                    _ => new Vector3(-12.25f, 4f, -2.55f)
+                };
+            }
+            if (ch05ColleagueActor != null)
+            {
+                ch05ColleagueActor.gameObject.SetActive(true);
+                ch05ColleagueActor.transform.position = pair switch
+                {
+                    1 => new Vector3(-2.35f, 4f, 36.85f),
+                    2 => new Vector3(-12.35f, 4f, 20.65f),
+                    _ => new Vector3(-11.75f, 4f, -3.55f)
+                };
+                ch05ColleagueActor.PlayAction("Lan_TalkGesture", 0.2f);
+            }
+            if (ch05VinhActor != null)
+            {
+                bool showVinh = pair >= 3;
+                ch05VinhActor.gameObject.SetActive(showVinh);
+                if (showVinh) ch05VinhActor.PlayAction("GK_IdleStill", 0.2f);
+            }
+            if (ch05PatientActors != null)
+            {
+                int activeStart = Mathf.Clamp((pair - 1) * 2, 0, 4);
+                for (int i = 0; i < ch05PatientActors.Length; i++)
+                {
+                    var pa = ch05PatientActors[i];
+                    if (pa == null) continue;
+                    bool visible = pair <= 3 && i >= activeStart && i < activeStart + 2;
+                    pa.gameObject.SetActive(visible);
+                    if (visible) pa.PlayAction(pa.clips != null && pa.clips.Length > 0 && pa.clips[0] != null ? pa.clips[0].name : "Lan_Listen", 0.2f);
+                }
+            }
         }
 
         public void CollectRegionalSources(List<NavMeshBuildSource> destination)

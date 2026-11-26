@@ -2,8 +2,10 @@
 
 import argparse
 import hashlib
+import io
 import posixpath
 import re
+import subprocess
 import sys
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -14,6 +16,8 @@ from zipfile import BadZipFile, ZipFile
 
 
 DOCS = Path(__file__).resolve().parents[1]
+REPO = DOCS.parent
+DESIGN_LOCK_REV = "3c0b955de95bcf39853c30e2669b2bac24ad969e"
 SOURCES = {
     "01": "01_Game_Design_Document.docx",
     "02": "02_Narrative_Bible.docx",
@@ -92,8 +96,45 @@ def paragraph_text(paragraph: ET.Element) -> str:
     return "".join(pieces).strip()
 
 
-def word_blocks(path: Path) -> list[WordBlock]:
-    with ZipFile(path) as package:
+def resolve_git_revision(rev: str) -> str:
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(REPO), "rev-parse", "--verify", f"{rev}^{{commit}}"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as error:
+        raise SourceError(f"Không xác minh được git revision '{rev}'.") from error
+    return completed.stdout.strip()
+
+
+def source_bytes(filename: str, rev: Optional[str] = None) -> bytes:
+    if rev is None:
+        return (DOCS / filename).read_bytes()
+    resolved = resolve_git_revision(rev)
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(REPO), "cat-file", "-p", f"{resolved}:docs/{filename}"],
+            check=True,
+            capture_output=True,
+        )
+    except subprocess.CalledProcessError as error:
+        raise SourceError(f"Không đọc được docs/{filename} tại revision {resolved}.") from error
+    return completed.stdout
+
+
+def workbook_provenance(rev: Optional[str] = None) -> tuple[str, str]:
+    filename = SOURCES["07"]
+    raw = source_bytes(filename, rev)
+    sha256 = hashlib.sha256(raw).hexdigest()
+    source_rev = resolve_git_revision(rev) if rev is not None else "WORKING_TREE"
+    return source_rev, sha256
+
+
+def word_blocks(path: Path, rev: Optional[str] = None) -> list[WordBlock]:
+    stream = io.BytesIO(source_bytes(path.name, rev)) if rev is not None else path
+    with ZipFile(stream) as package:
         body = ET.fromstring(package.read("word/document.xml")).find(WORD + "body")
     if body is None:
         raise SourceError(f"{path.name} thiếu phần nội dung Word.")
@@ -141,12 +182,13 @@ def select_section(blocks: list[WordBlock], query: str) -> list[WordBlock]:
     return blocks[start:end]
 
 
-def show_document(number: str, outline: bool, section: Optional[str]) -> None:
+def show_document(number: str, outline: bool, section: Optional[str], rev: Optional[str] = None) -> None:
     path = DOCS / SOURCES[number]
-    blocks = word_blocks(path)
+    blocks = word_blocks(path, rev=rev)
     if section is not None:
         blocks = select_section(blocks, section)
-    print(path.name)
+    label = f"{path.name} @ {resolve_git_revision(rev)[:7]}" if rev is not None else path.name
+    print(label)
     for block in blocks:
         if block.heading is not None:
             print(f"\n{'#' * block.heading} {block.text}")
@@ -186,8 +228,10 @@ def sheet_rows(root: ET.Element, shared: list[str]) -> dict[int, dict[str, str]]
     return rows
 
 
-def read_workbook() -> dict[str, dict[int, dict[str, str]]]:
-    with ZipFile(DOCS / SOURCES["07"]) as package:
+def read_workbook(rev: Optional[str] = None) -> dict[str, dict[int, dict[str, str]]]:
+    filename = SOURCES["07"]
+    stream = io.BytesIO(source_bytes(filename, rev)) if rev is not None else (DOCS / filename)
+    with ZipFile(stream) as package:
         workbook = ET.fromstring(package.read("xl/workbook.xml"))
         relations = ET.fromstring(package.read("xl/_rels/workbook.xml.rels"))
         targets = {
@@ -348,10 +392,10 @@ def show_status(data, milestones: dict[str, int], tasks: dict[str, Task], select
     print("Đối chiếu cổng Roadmap và bằng chứng trước khi nhận việc hoặc đóng milestone.")
 
 
-def check_sources(data, tasks: dict[str, Task]) -> None:
+def check_sources(data, tasks: dict[str, Task], rev: Optional[str] = None) -> None:
     for filename in SOURCES.values():
         if filename.endswith(".docx") and not any(
-            block.heading is not None for block in word_blocks(DOCS / filename)
+            block.heading is not None for block in word_blocks(DOCS / filename, rev=rev)
         ):
             raise SourceError(f"{filename} thiếu heading để tra mục.")
     for name in ("Dashboard", "Changelog", *SHEET_KEYS):
@@ -377,6 +421,13 @@ def check_sources(data, tasks: dict[str, Task]) -> None:
 
 def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
+    source_group = parser.add_mutually_exclusive_group()
+    source_group.add_argument("--rev", help="Đọc nguồn Core tại git revision chỉ định.")
+    source_group.add_argument(
+        "--design-lock",
+        action="store_true",
+        help=f"Đọc bộ nguồn khóa thiết kế chính thức Core v3.3.1 ({DESIGN_LOCK_REV[:7]}).",
+    )
     commands = parser.add_subparsers(dest="command", required=True)
     document = commands.add_parser("doc", help="Đọc nội dung Word hoặc tra heading.")
     document.add_argument("number", choices=[number for number in SOURCES if number != "07"])
@@ -397,14 +448,15 @@ def make_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = make_parser().parse_args()
+    rev = DESIGN_LOCK_REV if args.design_lock else args.rev
     if args.command == "doc":
-        show_document(args.number, args.outline, args.section)
+        show_document(args.number, args.outline, args.section, rev=rev)
     elif args.command == "hashes":
         for filename in SOURCES.values():
-            digest = hashlib.sha256((DOCS / filename).read_bytes()).hexdigest()
+            digest = hashlib.sha256(source_bytes(filename, rev=rev)).hexdigest()
             print(f"{digest}  docs/{filename}")
     else:
-        data = read_workbook()
+        data = read_workbook(rev=rev)
         if args.command == "sheet":
             show_sheet(data, args.name, args.id)
             return
@@ -415,7 +467,7 @@ def main() -> None:
         elif args.command == "status":
             show_status(data, milestones, tasks, args.milestone)
         else:
-            check_sources(data, tasks)
+            check_sources(data, tasks, rev=rev)
 
 
 if __name__ == "__main__":

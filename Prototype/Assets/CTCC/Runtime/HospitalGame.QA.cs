@@ -57,6 +57,7 @@ namespace CTCC
             yield return VerifyM2FinalPhaseCDERegression();
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
             yield return VerifyScalableM3AndCh03();
+            yield return VerifyCh05Suite();
             yield return VerifyCampusWorldQA();
         }
 
@@ -1149,6 +1150,328 @@ namespace CTCC
                 "CH04-Q05 saved circuit, PZ04 route, and clues restored in reloaded B1");
             yield return CaptureHospitalFrame("ch04-morgue", restored, 0f);
             verification.Add("CH03-Q01–Q05 and CH04-Q01–Q06 module PASS. PZ04 Route A+B, C02/C12, M restore, legacy schemas 1–6, local forms, 16-mask power, symmetric E04/E07 H05/guard, AN05 handoff, reloaded region save.");
+        }
+
+        private IEnumerator VerifyCh05Suite()
+        {
+            // 1. Canonical Design-Lock Dialogue Provenance & Zero NPR-01 Draft Leakage
+            Require(dialogueSourceRevision == "3c0b955de95bcf39853c30e2669b2bac24ad969e",
+                $"CH05 dialogue provenance must lock to 3c0b955 (got {dialogueSourceRevision})");
+            Require(dialogueSourceSha256 == "adbec7e5a354b74a6a0105174862c6a73fcaadeedb7401fee56e0e4f25f3f7d6",
+                $"CH05 dialogue source SHA-256 mismatch (got {dialogueSourceSha256})");
+            foreach (string id in new[] { "CH05-D01", "CH05-D02", "CH05-D03", "CH05-D04", "CH05-D05", "CH05-D06", "CH05-D07", "CH05-D08" })
+                Require(dialogue.ContainsKey(id) && !string.IsNullOrWhiteSpace(dialogue[id].copy),
+                    "CH05 canonical dialogue row missing: " + id);
+            foreach (string draftId in new[] { "CH07-D19", "CH07-D23", "CH07-D24", "CH07-D27", "CH07-D28", "CH08-D20" })
+                Require(!dialogue.ContainsKey(draftId), "NPR-01 draft CH07/CH08 row must never leak into runtime: " + draftId);
+
+            // 2. Legacy M3.2 CH04 AN05 Save Compatibility (Schema v7)
+            var legacyDir = Path.Combine(qaFolder, "ch05-legacy-ch04");
+            var legacySaves = new AtomicSaves(legacyDir);
+            var legacyCh04 = State.Copy();
+            legacyCh04.chapter = "CH04";
+            legacyCh04.layer = Reality.R;
+            legacyCh04.checkpoint = "CH04-CP04";
+            legacySaves.Write(SaveSlot.Auto, legacyCh04);
+            Require(legacySaves.Read(SaveSlot.Auto, out var loadedLegacy) == SaveRead.Valid &&
+                loadedLegacy.schemaVersion == Investigation.Schema && loadedLegacy.chapter == "CH04" &&
+                GateService.G04(loadedLegacy) && loadedLegacy.Happened("CH04-AN05.reached"),
+                "Legacy M3.2 CH04 save loads cleanly on Schema v7 ready for CH05 entry");
+
+            // Ensure AP10/AP11 exist and capture AN05 wheelchair in R
+            bool hasAp10 = scene.TryPad("AP10", out var ap10);
+            bool hasAp11 = scene.TryPad("AP11", out var ap11);
+            Require(hasAp10 && hasAp11,
+                "CH05 safe pads AP10 (AN05 Khu B) and AP11 (LOC08 threshold) exist");
+            player.Teleport(ap10);
+            yield return CaptureHospitalFrame("ch05-an05-wheelchair-R", ap10, -90f);
+
+            // 3. Adversarial Save Failure #1: Lock Auto save during AN05 CP01 entry -> exact rollback -> retry succeeds
+            long seqBeforeEntry = State.sequence;
+            using (var lockFile = new FileStream(saves.SlotPath(SaveSlot.Auto) + ".lock",
+                FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+            {
+                var failEntry = ChapterFive.CommitEntryCheckpointAsync(transaction, ap10.position);
+                while (!failEntry.IsCompleted) yield return null;
+                Require(failEntry.GetAwaiter().GetResult() == CommitResult.SaveUnavailable &&
+                    State.chapter == "CH04" && State.sequence == seqBeforeEntry,
+                    "Adversarial #1: AN05 entry save failure rolls back cleanly without mutating CH04 state");
+            }
+            yield return WaitForApplied(ChapterFive.CommitEntryCheckpointAsync(transaction, ap10.position), "CH05-CP01 entry retry");
+            Require(State.chapter == "CH05" && State.layer == Reality.R && State.checkpoint == ChapterFive.CheckpointEntry &&
+                GateService.G01(State) && GateService.G02(State) && GateService.G03(State) && GateService.G04(State) &&
+                !GateService.H03(State) && !GateService.G05(State),
+                "CH05-CP01 preserves all prior gates G01-G04 monotonically while keeping H03/G05 closed");
+
+            // 4. TASK013-A: Enter AN05 Evacuation Memory (R -> M), S1 Discharge opens, Audio switches, AI dormant
+            int evCountBeforeM = State.evidence.Count;
+            yield return WaitForApplied(ChapterFive.EnterEvacuationMemoryAsync(transaction, ap10.position), "CH05 R->M AN05");
+            player.Teleport(ap10);
+            orderlyAi.SyncState(State);
+            Require(State.layer == Reality.M && State.Happened(ChapterFive.EvEntry) && !orderlyAi.IsActive &&
+                scene.s1DischargeDoor != null && scene.s1DischargeDoor.isOpen &&
+                scene.s1DischargeSalvage != null && !scene.s1DischargeSalvage.activeSelf &&
+                scene.atmosphere != null && scene.atmosphere.MemoryEvacuationLayer,
+                "CH05 AN05 M opens S1 discharge, activates M evacuation audio layer, and keeps AI dormant");
+            yield return CaptureHospitalFrame("ch05-memory-evac-M", ap10, -90f);
+
+            // 5. Pair 1 -> Adversarial Save Failure #2 on Pair 2 -> Mid-Evacuation Reload in M (CH05-Q02)
+            var earlyPair2 = ChapterFive.CompleteEvacPairAsync(transaction, 2);
+            while (!earlyPair2.IsCompleted) yield return null;
+            Require(earlyPair2.GetAwaiter().GetResult() == CommitResult.PadRequired,
+                "CH05 sequential guard: Pair 2 cannot complete before Pair 1");
+            yield return WaitForApplied(ChapterFive.CompleteEvacPairAsync(transaction, 1), "CH05 Pair 1 (2/6)");
+            Require(ChapterFive.RescuedCount(State) == 2 && State.Happened(ChapterFive.EvPair1) &&
+                State.Happened(ChapterFive.FlagFs22BioBroadcast),
+                "CH05 Pair 1 records 2/6 rescued and FS22");
+
+            long seqBeforePair2Fail = State.sequence;
+            using (var lockFile = new FileStream(saves.SlotPath(SaveSlot.Auto) + ".lock",
+                FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+            {
+                var failPair2 = ChapterFive.CompleteEvacPairAsync(transaction, 2);
+                while (!failPair2.IsCompleted) yield return null;
+                Require(failPair2.GetAwaiter().GetResult() == CommitResult.SaveUnavailable &&
+                    ChapterFive.RescuedCount(State) == 2 && State.sequence == seqBeforePair2Fail,
+                    "Adversarial #2: Pair 2 save failure rolls back cleanly without losing Pair 1");
+            }
+
+            // CH05-Q02: Reload Auto save mid-evacuation -> MUST restore AP10 in M with 2/6 intact & zero M export!
+            Require(transaction.Restore(SaveSlot.Auto, out var midRestorePad) == SaveRead.Valid &&
+                midRestorePad == ap10 && State.chapter == "CH05" && State.layer == Reality.M &&
+                ChapterFive.RescuedCount(State) == 2 && State.evidence.Count == evCountBeforeM &&
+                scene.s1DischargeSalvage != null && !scene.s1DischargeSalvage.activeSelf,
+                "CH05-Q02 mid-evacuation reload restores Layer M at AP10 with Pair 1 (2/6) and zero M export");
+
+            // CH05-Q02: Early exit M -> R preserves Pair 1 progress and restores solid S1 salvage in R!
+            yield return WaitForApplied(ChapterFive.ExitEvacuationEarlyToRealAsync(transaction, ap10.position), "CH05 early exit M->R");
+            Require(State.layer == Reality.R && ChapterFive.RescuedCount(State) == 2 &&
+                !State.Happened(ChapterFive.EvReturnR) &&
+                scene.s1DischargeSalvage != null && scene.s1DischargeSalvage.activeInHierarchy &&
+                !scene.atmosphere.MemoryEvacuationLayer,
+                "CH05-Q02 early exit to R restores S1 salvage blockage and rain audio while keeping 2/6");
+
+            // Re-enter M -> Pair 2 (4/6) -> reload mid-pair -> Pair 3 (6/6) -> CH05-D04 beat guard
+            yield return WaitForApplied(ChapterFive.EnterEvacuationMemoryAsync(transaction, ap10.position), "CH05 re-enter M");
+            yield return WaitForApplied(ChapterFive.CompleteEvacPairAsync(transaction, 2), "CH05 Pair 2 (4/6)");
+            Require(transaction.Restore(SaveSlot.Auto, out _) == SaveRead.Valid &&
+                State.layer == Reality.M && ChapterFive.RescuedCount(State) == 4,
+                "CH05-Q02 reload after Pair 2 restores Layer M with 4/6 rescued");
+            Require(!MayDeliver("CH05-D04", "B05"), "CH05-D04 Vĩnh praise blocked before Pair 3 completion");
+
+            // CH05-Q01 Skip Parity Verification across 0/6, 2/6, and 4/6 states in isolated transaction!
+            foreach (int preCompletedPairs in new[] { 0, 1, 2 })
+            {
+                var skipSaves = new AtomicSaves(Path.Combine(qaFolder, $"ch05-skip-{preCompletedPairs}"));
+                var skipTx = new RealityTransaction(scene, skipSaves);
+                var seed = State.Copy();
+                seed.events.Remove(ChapterFive.EvPair1);
+                seed.events.Remove(ChapterFive.FlagPair1);
+                seed.events.Remove(ChapterFive.FlagFs22BioBroadcast);
+                seed.events.Remove(ChapterFive.EvPair2);
+                seed.events.Remove(ChapterFive.FlagPair2);
+                seed.events.Remove(ChapterFive.EvPair3);
+                seed.events.Remove(ChapterFive.FlagPair3);
+                seed.events.Remove(ChapterFive.FlagFs14WingCKey);
+                seed.events.Remove(ChapterFive.FlagEvacSkipped);
+                seed.layer = Reality.M;
+                Require(skipTx.Commit(seed, ap10.position) == CommitResult.Applied, "Seed skip state " + preCompletedPairs);
+                for (int p = 1; p <= preCompletedPairs; p++)
+                    yield return WaitForApplied(ChapterFive.CompleteEvacPairAsync(skipTx, p), $"Skip seed pair {p}");
+                yield return WaitForApplied(ChapterFive.SkipEvacuationMemoryAsync(skipTx), $"Skip execution from {preCompletedPairs * 2}/6");
+                var afterSkip = skipTx.Current;
+                Require(ChapterFive.RescuedCount(afterSkip) == 6 && afterSkip.Happened(ChapterFive.EvPair1) &&
+                    afterSkip.Happened(ChapterFive.EvPair2) && afterSkip.Happened(ChapterFive.EvPair3) &&
+                    afterSkip.Happened(ChapterFive.FlagFs22BioBroadcast) && afterSkip.Happened(ChapterFive.FlagFs14WingCKey) &&
+                    afterSkip.Happened(ChapterFive.FlagEvacSkipped) && afterSkip.Happened("CH05-PU01.solved") &&
+                    afterSkip.evidence.Count == evCountBeforeM,
+                    $"CH05-Q01 skip from {preCompletedPairs * 2}/6 always guarantees 6/6 rescued and zero M export");
+            }
+            // Restore live scene presentation after isolated skip transaction checks
+            transaction.Present(State);
+
+            // Complete Pair 3 (6/6) -> verify CH05-D04 beat guard -> T05 return M -> R (CH05-CP02)
+            yield return WaitForApplied(ChapterFive.CompleteEvacPairAsync(transaction, 3), "CH05 Pair 3 (6/6)");
+            Require(ChapterFive.RescuedCount(State) == 6 && State.Happened(ChapterFive.FlagFs14WingCKey) &&
+                MayDeliver("CH05-D04", "B05") && !MayDeliver("CH05-D04", "B02"),
+                "CH05 Pair 3 yields 6/6, FS14, and gates CH05-D04 strictly to B05");
+            yield return WaitForApplied(ChapterFive.FinishEvacuationReturnAsync(transaction, ap10.position), "CH05 T05 M->R");
+            player.Teleport(ap10);
+            var memItem = InventoryService.FindByDef(State, BackpackCatalog.MemEvacKhuB);
+            Require(State.layer == Reality.R && State.checkpoint == ChapterFive.CheckpointAfterMemory &&
+                State.Happened(ChapterFive.EvReturnR) && State.evidence.Count == evCountBeforeM &&
+                memItem != null && memItem.status == BackpackItemStatus.MemoryRef && InventoryService.ValidState(State) &&
+                scene.s1DischargeSalvage != null && scene.s1DischargeSalvage.activeInHierarchy &&
+                !scene.atmosphere.MemoryEvacuationLayer,
+                "CH05 T05 returns to R at AP10 (CP02), stores MemoryRef only (zero M export), and restores S1 salvage");
+            // Verify M actors deactivated cleanly on return to R
+            var loc05Region = scene.ResolveZoneAt(ap10.position);
+            Require(loc05Region != null && loc05Region.ch05MemoryStage != null && !loc05Region.ch05MemoryStage.activeSelf,
+                "CH05 M actors and stage fully deactivated on return to R");
+
+            // 6. Verify E02/E09 retrieval remains valid in CH05 R (TASK013-C)
+            var retrievalProbe = State.Copy();
+            retrievalProbe.evidence.Remove(EvidenceRegistry.DutyOrders);
+            retrievalProbe.evidence.Remove(EvidenceRegistry.DutyLog);
+            Require(EvidenceRegistry.Grant(retrievalProbe, EvidenceRegistry.DutyOrders, Reality.R, "LOC06") &&
+                EvidenceRegistry.Grant(retrievalProbe, EvidenceRegistry.DutyLog, Reality.R, "LOC06"),
+                "TASK013-C: E02 and E09 remain retrievable in CH05 R at LOC06");
+
+            // 7. TASK013-B: LOC09 Blueprints (E05) + PZ07 Dual Guard + Optional Valve (DEC-V32-03) + E05b + H03/G05
+            var ap08 = scene.Pad("AP08");
+            player.Teleport(ap08);
+            orderlyAi.SyncState(State);
+            Require(orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Hunter &&
+                orderlyAi.ActiveActor != null && Vector3.Distance(orderlyAi.ActiveActor.transform.position, ap08.position) >= 3.2f,
+                "TASK013-C: CH05-B1 Hunter spawns occluded >=3.2m from AP08 before G05");
+
+            yield return WaitForApplied(ChapterFive.AcquireBlueprintsAtLoc09Async(transaction), "CH05 Acquire E05 at LOC09");
+            Require(State.Has(EvidenceRegistry.AsBuilt2004) && State.Happened(ChapterFive.EvBlueprintFound) &&
+                InventoryService.HasPhysical(State, BackpackCatalog.Ch05PostedMap) &&
+                InventoryService.HasPhysical(State, BackpackCatalog.Ch05AsBuiltE05) &&
+                !GateService.H03(State) && !GateService.G05(State),
+                "CH05 LOC09 blueprints grant E05 & posted map without opening H03/G05");
+            yield return CaptureHospitalFrame("ch05-loc09-pz07-R", ap08, 0f);
+
+            // PZ07 2-strike hint & alignment without E05b MUST keep H03 & G05 closed (CH05-Q03!)
+            yield return WaitForApplied(ChapterFive.AttemptPz07OverlayAsync(transaction, false, true), "PZ07 strike 1");
+            yield return WaitForApplied(ChapterFive.AttemptPz07OverlayAsync(transaction, true, false), "PZ07 strike 2");
+            Require(!State.Happened(ChapterFive.FlagOverlayAligned) &&
+                PuzzleService.ShouldShowFieldHint(State, ChapterFive.PuzzleOverlay),
+                "PZ07 2 wrong alignments activate field hint without aligning");
+            yield return WaitForApplied(ChapterFive.AttemptPz07OverlayAsync(transaction, true, true), "PZ07 aligned");
+            var prematureH03 = ChapterFive.VerifyH03AndOpenG05Async(transaction);
+            while (!prematureH03.IsCompleted) yield return null;
+            Require(State.Happened(ChapterFive.FlagOverlayAligned) && !GateService.H03(State) && !GateService.G05(State) &&
+                prematureH03.GetAwaiter().GetResult() == CommitResult.PadRequired &&
+                loc05Region.loc08GateBlocker != null && loc05Region.loc08GateBlocker.activeSelf,
+                "CH05-Q03: PZ07 overlay alone (without physical E05b) NEVER opens H03 or G05/LOC08");
+
+            // Symmetric CH05-Q03 check: E05b alone without PZ07.Aligned ALSO keeps H03/G05 closed!
+            var e05bOnly = State.Copy();
+            e05bOnly.events.Remove(ChapterFive.FlagOverlayAligned);
+            Require(EvidenceRegistry.Grant(e05bOnly, EvidenceRegistry.SealedWallPhoto, Reality.R, "LOC11") &&
+                !ChapterFive.CanVerifyH03(e05bOnly) && !GateService.H03(e05bOnly) && !GateService.G05(e05bOnly),
+                "CH05-Q03 symmetric: physical E05b without aligned PZ07 keeps H03/G05 closed");
+
+            // Optional LOC09 valve (DEC-V32-03): CH05-D08 blocked before observation, unlocks at beat B06 only!
+            Require(!MayDeliver("CH05-D08", "B06"), "CH05-D08 blocked before optional LOC09 valve observation");
+            yield return WaitForApplied(ChapterFive.ObserveOptionalValveAsync(transaction), "CH05 optional LOC09 valve");
+            Require(State.Happened(ChapterFive.FlagValveSabotage) && MayDeliver("CH05-D08", "B06") && !MayDeliver("CH05-D08", "B07"),
+                "DEC-V32-03 optional LOC09 valve unlocks CH05-D08 strictly at beat B06");
+            player.Teleport(new Vector3(6.2f, -3.4f, 35.6f), Quaternion.Euler(0f, -90f, 0f));
+            yield return CaptureHospitalFrame("ch05-loc09-valve-R", player.transform, 0f);
+
+            // Physical E05b observation at sunken east pit + solid wall impenetrability (no secret passage!)
+            Require(!MayDeliver("CH05-D06", "B07") || State.Happened(ChapterFive.EvReturnR), "CH05-D06 requires EvReturnR");
+            player.Teleport(new Vector3(35.8f, -3.4f, 42.0f), Quaternion.Euler(0f, -90f, 0f));
+            Require(Physics.CapsuleCast(new Vector3(35.8f, -2.94f, 42f), new Vector3(35.8f, -2.0f, 42f),
+                HospitalScene.Radius, Vector3.left, out _, 2.0f, HospitalScene.SolidMask, QueryTriggerInteraction.Ignore),
+                "CH05-Q03 / W-Q03: 2004 sealed brick wall E05b remains 100% impenetrable (no secret passage)");
+            Require(Physics.CapsuleCast(new Vector3(13.6f, -2.94f, 42f), new Vector3(13.6f, -2.0f, 42f),
+                HospitalScene.Radius, Vector3.right, out _, 1.6f, HospitalScene.SolidMask, QueryTriggerInteraction.Ignore),
+                "CH05 boundary: Khu C G06 door at x=14.5 remains strictly sealed");
+            yield return WaitForApplied(ChapterFive.ObserveSealedWallE05bAsync(transaction), "CH05 observe physical E05b");
+            Require(State.Has(EvidenceRegistry.SealedWallPhoto) && State.Happened(ChapterFive.EvSealedWall) &&
+                MayDeliver("CH05-D06", "B07") && ChapterFive.CanVerifyH03(State),
+                "CH05 E05b recorded in R and enables H03 verification");
+            yield return CaptureHospitalFrame("ch05-loc11-e05b-R", player.transform, 0f);
+
+            // Adversarial Save Failure #3 on H03/G05 verification -> exact rollback -> retry succeeds & opens LOC08!
+            long seqBeforeG05Fail = State.sequence;
+            using (var lockFile = new FileStream(saves.SlotPath(SaveSlot.Auto) + ".lock",
+                FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+            {
+                var failG05 = ChapterFive.VerifyH03AndOpenG05Async(transaction);
+                while (!failG05.IsCompleted) yield return null;
+                Require(failG05.GetAwaiter().GetResult() == CommitResult.SaveUnavailable &&
+                    !GateService.H03(State) && !GateService.G05(State) && State.sequence == seqBeforeG05Fail,
+                    "Adversarial #3: G05 save failure rolls back cleanly without opening LOC08");
+            }
+            yield return WaitForApplied(ChapterFive.VerifyH03AndOpenG05Async(transaction), "CH05 verify H03 & open G05");
+            Require(GateService.H03(State) && GateService.G05(State) &&
+                loc05Region.loc08GateBlocker != null && !loc05Region.loc08GateBlocker.activeSelf,
+                "H03 verified with E05+E05b opens G05 and clears LOC08 doorway blocker");
+
+            // Verify Floor 3 NavMesh opens straight into LOC08 (AN03 -> AP11)
+            var loc08Path = new NavMeshPath();
+            Require(NavMesh.SamplePosition(scene.Pad("AN03").position, out var navFromAn03, 0.5f, NavMesh.AllAreas) &&
+                NavMesh.SamplePosition(ap11.position, out var navToAp11, 0.5f, NavMesh.AllAreas) &&
+                NavMesh.CalculatePath(navFromAn03.position, navToAp11.position, NavMesh.AllAreas, loc08Path) &&
+                loc08Path.status == NavMeshPathStatus.PathComplete,
+                "G05 refresh opens complete Floor 3 NavMesh route AN03 -> AP11 (LOC08)");
+
+            // 8. Additive Unload/Reload Mid-CH05 (zero duplicates, G05 stays open, S1 salvage stays solid in R!)
+            int evCountAfterG05 = State.evidence.Count;
+            if (scene.IsAdditiveMode)
+            {
+                yield return scene.UnloadZoneAsync(RegionStreamer.Service);
+                yield return scene.LoadZoneAsync(RegionStreamer.Service);
+                yield return scene.UnloadZoneAsync(RegionStreamer.Upper);
+                yield return scene.LoadZoneAsync(RegionStreamer.Upper);
+                ap10 = scene.Pad("AP10");
+                ap11 = scene.Pad("AP11");
+                loc05Region = scene.ResolveZoneAt(ap10.position);
+                Require(State.evidence.Count == evCountAfterG05 &&
+                    new HashSet<string>(State.evidence).Count == State.evidence.Count &&
+                    loc05Region.loc08GateBlocker != null && !loc05Region.loc08GateBlocker.activeSelf &&
+                    scene.s1DischargeSalvage != null && scene.s1DischargeSalvage.activeInHierarchy,
+                    "Mid-CH05 additive unload/reload keeps zero duplicates, LOC08 open, and S1 R salvage solid");
+            }
+
+            // 9. CH05-L3 Hunter AI post-G05 + Radio Distraction + Safe-Zone & Story Mode Breakoff
+            player.Teleport(scene.Pad("AN03"));
+            orderlyAi.SyncState(State);
+            Require(orderlyAi.IsActive && orderlyAi.ActiveRole == AIRole.Hunter &&
+                Mathf.Abs(orderlyAi.ActiveActor.transform.position.y - 8f) < 0.35f &&
+                HunterOrderlyAI.IsInSafeZone(ap10.position, scene) &&
+                HunterOrderlyAI.IsInSafeZone(ap11.position, scene),
+                "TASK013-C: CH05-L3 Hunter activates on Floor 3 post-G05 and respects AP10/AP11 safe zones");
+            orderlyAi.TriggerDistraction(scene.Ch03RadioPoint.position);
+            Require(orderlyAi.CurrentState == OrderlyState.Investigate,
+                "TASK013-C: CH05-L3 Hunter responds to LOC07 radio distraction");
+
+            // 10. CH05-Q04 Accessibility (Mute + Reduced Motion smoke hide + Large Print 130% + Story Mode + E/K)
+            var a11ySettings = new VisitSettings
+            {
+                volume = 0f,
+                reduceMotion = true,
+                textScale = 1.30f,
+                storyMode = true,
+                alternateBindings = true,
+                captions = true
+            };
+            Apply(casework.UpdateSettings(a11ySettings, ap11.position), "CH05-Q04 apply a11y settings");
+            Require(AudioListener.volume == 0f && UseKey == "K" && State.settings.storyMode &&
+                State.settings.reduceMotion && Mathf.Approximately(State.settings.textScale, 1.30f) &&
+                (loc05Region.ch05SmokeVisuals == null || !loc05Region.ch05SmokeVisuals.activeSelf),
+                "CH05-Q04: mute, reduced motion (smoke off), 130% text, Story Mode, and K binding verified");
+
+            // 11. CH05-Q05 Narrative, Moral Framing & Strict CH06+ Boundary Lock Audit
+            string[] forbiddenChoiceOrSpoiler = { "cứu 6 hay", "cứu 12", "chọn cứu", "03:09", "03:12", "03:25", "07:40" };
+            foreach (string id in new[] { "CH05-D01", "CH05-D02", "CH05-D03", "CH05-D04", "CH05-D05", "CH05-D06", "CH05-D07", "CH05-D08" })
+            {
+                string copyLower = dialogue[id].copy.ToLowerInvariant();
+                foreach (string bad in forbiddenChoiceOrSpoiler)
+                    Require(!copyLower.Contains(bad), $"CH05-Q05 forbidden framing/spoiler '{bad}' found in {id}");
+            }
+            string pocketNote = PocketNoteBuilder.BuildConciseNote(State).ToLowerInvariant();
+            Require(!pocketNote.Contains("cứu 6 hay") && !pocketNote.Contains("cứu 12"),
+                "CH05-Q05 Pocket Note never implies a 6-vs-12 choice");
+            Require(!State.Has("E01") && !State.Has("E06") && !State.Has("E10b") && !State.Has("E08") &&
+                !State.Happened("G06.opened") && State.chapter == "CH05",
+                "CH05 boundary lock: E01/E06/E10b/E08 and G06 stay strictly locked in M3.3");
+
+            // 12. B08 Handoff CH05-CP03 at LOC08 (AP11) + Autosave Reload Verification
+            player.Teleport(ap11);
+            yield return WaitForApplied(ChapterFive.CommitCh05HandoffAsync(transaction, ap11.position), "CH05-CP03 handoff");
+            Require(transaction.Restore(SaveSlot.Auto, out var restoredHandoff) == SaveRead.Valid &&
+                restoredHandoff == ap11 && State.checkpoint == ChapterFive.CheckpointHandoff &&
+                State.Happened(ChapterFive.EvHandoff) && GateService.G05(State) && !State.Has("E08"),
+                "CH05-CP03 persists and restores cleanly at AP11 (LOC08 threshold)");
+            yield return CaptureHospitalFrame("ch05-loc08-g05-handoff-R", ap11, 90f);
+
+            verification.Add("CH05-Q01–Q05 & ADVERSARIAL MODULE PASS: 3c0b955 provenance, legacy CH04 save, 3x save-lock atomic rollbacks, 3-pair 6/6 invariant + skip parity (0/2/4->6), mid-evac M reload & early R return, zero M export, dual PZ07+E05b H03/G05 guard, DEC-V32-03 valve, impenetrable E05b/G06 walls, additive unload/reload, CH05 B1+L3 Hunter AI, a11y Q04, narrative/boundary Q05, and CH05-CP03 handoff.");
         }
 
         private IEnumerator VerifyCh04Pz04DualRoute()

@@ -39,7 +39,7 @@ try {
         $player.Refresh()
         $focused = [int][CtccPlayerWindow]::IsForegroundProcess($player.Id)
         $processSamples.Add("$([Diagnostics.Stopwatch]::GetTimestamp()),$($player.WorkingSet64),$($player.PrivateMemorySize64),$focused")
-        if ($deadline.Elapsed.TotalSeconds -gt 240) { $player.Kill(); throw "Timed out: $out/player.log" }
+        if ($deadline.Elapsed.TotalSeconds -gt 420) { $player.Kill(); throw "Timed out: $out/player.log" }
     }
     $processSamples | Set-Content -LiteralPath "$out/process.csv"
     if ($player.ExitCode -ne 0) { throw "Benchmark player exited $($player.ExitCode). See $out/result.txt and player.log" }

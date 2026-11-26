@@ -444,6 +444,8 @@ namespace CTCC
         public const string MeetingTape = "E06a";
         public const string MorgueRegister = "E04";
         public const string LanRecovery = "E07";
+        public const string AsBuilt2004 = "E05";
+        public const string SealedWallPhoto = "E05b";
         public const string NonExportableTraceE08 = "E08";
 
         private sealed class Spec
@@ -481,6 +483,8 @@ namespace CTCC
             [MeetingTape] = new(Reality.R, "CH04", "LOC06"),
             [MorgueRegister] = new(Reality.R, "CH04", "LOC10"),
             [LanRecovery] = new(Reality.R, "CH04", "LOC10"),
+            [AsBuilt2004] = new(Reality.R, "CH05", "LOC09", true),
+            [SealedWallPhoto] = new(Reality.R, "CH05", "LOC11", true),
             [NonExportableTraceE08] = new(Reality.B, "CH04", "LOC08", false),
         };
 
@@ -489,9 +493,11 @@ namespace CTCC
             if (state == null || string.IsNullOrEmpty(id) || !Specs.TryGetValue(id, out var spec) || state.Has(id))
                 return false;
             // Non-exportable B/M traces (such as E08) cannot be granted into durable physical R evidence inventory!
+            bool chapterAllowed = state.chapter == spec.Chapter ||
+                (state.chapter == "CH04" && spec.Chapter == "CH03") ||
+                (state.chapter == "CH05" && spec.Chapter is ("CH03" or "CH04"));
             if (!spec.PhysicalExportable || state.layer != spec.Layer || provenanceLayer != spec.Layer ||
-                (state.chapter != spec.Chapter && !(state.chapter == "CH04" && spec.Chapter == "CH03")) ||
-                provenanceLocation != spec.Location)
+                !chapterAllowed || provenanceLocation != spec.Location)
                 return false;
             if (id == Drawing && !HaveFragments(state))
                 return false;
@@ -556,15 +562,21 @@ namespace CTCC
         public static bool H01Tutorial(Investigation state) =>
             state.Has("E12") && EvidenceRegistry.BundleComplete(state) && state.PatientIdentityVerified("C01");
         public static bool H02(Investigation state) => state.Has("E01") && state.Has("E04");
-        public static bool G02(Investigation state) => state.chapter is ("CH02" or "CH03" or "CH04") && H01Tutorial(state);
+        public static bool G02(Investigation state) =>
+            state.chapter is ("CH02" or "CH03" or "CH04" or "CH05") && H01Tutorial(state);
         // Core 07 Chapter gates: G03 opens when E03 is collected and C02 existence is confirmed (name is optional per CH03-Q02!)
         public static bool G03(Investigation state) =>
-            state.chapter is ("CH03" or "CH04") && state.Has(EvidenceRegistry.PatientRegister) && state.PatientConfirmed("C02");
+            state.chapter is ("CH03" or "CH04" or "CH05") && state.Has(EvidenceRegistry.PatientRegister) && state.PatientConfirmed("C02");
 
         public static bool H05(Investigation state) => state.Has(EvidenceRegistry.MorgueRegister) &&
             state.Has(EvidenceRegistry.LanRecovery) && state.Happened("H05.verified");
-        public static bool G04(Investigation state) => state.chapter == "CH04" && H05(state) &&
+        public static bool G04(Investigation state) => state.chapter is ("CH04" or "CH05") && H05(state) &&
             state.Happened("PT01.presented") && state.Happened("PT02.presented");
+
+        // Core 07 Chapter gates & CH05-Q03: H03/G05 strictly require BOTH PZ07 overlay (E05) AND physical R wall check (E05b)!
+        public static bool H03(Investigation state) => state.Has(EvidenceRegistry.AsBuilt2004) &&
+            state.Has(EvidenceRegistry.SealedWallPhoto) && state.Happened("PZ07.Aligned") && state.Happened("H03.verified");
+        public static bool G05(Investigation state) => state.chapter == "CH05" && H03(state);
     }
 
     public static class SafeCheckpoints
@@ -590,6 +602,9 @@ namespace CTCC
                 "CH04-CP01" or "CH04-CP02" => "AP07",
                 "CH04-CP03" => "AP08",
                 "CH04-CP04" => "AP09",
+                "CH05-CP01" or "CH05-CP02" => "AP10",
+                "CH05-CP02B" => "AP08",
+                "CH05-CP03" => "AP11",
                 _ => null
             };
         }
