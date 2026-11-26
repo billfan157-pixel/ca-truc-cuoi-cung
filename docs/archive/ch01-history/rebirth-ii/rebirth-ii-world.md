@@ -55,10 +55,10 @@ Ghế STAFF và ngăn kéo là những tương tác nằm ngoài 14 điểm trê
 
 Bản phát hành Windows x64 `CH01-RII-WORLD-077fb5a4e916` dùng commit `077fb5a4e916d8ced2dd51bdb3109a152f9b28f2` trên nhánh `codex/ch01-rebirth-ii-world`. SHA-256 của assembly gameplay là `57bf75ffc5a4e0752a0a3b02b12b5593f106b1961b136552081980f5e624ab6f`. Các file kết quả dưới đây nằm trên máy kiểm thử.
 
-- [Bản Windows](../../output/ch01-rebirth-ii-world/windows/CaTrucCuoiCung.exe) · [Định danh build](../../output/ch01-rebirth-ii-world/windows/build-identity.txt) · [Danh sách file và asset thay đổi](../../output/ch01-rebirth-ii-world/tep-thay-doi.txt)
-- [Ảnh LOC01, LOC02 và LOC03 trước/sau](../../output/ch01-rebirth-ii-world/media/CH01-truoc-sau.png) · [Cảnh Lan trước](../../output/ch01-rebirth-ii-world/media/Lan-truoc.mp4) · [Cảnh Lan sau](../../output/ch01-rebirth-ii-world/media/Lan-sau.mp4)
+- [Bản Windows](../../../../output/ch01-rebirth-ii-world/windows/CaTrucCuoiCung.exe) · [Định danh build](../../../../output/ch01-rebirth-ii-world/windows/build-identity.txt) · [Danh sách file và asset thay đổi](../../../../output/ch01-rebirth-ii-world/tep-thay-doi.txt)
+- [Ảnh LOC01, LOC02 và LOC03 trước/sau](../../../../output/ch01-rebirth-ii-world/media/CH01-truoc-sau.png) · [Cảnh Lan trước](../../../../output/ch01-rebirth-ii-world/media/Lan-truoc.mp4) · [Cảnh Lan sau](../../../../output/ch01-rebirth-ii-world/media/Lan-sau.mp4)
 
-Video sau dài khoảng 60 giây, từ lúc tiến vào sảnh qua cuộc gặp Lan đến lúc nhận phiếu. Bản thu ghi hình và âm thanh stereo 48 kHz ngay trong Windows Player. Bài chạy xác nhận các câu của Lan đi đến cuối, khẩu hình nhận đúng track và người chơi vẫn có thể điều khiển trong lúc thoại. Hai góc chùm sáng ngoài mái được kiểm trên lượt đi từ sân vào sảnh. Độ bóng kính được giảm sau khi xem góc nhìn gần quầy. [Kết quả lượt thu](../../output/ch01-rebirth-ii-world/capture/after-release/gameplay.txt) · [Thông số âm thanh và hình](../../output/ch01-rebirth-ii-world/media/Lan-sau-capture.txt)
+Video sau dài khoảng 60 giây, từ lúc tiến vào sảnh qua cuộc gặp Lan đến lúc nhận phiếu. Bản thu ghi hình và âm thanh stereo 48 kHz ngay trong Windows Player. Bài chạy xác nhận các câu của Lan đi đến cuối, khẩu hình nhận đúng track và người chơi vẫn có thể điều khiển trong lúc thoại. Hai góc chùm sáng ngoài mái được kiểm trên lượt đi từ sân vào sảnh. Độ bóng kính được giảm sau khi xem góc nhìn gần quầy. [Kết quả lượt thu](../../../../output/ch01-rebirth-ii-world/capture/after-release/gameplay.txt) · [Thông số âm thanh và hình](../../../../output/ch01-rebirth-ii-world/media/Lan-sau-capture.txt)
 
 ## QA và hồi quy trên bản bàn giao
 
@@ -72,9 +72,9 @@ Video sau dài khoảng 60 giây, từ lúc tiến vào sảnh qua cuộc gặp 
 | Hồi quy sau CH01 | PASS G01/G02, E11/E12, hai tuyến thoát CH02, chuyển vùng, đọc bản lưu v1–v5 và hồi quy đã tự động hóa của CH03–CH04. Cảnh Lan, khóa thoại và track khẩu hình qua kiểm tra chạy thật. |
 | Sổ và trợ năng | PASS chữ 100%/130%, chuột và bàn phím, ghi chú theo nguồn, trở lại từ soi 3D và 100 lần mở/đóng. Khung sổ và phiếu giữ 197 đối tượng bố cục. 100 lượt mở/đóng giấy hai mặt không để lại mesh hay material giấy sống. |
 
-[Kết quả kiểm hệ thống](evidence/rebirth-ii-world/windows-module.txt) · [Kết quả bàn phím và chuột](evidence/rebirth-ii-world/windows-input.txt) · [Lượt kiểm vật thể và Lan](evidence/rebirth-ii-world/gameplay-capture.txt) · [Ảnh Dòng thời gian](../../output/ch01-rebirth-ii-world/final-input/timeline-0317-pins.png)
+[Kết quả kiểm hệ thống](evidence/rebirth-ii-world/windows-module.txt) · [Kết quả bàn phím và chuột](evidence/rebirth-ii-world/windows-input.txt) · [Lượt kiểm vật thể và Lan](evidence/rebirth-ii-world/gameplay-capture.txt) · [Ảnh Dòng thời gian](../../../../output/ch01-rebirth-ii-world/final-input/timeline-0317-pins.png)
 
-[Ống nghe](../../output/ch01-rebirth-ii-world/final-input/handset-raised.png) · [Phích và cốc](../../output/ch01-rebirth-ii-world/capture/after-props-visible/10-thermos.png) · [Tờ lịch 17](../../output/ch01-rebirth-ii-world/capture/after-props-visible/11-calendar.png) · [Thùng men mở nắp](../../output/ch01-rebirth-ii-world/capture/after-props-visible/09-enamel-bin.png) · [Kiểm lại vật thể ở cự ly gần](evidence/rebirth-ii-world/props-visible.txt)
+[Ống nghe](../../../../output/ch01-rebirth-ii-world/final-input/handset-raised.png) · [Phích và cốc](../../../../output/ch01-rebirth-ii-world/capture/after-props-visible/10-thermos.png) · [Tờ lịch 17](../../../../output/ch01-rebirth-ii-world/capture/after-props-visible/11-calendar.png) · [Thùng men mở nắp](../../../../output/ch01-rebirth-ii-world/capture/after-props-visible/09-enamel-bin.png) · [Kiểm lại vật thể ở cự ly gần](evidence/rebirth-ii-world/props-visible.txt)
 
 ## Hiệu năng trước và sau
 
@@ -91,7 +91,7 @@ Chạy cùng tuyến tự động CH01–CH02 bằng hai bản phát hành Windo
 | Thời gian khung P95 lúc vào Phòng 101 lớp B | 16,656 ms | 16,148 ms |
 | Thời gian khung P95 lúc nộp F101 | 12,632 ms | 13,267 ms |
 
-P95 toàn tuyến chênh 0,095 ms. P99 và đoạn nộp F101 tăng nhẹ trong lượt đo. Khung dài nhất của cả hai lượt rơi ở đầu tuyến, từ 76,430 ms lên 91,922 ms. Cần lặp lại trên nhiều máy để đánh giá các khung chậm và độ ổn định khi khởi động. [Số đo theo cảnh và thao tác](../../output/ch01-rebirth-ii-world/performance-summary.json)
+P95 toàn tuyến chênh 0,095 ms. P99 và đoạn nộp F101 tăng nhẹ trong lượt đo. Khung dài nhất của cả hai lượt rơi ở đầu tuyến, từ 76,430 ms lên 91,922 ms. Cần lặp lại trên nhiều máy để đánh giá các khung chậm và độ ổn định khi khởi động. [Số đo theo cảnh và thao tác](../../../../output/ch01-rebirth-ii-world/performance-summary.json)
 
 ## Hạng mục nghiệm thu cần người chơi và chuyên gia
 

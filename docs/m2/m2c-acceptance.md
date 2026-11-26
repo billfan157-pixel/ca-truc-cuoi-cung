@@ -4,7 +4,7 @@
 
 Báo cáo tổng hợp quá trình tái dựng ba nhân vật chính của *Ca trực cuối cùng* từ nền mẫu M2-A (`49bc06837cf3ebc72348ca4a5f86575f371a108a`) sang hệ nhân vật Digital Human đạt chuẩn giải phẫu, vật liệu URP 17.3 Forward+, diễn xuất cơ thể/khuôn mặt và giữ trọn bản sắc khuôn mặt người Việt Nam / Đông Nam Á cùng bối cảnh Bệnh viện An Sinh năm 2005–2012.
 
-- **Tài liệu thẩm định pipeline & bản quyền:** [m2c-character-audit-and-pipeline.md](m2c-character-audit-and-pipeline.md)
+- **Tài liệu thẩm định pipeline & bản quyền:** [m2c-character-audit-and-pipeline.md](../archive/m2-history/m2c-character-audit-and-pipeline.md)
 - **Tuyên bố nguồn gốc & giấy phép bên thứ ba:** [ThirdPartyNotices.md](../../Prototype/ThirdPartyNotices.md)
 - **Nhận dạng build Windows x64 Release (Unity `6000.3.28f1`, URP 17.3 Forward+, `development=False`):** [build-identity.txt](../../output/m2c/release/build-identity.txt)
   - `Assembly-CSharp.dll` SHA-256: `fe8ac9f2432e55b518133335050fa1d99c0676a6f016f94c54f7036db085170f`

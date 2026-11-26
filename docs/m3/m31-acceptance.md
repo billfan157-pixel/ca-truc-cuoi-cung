@@ -1,6 +1,6 @@
 # M3.1 · Bàn giao kỹ thuật
 
-Nhánh `codex/m31-hospital-world`. Cổng Alpha M3 và các cổng nghiệm thu M2 tiếp tục mở. [Audit nền M3.0](m31-audit.md) · [Mặt cắt, đồ thị và căn cứ lịch sử](m31-world.md).
+Nhánh `codex/m31-hospital-world`. Cổng Alpha M3 và các cổng nghiệm thu M2 tiếp tục mở. [Audit nền M3.0](../archive/m3-history/m31/m31-audit.md) · [Mặt cắt, đồ thị và căn cứ lịch sử](../archive/m3-history/m31/m31-world.md).
 
 **Ứng viên Windows `05a5bfa`** được dựng từ checkout sạch bằng Unity 6000.3.28f1. Manifest ghi SHA-256 assembly và bảy scene. Bộ kiểm module và bộ kiểm bàn phím đều kết thúc với `RESULT=PASS` trên D3D12. Bài bàn phím đi ba chặng cầu thang, dùng W/Tab/Enter/E ở những thao tác được ghi và đặt máy quay tại vị trí chuẩn khi thử tương tác đạo cụ. Lượt này bao phủ ba nhánh F101, PZ03, C12, R/M, tải điện, H05, hai điều kiện thoại Lan và tải lại AP09. [Manifest](evidence/m31/windows/build-05a5bfa.txt) · [Module](evidence/m31/regression/module-05a5bfa.txt) · [Bàn phím](evidence/m31/regression/input-05a5bfa.txt)
 

@@ -2,7 +2,8 @@
 
 - **Milestone / Gate:** M2 Vertical Slice (`TASK010`)
 - **Status:** **Human Review Pending — OPEN (0/6 human sessions completed)**
-- **Approved Technical Candidate for Sessions:** `m2-final-cand-c459aba` (`revision=c459aba86192591b4adf5d267438e5fb4b77f704`, `development=False`, Unity `6000.3.28f1`, Core `v3.3.1 Final Clean — Design Lock`)
+- **Canonical Design Standard:** `Core v3.3.2 (NPR-01 Locked — Final Production Lock)` (`DEC-NPR01-04`: `CH01–CH05` contracts & 28 CH01 lines remain 100% identical to the `Core v3.3.1` lock used to build `c459aba`; NPR-01 dialogue updates affect CH07/CH08 only).
+- **Approved Technical Candidate for Sessions:** `m2-final-cand-c459aba` (`revision=c459aba86192591b4adf5d267438e5fb4b77f704`, `development=False`, Unity `6000.3.28f1`, built against `Core v3.3.1 Final Clean`)
   - `exe_sha256`: `fbd073ca59c4918edbc6704f5393cf59021173af11714c00db4212c50117492b`
   - `assembly_sha256`: `373d7c91bfcc071a04969b664f6a2fd03c553ee66e39fb65f6fcb8b58b149cbc`
   - **Release Package:** [output/m2-final/m2-final-release-c459aba/CaTrucCuoiCung-M2-FINAL-c459aba-Windows-x64.zip](../../output/m2-final/m2-final-release-c459aba/CaTrucCuoiCung-M2-FINAL-c459aba-Windows-x64.zip) + [SHA256SUMS.txt](../../output/m2-final/m2-final-release-c459aba/SHA256SUMS.txt)

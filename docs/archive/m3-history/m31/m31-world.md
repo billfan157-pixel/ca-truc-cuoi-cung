@@ -28,7 +28,7 @@ flowchart LR
   L11 -. Cửa khóa .-> L12["LOC12 · Khu C"]
 ```
 
-Mặt bằng dựng từ [layout.json](../prototype/layout.json) và [mã authoring tầng trên, tầng hầm](../../Prototype/Assets/CTCC/Editor/HospitalAuthoring.Expansion.cs). Mặt bằng dùng chung cho R và B. Đoạn M dùng riêng ánh sáng và đạo cụ tại bàn đọc.
+Mặt bằng dựng từ [layout.json](../../../prototype/layout.json) và [mã authoring tầng trên, tầng hầm](../../../../Prototype/Assets/CTCC/Editor/HospitalAuthoring.Expansion.cs). Mặt bằng dùng chung cho R và B. Đoạn M dùng riêng ánh sáng và đạo cụ tại bàn đọc.
 
 ## Căn cứ thiết kế
 

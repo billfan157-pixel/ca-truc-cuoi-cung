@@ -1,8 +1,6 @@
 # Hệ thống skill vận hành Ca trực cuối cùng
 
-[AGENTS.md](../../AGENTS.md) chọn skill theo đầu việc. **Core v3.3.1 Final Clean — Design Lock** là nguồn chính thức của dự án. Bản phát hành ngày 24/11/2026 có [ghi chú phát hành](../RELEASE-NOTES.md), [nhật ký thay đổi](../CHANGELOG.md), [kiểm toán canon](../CANON-AUDIT.md) và [mã SHA-256](../SHA256SUMS.txt). Dùng [walkthrough CH01 B01–B08](../ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) và `DEC-CH01R-04` cho thao tác, cue và phục hồi. Áp dụng `DEC-V331-01` cho LOC01 sau T09.
-
-Các đường dẫn Core 01–07 bên dưới mở [bộ dự thảo NPR-01](../npr-01/README.md) được đưa lên `main` để duyệt theo quyết định ngày 25/11/2026. Lấy canon đã khóa, điều kiện nghiệm thu và bản băm phát hành từ [baseline v3.3.1 tại `3c0b955`](https://github.com/billfan157-pixel/ca-truc-cuoi-cung/tree/3c0b955de95bcf39853c30e2669b2bac24ad969e/docs).
+[AGENTS.md](../../AGENTS.md) chọn skill theo đầu việc. **Core v3.3.2 (NPR-01 Locked — Final Production Lock)** tại `docs/01…07` là nguồn chân lý duy nhất (Single Source of Truth) của dự án. Bản chốt ngày 26/11/2026 hợp nhất trọn vẹn `NPR-01` (`DEC-NPR01-01–05`) vào nền `Core v3.3.1 Final Clean`, đi kèm [ghi chú phát hành](../RELEASE-NOTES.md), [nhật ký thay đổi](../CHANGELOG.md), [kiểm toán canon](../CANON-AUDIT.md) và [mã SHA-256](../SHA256SUMS.txt). Dùng [walkthrough CH01 B01–B08](../ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) và `DEC-CH01R-04` cho thao tác, cue và phục hồi. Áp dụng `DEC-V331-01` cho LOC01 sau T09.
 
 ## Điều phối công việc
 
@@ -23,12 +21,12 @@ Với yêu cầu đi qua nhiều khâu, chọn skill theo đầu ra chính. Ví 
 
 | Nguồn | Dùng để quyết định | Tra nhanh |
 | --- | --- | --- |
-| [Core 01 Game Design](../01_Game_Design_Document.docx) | Vòng chơi, UX, phạm vi sản phẩm và mục tiêu chất lượng | §2 hệ thống chơi, §3 quản trị sản xuất, §6 hợp đồng trải nghiệm v3.3.1 |
+| [Core 01 Game Design](../01_Game_Design_Document.docx) | Vòng chơi, UX, phạm vi sản phẩm và mục tiêu chất lượng | §2 hệ thống chơi, §3 quản trị sản xuất, §6 hợp đồng trải nghiệm v3.3.2 |
 | [Core 02 Narrative](../02_Narrative_Bible.docx) | Canon, tri thức nhân vật, WR, ending và hậu đề | §1.3 CAN01–09, §2 timeline, §3 các chương/ending, §4 nhân vật, §§5–9 |
 | [Core 03 World & Architecture](../03_World_Architecture_Bible.docx) | Hình học R, cao độ, tuyến sử dụng, xuất xứ vật chứng và tính thời kỳ | §§3.2–3.6, §6.1 W-Q01–07, §8 liên tục 2005/2012, DEC-WORLD-01 |
-| [Core 04 Level & Chapter](../04_Level_Chapter_Design.docx) | Tuyến CH01–08, trigger, checkpoint, take/skip/retry và hậu đề | §1, heading từng chương và phần V3.1–V3.3.1 |
-| [Core 05 Art & Audio](../05_Art_Audio_Bible.docx) | Vật liệu, kit, lighting, cue/mixer/VO, asset-ready và license | §§01–04 và phần V3.1–V3.3.1 về vật chứng, ~03:25, PZ10 và thực thể |
-| [Core 06 Technical Design](../06_Technical_Design_Document.docx) | Module, schema, gate, giao dịch, save và kiểm kỹ thuật | §§01–04, hợp đồng Save v7 và phần V3.1–V3.3.1 về snapshot, PZ10 và export |
+| [Core 04 Level & Chapter](../04_Level_Chapter_Design.docx) | Tuyến CH01–08, trigger, checkpoint, take/skip/retry và hậu đề | §1, heading từng chương và phần V3.1–V3.3.2 |
+| [Core 05 Art & Audio](../05_Art_Audio_Bible.docx) | Vật liệu, kit, lighting, cue/mixer/VO, asset-ready và license | §§01–04 và phần V3.1–V3.3.2 về vật chứng, ~03:25, PZ10 và thực thể |
+| [Core 06 Technical Design](../06_Technical_Design_Document.docx) | Module, schema, gate, giao dịch, save và kiểm kỹ thuật | §§01–04, hợp đồng Save v7 và phần V3.1–V3.3.2 về snapshot, PZ10 và export |
 | [Core 07 Production Database](../07_Production_Database.xlsx) | Dữ liệu theo ID, master Dialogue và Evidence Specs, quyết định, tiến độ và QA | Nhóm sheet theo bảng dưới |
 
 | Việc đang làm | Sheet Core 07 mở theo nhu cầu |
@@ -51,7 +49,7 @@ Mã `DOCxx` trong đoạn cũ dùng bảng chuyển đổi Core 01 §4. Chẳng 
 
 ## Giải quyết chênh lệch giữa nguồn
 
-1. Đối chiếu Core sở hữu chủ đề và dòng `07/Decisions` theo ID. Áp dụng `DEC-V31-01–08`, `DEC-V32-01–05`, `DEC-V33-01–07` và `DEC-V331-01–02` tại các điểm sửa. Tra `V331-DOC01` và Changelog cho các chỉnh sửa cuối. Đọc Chapter và Context từ `Dialogue` khi gặp ID cũ.
+1. Đối chiếu Core sở hữu chủ đề và dòng `07/Decisions` theo ID. Áp dụng `DEC-V31-01–08`, `DEC-V32-01–05`, `DEC-V33-01–07`, `DEC-V331-01–02` và `DEC-NPR01-01–05` tại các điểm sửa. Tra `NPR01-DOC01` và Changelog cho các chỉnh sửa cuối. Đọc Chapter và Context từ `Dialogue` khi gặp ID cũ.
 2. Nếu skill hoặc tài liệu liên quan đến task có chỉ dẫn mâu thuẫn hay lỗi thời, áp dụng quy định trong [AGENTS.md](../../AGENTS.md#nguồn-và-cách-làm). Dừng task và báo người dùng vị trí nguồn, nội dung bị lệch, căn cứ đối chiếu, ảnh hưởng và phương án xử lý. Chờ người dùng quyết định trước khi tiếp tục.
 3. Khi thay đổi được chốt trong phạm vi, cập nhật nơi sở hữu trước. Đồng bộ các tham chiếu bị tác động theo ID, thử bộ kiểm tra liên quan, ghi Changelog, rồi đọc lại nguồn và kiểm diff/dữ liệu trước khi báo xong. Dùng SHA-256 đầu/cuối khi cần đối chiếu nhiều phiên bản.
 
@@ -73,7 +71,7 @@ Mã `DOCxx` trong đoạn cũ dùng bảng chuyển đổi Core 01 §4. Chẳng 
 | M4 | Art/VO/audio, trợ năng, hiệu năng và hồ sơ giấy phép theo build. |
 | M5 | Regression toàn build, phân phối đúng phạm vi và hết P0. |
 
-Core 07 ghi M0/M1 đã hoàn thành và M2 đang làm. Unity 6.3 LTS `6000.3.28f1`, URP 17.3 và Windows x64 đã chốt theo TASK029/DEC-V2-04. `V331-DOC01` đạt rà tài liệu. Các ca build V30–V33, playtest TASK010 và review TASK026–028 cần bằng chứng riêng. Tra Roadmap/Backlog trước mỗi lượt, đối chiếu đúng tuyến CH01 đầy đủ hoặc M2 rút gọn khi đo thời lượng.
+Core 07 ghi M0/M1 đã hoàn thành và M2 đang làm. Unity 6.3 LTS `6000.3.28f1`, URP 17.3 và Windows x64 đã chốt theo TASK029/DEC-V2-04. `NPR01-DOC01` đạt rà tài liệu Core v3.3.2. Các ca build V30–V33, playtest TASK010 và review TASK026–028 cần bằng chứng riêng. Tra Roadmap/Backlog trước mỗi lượt, đối chiếu đúng tuyến CH01 đầy đủ hoặc M2 rút gọn khi đo thời lượng.
 
 | Task M0 | Skill chính | Đầu ra cần chứng minh |
 | --- | --- | --- |
@@ -95,12 +93,12 @@ python docs/agent/project_docs.py sheet "Chapter gates" CH02
 python docs/agent/project_docs.py sheet Dialogue CH01-D16b
 python docs/agent/project_docs.py sheet "Evidence Specs" "E01-B (AS-05B)"
 python docs/agent/project_docs.py sheet "Provenance Matrix" PROP-XK12
-python docs/agent/project_docs.py sheet QA V331-DOC01
+python docs/agent/project_docs.py sheet QA NPR01-DOC01
 python docs/agent/project_docs.py check
 python docs/agent/project_docs.py hashes
 ```
 
-`status` đọc Roadmap và chọn milestone đầu còn task MUST theo Backlog. Có thể tra milestone cụ thể. `check` kiểm file, cấu trúc sheet/ID và đồ thị phụ thuộc. Công thức Excel được hiển thị cùng giá trị lưu sẵn nếu có. Đối chiếu kết quả rà nguồn với `V331-DOC01`. So bản kê SHA-256 phát hành với tệp tại revision phát hành. `hashes` in mã của các tệp đang mở trên nhánh hiện tại.
+`status` đọc Roadmap và chọn milestone đầu còn task MUST theo Backlog. Có thể tra milestone cụ thể. `check` kiểm file, cấu trúc sheet/ID và đồ thị phụ thuộc. Công thức Excel được hiển thị cùng giá trị lưu sẵn nếu có. Đối chiếu kết quả rà nguồn với `NPR01-DOC01`. So bản kê `docs/SHA256SUMS.txt` với kết quả `hashes` trên working tree hiện tại.
 
 ## Bằng chứng bàn giao
 

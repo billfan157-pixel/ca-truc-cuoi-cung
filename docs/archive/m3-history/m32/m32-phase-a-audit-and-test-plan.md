@@ -35,7 +35,7 @@
 ## 2. Candidate `c459aba` Identity, 9 Scene Hashes, Provenance & Reproducibility
 
 ### 2.1 Binary & Package Verification (No Redundant Rebuild Needed)
-All published `c459aba` binaries under `output/m2-final/m2-final-cand-c459aba/` and `output/m2-final/m2-final-release-c459aba/` are intact on disk and match [build-identity.txt](../m2/evidence/m2-final-candidate/build-identity.txt) and [SHA256SUMS.txt](../m2/evidence/m2-final-candidate/SHA256SUMS.txt) byte-for-byte:
+All published `c459aba` binaries under `output/m2-final/m2-final-cand-c459aba/` and `output/m2-final/m2-final-release-c459aba/` are intact on disk and match [build-identity.txt](../../../m2/evidence/m2-final-candidate/build-identity.txt) and [SHA256SUMS.txt](../../../m2/evidence/m2-final-candidate/SHA256SUMS.txt) byte-for-byte:
 
 | Artifact | Expected SHA-256 (`build-identity.txt` / `SHA256SUMS.txt`) | Actual Disk SHA-256 | Result |
 | --- | --- | --- | --- |
@@ -65,12 +65,12 @@ A direct SHA-256 comparison revealed a critical provenance discrepancy between g
 4. **Reproducibility Rule:** Running `tools/build_m2.ps1 -SkipGenerate` on a clean checkout of `main`/`c459aba` will **NOT** reproduce `c459aba` — it would silently package stale `c9f47c3` scenes missing the S1 discharge and K-B/K-D/K-F seals! Reproducing from clean git requires full `tools/build_m2.ps1` **without** `-SkipGenerate` (running `HospitalAuthoring.ReferenceScene`). In M3.2, every scene authoring edit must trigger a clean scene regeneration (`ReferenceScene`), and generated scene/probe provenance must be cleanly tracked before Phase F packaging.
 
 ### 2.3 Generated-Asset & Audio Provenance
-- [Prototype/ThirdPartyNotices.md](../../Prototype/ThirdPartyNotices.md) documents all third-party and generated sources: MakeHuman/MPFB2 `hm08` (CC0 1.0), ambientCG PBR micro-surfaces (CC0 1.0), CMU MoCap BVH (`07_04`, `18_08`, `08_04` with NSF EIA-0196217 credit), VieNeu-TTS v3 Turbo (Apache-2.0 offline WAVs), NumPy/SciPy synthesized SFX, Be Vietnam Pro (SIL OFL 1.1), and self-authored Blender 4.5 models (`.blend` in `ArtSource/Blender/`, `.fbx` in `Prototype/Assets/CTCC/Art/Meshes/`).
+- [Prototype/ThirdPartyNotices.md](../../../../Prototype/ThirdPartyNotices.md) documents all third-party and generated sources: MakeHuman/MPFB2 `hm08` (CC0 1.0), ambientCG PBR micro-surfaces (CC0 1.0), CMU MoCap BVH (`07_04`, `18_08`, `08_04` with NSF EIA-0196217 credit), VieNeu-TTS v3 Turbo (Apache-2.0 offline WAVs), NumPy/SciPy synthesized SFX, Be Vietnam Pro (SIL OFL 1.1), and self-authored Blender 4.5 models (`.blend` in `ArtSource/Blender/`, `.fbx` in `Prototype/Assets/CTCC/Art/Meshes/`).
 - Audio inventory verified on disk: `69` WAVs in `Prototype/Assets/CTCC/Art/Audio/` (`33` SFX/ambient/music including `KeyJingle.wav`, `TrolleyRoll.wav`, `PAStatic.wav`, `DoorLatch.wav`, `DoorCreak.wav`, `BreakerCut.wav`, `EmergencyHum.wav` + `36` Temp VO: `CH01=26`, `CH02=5`, `CH03=5`, `CH04=0`) and `12` foley WAVs in `Prototype/Assets/CTCC/Art/Resources/CTCC/`.
 - `CHAR-Q02` (R/B visual direction approval) and `CHAR-Q09` (human license/source audit) remain **Human Review Pending**.
 
 ### 2.4 Performance Reference Baseline (`c459aba`, 1080p Medium `0.88`, D3D12, VSync 1, 60 Hz)
-From [docs/m2/evidence/m2-final-candidate/performance.json](../m2/evidence/m2-final-candidate/performance.json) (`3` independent runs, `100%` foreground, Intel Core Ultra 7 155H / Intel Arc):
+From [docs/m2/evidence/m2-final-candidate/performance.json](../../../m2/evidence/m2-final-candidate/performance.json) (`3` independent runs, `100%` foreground, Intel Core Ultra 7 155H / Intel Arc):
 - **Unity GPU P95:** `12.77–12.97 ms` (P99 `14.48–14.61 ms`, Run 1 max `16.29 ms`, `0` frames > `16.67 ms`)
 - **PresentMon GPUTime P95:** `13.74–13.88 ms` (P99 `15.66–15.83 ms`)
 - **Unity Main CPU P95:** `6.88–7.23 ms` | **Unity Render CPU P95:** `~2.53 ms`
@@ -83,13 +83,13 @@ From [docs/m2/evidence/m2-final-candidate/performance.json](../m2/evidence/m2-fi
 ## 3. Production Gates & `TASK010` Shortened 20–30 Minute Route Audit
 
 ### 3.1 M2 Human Gates (Actual Status)
-- **`TASK010`** (`Backlog!32`, MUST, dep `TASK009`): **Human Review Pending (`Chưa làm`, `0/6` sessions)**. Kit & moderator launcher ready at `output/m2-final/m2-final-release-c459aba/start-task010-session.ps1` and [playtest-kit-task010.md](../m2/playtest-kit-task010.md). Three independent `5/6` gates per Core 01/07: (1) verify `C01` within `8 min` of starting `PZ01` unaided, (2) explain F101 false-affirmation consequence, (3) distinguish patient guide from threat by behavior.
+- **`TASK010`** (`Backlog!32`, MUST, dep `TASK009`): **Human Review Pending (`Chưa làm`, `0/6` sessions)**. Kit & moderator launcher ready at `output/m2-final/m2-final-release-c459aba/start-task010-session.ps1` and [playtest-kit-task010.md](../../../m2/playtest-kit-task010.md). Three independent `5/6` gates per Core 01/07: (1) verify `C01` within `8 min` of starting `PZ01` unaided, (2) explain F101 false-affirmation consequence, (3) distinguish patient guide from threat by behavior.
 - **`TASK026`** (`Backlog!88`, MUST, dep `TASK023`): **Human Review Pending (`Chờ duyệt`)** — Healthcare architect / clinician review of `LOC01–04` & Lan attire.
 - **`TASK027`** (`Backlog!89`, MUST, dep `TASK022`): **Human Review Pending (`Chờ duyệt`)** — Historical 2005 PCCC specialist review of 3 mandatory items (Wing C section, smoke behavior, emergency response; aligned with `EVT026` erratum).
 - **`TASK028`** (`Backlog!90`, MUST, dep `TASK023`): **Human Review Pending (`Chờ duyệt`)** — Clinical provenance, paperwork realism, and ethical representation review.
 
 ### 3.2 Audit of `TASK010` Shortened 20–30 Minute Route (`GAP-M2-T010`, P2/Operational)
-Checking [playtest-kit-task010.md](../m2/playtest-kit-task010.md), Core 07 `Roadmap!4`, [walkthrough-gameplay-B01-B08-investigation-v1.md](../ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md), and `c459aba` runtime (`HospitalGame.cs`, `HospitalGame.Pages.cs`):
+Checking [playtest-kit-task010.md](../../../m2/playtest-kit-task010.md), Core 07 `Roadmap!4`, [walkthrough-gameplay-B01-B08-investigation-v1.md](../../../ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md), and `c459aba` runtime (`HospitalGame.cs`, `HospitalGame.Pages.cs`):
 1. **No dedicated shortened-CH01 mode in `c459aba`:** The binary runs the **full CH01-R B01–B08** walkthrough (designed for `20.5–30 min` main path + `6–10 min` optional STAFF/raking-light exploration) followed by **CH02** (`PZ01`/`PZ02` + cameo, `~8–15 min`). Blind first-time players exploring STAFF or struggling with F101 refutation may exceed `30 min` total (`~28–45 min`).
 2. **CH03 exit exposed on ER summary (`HospitalGame.Pages.cs:1150`):** `EndOfVisit()` shows button `"Mở lối lên khu B"`, which launches `CH03`. Moderators running `TASK010` must stop the session at the ER ledger (`EndOfVisit`) so sessions measure the M2 vertical slice only.
 3. **Telemetry boundary (`HospitalGame.cs:996, 1023`):** `-ctcc-playtest-log` writes automatically at `CH01-T10` (CH01 end) and does not record `PZ01` start / `C01` verify timestamps. As honestly noted in `playtest-kit-task010.md:94`, moderators must time `PZ01 → C01` manually on the tally sheet.

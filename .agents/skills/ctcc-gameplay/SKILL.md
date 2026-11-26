@@ -8,7 +8,7 @@ description: >-
 
 ## Nguồn cho task
 
-- Đọc GDD §2 và phần v2.2, Technical Design §01–04 và contract v2/v2.2, rồi tới chương bị tác động. [Core 01](../../../docs/01_Game_Design_Document.docx), [Core 06](../../../docs/06_Technical_Design_Document.docx), [Core 04](../../../docs/04_Level_Chapter_Design.docx)
+- Đọc Core 01 §2 và §6 (v3.3.2), Core 06 §§01–04 và phần V3.1–V3.3.2 (`DEC-V31–V331`, `DEC-NPR01-01–05`), rồi tới chương bị tác động. [Core 01](../../../docs/01_Game_Design_Document.docx), [Core 06](../../../docs/06_Technical_Design_Document.docx), [Core 04](../../../docs/04_Level_Chapter_Design.docx)
 - Với CH01, đọc [walkthrough B01–B08](../../../docs/ch01r/walkthrough-gameplay-B01-B08-investigation-v1.md) và DEC-CH01R-04. Tách inventory, ObservationRecord, EvidenceRegistry và nhật ký. Tab/J mở ba lô, Pocket Note mở nhật ký, còn AN01 là prop thực hiện giao dịch theo beat.
 - Tra `07/Chapter gates`, `Events`, `Puzzle specs`, `QA` theo ID. Ví dụ `python docs/agent/project_docs.py sheet "Puzzle specs" CH02-PU02`.
 - Trước khi thêm code, tra phiên bản project và task. Với hệ thống player đầu tiên, `TASK003` cần `TASK002` và `TASK029`. Khi cần thay beat, reveal hoặc layout, áp dụng thêm skill sở hữu tương ứng.
@@ -26,7 +26,7 @@ description: >-
 - `F101`: A affirmed sai có D=1 ở 101, B unverified có D=0, C refute cần OBS101A/B đã kiểm, dấu dòng 0 và ô người nhận AS-05B, liên kết thẻ với dấu giường 4 và kết luận số 0 chưa đủ căn cứ. C có D=0. G01 mở sau commit hợp lệ. CH02 giữ first/current và có thể sửa. G02 dùng E11 đủ `drawing/wristband/transferNote` từ R và E12 vật lý, gắn xác thực C01 theo luồng PZ01–02.
 - `G03` yêu cầu tồn tại C02. Danh tính C02–11 là tùy chọn. `C12` giữ danh tính chưa xác định. Khi chạm H05, tuân điều kiện E04+E07 và thứ tự trình bày PT01/PT02 trước khi ra CH04.
 - `G05` dùng H03 với E05+E05b, từ tuyến R đến được trước G06. `G06` dùng bundle E01–07, E09, E10 hoàn chỉnh và luồng H01/H02/PT03 theo CDD. E06 là bản ghi trực trên giấy, E06a là cassette họp riêng, E10 cần a+b.
-- `PZ09` dùng mốc E09 và dữ liệu Core 04 để mở M. E08 hoàn tất sau khi xem hoặc skip có transcript đúng cảnh M ở CH07. `G07` yêu cầu PZ09, E08 và 5 bit phản bác PZ10. Chỉ xuất vật chứng vật lý đủ provenance, đánh dấu E08 nonexport.
-- `G08` dùng preview + xác nhận cuối, 13 nạn nhân bất biến. Logic END01–04 dựa trên lựa chọn phiếu, export và lời khai. Coda Bảy độc lập ở mọi nhánh. Giữ checkpoint trước lựa chọn để chơi lại.
+- `PZ09` dùng mốc E09 và dữ liệu Core 04 để mở M. E08 hoàn tất sau khi xem hoặc skip có transcript đúng cảnh M ở CH07. `G07` yêu cầu PZ09, E08 và 5 bit phản bác `PZ10` (tách hoàn toàn khỏi UI Hypothesis Board, trình bày bằng UI Chất vấn riêng, giữ nguyên 5 cặp ID và 5 bit Save v7 theo `DEC-V32-05`/`DEC-NPR01-03`). Chỉ xuất vật chứng vật lý đủ provenance theo Phương án A (`DEC-NPR01-02`), đánh dấu E08 nonexport.
+- `G08` dùng preview + xác nhận cuối, 13 thi thể bất biến (12 cháy + 1 vô danh chết trước cháy; C12 chuyển sống tách riêng). Với `END03/04`, hoàn tất B02 hoặc fallback AN08 qua xem/skip tự thu liên gốc `PROP-XK12` từ túi Bảy vào manifest nguồn R (inspect 3D tùy chọn). Logic `END01–04` phân tách gói Minh nộp có chữ ký, lời tự khai và phần bản sao ngoài của Bảy độc lập ở cả bốn nhánh (`DEC-NPR01-01`). Giữ checkpoint trước lựa chọn để chơi lại.
 
 Chạy ca đúng ID theo `ctcc-qa`. Ưu tiên trường hợp hợp lệ, thiếu bộ phận evidence, submit trùng/sửa, skip/backtrack, load giữa giao dịch và lựa chọn có độ trợ năng khác nhau trong phạm vi thay đổi. Bàn giao state trước/sau, build và kết quả cụ thể.
