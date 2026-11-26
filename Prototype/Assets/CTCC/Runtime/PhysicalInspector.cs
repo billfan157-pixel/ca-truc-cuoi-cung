@@ -52,6 +52,9 @@ namespace CTCC
         private GameObject currentModel;
         private Mesh frontMesh;
         private Mesh backMesh;
+        private Mesh paperEdge;
+        private Material paperEdgeMaterial;
+        private Texture2D paperFiberNormal;
         private Material frontMaterial;
         private Material backMaterial;
         private DepthOfField activeDof;
@@ -116,6 +119,7 @@ namespace CTCC
             eye = camera;
             audioBus = audio;
             rakingPaperShader = rakingShader;
+            paperFiberNormal = Resources.Load<Texture2D>("CTCC/PaperFiber_Normal");
             stage = new GameObject("Physical Inspector Stage").transform;
             stage.SetParent(eye.transform, false);
             stage.localPosition = new Vector3(-0.085f, -0.01f, 0.41f);
@@ -399,6 +403,8 @@ namespace CTCC
             }
             if (frontMesh != null) Destroy(frontMesh);
             if (backMesh != null) Destroy(backMesh);
+            if (paperEdge != null) Destroy(paperEdge);
+            if (paperEdgeMaterial != null) Destroy(paperEdgeMaterial);
             if (frontMaterial != null) Destroy(frontMaterial);
             if (backMaterial != null) Destroy(backMaterial);
             if (inkMesh != null) Destroy(inkMesh);
@@ -412,6 +418,8 @@ namespace CTCC
             ink = null;
             frontMesh = null;
             backMesh = null;
+            paperEdge = null;
+            paperEdgeMaterial = null;
             frontMaterial = null;
             backMaterial = null;
             if (activeDof != null)
@@ -535,11 +543,18 @@ namespace CTCC
                 if (keys.digit2Key.wasPressedThisFrame && details.Length >= 2) FocusDetail(1);
                 if (keys.digit3Key.wasPressedThisFrame && details.Length >= 3) FocusDetail(2);
                 if (keys.digit0Key.wasPressedThisFrame) ResetView();
-                if (!showingBack && keys.mKey.wasPressedThisFrame && activeDetailIndex >= 0)
+                if (!showingBack && keys.mKey.wasPressedThisFrame && annotationFields.Length != 0)
                 {
-                    string detail = details[activeDetailIndex].Id;
-                    foreach (var field in annotationFields)
-                        if (field.Id == detail) { MarkField(detail); break; }
+                    if (activeDetailIndex >= 0 && activeDetailIndex < details.Length)
+                    {
+                        string detail = details[activeDetailIndex].Id;
+                        foreach (var field in annotationFields)
+                            if (field.Id == detail) { MarkField(detail); break; }
+                    }
+                    else if (annotationFields.Length == 1)
+                    {
+                        MarkField(annotationFields[0].Id);
+                    }
                 }
             }
 
@@ -666,6 +681,7 @@ namespace CTCC
 
             frontMesh = BuildCurvedSheetMesh("InspectPaperFront", w, h, zOffset: -0.0004f, reverseFace: false);
             frontMaterial = MakePaperMaterial("InspectPaperFrontMat", frontTex, doubleSided: backTex == null);
+            SetPaperFiber(frontMaterial);
             var frontGo = new GameObject("FrontFace");
             frontGo.transform.SetParent(root.transform, false);
             frontGo.AddComponent<MeshFilter>().sharedMesh = frontMesh;
@@ -685,6 +701,17 @@ namespace CTCC
                 var bmr = backGo.AddComponent<MeshRenderer>();
                 bmr.sharedMaterial = backMaterial;
                 bmr.shadowCastingMode = ShadowCastingMode.Off;
+                if (backIndentNormal == null) SetPaperFiber(backMaterial);
+
+                var cut = new GameObject("Paper cut edge");
+                cut.transform.SetParent(root.transform, false);
+                paperEdge = BuildCutEdge(w, h);
+                cut.AddComponent<MeshFilter>().sharedMesh = paperEdge;
+                paperEdgeMaterial = MakePaperMaterial("InspectPaperEdgeMat", Texture2D.whiteTexture, doubleSided: true);
+                paperEdgeMaterial.SetColor("_BaseColor", new Color(.70f, .63f, .51f));
+                var cutRenderer = cut.AddComponent<MeshRenderer>();
+                cutRenderer.sharedMaterial = paperEdgeMaterial;
+                cutRenderer.shadowCastingMode = ShadowCastingMode.Off;
             }
 
             return root;
@@ -701,6 +728,8 @@ namespace CTCC
             mat.SetTexture("_IndentNormalMap", indentNormal);
             if (indentMask != null) mat.SetTexture("_IndentMaskMap", indentMask);
             mat.SetFloat("_IndentScale", 1.85f);
+            if (paperFiberNormal != null)
+                mat.SetTexture("_PaperFiber", paperFiberNormal);
             mat.SetFloat("_RakingReveal", 0f);
             mat.SetFloat("_Cull", 2f);
             return mat;
@@ -716,6 +745,46 @@ namespace CTCC
             mat.SetFloat("_Metallic", 0f);
             mat.SetFloat("_Cull", doubleSided ? 0f : 2f);
             return mat;
+        }
+
+        private void SetPaperFiber(Material material)
+        {
+            if (paperFiberNormal == null) return;
+            material.SetTexture("_BumpMap", paperFiberNormal);
+            material.SetFloat("_BumpScale", .20f);
+            material.EnableKeyword("_NORMALMAP");
+        }
+
+        private static Mesh BuildCutEdge(float width, float height)
+        {
+            const int horizontal = 10, vertical = 12;
+            const int count = horizontal * 2 + vertical * 2;
+            var points = new Vector3[count * 2];
+            var indices = new int[count * 6];
+            for (int i = 0; i < count; i++)
+            {
+                Vector2 uv;
+                if (i < horizontal) uv = new Vector2(i / (float)horizontal, 0);
+                else if (i < horizontal + vertical) uv = new Vector2(1, (i - horizontal) / (float)vertical);
+                else if (i < 2 * horizontal + vertical) uv = new Vector2(1 - (i - horizontal - vertical) / (float)horizontal, 1);
+                else uv = new Vector2(0, 1 - (i - 2 * horizontal - vertical) / (float)vertical);
+
+                int first = i * 2;
+                int next = (first + 2) % points.Length;
+                points[first] = SheetPoint(width, height, uv.x, uv.y, -.0004f);
+                points[first + 1] = SheetPoint(width, height, uv.x, uv.y, .0004f);
+                int start = i * 6;
+                indices[start] = first;
+                indices[start + 1] = next + 1;
+                indices[start + 2] = first + 1;
+                indices[start + 3] = first;
+                indices[start + 4] = next;
+                indices[start + 5] = next + 1;
+            }
+            var mesh = new Mesh { name = "InspectPaperEdge", vertices = points, triangles = indices };
+            mesh.RecalculateNormals();
+            mesh.UploadMeshData(true);
+            return mesh;
         }
 
         private static Mesh BuildCurvedSheetMesh(string name, float w, float h, float zOffset, bool reverseFace)

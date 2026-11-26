@@ -31,7 +31,8 @@ namespace CTCC.Editor
             Lit("DadoB", 1f, 1f, 1f, maps: "DadoB", bump: 0.14f, ao: 0.65f);
             Lit("FloorR", 1f, 1f, 1f, maps: "FloorR", bump: 0.65f, ao: 0.85f);
             Lit("FloorB", 1f, 1f, 1f, maps: "FloorB", bump: 0.50f, ao: 0.75f);
-            Lit("BaseTrim", 0.56f, 0.58f, 0.54f, maps: "FloorR", tint: true, bump: 0.45f, ao: 0.75f);
+            // Authentic Vietnamese cast terrazzo / washed concrete trim (never dark gạch bông tile pattern!)
+            Lit("BaseTrim", 0.74f, 0.76f, 0.72f, maps: "TerrazzoBench", tint: true, bump: 0.36f, ao: 0.72f);
 
             Lit("WoodDoorB", 1f, 1f, 1f, maps: "WoodDoorB", bump: 0.35f, ao: 0.75f);
             Lit("WoodDoorR", 1f, 1f, 1f, maps: "WoodDoorR", bump: 0.52f, ao: 0.80f);
@@ -45,7 +46,7 @@ namespace CTCC.Editor
             Lit("Frame", 0.72f, 0.80f, 0.74f, maps: "PaintedMetalR", tint: true, bump: 0.48f, ao: 0.78f);
 
             Lit("Steel", 1f, 1f, 1f, maps: "Steel", bump: 0.42f, ao: 0.75f);
-            Lit("Brass", 0.92f, 0.75f, 0.40f, maps: "Steel", tint: true, bump: 0.35f, ao: 0.72f);
+            Lit("Brass", 0.76f, 0.61f, 0.34f, maps: "Steel", tint: true, bump: 0.35f, ao: 0.72f);
             Lit("Rubber", 0.085f, 0.090f, 0.085f, smooth: 0.28f);
 
             Lit("Cotton", 1f, 1f, 1f, maps: "Cotton", bump: 0.58f, ao: 0.82f);
@@ -191,12 +192,12 @@ namespace CTCC.Editor
                     m.SetColor("_BaseColor", Color.white);
                     m.SetFloat("_BumpScale", 0.55f);
                     m.SetFloat("_Cutoff", cutoff);
-                    m.SetColor("_SpecColorPrimary", new Color(0.34f, 0.28f, 0.24f, 1f));
-                    m.SetColor("_SpecColorSecondary", new Color(0.24f, 0.14f, 0.09f, 1f));
-                    m.SetFloat("_SpecPowerPrimary", 128f);
-                    m.SetFloat("_SpecPowerSecondary", 48f);
+                    m.SetColor("_SpecColorPrimary", new Color(0.76f, 0.68f, 0.62f, 1f));
+                    m.SetColor("_SpecColorSecondary", new Color(0.48f, 0.30f, 0.19f, 1f));
+                    m.SetFloat("_SpecPowerPrimary", 84f);
+                    m.SetFloat("_SpecPowerSecondary", 30f);
                     m.SetFloat("_SpecIntensity", specInt);
-                    m.SetFloat("_BackScatter", 0.14f);
+                    m.SetFloat("_BackScatter", 0.24f);
                     EditorUtility.SetDirty(m);
                     return m;
                 }
@@ -204,11 +205,11 @@ namespace CTCC.Editor
             }
 
             // Skin (Lan, An, Gatekeeper)
-            MakeSkinMat("LanSkin", "LanSkin", sss: 0.43f, backScatter: 0.16f, spec: 0.47f, detailScale: 0.27f, bump: 0.75f);
+            MakeSkinMat("LanSkin", "LanSkin", sss: 0.42f, backScatter: 0.16f, spec: 0.44f, detailScale: 0.22f, bump: 0.68f);
             MakeSkinMat("AnSkin", "AnSkin", sss: 0.62f, backScatter: 0.28f, spec: 0.62f, detailScale: 0.24f, bump: 0.62f);
             MakeSkinMat("GatekeeperSkin", "GatekeeperSkin", sss: 0.14f, backScatter: 0.05f, spec: 0.32f, detailScale: 0.45f, bump: 0.95f);
 
-            // Anatomical Eyes (Cornea IOR 1.376 parallax refraction + anterior chamber caustics)
+            // Anatomical Eyes (Cornea IOR 1.376 parallax refraction + anterior chamber caustics + wet tear-film catchlight)
             if (dhEyeShader != null && art)
             {
                 var eyeM = MaterialAsset("LanEye", dhEyeShader);
@@ -218,11 +219,11 @@ namespace CTCC.Editor
                 eyeM.SetFloat("_BumpScale", 0.72f);
                 eyeM.SetFloat("_IrisRadius", 0.122f);
                 eyeM.SetFloat("_RefractionDepth", 0.015f);
-                eyeM.SetColor("_CausticTint", new Color(0.68f, 0.38f, 0.18f, 1f));
-                eyeM.SetFloat("_CausticStrength", 1.25f);
-                eyeM.SetFloat("_CorneaRoughness", 0.026f);
-                eyeM.SetFloat("_CorneaSpecIntensity", 1.45f);
-                eyeM.SetFloat("_LimbalDarkening", 0.38f);
+                eyeM.SetColor("_CausticTint", new Color(0.70f, 0.40f, 0.19f, 1f));
+                eyeM.SetFloat("_CausticStrength", 1.15f);
+                eyeM.SetFloat("_CorneaRoughness", 0.028f);
+                eyeM.SetFloat("_CorneaSpecIntensity", 1.48f);
+                eyeM.SetFloat("_LimbalDarkening", 0.36f);
                 EditorUtility.SetDirty(eyeM);
             }
             else
@@ -236,15 +237,15 @@ namespace CTCC.Editor
             var tongueM = Lit("LanTongue", 1f, 1f, 1f, smooth: 0.62f);
             if (art) { tongueM.SetTexture("_BaseMap", Tex("LanTongue_Color")); EditorUtility.SetDirty(tongueM); }
 
-            // Hair, Eyebrows & Eyelashes (Anisotropic Kajiya-Kay dual-pass — silky dark Vietnamese hair, zero chalky glare!)
-            MakeHairMat("LanHairCard", "LanHair_Color", "LanHair_Normal", "LanHair_Flow", cutoff: 0.48f, specInt: 0.15f);
-            MakeHairMat("AnHairCard", "AnHair_Color", "AnHair_Normal", "AnHair_Flow", cutoff: 0.44f, specInt: 0.14f);
-            MakeHairMat("GatekeeperHairCard", "GatekeeperHair_Color", "GatekeeperHair_Normal", "GatekeeperHair_Flow", cutoff: 0.44f, specInt: 0.10f);
-            MakeHairMat("LanEyebrow", "LanEyebrow_Color", null, null, cutoff: 0.34f, specInt: 0.06f);
-            MakeHairMat("LanEyelash", "LanEyelash_Color", null, null, cutoff: 0.34f, specInt: 0.05f);
+            // Hair, Eyebrows & Eyelashes (Anisotropic Kajiya-Kay dual-pass — silky dark Vietnamese hair, delicate feathered lashes!)
+            MakeHairMat("LanHairCard", "LanHair_Color", "LanHair_Normal", "LanHair_Flow", cutoff: 0.36f, specInt: 0.42f);
+            MakeHairMat("AnHairCard", "AnHair_Color", "AnHair_Normal", "AnHair_Flow", cutoff: 0.44f, specInt: 0.18f);
+            MakeHairMat("GatekeeperHairCard", "GatekeeperHair_Color", "GatekeeperHair_Normal", "GatekeeperHair_Flow", cutoff: 0.44f, specInt: 0.14f);
+            MakeHairMat("LanEyebrow", "LanEyebrow_Color", null, null, cutoff: 0.38f, specInt: 0.05f);
+            MakeHairMat("LanEyelash", "LanEyelash_Color", null, null, cutoff: 0.45f, specInt: 0.04f);
 
             // Cloth-Simulated Garments (Charlie microfiber sheen)
-            MakeFabricMat("NurseBlouse", "NurseBlouse", Color.white, sheen: 0.26f, bump: 0.78f, tile: 1.6f);
+            MakeFabricMat("NurseBlouse", "NurseBlouse", new Color(.94f, .94f, .92f), sheen: 0.16f, bump: 0.91f, tile: 1.6f);
             MakeFabricMat("NurseTrim", null, new Color(0.56f, 0.72f, 0.74f, 1f), sheen: 0.22f, bump: 0.40f, tile: 1.0f);
             MakeFabricMat("DarkTrouser", "DarkTrouser", Color.white, sheen: 0.22f, bump: 0.82f, tile: 1.5f);
             MakeFabricMat("CharredBlouse", "CharredBlouse", Color.white, sheen: 0.12f, bump: 1.05f, tile: 1.4f);
@@ -252,12 +253,12 @@ namespace CTCC.Editor
 
             // Clinical Footwear, ID Badge, Hair Clip & Watch Trim
             Lit("ClinicalShoe", 1f, 1f, 1f, maps: "ClinicalShoe", bump: 0.52f, ao: 0.78f);
-            var badgeM = Lit("LanBadge", 1f, 1f, 1f, smooth: 0.62f);
+            var badgeM = Lit("LanBadge", 1f, 1f, 1f, smooth: 0.39f);
             if (art) { badgeM.SetTexture("_BaseMap", Tex("LanBadge")); EditorUtility.SetDirty(badgeM); }
             materials["LanBadgeMat"] = badgeM;
             Lit("MetalTrim", 0.74f, 0.76f, 0.78f, metal: 0.86f, smooth: 0.68f);
-            Lit("EnamelBlue", 0.06f, 0.14f, 0.24f, smooth: 0.76f);
-            Lit("SlipperYellow", 0.86f, 0.70f, 0.22f, smooth: 0.32f);
+            // Keep line 61 Ceramic-textured EnamelBlue; calibrate matte worn Vietnamese honeycomb rubber ivory-ochre
+            Lit("SlipperYellow", 0.76f, 0.70f, 0.49f, smooth: 0.22f);
 
             // Legacy compatibility aliases (if old FBX slots still referenced before scaling An/Gatekeeper)
             Lit("LanLip", 0.60f, 0.34f, 0.31f, smooth: 0.42f);
@@ -429,18 +430,18 @@ namespace CTCC.Editor
                 var beamShader = Shader.Find("CTCC/Window Light");
                 if (beamShader == null) throw new InvalidOperationException("CTCC window beam shader missing");
                 var beam = MaterialAsset("Beam", beamShader);
-                beam.SetColor("_Tint", new Color(0.42f, 0.58f, 0.68f, 0.125f));
-                beam.SetFloat("_MoteStrength", 0.48f);
+                beam.SetColor("_Tint", new Color(0.46f, 0.64f, 0.76f, 0.095f));
+                beam.SetFloat("_MoteStrength", 0.45f);
                 EditorUtility.SetDirty(beam);
 
                 var beamFluorescent = MaterialAsset("BeamFluorescent", beamShader);
-                beamFluorescent.SetColor("_Tint", new Color(0.64f, 0.80f, 0.68f, 0.044f));
-                beamFluorescent.SetFloat("_MoteStrength", 0.32f);
+                beamFluorescent.SetColor("_Tint", new Color(0.72f, 0.84f, 0.74f, 0.030f));
+                beamFluorescent.SetFloat("_MoteStrength", 0.28f);
                 EditorUtility.SetDirty(beamFluorescent);
 
                 var beamWarm = MaterialAsset("BeamWarm", beamShader);
-                beamWarm.SetColor("_Tint", new Color(0.95f, 0.72f, 0.42f, 0.068f));
-                beamWarm.SetFloat("_MoteStrength", 0.38f);
+                beamWarm.SetColor("_Tint", new Color(0.95f, 0.74f, 0.44f, 0.052f));
+                beamWarm.SetFloat("_MoteStrength", 0.34f);
                 EditorUtility.SetDirty(beamWarm);
 
                 // Upgrade #6: Retain CTCC/InspectPaperRaking shader + reference material in standalone builds!
@@ -579,6 +580,11 @@ namespace CTCC.Editor
                 ("TerrazzoRainSeep", "TerrazzoRainSeep_Normal", 0.76f),
                 ("WheelMarks", null, 0f),
                 ("BedContact", null, 0f),
+                ("CH01_Capillary", null, 0f),
+                ("CH01_LimeRunoff", null, 0f),
+                ("CH01_EnamelChips", null, 0f),
+                ("CH01_WheelWear", null, 0f),
+                ("CH01_VarnishWear", null, 0f),
             })
             {
                 string path = Root + "/Generated/Materials/Decal_" + spec.key + ".mat";
@@ -666,7 +672,7 @@ namespace CTCC.Editor
             m.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
             m.SetFloat("_SrcBlendAlpha", (float)BlendMode.One);
             m.SetFloat("_DstBlendAlpha", (float)BlendMode.OneMinusSrcAlpha);
-            m.SetInteger("_ZWrite", 0);
+            m.SetFloat("_ZWrite", 0f);
             m.SetOverrideTag("RenderType", "Transparent");
             m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             m.SetShaderPassEnabled("ShadowCaster", false);
@@ -930,10 +936,11 @@ namespace CTCC.Editor
         {
             Material Generated(string key) => AssetDatabase.LoadAssetAtPath<Material>(Root + "/Generated/Materials/Reference_" + key + ".mat");
             var lanSkin = Generated("LanSkin");
-            lanSkin.SetFloat("_SSSStrength", 0.43f);
+            lanSkin.SetFloat("_SSSStrength", 0.42f);
             lanSkin.SetFloat("_BackScatter", 0.16f);
-            lanSkin.SetFloat("_SpecIntensity", 0.47f);
-            lanSkin.SetFloat("_DetailScale", 0.27f);
+            lanSkin.SetFloat("_SpecIntensity", 0.44f);
+            lanSkin.SetFloat("_DetailScale", 0.22f);
+            lanSkin.SetFloat("_BumpScale", 0.68f);
             EditorUtility.SetDirty(lanSkin);
             foreach (var mapping in new[] { ("AnTeeth_Apparition", "LanTeeth_Color", 0.05f), ("AnTongue_Apparition", "LanTongue_Color", 0.03f) })
             {
@@ -1046,7 +1053,8 @@ namespace CTCC.Editor
                 Decal("DeskContactAO", "BedContact", new Vector3(1.45f, 0.01f, -3.24f), Vector3.up, 1.85f, 4.35f, 0.25f, permanent, 0.80f);
 
                 Sign("Quầy", "Station", new Vector3(2.085f, 0.67f, -3.35f), Vector3.right, new Vector2(0.93f, 0.35f));
-                Sign("Foundation plaque", "Welcome", new Vector3(-0.985f, 2.1f, -3.1f), Vector3.right, new Vector2(1.34f, 0.52f));
+                // Mounted on solid north pier of west wall (z in [-2.65..0]) above FileRack — never floats over S1 stairwell!
+                Sign("Foundation plaque", "Welcome", new Vector3(-0.985f, 2.26f, -1.78f), Vector3.right, new Vector2(1.26f, 0.48f));
 
                 // Real 3D Blender Wall Clock with separate R (11:52) and B (03:17) hands!
                 var clock = PlaceBlenderModel("CTCC_PROP_WallClock", permanent, new Vector3(-0.99f, 2.74f, -3.26f), 90f, pairRB: true, castShadows: false);
@@ -1091,14 +1099,16 @@ namespace CTCC.Editor
                         PlaceBlenderModel("CTCC_PROP_BedsideCabinet", cabinetRoot, Vector3.zero, 0f, pairRB: true);
                         Decal("CabContact_" + bed.id, "BedContact", cabPos + new Vector3(0, 0.01f, 0), Vector3.up, 0.72f, 0.64f, 0.22f, permanent, 0.78f);
 
-                        // Iconic Vietnamese hospital ward storytelling props!
+                        // Iconic Vietnamese hospital ward storytelling props with authentic R (2012 abandoned) vs B (2005 operational) contrast!
                         if (bed.id == "1")
                         {
-                            // Rolling stainless IV stand beside Bed 1 + under-bed washbasin & rolled sedge mat (chiếu cói)
-                            var iv1 = PlaceBlenderModel("CTCC_PROP_IVStand", permanent, p + new Vector3(-0.68f, 0f, 0.35f), 25f, pairRB: true);
+                            // Active 2005 operational IV stand & fresh sterile care tray appear ONLY in Layer B (cleared in abandoned 2012 R!)
+                            var iv1 = PlaceBlenderModel("CTCC_PROP_IVStand", report, p + new Vector3(-0.68f, 0f, 0.35f), 25f, pairRB: false);
                             staticArchitecture.Add(iv1);
                             var mat1 = PlaceBlenderModel("CTCC_PROP_WashbasinAndMat", permanent, p + new Vector3(0.05f, 0f, -0.15f), 12f, pairRB: true, castShadows: false);
                             staticArchitecture.Add(mat1);
+                            PlaceBlenderModel("CTCC_PROP_CH01CareSupplies", ResolveParent(report, cabPos),
+                                cabPos + root.localRotation * new Vector3(.024f, .758f, -.014f), bed.yaw + 19f, pairRB: false, castShadows: false);
                         }
                         else if (bed.id == "2")
                         {
@@ -1194,8 +1204,30 @@ namespace CTCC.Editor
                 world.pendingBay = pendingObj;
                 world.refutedBay = refutedObj;
             }
-            Box("Denied bay front", new Vector3(12.14f, 1.8f, 4.32f), new Vector3(3.14f, 3.6f, 0.16f), Mat("Bay"), hidden, true, tile: 2.2f);
-            Box("Denied bay return", new Vector3(10.65f, 1.80f, 3.15f), new Vector3(0.16f, 3.6f, 2.28f), Mat("Bay"), hidden, true, tile: 2.2f);
+            // Keep exact collider names ("Denied bay front", "Denied bay return") queried by HospitalScene.CanSeeWardChange & InputQA!
+            var deniedFrontCol = Box("Denied bay front", new Vector3(12.14f, 1.8f, 4.32f), new Vector3(3.14f, 3.6f, 0.16f), Mat("Bay"), hidden, true, tile: 2.2f);
+            var deniedReturnCol = Box("Denied bay return", new Vector3(10.65f, 1.80f, 3.15f), new Vector3(0.16f, 3.6f, 2.28f), Mat("Bay"), hidden, true, tile: 2.2f);
+            if (art)
+            {
+                // Seamless institutional split hospital partition (terrazzo cove skirting + DadoB + dado stripe + PlasterB + corner molding)
+                deniedFrontCol.GetComponent<Renderer>().enabled = false;
+                deniedReturnCol.GetComponent<Renderer>().enabled = false;
+                Box("Denied front wainscot", new Vector3(12.14f, 0.575f, 4.32f), new Vector3(3.14f, 1.15f, 0.16f), Mat("DadoB"), hidden, false, tile: 2.4f);
+                Box("Denied front plaster", new Vector3(12.14f, 2.375f, 4.32f), new Vector3(3.14f, 2.45f, 0.16f), Mat("PlasterB"), hidden, false, tile: 2.4f);
+                Box("Denied front skirting", new Vector3(12.14f, 0.048f, 4.32f), new Vector3(3.18f, 0.096f, 0.19f), Mat("BaseTrim"), hidden, false, tile: 0.8f);
+                Box("Denied front dado stripe", new Vector3(12.14f, 1.152f, 4.32f), new Vector3(3.16f, 0.024f, 0.176f), Mat("Frame"), hidden, false);
+
+                Box("Denied return wainscot", new Vector3(10.65f, 0.575f, 3.15f), new Vector3(0.16f, 1.15f, 2.28f), Mat("DadoB"), hidden, false, tile: 2.4f);
+                Box("Denied return plaster", new Vector3(10.65f, 2.375f, 3.15f), new Vector3(0.16f, 2.45f, 2.28f), Mat("PlasterB"), hidden, false, tile: 2.4f);
+                Box("Denied return skirting", new Vector3(10.65f, 0.048f, 3.15f), new Vector3(0.19f, 0.096f, 2.32f), Mat("BaseTrim"), hidden, false, tile: 0.8f);
+                Box("Denied return dado stripe", new Vector3(10.65f, 1.152f, 3.15f), new Vector3(0.176f, 0.024f, 2.30f), Mat("Frame"), hidden, false);
+
+                Box("Denied corner guard", new Vector3(10.575f, 1.80f, 4.395f), new Vector3(0.055f, 3.60f, 0.055f), Mat("Frame"), hidden, false);
+                Box("Denied ceiling cornice F", new Vector3(12.14f, 3.55f, 4.32f), new Vector3(3.18f, 0.10f, 0.21f), Mat("PlasterB"), hidden, false, tile: 2.0f);
+                Box("Denied ceiling cornice R", new Vector3(10.65f, 3.55f, 3.15f), new Vector3(0.21f, 0.10f, 2.32f), Mat("PlasterB"), hidden, false, tile: 2.0f);
+                Decal("DeniedFrontAO", "BedContact", new Vector3(12.14f, 0.012f, 4.44f), Vector3.up, 3.16f, 0.28f, 0.20f, hidden, 0.72f);
+                Decal("DeniedReturnAO", "BedContact", new Vector3(10.53f, 0.012f, 3.15f), Vector3.up, 0.28f, 2.30f, 0.20f, hidden, 0.72f);
+            }
 
             if (art)
             {
@@ -1204,12 +1236,14 @@ namespace CTCC.Editor
                 RegisterCurtainMotion(bCurtain, wireInteractive: true);
                 CapsuleTarget("CURTAIN-101", "Rèm che giường 4", new Vector3(12.25f, 1.50f, 4.27f), new Vector3(0.95f, 1.50f, 0.22f), pendingObj.transform);
 
-                // Refuted (C) Layer B consequence: parted curtain + revealed damp wall patch + sharpened drag marks + non-exportable CH01-PR01 crayon corner!
-                var cCurtain = PlaceBlenderModel("CTCC_ENV_CurtainAssembly", refutedObj.transform, new Vector3(10.68f, 2.74f, 4.27f), 0f, pairRB: false, scale: new Vector3(0.30f, 1f, 1.24f));
+                // Refuted (C) Layer B consequence: wide-parted curtain + spreading damp wall + peeling plaster + crisp drag tracks + CH01-PR01 crayon corner!
+                var cCurtain = PlaceBlenderModel("CTCC_ENV_CurtainAssembly", refutedObj.transform, new Vector3(10.48f, 2.74f, 4.27f), 0f, pairRB: false, scale: new Vector3(0.18f, 1f, 1.22f));
                 RegisterCurtainMotion(cCurtain, wireInteractive: false);
-                Decal("RefutedBed4DampWall", "WaterRun", new Vector3(12.15f, 1.15f, 2.02f), Vector3.forward, 1.75f, 1.45f, 0.25f, refutedObj.transform, 0.88f);
-                Decal("RefutedBed4SharpWheels", "WheelMarks", new Vector3(11.40f, 0.014f, 3.35f), Vector3.up, 1.24f, 2.15f, 0.25f, refutedObj.transform, 0.94f);
-                Flat("CH01_PR01_CornerTrace", "CH01_PR01_Corner", new Vector3(12.82f, 0.015f, 3.18f), Vector3.up, new Vector2(0.24f, 0.24f), refutedObj.transform);
+                Decal("RefutedBed4DampWall", "WaterRun", new Vector3(12.15f, 1.18f, 2.02f), Vector3.forward, 2.05f, 1.68f, 0.25f, refutedObj.transform, 0.92f);
+                Decal("RefutedBed4PeelWall", "PaintLoss", new Vector3(11.95f, 1.52f, 2.02f), Vector3.forward, 1.48f, 1.05f, 0.25f, refutedObj.transform, 0.85f);
+                Decal("RefutedBed4SharpWheels", "WheelMarks", new Vector3(11.40f, 0.014f, 3.35f), Vector3.up, 1.32f, 2.25f, 0.25f, refutedObj.transform, 0.98f);
+                Flat("CH01_PR01_CornerTrace", "CH01_PR01_Corner", new Vector3(12.62f, 0.015f, 3.18f), Vector3.up, new Vector2(0.30f, 0.30f), refutedObj.transform);
+                Lamp("Refuted alcove cold highlight", LightType.Point, new Vector3(11.65f, 1.45f, 3.35f), 0.72f, 3.9f, new Color(0.60f, 0.80f, 0.88f), refutedObj.transform);
 
                 // Permanent curtain between Bed 1 & entrance sightline (width 1.25 m)
                 var midCurtain = PlaceBlenderModel("CTCC_ENV_CurtainAssembly", permanent, new Vector3(6.58f, 2.75f, 5.32f), 0f, pairRB: true, scale: new Vector3(0.54f, 1f, 1f));
@@ -1290,10 +1324,17 @@ namespace CTCC.Editor
             Surface("North ring beam", new Vector3(9.75f, 3.46f, 7.98f), new Vector3(8.0f, 0.28f, 0.24f), "PlasterR", "PlasterB", tile: 2.2f, isStatic: true);
             Surface("South ring beam", new Vector3(9.75f, 3.46f, 2.02f), new Vector3(8.0f, 0.28f, 0.24f), "PlasterR", "PlasterB", tile: 2.2f, isStatic: true);
 
-            // Courtyard Entry Canopy, Columns, Walkway & North Courtyard Ground
-            Box("Courtyard entry canopy", new Vector3(4, 2.85f, -9.45f), new Vector3(4.55f, 0.22f, 3.13f), Mat("Exterior"), tile: 2f, isStatic: true);
-            Box("Canopy column L", new Vector3(1.88f, 1.39f, -10.5f), new Vector3(0.29f, 2.78f, 0.29f), Mat("PlasterR"), solid: true, tile: 2f, isStatic: true);
-            Box("Canopy column R", new Vector3(6.12f, 1.39f, -10.5f), new Vector3(0.29f, 2.78f, 0.29f), Mat("PlasterR"), solid: true, tile: 2f, isStatic: true);
+            // Courtyard Entry Canopy (stepped 1987 concrete portico slab seated flush on exterior wall z=-8.10 + green fascia + brick column plinths & concrete capitals)
+            Box("Courtyard entry canopy", new Vector3(4, 2.85f, -9.56f), new Vector3(4.55f, 0.22f, 2.92f), Mat("BaseTrim"), tile: 2f, isStatic: true);
+            Surface("Canopy fascia band", new Vector3(4, 2.94f, -11.02f), new Vector3(4.66f, 0.30f, 0.08f), "DadoR", "DadoB", tile: 2.0f, isStatic: true);
+            Box("Canopy drip lip", new Vector3(4, 3.10f, -11.03f), new Vector3(4.74f, 0.055f, 0.14f), Mat("BaseTrim"), tile: 1.5f, isStatic: true);
+            Box("Canopy column L", new Vector3(1.88f, 1.39f, -10.5f), new Vector3(0.29f, 2.78f, 0.29f), Mat("ExteriorFacade"), solid: true, tile: 2f, isStatic: true);
+            Box("Canopy column R", new Vector3(6.12f, 1.39f, -10.5f), new Vector3(0.29f, 2.78f, 0.29f), Mat("ExteriorFacade"), solid: true, tile: 2f, isStatic: true);
+            foreach (float cx in new[] { 1.88f, 6.12f })
+            {
+                Box($"Canopy col plinth {cx:0.0}", new Vector3(cx, 0.34f, -10.5f), new Vector3(0.36f, 0.68f, 0.36f), Mat("WeatheredBrick"), tile: 1.2f, isStatic: true);
+                Box($"Canopy col cap {cx:0.0}", new Vector3(cx, 2.69f, -10.5f), new Vector3(0.37f, 0.12f, 0.37f), Mat("BaseTrim"), isStatic: true);
+            }
             PlaceBlenderModel("CTCC_PROP_BulkheadLamp", permanent, new Vector3(4.0f, 2.66f, -8.12f), 0f, pairRB: false, castShadows: false);
             Box("Path edge", new Vector3(8.40f, 0.08f, -15.02f), new Vector3(4.5f, 0.17f, 3.89f), Mat("Exterior"), solid: true, isStatic: true);
             Box("Garden soil", new Vector3(8.40f, 0.182f, -15.02f), new Vector3(4.30f, 0.043f, 3.69f), Mat("Bark"), isStatic: true);
@@ -1316,10 +1357,11 @@ namespace CTCC.Editor
                 staticArchitecture.Add(tree);
             }
 
-            // Enameled Beveled Institutional Signage (Room 101 sign sits crisply above overhead transom!)
+            // Enameled Beveled Institutional Signage (Room 101 sign sits crisply above overhead transom;
+            // Emergency entrance uses the single 3D illuminated CTCC_PROP_EmergencyLightBox in DressLoc04Emergency — no duplicate flat sign!)
             Sign("Room 101 enamel", "Room101", new Vector3(5.485f, 3.08f, 4.75f), Vector3.left, new Vector2(0.68f, 0.255f));
             Sign("Phòng 101 inside", "Room101", new Vector3(5.715f, 3.06f, 4.74f), Vector3.right, new Vector2(0.54f, 0.205f));
-            Sign("Main emergency sign", "Emergency", new Vector3(4, 2.60f, 15.885f), Vector3.back, new Vector2(1.16f, 0.435f));
+            if (!art) Sign("Main emergency sign", "Emergency", new Vector3(4, 2.60f, 15.885f), Vector3.back, new Vector2(1.16f, 0.435f));
             Sign("Staff sign", "Staff", new Vector3(0, 2.67f, 0.29f), Vector3.back, new Vector2(0.97f, 0.365f));
             Sign("Canopy letterboard", "Welcome", new Vector3(4, 3.44f, -11.04f), Vector3.back, new Vector2(2.62f, 0.88f));
             Sign("Demolition board", "Demolition", new Vector3(6.76f, 1.20f, -20.115f), Vector3.back, new Vector2(1.48f, 0.557f), real);
@@ -1349,10 +1391,9 @@ namespace CTCC.Editor
 
         private void PlaceStorytellingDecals()
         {
-            // 1. Gravity rainwater & tropical algae streaks directly beneath ALL 3 Room 101 north window sills (R 2012)
-            Decal("WindowWaterRun_1", "WaterRun", new Vector3(7.35f, 0.62f, 8.00f), Vector3.back, 2.15f, 1.08f, 0.25f, real, 0.92f);
-            Decal("WindowWaterRun_2", "WaterRun", new Vector3(10.28f, 0.60f, 8.00f), Vector3.back, 2.10f, 1.12f, 0.25f, real, 0.96f);
-            Decal("WindowWaterRun_3", "WaterRun", new Vector3(12.39f, 0.65f, 8.00f), Vector3.back, 1.32f, 1.04f, 0.25f, real, 0.88f);
+            // Moisture follows the failed flashing at one jamb. The other sills drain more cleanly.
+            Decal("WindowWaterRun_1", "WaterRun", new Vector3(7.61f, .69f, 8f), Vector3.back, 1.81f, 1.15f, .22f, real, .78f, -4f);
+            Decal("WindowWaterRun_2", "CH01_LimeRunoff", new Vector3(10.68f, .65f, 8f), Vector3.back, .90f, .99f, .18f, real, .49f, 4f);
             // Rain leak running down corridor pilaster conduit
             Decal("CorridorPipeWater", "WaterRun", new Vector3(2.50f, 1.48f, 4.39f), Vector3.right, 1.65f, 2.45f, 0.25f, real, 0.86f);
 
@@ -1478,7 +1519,7 @@ namespace CTCC.Editor
             CapsuleTarget("OBS101A", "Dấu sử dụng tại vị trí giường 4", new Vector3(11.05f, 0.28f, 3.35f), new Vector3(0.86f, 0.44f, 0.90f), report);
             CapsuleTarget("OBS101B", "Thẻ bàn giao giường 4 (AS-05B)", new Vector3(11.35f, 1.34f, 4.48f), new Vector3(0.42f, 0.48f, 0.22f), report);
             CapsuleTarget("OBS101C", "Phiếu chuyển giường 02 (Đã hoàn tất)", new Vector3(10.25f, 0.94f, 5.88f), new Vector3(0.42f, 0.46f, 0.28f), report);
-            CapsuleTarget("LAN_TALK", "Trò chuyện với Lan", new Vector3(2.55f, 1.48f, -3.68f), new Vector3(0.42f, 0.80f, 0.42f), report);
+            CapsuleTarget("LAN_TALK", "Trò chuyện với Lan", new Vector3(2.17f, 1.57f, -3.24f), new Vector3(0.32f, 0.58f, 0.60f), report);
             CapsuleTarget("OBS_CLOCK_0317", "Đồng hồ treo tường (Dừng ở 03:17)", new Vector3(-0.92f, 2.42f, -3.26f), new Vector3(0.46f, 0.80f, 0.56f), permanent);
             CapsuleTarget("LIST", "Bản kê ba giường", new Vector3(6.65f, 1.34f, 2.127f), new Vector3(0.54f, 0.58f, 0.13f), real);
             CapsuleTarget("SOCKETS", "Bốn vị trí ổ cắm", new Vector3(11.54f, 1.31f, 2.115f), new Vector3(0.53f, 0.37f, 0.18f), real);
@@ -1551,6 +1592,11 @@ namespace CTCC.Editor
             var notice = new Vector3(5.492f, 1.92f, 5.96f);
             Sign("Form A", "FileA", notice, Vector3.left, new Vector2(0.91f, 0.34f), statusAObj.transform);
             Sign("Form B", "FileB", notice, Vector3.left, new Vector2(0.91f, 0.34f), statusBObj.transform);
+            // Subtle neutral ward-side indicator for Unverified (B): clipped provisional review slip hanging off Bed 4 chart frame
+            var unvTag = Box("Unverified bed4 review tag", new Vector3(11.18f, 1.38f, 4.54f), new Vector3(0.105f, 0.135f, 0.008f), Mat("Paper"), statusBObj.transform);
+            unvTag.transform.localRotation = Quaternion.Euler(0f, 145f, -4f);
+            var unvClip = Box("Unverified bed4 tag clip", new Vector3(11.18f, 1.448f, 4.54f), new Vector3(0.032f, 0.018f, 0.016f), Mat("Brass"), statusBObj.transform);
+            unvClip.transform.localRotation = Quaternion.Euler(0f, 145f, -4f);
             Sign("Form C", "FileC", notice, Vector3.left, new Vector2(0.91f, 0.34f), statusCObj.transform);
 
             // Readable world-space document sheets atop physical props (F101 wall sheet dynamically swaps on A/B/C!)
@@ -1620,6 +1666,9 @@ namespace CTCC.Editor
             var nursingDesk = PlaceBlenderModel("CTCC_PROP_NursingFilingDesk", staffPermRoot, new Vector3(0.92f, 0f, 3.65f), 90f, pairRB: true);
             Box("Nursing desk col", new Vector3(0.92f, 0.46f, 3.65f), new Vector3(0.36f, 0.92f, 1.18f), Mat("CabinetPaint"), staffPermRoot, solid: true).GetComponent<Renderer>().enabled = false;
             staticArchitecture.Add(nursingDesk);
+            Decal("StaffDeskAO", "BedContact", new Vector3(0.84f, 0.01f, 3.52f), Vector3.up, 0.85f, 1.65f, 0.22f, staffPermRoot, 0.78f);
+            // Wall light switch beside STAFF cross-door frame
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_WallOutlet", staffPermRoot, new Vector3(1.10f, 1.24f, 6.66f), -90f, pairRB: true, castShadows: false));
             Sign("Nursing alcove plaque", "Sign_NursingAlcove", new Vector3(1.09f, 2.50f, 3.65f), Vector3.left, new Vector2(0.84f, 0.28f), staffPermRoot, metalBacking: true);
             CapsuleTarget("OBS_CORRIDOR_NOTICE", "Thông báo kê giường tạm phòng 101", new Vector3(0.92f, 1.88f, 3.65f), new Vector3(0.32f, 0.62f, 0.64f), staffRepRoot);
 
@@ -1652,10 +1701,9 @@ namespace CTCC.Editor
             // Real 3D Curled Blender Wristband C01 on dry shelf in Store!
             PlaceBlenderModel("CTCC_PROP_WristbandC01", store, new Vector3(15.71f, 0.865f, 2.76f), 32f, pairRB: false);
 
-            // Brass threshold anchor strip (vạch đồng AP04) embedded into Room 101 floor!
-            Box("Pad · brass threshold marker", new Vector3(6.52f, 0.008f, 4.95f), new Vector3(0.96f, 0.014f, 0.092f), Mat("Brass"), isStatic: true);
-            // Brass reception anchor strip (vạch đồng AP02) in front of reception counter!
-            Box("Pad · brass reception marker", new Vector3(3.78f, 0.008f, -3.28f), new Vector3(0.092f, 0.014f, 1.15f), Mat("Brass"), isStatic: true);
+            // Flush inlaid tarnished brass threshold anchor strips (vạch đồng AP04 & AP02) embedded cleanly into floor tile!
+            Box("Pad · brass threshold marker", new Vector3(6.52f, 0.002f, 4.95f), new Vector3(0.94f, 0.004f, 0.064f), Mat("Brass"), isStatic: true);
+            Box("Pad · brass reception marker", new Vector3(3.78f, 0.002f, -3.28f), new Vector3(0.064f, 0.004f, 1.12f), Mat("Brass"), isStatic: true);
             Box("ER ledger side counter", new Vector3(2.15f, 0.91f, 21.02f), new Vector3(1.17f, 0.10f, 0.72f), Mat("Ceramic"), solid: true, isStatic: true);
             Box("Ledger", new Vector3(2.15f, 0.973f, 20.85f), new Vector3(0.41f, 0.03f, 0.27f), Mat("Paper"), isStatic: true);
         }

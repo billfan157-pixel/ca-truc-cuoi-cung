@@ -6,7 +6,7 @@
 **Quyết định tích hợp 25/11/2026:** Chủ dự án cho phép đưa M3.2 lên `main` trong cùng đợt với Core dự thảo NPR-01 khi các review người thật còn chờ. Phạm vi quyết định là tích hợp mã và tài liệu. M2, art lock và M3 Alpha vẫn mở. CH05–CH08 tiếp tục ngoài phạm vi triển khai M3.2.
 
 **Ứng viên kỹ thuật M3.2:** `c90a2eb5fe62521839c3be84a0e59e2e56b41410` (`prototype_diff=` rỗng, `development=False`, Unity `6000.3.28f1`, URP `17.3.0` Forward+, D3D12, Windows x64, Save Schema v7)  
-**Tài liệu kiểm toán Phase A:** [m32-phase-a-audit-and-test-plan.md](m32-phase-a-audit-and-test-plan.md)
+**Tài liệu kiểm toán Phase A:** [m32-phase-a-audit-and-test-plan.md](../archive/m3-history/m32/m32-phase-a-audit-and-test-plan.md)
 
 ---
 

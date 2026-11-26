@@ -254,7 +254,7 @@ namespace CTCC
                 penWriteGain = Mathf.MoveTowards(penWriteGain, targetPen, dt * (targetPen < penWriteGain ? 5.5f : 1.8f));
                 penWriteLoop.spatialBlend = mono ? 0f : 1f;
                 float penDist = mono ? DistanceGain(penWriteLoop, listener) : 1f;
-                penWriteLoop.volume = 0.42f * penWriteGain * sfxScale * duckGain * penDist;
+                penWriteLoop.volume = 0.42f * penWriteGain * sfxScale * duckGain * signatureGain * tensionGain * penDist;
                 if (penWriteGain <= 0.001f && penWriteLoop.isPlaying) penWriteLoop.Stop();
             }
 
@@ -312,6 +312,8 @@ namespace CTCC
             foreach (var cue in cueVoices)
                 if (cue.endsAt > AudioSettings.dspTime)
                     UpdateCueMix(cue);
+            if (handset != null)
+                handset.volume = .62f * sfxScale;
         }
 
         private void UpdateCueMix(CueVoice cue)
@@ -451,7 +453,9 @@ namespace CTCC
                 handset = gameObject.AddComponent<AudioSource>();
                 handset.playOnAwake = false;
                 handset.spatialBlend = 0;
+                handset.reverbZoneMix = 0f;
                 handset.priority = 98;
+                if (propCue != null) handset.outputAudioMixerGroup = propCue.outputAudioMixerGroup;
                 handset.clip = Resources.Load<AudioClip>("CTCC/CH01_Handset_Line");
             }
             handset.volume = .62f * sfxScale;

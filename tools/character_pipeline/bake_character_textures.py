@@ -118,9 +118,9 @@ def build_skin_set(prefix: str, src_diffuse: Path, tone_mul, tone_bias, lip_tint
     pores = BS.center(BS.fbm(sz // 2, [64, 128, 256], seed=seed + 2))
     pores = np.asarray(Image.fromarray(((pores + 0.5) * 255).clip(0, 255).astype(np.uint8)).resize((sz, sz), Image.Resampling.BILINEAR), dtype=np.float32) / 255.0 - 0.5
 
-    col[..., 0] += var_macro * 0.018 + pores * 0.011
-    col[..., 1] += var_macro * 0.014 + pores * 0.009
-    col[..., 2] += var_macro * 0.013 + pores * 0.009
+    col[..., 0] += var_macro * 0.014 + pores * 0.006
+    col[..., 1] += var_macro * 0.011 + pores * 0.005
+    col[..., 2] += var_macro * 0.010 + pores * 0.005
 
     # Subtle facial vascular zones on face island (warm malar cheek flush, soft lower-lid fatigue, cooler jaw/chin)
     if soot_veil <= 0.0 and m_face.max() > 0.1:
@@ -216,14 +216,14 @@ def build_eye_and_mouth_textures():
     # Detect iris pixels (darker & warmer-red than gray/white sclera)
     lum = rgb[..., 0] * 0.299 + rgb[..., 1] * 0.587 + rgb[..., 2] * 0.114
     iris_mask = np.clip((0.46 - lum) * 3.2, 0.0, 1.0)
-    # Deepen iris to authentic dark Vietnamese espresso-black-brown (minimal red haze, rich warm pupil depth!)
+    # Deepen iris to authentic dark Vietnamese espresso-brown with readable radial stroma depth
     dark_iris = np.stack([
-        np.power(np.clip(rgb[..., 0], 0.0, 1.0), 1.62) * 0.44,
-        np.power(np.clip(rgb[..., 1], 0.0, 1.0), 1.72) * 0.34,
-        np.power(np.clip(rgb[..., 2], 0.0, 1.0), 1.82) * 0.28,
+        np.power(np.clip(rgb[..., 0], 0.0, 1.0), 1.48) * 0.54,
+        np.power(np.clip(rgb[..., 1], 0.0, 1.0), 1.58) * 0.40,
+        np.power(np.clip(rgb[..., 2], 0.0, 1.0), 1.68) * 0.31,
     ], axis=-1)
     # Keep sclera slightly warmer & brighter natural off-white (preserving the subtle red capillary veins!)
-    warm_sclera = np.clip(rgb * np.array([1.14, 1.11, 1.06], dtype=np.float32), 0.0, 0.94)
+    warm_sclera = np.clip(rgb * np.array([1.12, 1.09, 1.04], dtype=np.float32), 0.0, 0.92)
     out_eye = warm_sclera * (1.0 - iris_mask[..., None]) + dark_iris * iris_mask[..., None]
     save_rgb("LanEye_Color", out_eye)
 
@@ -240,17 +240,17 @@ def build_eye_and_mouth_textures():
     tongue = np.clip(tongue * np.array([0.88, 0.76, 0.76], dtype=np.float32), 0.0, 0.92)
     save_rgb("LanTongue_Color", tongue)
 
-    # 3. Eyebrows & Eyelashes (direct CC0 MakeHuman eyebrow001 soft natural arc & eyelashes02)
+    # 3. Eyebrows & Eyelashes (direct CC0 MakeHuman eyebrow001 soft natural arc & delicate feathered eyelashes02)
     brow = load_rgba(MPFB_USER / "eyebrows/eyebrow001/eyebrow001.png", 1024)
-    brow[..., 0] = brow[..., 0] * 0.24 + 0.020
-    brow[..., 1] = brow[..., 1] * 0.20 + 0.016
-    brow[..., 2] = brow[..., 2] * 0.18 + 0.014
-    brow[..., 3] = np.clip(brow[..., 3] * 1.12, 0.0, 1.0)
+    brow[..., 0] = brow[..., 0] * 0.28 + 0.032
+    brow[..., 1] = brow[..., 1] * 0.23 + 0.025
+    brow[..., 2] = brow[..., 2] * 0.20 + 0.021
+    brow[..., 3] = np.clip(np.power(brow[..., 3], 1.12) * 0.96, 0.0, 1.0)
     save_rgba("LanEyebrow_Color", brow)
 
     lash = load_rgba(MPFB_USER / "eyelashes/eyelashes02/eyelashes02.png", 1024)
-    lash[..., :3] = np.array([0.045, 0.036, 0.032], dtype=np.float32)
-    lash[..., 3] = np.clip(lash[..., 3] * 1.10, 0.0, 1.0)
+    lash[..., :3] = np.array([0.068, 0.050, 0.042], dtype=np.float32)
+    lash[..., 3] = np.clip(np.power(lash[..., 3], 1.38) * 0.84, 0.0, 1.0)
     save_rgba("LanEyelash_Color", lash)
     print("[TEXTURE] LanEye, LanTeeth, LanTongue, LanEyebrow, LanEyelash built from CC0 MakeHuman assets")
 
@@ -381,7 +381,7 @@ def build_cc0_hair_textures():
     """Convert verified CC0 MakeHuman hair atlases (ponytail01, short01, short04) to realistic Vietnamese hair PBR maps."""
     specs = [
         # (prefix, src_rel, melanin_mul, power, gray_streak)
-        ("LanHair", "hair/ponytail01/ponytail01_diffuse.png", (0.28, 0.22, 0.18), 1.48, 0.0),
+        ("LanHair", "hair/ponytail01/ponytail01_diffuse.png", (0.38, 0.29, 0.23), 1.32, 0.0),
         ("AnHair", "hair/short01/short01_diffuse.png", (0.42, 0.36, 0.32), 1.20, 0.0),
         ("GatekeeperHair", "hair/short04/short04_diffuse.png", (0.34, 0.33, 0.32), 1.25, 0.22),
     ]

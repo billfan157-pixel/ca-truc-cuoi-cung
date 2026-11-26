@@ -2236,6 +2236,17 @@ namespace CTCC
             Require(State.layer == Reality.B && State.Happened("CH01-T03") && !State.Happened("CH01-T04") &&
                     !State.Happened("CH01-T05") && !State.Observed(ObservationRegistry.StoppedClock0317),
                 "WT Pha 1 R->B does NOT auto-commit CH01-T04, BOARD, or OBS_CLOCK_0317");
+            for (int frame = 0; frame < 20; frame++) yield return null;
+            var lan = scene.LanActor;
+            var lanHead = Array.Find(lan.GetComponentsInChildren<Transform>(true), t => t.name == "mixamorig:Head");
+            Require(Vector3.Distance(lan.transform.position, scene.LanDeskPoint.position) < .05f &&
+                    lan.ActiveActionName == "Lan_ReceptionWrite" && lanHead != null && lanHead.position.y >= 1.26f && lanHead.position.y <= 1.49f,
+                $"WT B03 Lan writes from her seat behind the counter (x={lan.transform.position.x:F2}, head_y={lanHead?.position.y ?? -1f:F2})");
+            var deskCamera = player.Eye.transform;
+            Quaternion beforeDeskShot = deskCamera.rotation;
+            deskCamera.LookAt(lanHead.position + Vector3.up * .14f);
+            yield return SaveCh01DeskShot("ch01-b03-seated-writing-B");
+            deskCamera.rotation = beforeDeskShot;
             yield return WaitForApplied(casework.RecordLanNoticedAsync(), "WT Pha 2 Lan noticed");
             Require(State.Happened("CH01-LAN-NOTICED") && !State.Happened("CH01-T04"), "WT Pha 2 keeps CH01-T04 player-initiated");
 
@@ -2243,7 +2254,10 @@ namespace CTCC
             Require(lanDirector.StartCinematicEncounter(LanEncounterLine, skipOpeningGreeting: true, reducedMotion: true,
                 onComplete: () => cineDone = true), "WT Pha 3 Lan cinematic starts cleanly");
             Require(lanDirector.IsCinematicActive && player.ExternalCameraControl, "WT cinematic owns camera safely");
-            yield return null;
+            for (int frame = 0; frame < 18; frame++) yield return null;
+            Require(lan.ActiveActionName == "Lan_ReceptionListen" && player.Eye.transform.position.x > 2.2f &&
+                    lan.transform.position.x < 1f, "WT B03 shot and listening pose preserve opposite sides of the counter");
+            yield return SaveCh01DeskShot("ch01-b03-cinematic-B");
             lanDirector.RequestSkipCinematic();
             yield return Until(() => cineDone && !lanDirector.IsCinematicActive && !player.ExternalCameraControl,
                 "WT cinematic skip restores camera cleanly");
@@ -3139,6 +3153,23 @@ namespace CTCC
             Apply(transaction.Commit(savedBefore, savedPos, warp: false, geometryChanges: true), "M2F restore state");
             player.Teleport(savedPos, Quaternion.identity);
             player.RestoreBattery(savedBefore.torchSeconds);
+        }
+
+        private IEnumerator SaveCh01DeskShot(string name)
+        {
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) yield break;
+            var frame = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            frame.Create();
+            try
+            {
+                yield return null;
+                SaveFrame(player.Eye, frame, name);
+            }
+            finally
+            {
+                frame.Release();
+                Destroy(frame);
+            }
         }
 
         private IEnumerator CaptureHospitalFrame(string name, Transform pose, float yaw)

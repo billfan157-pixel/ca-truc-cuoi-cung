@@ -1,4 +1,0 @@
-TASK03 INPUT PASS: unchanged F101 submission through the keyboard UI is silent and preserves the revision.
-WARD AFTERMATH PASS Unverified: looking away defers the observation, returning to the ward records it durably.
-V33-Q05 INPUT S1 PASS: walked LOC02–LOC05–LOC07 and back in R before G02.
-RESULT=PASS

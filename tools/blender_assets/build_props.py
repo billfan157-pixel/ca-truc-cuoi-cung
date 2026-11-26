@@ -79,28 +79,11 @@ def build_washbasin_and_mat():
 
 def build_honeycomb_slippers():
     """Pair of iconic Vietnamese ivory-yellow honeycomb rubber slippers (dép tổ ong), placed slightly askew.
-    Direct visual anchor for patient humanity & SFX-AN slipper cues!"""
+    Direct visual anchor for patient humanity & SFX-AN slipper cues! Uses contoured anatomical sole & hollow arched strap."""
+    from build_ch01r_props import _make_contoured_slipper
     objs = []
-    for side, pos, yaw in (("L", (-0.075, -0.02, 0), 0.16), ("R", (0.085, 0.04, 0), -0.24)):
-        ca, sa = math.cos(yaw), math.sin(yaw)
-
-        def pt(lx, ly, lz):
-            return (pos[0] + lx * ca - ly * sa, pos[1] + lx * sa + ly * ca, pos[2] + lz)
-
-        # Contoured rubber sole + continuous arched molded vamp strap with classic honeycomb holes!
-        sole = C.make_box(f"Sole_{side}", pt(0, 0, 0.011), (0.090, 0.228, 0.020), "SlipperYellow", bevel=0.008, segments=3, rot=(0, 0, yaw))
-        objs.append(sole)
-        # Sleek continuous molded arch vamp
-        vamp = C.make_box(f"VampArch_{side}", pt(0, 0.024, 0.035), (0.088, 0.088, 0.042), "SlipperYellow", bevel=0.016, segments=4, rot=(0, 0, yaw))
-        objs.append(vamp)
-        # Foot opening tunnel dark shadow inside vamp
-        objs.append(C.make_box(f"VampCavity_{side}", pt(0, 0.024, 0.027), (0.064, 0.092, 0.024), "Black", bevel=0.006, rot=(0, 0, yaw)))
-        # Crisp honeycomb recessed ventilation holes on top of vamp
-        for hx in (-0.022, 0.0, 0.022):
-            for hy in (0.002, 0.024, 0.046):
-                p0 = pt(hx, hy, 0.046)
-                p1 = pt(hx, hy, 0.058)
-                objs.append(C.make_cylinder(f"Hole_{side}_{hx:.3f}_{hy:.3f}", p0, p1, 0.0052, "Black", segments=10))
+    objs.extend(_make_contoured_slipper("AdultL_", (-0.075, -0.02, 0.0), yaw=0.16, scale=1.0, mirror=1.0))
+    objs.extend(_make_contoured_slipper("AdultR_", (0.085, 0.04, 0.0), yaw=-0.24, scale=1.0, mirror=-1.0))
     return objs
 
 

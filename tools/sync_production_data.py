@@ -12,7 +12,7 @@ from project_docs import DESIGN_LOCK_REV, SOURCES, read_workbook, workbook_prove
 EXPORTED_CHAPTERS = ("CH01", "CH02", "CH03", "CH04", "CH05")
 
 
-def run(rev: str | None = DESIGN_LOCK_REV) -> None:
+def run(rev: str | None = None) -> None:
     source_rev, source_sha256 = workbook_provenance(rev)
     sheet = read_workbook(rev=rev)["Dialogue"]
     entries = []
@@ -93,13 +93,13 @@ def main() -> None:
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "--rev",
-        default=DESIGN_LOCK_REV,
-        help=f"Git revision của Core 07 để xuất thoại (mặc định: Design Lock {DESIGN_LOCK_REV[:7]}).",
+        default=None,
+        help="Git revision lịch sử của Core 07 để xuất thoại (mặc định: đọc Core v3.3.2 trên working tree).",
     )
     group.add_argument(
         "--working-tree",
         action="store_true",
-        help="Chỉ dùng khi kiểm thử thủ công file docs/07 trên working tree.",
+        help="Đọc trực tiếp docs/07_Production_Database.xlsx trên working tree (hành vi mặc định).",
     )
     args = parser.parse_args()
     run(None if args.working_tree else args.rev)

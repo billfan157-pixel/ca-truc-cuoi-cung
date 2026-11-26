@@ -117,13 +117,13 @@ namespace CTCC
                     int index = i;
                     float x = .021f + i * .155f;
                     var tab = NotebookButton(notebookRoot, x, 1, x + .148f, 1.063f,
-                        new ActionChoice(Bookmarks[i], () => select(index)), i == bookmark ? PaperLight : new Color(.72f, .70f, .58f), true);
+                        new ActionChoice(Bookmarks[i], () => select(index)), i == bookmark ? PaperLight : new Color(.72f, .70f, .58f), true, size: 17);
                     if (i == bookmark) notebookDefaultFocus = tab.Button;
                 }
             }
             NotebookButton(notebookRoot, .829f, 1, .987f, 1.063f,
                 new ActionChoice(clipboard ? "Đặt phiếu xuống" : returnToClipboard ? "Về phiếu F101" : "Khép sổ  ·  Esc",
-                    putDown ?? close), Paper, true);
+                    putDown ?? close), Paper, true, size: 17);
 
             notebookRoot.gameObject.SetActive(true);
             bool wasModal = IsModal;
@@ -362,8 +362,8 @@ namespace CTCC
                 button.navigation = new Navigation { mode = Navigation.Mode.None };
                 button.colors = new ColorBlock
                 {
-                    normalColor = Color.white, highlightedColor = new Color(.90f, .94f, .85f),
-                    pressedColor = new Color(.73f, .81f, .68f), selectedColor = new Color(.77f, .86f, .73f),
+                    normalColor = Color.white, highlightedColor = new Color(.84f, .91f, .78f),
+                    pressedColor = new Color(.68f, .79f, .62f), selectedColor = new Color(.68f, .82f, .62f),
                     disabledColor = new Color(.87f, .83f, .77f), colorMultiplier = 1, fadeDuration = .07f
                 };
                 button.onClick.AddListener(() =>

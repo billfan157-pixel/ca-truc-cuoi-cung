@@ -28,10 +28,12 @@ namespace CTCC.Editor
             Transform realRoot = loc01 != null ? loc01.real : real;
 
             // Replace flat exterior approach ground with gleaming rain-soaked wet asphalt surface
-            var asphalt = Box("Exterior wet asphalt approach", new Vector3(4.0f, -0.095f, -23.0f),
-                new Vector3(18.0f, 0.20f, 7.2f), Mat("WetAsphalt"), perm, solid: true, tile: 3.2f, isStatic: true);
-            var courtAsphalt = Box("Courtyard wet concrete apron", new Vector3(4.0f, -0.092f, -14.0f),
-                new Vector3(17.8f, 0.20f, 11.8f), Mat("WetAsphalt"), perm, solid: false, tile: 3.6f, isStatic: true);
+            var wet = CreateCh01Asphalt();
+            Surface("Exterior wet asphalt approach", new Vector3(4.0f, -0.095f, -23.0f),
+                new Vector3(18.0f, 0.20f, 7.2f), wet.name, "ConcretePavingB", solid: true,
+                tile: 3.2f, parent: perm);
+            Surface("Courtyard wet concrete apron", new Vector3(4.0f, -0.092f, -14.0f),
+                new Vector3(17.8f, 0.20f, 11.8f), wet.name, "ConcretePavingB", tile: 3.6f, parent: perm);
 
             // Note: Full 3-story grounded K-A 1987 hospital elevation (33m wide x 11.7m tall + roof) is built
             // in Campus_Grounds (HospitalAuthoring.Campus.cs) so it never floats above the courtyard canopy!
@@ -41,9 +43,15 @@ namespace CTCC.Editor
             Box("Gatehouse collider", new Vector3(8.55f, 1.35f, -18.55f), new Vector3(2.85f, 2.70f, 2.55f),
                 Mat("WeatheredBrick"), perm, solid: true).GetComponent<Renderer>().enabled = false;
             staticArchitecture.Add(gatehouse);
-            // Warm tungsten security gatehouse porch spill illuminating the wet entrance gate (pulled off plaster to avoid glare!)
-            Lamp("Gatehouse warm porch light", LightType.Point, new Vector3(6.62f, 2.32f, -19.55f), 2.1f, 9.0f,
+            // Warm tungsten security gatehouse porch spill anchored outside the gate-facing WEST (-X) caged lamp globe
+            // plus soft abandoned guardhouse interior spill so the booth windows read warmly without blowing out the wall!
+            Lamp("Gatehouse warm porch light", LightType.Point, new Vector3(6.85f, 2.22f, -19.45f), 1.65f, 7.8f,
                 new Color(0.98f, 0.72f, 0.40f), perm);
+            Lamp("Gatehouse interior desk glow", LightType.Point, new Vector3(8.35f, 1.48f, -18.75f), 0.95f, 4.2f,
+                new Color(0.96f, 0.76f, 0.44f), perm);
+            // Subtle cool monsoon moonlight rim illuminating Minh's motorbike & west brick gate flank (prevents black crush!)
+            Lamp("Exterior motorbike cool rim R", LightType.Point, new Vector3(1.25f, 2.35f, -22.85f), 1.25f, 6.8f,
+                new Color(0.52f, 0.72f, 0.88f), realRoot);
 
             // Authentic An Sinh 1987 Enamel Gate Plaque on west gate pillar + Night Gate subtitle on east pillar
             Sign("Hospital gate plaque", "Sign_HospitalGate", new Vector3(2.58f, 1.48f, -20.19f), Vector3.back,
@@ -62,14 +70,19 @@ namespace CTCC.Editor
             Flat("Campus directory graphic", "Sign_CampusMap", new Vector3(0f, 1.38f, -0.036f), Vector3.back, new Vector2(1.56f, 1.16f), mapBoard);
             staticArchitecture.Add(mapBoard.gameObject);
 
-            // Perimeter Iron Fence Bays atop low courtyard brick walls (west x=-5, east x=13, front z=-20)
+            // Perimeter Iron Fence Bays seated cleanly on ground y=0 (each module already includes 0.90m brick plinth,
+            // coping, iron spear railings & 2.28m masonry pier matching the 2.14m outer gate pillars — zero 4m double-stacking!).
             foreach (float z in new[] { -18.0f, -14.0f, -10.0f })
             {
-                staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(-5.0f, 0.85f, z), 90f, pairRB: false, castShadows: false));
-                staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(13.0f, 0.85f, z), -90f, pairRB: false, castShadows: false));
+                staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(-5.0f, 0f, z), 90f, pairRB: false, castShadows: false));
+                staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(13.0f, 0f, z), -90f, pairRB: false, castShadows: false));
             }
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(-1.8f, 1.72f, -20.0f), 0f, pairRB: false, castShadows: false));
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(9.4f, 1.72f, -20.0f), 0f, pairRB: false, castShadows: false));
+            // Front left wall (x=[-5.0..2.65]): piers at -5.20 & -1.35, clear beside west gate pillar at x=2.64
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(-3.20f, 0f, -20.0f), 0f, pairRB: false, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(0.65f, 0f, -20.0f), 0f, pairRB: false, castShadows: false));
+            // Front right wall (x=[5.35..13.20], yaw=180 puts piers at 9.35 & 13.20): open iron railings frame gatehouse & back Demolition board!
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(7.35f, 0f, -20.0f), 180f, pairRB: false, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(11.20f, 0f, -20.0f), 180f, pairRB: false, castShadows: false));
 
             // Minh's Parked Commuter Motorbike outside outer gate (x = 1.45, z = -22.25 — completely clear of AP00 at 4, -21.2!)
             var bike = PlaceBlenderModel("CTCC_PROP_CommuterMotorbike", perm, new Vector3(1.45f, 0f, -22.25f), 42f, pairRB: false);
@@ -114,10 +127,10 @@ namespace CTCC.Editor
                     pairRB: false, scale: Vector3.one * sp.s, castShadows: false));
             }
 
-            // Exterior rain sheen decals along wet courtyard approach
-            Decal("CourtyardPuddle_1", "DampFloor", new Vector3(4.0f, 0.01f, -16.5f), Vector3.up, 3.6f, 4.2f, 0.25f, realRoot, 0.86f);
-            Decal("CourtyardPuddle_2", "DampFloor", new Vector3(4.0f, 0.01f, -11.8f), Vector3.up, 3.2f, 3.4f, 0.25f, realRoot, 0.82f);
-            Decal("ApproachPuddle", "DampFloor", new Vector3(3.6f, 0.01f, -21.2f), Vector3.up, 3.4f, 2.8f, 0.25f, realRoot, 0.85f);
+            // The crossfall sheds water toward the drain grates and the canopy pipe.
+            Decal("CourtyardPuddle_1", "DampFloor", new Vector3(2.28f, 0.01f, -17.00f), Vector3.up, 1.98f, 1.0f, .12f, realRoot, .76f, 31);
+            Decal("CourtyardPuddle_2", "DampFloor", new Vector3(5.62f, 0.01f, -13.79f), Vector3.up, 1.78f, .76f, .12f, realRoot, .71f, -23);
+            Decal("ApproachPuddle", "DampFloor", new Vector3(5.09f, 0.01f, -21.50f), Vector3.up, 1.45f, .72f, .12f, realRoot, .74f, 24);
 
             // Exterior reflection probe for glistening wet asphalt reflections
             var extProbe = CreateReflectionProbe("Local reflection · LOC01", new Vector3(4.0f, 2.1f, -14.5f), new Vector3(18.0f, 7.0f, 16.0f), perm);
@@ -135,15 +148,17 @@ namespace CTCC.Editor
             // The pass-through and south end frame Lan and the F101 sheet in CH01.
             var partition = PlaceBlenderModel("CTCC_ENV_ReceptionPartition", perm, new Vector3(2.02f, 1.125f, -3.24f), 0f, pairRB: true);
             staticArchitecture.Add(partition);
+            ConfigureReceptionGlazing(partition);
             Sign("Reception window plaque", "Sign_ReceptionWindow", new Vector3(2.09f, 2.34f, -3.24f), Vector3.right,
                 new Vector2(0.86f, 0.24f), perm, metalBacking: true);
 
-            // Authentic November 2005 Wall Calendar behind reception counter (shared/report detail!)
-            Sign("Calendar Nov 2005", "Calendar2005", new Vector3(-0.985f, 1.56f, -4.65f), Vector3.right,
+            // Authentic November 2005 Wall Calendar mounted on solid south west-wall pier (z in [-8..-5.35] — never floats over S1 stairwell!)
+            Sign("Calendar Nov 2005", "Calendar2005", new Vector3(-0.985f, 1.56f, -5.85f), Vector3.right,
                 new Vector2(0.46f, 0.64f), perm, metalBacking: false);
 
-            // Reception Storytelling Details: ceramic teapot & cups + potted lobby snake-plant
-            var details = PlaceBlenderModel("CTCC_PROP_ReceptionDetails", perm, new Vector3(1.62f, 1.128f, -4.52f), 12f, pairRB: true, castShadows: false);
+            // Reception Storytelling Details: true R vs B operational differentiation!
+            // 2005 B active shift: Lan's warm ceramic teapot & cups set out on counter; 2012 R abandoned: tea tray cleared, fallen dusty slips!
+            var details = PlaceBlenderModel("CTCC_PROP_ReceptionDetails", repRoot, new Vector3(1.62f, 1.128f, -4.52f), 12f, pairRB: false, castShadows: false);
             staticArchitecture.Add(details);
             var plant = PlaceBlenderModel("CTCC_PROP_ReceptionDetails", perm, new Vector3(8.15f, 0f, -7.15f), -35f, pairRB: true);
             // Hide tea tray on corner plant copy & hide plant on counter copy if both sub-meshes live inside ReceptionDetails
@@ -152,6 +167,11 @@ namespace CTCC.Editor
             var potOnDesk = FindDescendant(details.transform, "PottedPlant");
             if (potOnDesk != null) potOnDesk.gameObject.SetActive(false);
             staticArchitecture.Add(plant);
+
+            // 2012 R abandoned counter traces (tea ring wear + two stray weathered paper slips on floor/counter)
+            Decal("ReceptionAbandonedTrayWearR", "CH01_VarnishWear", new Vector3(1.62f, 1.132f, -4.52f), Vector3.up, 0.42f, 0.36f, 0.08f, realRoot, 0.72f);
+            Box("AbandonedCounterSlipA_R", new Vector3(1.56f, 1.132f, -4.42f), new Vector3(0.20f, 0.004f, 0.27f), Mat("KraftPaper"), realRoot).transform.localRotation = Quaternion.Euler(0, 17f, 0);
+            Box("AbandonedFloorSlipB_R", new Vector3(6.62f, 0.004f, -4.85f), new Vector3(0.21f, 0.004f, 0.28f), Mat("Paper"), realRoot).transform.localRotation = Quaternion.Euler(0, -34f, 0);
 
             // Spare Flashlight Battery resting visibly on lower accessible reception counter wing (CH01-Q09!)
             var battRoot = Group("Spare flashlight battery", perm, new Vector3(1.75f, 0.835f, -5.50f));
@@ -174,26 +194,30 @@ namespace CTCC.Editor
                 new Color(0.96f, 0.80f, 0.54f), perm);
 
             var lanSilPt = Group("LanSilhouettePoint", perm, new Vector3(0.34f, 0f, -2.69f));
-            var lanDeskPt = Group("LanDeskPoint", perm, new Vector3(0.32f, 0f, -3.24f));
+            var lanDeskPt = Group("LanDeskPoint", perm, new Vector3(.41f, 0f, -3.23f));
             lanDeskPt.localRotation = Quaternion.Euler(0f, 92f, 0f);
-            // Upgrade #8: Semi-profile three-quarter staging + warm desk rim/backlight eliminates uncanny valley!
+            DressLanWorkstation(perm, lanDeskPt);
+
+            // Keep the standing mark for legacy actor checks and neutral reference captures.
             var lanStepPt = Group("LanStepOutPoint", perm, new Vector3(2.55f, 0f, -3.68f));
             lanStepPt.localRotation = Quaternion.Euler(0f, 36f, 0f);
 
             var lanActor = PlaceCharacterActor("CTCC_CHR_Lan", perm, lanDeskPt.position, 92f, "CHAR002_Lan",
                 isApparition: false, enableBlink: true, enableLipSync: true);
-            Lamp("Lan face soft key B", LightType.Point, new Vector3(3.42f, 1.98f, -2.92f), 0.48f, 2.5f,
-                new Color(0.92f, 0.94f, 0.88f), repRoot);
-            Lamp("Lan warm desk rim backlight B", LightType.Point, new Vector3(1.88f, 1.62f, -3.62f), 1.48f, 3.0f,
-                new Color(1.0f, 0.78f, 0.48f), repRoot);
-            Lamp("Lan glass cool rim fill B", LightType.Point, new Vector3(2.58f, 2.15f, -4.35f), 0.16f, 2.2f,
-                new Color(0.68f, 0.86f, 0.90f), repRoot);
+            AddLanReceptionClips(lanActor);
+            Lamp("Lan face soft key B", LightType.Point, new Vector3(1.54f, 1.94f, -2.75f), 1.40f, 3.55f,
+                new Color(.98f, .94f, .88f), repRoot);
+            Lamp("Lan warm desk rim backlight B", LightType.Point, new Vector3(-.35f, 1.56f, -3.88f), .67f, 2.8f,
+                new Color(1f, .86f, .69f), repRoot);
+            Lamp("Lan glass cool rim fill B", LightType.Point, new Vector3(.84f, 1.85f, -4.40f), .38f, 2.75f,
+                new Color(.83f, .91f, .93f), repRoot);
 
-            var lanVoice = CreateVoiceAnchor("LanVoiceAnchor", lanActor.transform, new Vector3(0f, 1.48f, 0f), 14f);
+            var lanVoice = CreateVoiceAnchor("LanVoiceAnchor", lanActor.transform, new Vector3(0f, 1.35f, .04f), 14f);
             var phoneVoice = CreateVoiceAnchor("PhoneAnchor", perm, new Vector3(1.65f, 1.25f, -3.55f), 12f);
 
             // Reception Reflection Probe
             var recProbe = CreateReflectionProbe("Local reflection · LOC02", new Vector3(4.0f, 1.85f, -4.0f), new Vector3(10.0f, 3.65f, 8.0f), perm);
+            recProbe.intensity = .60f;
 
             if (loc02 != null)
             {

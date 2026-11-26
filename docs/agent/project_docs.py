@@ -426,7 +426,7 @@ def make_parser() -> argparse.ArgumentParser:
     source_group.add_argument(
         "--design-lock",
         action="store_true",
-        help=f"Đọc bộ nguồn khóa thiết kế chính thức Core v3.3.1 ({DESIGN_LOCK_REV[:7]}).",
+        help="Đọc bộ nguồn khóa thiết kế chính thức Core v3.3.2 trên working tree (mặc định).",
     )
     commands = parser.add_subparsers(dest="command", required=True)
     document = commands.add_parser("doc", help="Đọc nội dung Word hoặc tra heading.")
@@ -448,7 +448,7 @@ def make_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = make_parser().parse_args()
-    rev = DESIGN_LOCK_REV if args.design_lock else args.rev
+    rev = None if args.design_lock else args.rev
     if args.command == "doc":
         show_document(args.number, args.outline, args.section, rev=rev)
     elif args.command == "hashes":

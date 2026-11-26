@@ -57,7 +57,7 @@ Lặp xuất cho `CTCC_CHR_AnApparition` và `CTCC_CHR_Gatekeeper`. Duyệt bả
 
 ## Cập nhật đóng kỹ thuật từ M3.0
 
-Bản dựng kế tiếp M3.0 (`assembly_sha256=f4c6bc91cc13d77d89960f1bc742cc68204eee52dd19cf470732fa04c642ab7f`) đã đóng các hạng mục kỹ thuật còn mở của bảng `CHAR-Q01–09` ở trên (chi tiết và bằng chứng đầy đủ tại [Hồ sơ M3.0](../m3/m30-foundation-and-art-lock.md)):
+Bản dựng kế tiếp M3.0 (`assembly_sha256=f4c6bc91cc13d77d89960f1bc742cc68204eee52dd19cf470732fa04c642ab7f`) đã đóng các hạng mục kỹ thuật còn mở của bảng `CHAR-Q01–09` ở trên (chi tiết và bằng chứng đầy đủ tại [Hồ sơ M3.0](../archive/m3-history/m30/m30-foundation-and-art-lock.md)):
 
 - **CHAR-Q01 / Q02 / Q05:** Chọn ứng viên B (sculpt sọ mặt 23 tuổi, 26 lớp hair cards, cổ áo gấp theo `1895/1997/QĐ-BYT` và thẻ tên PVC phẳng được bảo vệ qua `LOD0–2`), bổ sung `GK_Teeth/Tongue_LOD0..2`, và xác minh chuyển bậc tự động `LOD0→1→2` trong chuyển động trên cả ba nhân vật.
 - **CHAR-Q03 / Q06:** Chuyển toàn bộ thoại slice và CH03 (`CH03-D01..05`) sang **VieNeu v3 Turbo** (`Apache-2.0`) kèm track khẩu hình 30 Hz, xuất video diễn xuất liên tục đồng bộ âm thanh ([m30-character-performance.mp4](../m3/evidence/m30-character-performance.mp4)), và xác minh `0 B` managed allocation qua 150 khung (120 ổn định + 30 khung phát thoại thực theo `AudioSource.timeSamples`).

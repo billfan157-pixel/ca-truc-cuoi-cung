@@ -148,7 +148,7 @@ def build_m2_sfx():
     clunk = (noise(1.25, 120, 2400) * 0.28 * np.exp(-tbc * 35) + np.sin(2 * np.pi * 78 * tbc) * 0.25 * np.exp(-tbc * 18))
     pf = np.linspace(100, 28, len(tbc))
     hum_die = np.sin(np.cumsum(pf) * 2 * np.pi / RATE) * 0.16 * np.exp(-tbc * 2.2)
-    save_wav(AUDIO_DIR / "BreakerCut.wav", clunk + hum_die)
+    save_wav(AUDIO_DIR / "BreakerCut.wav", (clunk + hum_die) * 0.94)
 
     # 6. EmergencyHum (20s LOC04 crimson lightbox transformer hum + deep ER ventilation room tone)
     te = time_arr(20.0)

@@ -96,28 +96,10 @@ namespace CTCC.Editor
             var street = LightNamed(region, "Street wash at the gate");
             street.intensity = 3.9f;
             street.range = 14.2f;
-            LightNamed(region, "Gatehouse warm porch light").intensity = 2.7f;
-            var bounce = region.transform.Find("Canopy bounce on rain-wet columns");
-            if (bounce == null)
-            {
-                bounce = new GameObject("Canopy bounce on rain-wet columns", typeof(Light)).transform;
-                bounce.SetParent(region.transform, false);
-            }
-            bounce.position = new Vector3(5.5f, 1.44f, -10.85f);
-            var bounceLight = bounce.GetComponent<Light>();
-            bounceLight.type = LightType.Point;
-            bounceLight.shadows = LightShadows.None;
-            bounceLight.intensity = 1.65f;
-            bounceLight.range = 7.5f;
-            bounceLight.color = new Color(.65f, .76f, .89f);
-            var apron = Named(region.transform, "Courtyard wet concrete apron").GetComponent<Renderer>();
-            var wet = RebirthMaterial("CH01_WetApron", ReferenceMaterial("WetAsphalt"));
-            wet.SetFloat("_Smoothness", .76f);
-            EditorUtility.SetDirty(wet);
-            apron.sharedMaterial = wet;
+            LightNamed(region, "Gatehouse warm porch light").intensity = 1.65f;
             var canopy = Named(region.transform, "Canopy sodium cone").GetComponent<Renderer>();
             var beam = RebirthMaterial("CH01_CanopyBeam", ReferenceMaterial("BeamWarm"));
-            beam.SetColor("_Tint", new Color(.95f, .72f, .42f, .083f));
+            beam.SetColor("_Tint", new Color(.94f, .76f, .46f, .052f));
             beam.SetVector("_ConeTop", new Vector4(4f, 2.66f, -8.65f, 0f));
             beam.SetVector("_ConeBottom", new Vector4(4f, .10f, -9.20f, 0f));
             beam.SetFloat("_Cull", (float)CullMode.Back);
@@ -127,21 +109,17 @@ namespace CTCC.Editor
             var mist = Named(region.transform, "LOC01 exterior courtyard mist").GetComponent<ParticleSystem>();
             mist.transform.position = new Vector3(4f, .37f, -15.6f);
             var mistMain = mist.main;
-            mistMain.startSize = new ParticleSystem.MinMaxCurve(2.2f, 3.6f);
-            mistMain.startColor = new Color(.62f, .78f, .86f, .21f);
+            mistMain.startSize = new ParticleSystem.MinMaxCurve(1.75f, 2.8f);
+            mistMain.startColor = new Color(.62f, .73f, .78f, .11f);
             var mistShape = mist.shape;
             mistShape.scale = new Vector3(13.2f, .32f, 12.6f);
-            var rain = Named(region.transform, "Exterior rain").GetComponent<ParticleSystem>();
-            var rainMain = rain.main;
-            rainMain.startColor = new Color(.63f, .78f, .90f, .46f);
-            rainMain.startSize = .0095f;
             var rainLoop = region.roomLoops.Single(loop => loop.source.name == "Loop · Rain");
             rainLoop.source.transform.position = new Vector3(3.2f, 1.7f, -14.1f);
             rainLoop.source.minDistance = 3.0f;
             rainLoop.level = .70f;
-            TuneDecal(region, "CourtyardPuddle_1", .92f, 13f);
-            TuneDecal(region, "CourtyardPuddle_2", .88f, 13f);
-            TuneDecal(region, "ApproachPuddle", .94f, 11f);
+            TuneDecal(region, "CourtyardPuddle_1", .76f, 13f);
+            TuneDecal(region, "CourtyardPuddle_2", .71f, 13f);
+            TuneDecal(region, "ApproachPuddle", .74f, 11f);
         }
 
         private static void DressRebirthReception(ZoneRegion region)
@@ -158,39 +136,13 @@ namespace CTCC.Editor
 
             var countertop = Named(region.transform, "Wide counter top").GetComponent<Renderer>();
             var glaze = RebirthMaterial("CH01_CounterCeramic", ReferenceMaterial("Ceramic"));
-            glaze.SetFloat("_Smoothness", .68f);
+            glaze.SetFloat("_Smoothness", .49f);
             glaze.SetColor("_BaseColor", new Color(.94f, .92f, .87f));
             EditorUtility.SetDirty(glaze);
             countertop.sharedMaterial = glaze;
-            var partition = Named(region.transform, "CTCC_ENV_ReceptionPartition");
-            var oldGlass = ReferenceMaterial("Glass");
-            var glass = RebirthMaterial("CH01_ReceptionGlass", oldGlass);
-            glass.SetFloat("_Smoothness", .64f);
-            glass.SetColor("_BaseColor", new Color(.26f, .38f, .35f, .105f));
-            EditorUtility.SetDirty(glass);
-            foreach (var surface in partition.GetComponentsInChildren<Renderer>(true))
-            {
-                surface.sharedMaterials = ReplaceGlass(surface.sharedMaterials);
-                var finish = region.finishes.Find(f => f.renderer == surface);
-                if (finish == null) continue;
-                if (finish.realMaterials != null) finish.realMaterials = ReplaceGlass(finish.realMaterials);
-                if (finish.reportMaterials != null) finish.reportMaterials = ReplaceGlass(finish.reportMaterials);
-            }
-
-            var key = LightNamed(region, "Lan face soft key B");
-            key.transform.position = new Vector3(3.20f, 1.93f, -3.32f);
-            key.intensity = .83f;
-            key.color = new Color(.96f, .97f, .92f);
-            var rim = LightNamed(region, "Lan warm desk rim backlight B");
-            rim.intensity = 1.13f;
-            rim.color = new Color(1f, .86f, .65f);
-            LightNamed(region, "Lan glass cool rim fill B").intensity = .25f;
-            LightNamed(region, "Reception glass silhouette backlight").intensity = 1.56f;
-            region.lanVoiceAnchor.transform.localPosition = new Vector3(0, 1.51f, .07f);
+            LightNamed(region, "Reception glass silhouette backlight").intensity = 1.49f;
             region.lanVoiceAnchor.minDistance = 1.35f;
             region.lanVoiceAnchor.maxDistance = 11f;
-
-            Material[] ReplaceGlass(Material[] materials) => materials.Select(m => m == oldGlass ? glass : m).ToArray();
         }
 
         private static void DressRebirthWard(ZoneRegion region)
@@ -259,8 +211,7 @@ namespace CTCC.Editor
             LightNamed(region, "Room 101 floor bounce R").intensity = 1.29f;
             if (region.bed4TubeLight != null) region.bed4TubeLight.intensity = 1.31f;
             TuneDecal(region, "WindowWaterRun_1", .83f, 12f);
-            TuneDecal(region, "WindowWaterRun_2", .72f, 12f);
-            TuneDecal(region, "WindowWaterRun_3", .69f, 12f);
+            TuneDecal(region, "WindowWaterRun_2", .49f, 12f);
             TuneDecal(region, "WindowFloorDamp_1", .78f, 12f);
             TuneDecal(region, "WindowFloorDamp_2", .74f, 12f);
             TuneDecal(region, "FourthBedReportTrace_B", .90f, 10f);
@@ -284,11 +235,11 @@ namespace CTCC.Editor
                 GameObject item = new GameObject(id) { layer = HospitalScene.InteractLayer };
                 item.transform.SetParent(trace, true);
                 var bounds = model.GetComponent<Renderer>().bounds;
-                item.transform.position = bounds.center + Vector3.up * .075f;
+                item.transform.position = bounds.center + Vector3.up * .025f;
                 item.transform.rotation = Quaternion.identity;
                 var hit = item.AddComponent<BoxCollider>();
                 hit.isTrigger = true;
-                hit.size = bounds.size + Vector3.one * .13f;
+                hit.size = new Vector3(bounds.size.x + .04f, Mathf.Max(.08f, bounds.size.y + .03f), bounds.size.z + .04f);
                 var target = item.AddComponent<SceneTarget>();
                 target.id = id;
                 target.title = title;

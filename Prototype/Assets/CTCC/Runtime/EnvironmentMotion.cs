@@ -37,6 +37,7 @@ namespace CTCC
             public Mesh mesh;
             public Vector3[] rest;
             public Vector3[] posed;
+            public bool atRest = true;
         }
 
         private void Awake()
@@ -133,19 +134,21 @@ namespace CTCC
 
             if (dynamicCloth.Count == 0 || Time.frameCount % 3 != 0)
                 return;
+            float clothTravel = reportLayer ? .019f : .041f;
             for (int k = dynamicCloth.Count - 1; k >= 0; k--)
             {
                 var c = dynamicCloth[k];
                 if (c.filter == null || c.mesh == null) { dynamicCloth.RemoveAt(k); continue; }
-                if (!c.filter.gameObject.activeInHierarchy) continue;
+                if (!c.filter.gameObject.activeInHierarchy || (reducedMotion && c.atRest)) continue;
                 for (int i = 0; i < c.rest.Length; i++)
                 {
                     var p = c.rest[i];
                     if (!reducedMotion)
-                        p.z += Mathf.Sin(p.x * 3.5f + p.y * 1.2f + t * 1.66f + k) * Mathf.Clamp01(-p.y * .63f) * .045f;
+                        p.z += Mathf.Sin(p.x * 3.5f + p.y * 1.2f + t * 1.66f + k) * Mathf.Clamp01(-p.y * .63f) * clothTravel;
                     c.posed[i] = p;
                 }
                 c.mesh.vertices = c.posed;
+                c.atRest = reducedMotion;
             }
         }
     }

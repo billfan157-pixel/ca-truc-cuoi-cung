@@ -613,7 +613,13 @@ namespace CTCC
                 }
             }
 
-            ui.Prompt(target != null ? WorldPrompt(target) : player.BeyondReach != null ? "Tiến lại gần hơn" : null);
+            ui.Prompt(target != null
+                ? WorldPrompt(target)
+                : player.BeyondReach != null
+                    ? (!string.IsNullOrEmpty(player.BeyondReach.title)
+                        ? $"Tiến lại gần · {player.BeyondReach.title}"
+                        : "Tiến lại gần hơn")
+                    : null);
             if (use && target != null)
             {
                 dreadDirector?.NotifyInteraction(0.32f);

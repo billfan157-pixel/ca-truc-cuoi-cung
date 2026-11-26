@@ -104,23 +104,48 @@ def build_nursing_filing_desk():
     objs.append(C.make_box("DeskSideR", (w * 0.48, 0, 0.77), (0.024, d, 0.19), "CabinetPaint", bevel=0.003))
     objs.append(C.make_box("DeskDivider", (-0.02, 0, 0.77), (0.020, d - 0.02, 0.18), "CabinetPaint", bevel=0.002))
     objs.append(C.make_box("DeskLeftShelf", (-0.29, 0.01, 0.68), (0.52, d - 0.04, 0.020), "CabinetPaint", bevel=0.002))
-    # Varnished timber writing top
-    objs.append(C.make_box("WritingDeck", (0, -0.01, 0.875), (w + 0.03, d + 0.04, 0.034), "WoodDoor", bevel=0.006))
+    # Varnished timber writing top (lengthwise grain)
+    objs.append(C.make_box("WritingDeck", (0, -0.01, 0.875), (w + 0.03, d + 0.04, 0.034), "WoodDoor", bevel=0.006, uv_rot90=True))
 
     # Upper wall-mounted chart pigeonhole organizer (Z = 0.90..1.44, depth 0.22 m against back +Y!)
     hy = d * 0.5 - 0.11
     objs.append(C.make_box("HutchBack", (0, d * 0.5 - 0.012, 1.18), (w, 0.022, 0.56), "WoodDoor", bevel=0.004))
-    objs.append(C.make_box("HutchTop", (0, hy, 1.46), (w + 0.02, 0.23, 0.026), "WoodDoor", bevel=0.004))
-    objs.append(C.make_box("HutchMid", (0, hy, 1.17), (w - 0.02, 0.21, 0.020), "WoodDoor", bevel=0.003))
+    objs.append(C.make_box("HutchTop", (0, hy, 1.46), (w + 0.02, 0.23, 0.026), "WoodDoor", bevel=0.004, uv_rot90=True))
+    objs.append(C.make_box("HutchMid", (0, hy, 1.17), (w - 0.02, 0.21, 0.020), "WoodDoor", bevel=0.003, uv_rot90=True))
     for kx in (-0.56, -0.18, 0.18, 0.56):
         objs.append(C.make_box(f"HutchDiv_{kx:.2f}", (kx, hy, 1.18), (0.022, 0.22, 0.54), "WoodDoor", bevel=0.003))
-    # Stacked vertical kraft patient folders & brass slot label plates inside pigeonholes
-    for i in range(4):
-        objs.append(C.make_box(f"FolderSlotL_{i}", (-0.49 + i * 0.072, hy - 0.01, 1.03), (0.042, 0.19, 0.24),
-                               "KraftPaper" if i % 2 == 0 else "Paper", bevel=0.004, rot=(0, math.radians((i - 1.5) * 3.0), 0)))
-    for i in range(3):
-        objs.append(C.make_box(f"FolderSlotR_{i}", (0.28 + i * 0.08, hy - 0.01, 1.31), (0.052, 0.19, 0.23),
-                               "EnamelBlue" if i == 1 else "KraftPaper", bevel=0.004))
+    # Brass pigeonhole index label frames along mid shelf lip
+    for lx in (-0.37, 0.0, 0.37):
+        objs.append(C.make_box(f"HutchTag_{lx:.2f}", (lx, hy - 0.108, 1.17), (0.095, 0.006, 0.018), "Brass", bevel=0.002))
+    # Varied lived-in kraft/manila binders, leaning charts & a flat ward log stack inside pigeonholes
+    left_binders = [
+        (-0.505, 1.035, 0.036, 0.245, -3.5, "KraftPaper"),
+        (-0.452, 1.028, 0.040, 0.232, -1.0, "Paper"),
+        (-0.398, 1.042, 0.044, 0.258, 2.5, "EnamelBlue"),
+        (-0.336, 1.022, 0.034, 0.218, 8.5, "KraftPaper"),
+    ]
+    for i, (fx, fz, fw, fh, fl, fmat) in enumerate(left_binders):
+        objs.append(C.make_box(f"FolderSlotL_{i}", (fx, hy - 0.012, fz), (fw, 0.195, fh),
+                               fmat, bevel=0.004, rot=(0, math.radians(fl), 0)))
+    # Horizontal flat paper stack + enamel tray in center-upper cubby
+    for s_idx in range(3):
+        objs.append(C.make_box(f"FlatStack_{s_idx}", (-0.01 + s_idx * 0.006, hy - 0.015, 1.202 + s_idx * 0.017),
+                               (0.27, 0.19, 0.014), "Paper" if s_idx == 2 else "KraftPaper",
+                               bevel=0.002, rot=(0, 0, (s_idx - 1) * 0.06)))
+    right_binders = [
+        (0.255, 1.315, 0.046, 0.248, -2.0, "KraftPaper"),
+        (0.318, 1.305, 0.052, 0.232, 0.5, "EnamelBlue"),
+        (0.388, 1.312, 0.042, 0.242, 4.0, "Paper"),
+        (0.452, 1.298, 0.038, 0.215, 11.0, "KraftPaper"),
+    ]
+    for i, (fx, fz, fw, fh, fl, fmat) in enumerate(right_binders):
+        objs.append(C.make_box(f"FolderSlotR_{i}", (fx, hy - 0.012, fz), (fw, 0.195, fh),
+                               fmat, bevel=0.004, rot=(0, math.radians(fl), 0)))
+    # Compact gooseneck hospital reading sconce clipped to upper hutch right edge (anchors STAFF task lighting!)
+    objs.append(C.make_box("DeskLampClamp", (0.50, hy - 0.08, 1.46), (0.048, 0.056, 0.042), "MetalOld", bevel=0.004))
+    objs.append(C.make_pipe("DeskLampArm", [(0.50, hy - 0.08, 1.48), (0.50, hy - 0.12, 1.60), (0.42, hy - 0.22, 1.62)], 0.007, "Steel", bevel_res=3))
+    objs.append(C.make_lathe("DeskLampHood", [(0.012, 0.04), (0.030, 0.025), (0.072, -0.045), (0.068, -0.048), (0.026, 0.02)],
+                             (0.40, hy - 0.23, 1.59), "MetalPaint", segments=20, rot=(math.radians(24), math.radians(-18), 0)))
     # Open shift binder resting cleanly on left writing deck (well clear of hutch divider at X=-0.18) + pen cup
     objs.append(C.make_box("ShiftBinderCover", (-0.36, -0.04, 0.902), (0.30, 0.22, 0.018), "EnamelBlue", bevel=0.003, rot=(0, 0, 0.05)))
     objs.append(make_uv_plane("ShiftGuidePage", (-0.36, -0.04, 0.914), (0.19, 0.25), "Doc_ShiftGuide", rot=(0, 0, math.radians(86))))
@@ -158,35 +183,146 @@ def build_interactive_drawer():
     return objs
 
 
+def _make_contoured_slipper(prefix: str, pos, yaw: float, scale: float = 0.76, mirror: float = 1.0):
+    """Build an authentic contoured Vietnamese honeycomb rubber slipper (dép tổ ong):
+    curved anatomical sole + hollow arched open-toe molded strap with honeycomb vent dots (zero boxy Lego shape!)."""
+    parts = []
+    ca, sa = math.cos(yaw), math.sin(yaw)
+
+    def xform(lx, ly, lz):
+        sx = lx * mirror * scale
+        sy = ly * scale
+        sz = lz * scale
+        return (pos[0] + sx * ca - sy * sa, pos[1] + sx * sa + sy * ca, pos[2] + sz)
+
+    # 1. Anatomical foot-outline sole extruded in bmesh (heel narrower, forefoot wider, slight toe-spring!)
+    outline = [
+        (-0.028, -0.108), (-0.038, -0.076), (-0.035, -0.022), (-0.046, 0.038),
+        (-0.044, 0.088), (-0.022, 0.115), (0.014, 0.116), (0.040, 0.095),
+        (0.045, 0.042), (0.033, -0.024), (0.036, -0.078), (0.024, -0.109),
+        (0.000, -0.114),
+    ]
+    bm = bmesh.new()
+    bot_v = []
+    top_v = []
+    for ox, oy in outline:
+        toe_lift = max(0.0, (oy - 0.065) * 0.11)
+        bot_v.append(bm.verts.new(xform(ox, oy, toe_lift)))
+        top_v.append(bm.verts.new(xform(ox * 0.96, oy * 0.98, 0.016 + toe_lift)))
+    bm.faces.new(list(reversed(bot_v)))
+    bm.faces.new(top_v)
+    n = len(outline)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new((bot_v[i], bot_v[j], top_v[j], top_v[i]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])
+    mesh = bpy.data.meshes.new(f"{prefix}Sole_mesh")
+    bm.to_mesh(mesh)
+    bm.free()
+    sole = bpy.data.objects.new(f"{prefix}Sole", mesh)
+    bpy.context.collection.objects.link(sole)
+    b = sole.modifiers.new("Bevel", "BEVEL")
+    b.width = 0.0032 * scale
+    b.segments = 2
+    b.limit_method = "ANGLE"
+    parts.append(C.finalize_mesh(sole, f"{prefix}Sole", "SlipperYellow", smooth_angle=48.0, uv_scale=0.35))
+
+    # 2. Hollow arched molded upper vamp strap (open front & open back — real curved bridge, NOT a solid block!)
+    bm2 = bmesh.new()
+    y_stations = (-0.022, -0.002, 0.022, 0.046, 0.066)
+    rings_out = []
+    rings_in = []
+    arch_steps = 11
+    for yi, ly in enumerate(y_stations):
+        # Strap narrows slightly toward toe and drops gently in height toward front opening
+        width_scale = 0.94 + 0.10 * math.sin((yi / 4.0) * math.pi)
+        arch_h = (0.046 - yi * 0.0022)
+        half_w = 0.041 * width_scale
+        ro, ri = [], []
+        for k in range(arch_steps):
+            t = k / float(arch_steps - 1)  # 0..1 across arch
+            ang = t * math.pi
+            cx = -math.cos(ang) * half_w
+            cz = 0.013 + math.sin(ang) * arch_h
+            # Wall thickness ~5.5mm
+            ix = -math.cos(ang) * (half_w - 0.0065)
+            iz = 0.013 + max(0.0, math.sin(ang) * (arch_h - 0.0065))
+            ro.append(bm2.verts.new(xform(cx, ly, cz)))
+            ri.append(bm2.verts.new(xform(ix, ly, iz)))
+        rings_out.append(ro)
+        rings_in.append(ri)
+    for yi in range(len(y_stations) - 1):
+        for k in range(arch_steps - 1):
+            bm2.faces.new((rings_out[yi][k], rings_out[yi][k + 1], rings_out[yi + 1][k + 1], rings_out[yi + 1][k]))
+            bm2.faces.new((rings_in[yi + 1][k], rings_in[yi + 1][k + 1], rings_in[yi][k + 1], rings_in[yi][k]))
+    # Cap front & back arch edges
+    for k in range(arch_steps - 1):
+        bm2.faces.new((rings_out[0][k + 1], rings_out[0][k], rings_in[0][k], rings_in[0][k + 1]))
+        bm2.faces.new((rings_out[-1][k], rings_out[-1][k + 1], rings_in[-1][k + 1], rings_in[-1][k]))
+    bmesh.ops.recalc_face_normals(bm2, faces=bm2.faces)
+    mesh2 = bpy.data.meshes.new(f"{prefix}Vamp_mesh")
+    bm2.to_mesh(mesh2)
+    bm2.free()
+    vamp = bpy.data.objects.new(f"{prefix}Vamp", mesh2)
+    bpy.context.collection.objects.link(vamp)
+    parts.append(C.finalize_mesh(vamp, f"{prefix}Vamp", "SlipperYellow", smooth_angle=52.0, uv_scale=0.35))
+
+    # 3. Signature recessed honeycomb ventilation dots along top crown of strap
+    for hy in (-0.004, 0.020, 0.044):
+        for hx in (-0.016, 0.0, 0.016):
+            r_frac = abs(hx) / 0.043
+            hz = 0.013 + math.sqrt(max(0.05, 1.0 - r_frac * r_frac)) * 0.044
+            p0 = xform(hx, hy, hz - 0.002)
+            p1 = xform(hx, hy, hz + 0.0018)
+            parts.append(C.make_cylinder(f"{prefix}Dot_{hy:.3f}_{hx:.3f}", p0, p1, 0.0038 * scale, "Rubber", segments=8))
+    return parts
+
+
 def build_bed4_blanket_trace():
     """Physical trace cluster for OBS101A inside Bed 4 alcove (Layer B):
-    folded/displaced thin cotton hospital blanket corner + small pair of child-sized yellow honeycomb slippers
-    + stray enamel cup rim mark (zero C01 code, zero patient name — pure physical use trace!)."""
+    layered hastily folded/creased hospital cotton blanket + authentic contoured child-sized honeycomb rubber slippers
+    (zero C01 code, zero patient name — pure physical use trace!)."""
     objs = []
 
-    # Sculpted hastily folded/tucked hospital cotton blanket resting near Bed 4 wall edge
-    def fold_fn(u, v, bw, bl):
-        x = (u - 0.5) * bw
-        y = (v - 0.5) * bl
-        ex = math.sin(u * math.pi)
-        ey = math.sin(v * math.pi)
-        loft = 0.055 * (ex * ey) ** 0.55
-        crease = 0.012 * math.sin(u * 18.0 + v * 7.0) * ex * ey
-        return (x, y, loft + crease)
+    # Sculpted hastily folded & softly rumpled cotton hospital blanket resting near Bed 4 floor edge
+    # Distinct lower folded sage blanket + upper folded cream sheet lip + corner fold drape (NOT a smooth soap bar!)
+    def lower_fold_fn(u, v, bw, bl):
+        x = (u - 0.5) * bw + 0.014 * math.sin(v * 7.5 + 0.4)
+        y = (v - 0.5) * bl + 0.010 * math.cos(u * 6.0)
+        # Flat folded rectangle with rounded rolled spine at u=0 and soft sagging open edges at u=1
+        edge_x = min(1.0, u / 0.14) * min(1.0, (1.0 - u) / 0.18)
+        edge_y = min(1.0, v / 0.15) * min(1.0, (1.0 - v) / 0.15)
+        loft = 0.036 * (edge_x ** 0.45) * (edge_y ** 0.45)
+        spine_roll = 0.016 * math.exp(-((u - 0.10) / 0.09) ** 2) * edge_y
+        creases = 0.011 * math.sin(u * 14.0 + v * 9.0) * edge_x * edge_y
+        creases += 0.007 * math.cos(u * 23.0 - v * 12.0) * edge_x * edge_y
+        return (x, y, max(0.0, loft + spine_roll + creases))
 
-    objs.append(C.make_cloth_grid("FoldedBlanketBase", 0.48, 0.36, 22, 18, fold_fn, (-0.12, 0.04, 0.008), "TextileOld", thickness=0.022, uv_tile=(1.6, 1.4)))
-    objs.append(C.make_cloth_grid("FoldedBlanketTop", 0.42, 0.31, 18, 16, fold_fn, (-0.10, 0.05, 0.052), "CottonOld", thickness=0.016, uv_tile=(1.5, 1.3)))
+    def upper_fold_fn(u, v, bw, bl):
+        x = (u - 0.5) * bw + 0.012 * math.cos(v * 9.0)
+        y = (v - 0.5) * bl + 0.012 * math.sin(u * 8.0)
+        edge_x = min(1.0, u / 0.14) * min(1.0, (1.0 - u) / 0.16)
+        edge_y = min(1.0, v / 0.14) * min(1.0, (1.0 - v) / 0.14)
+        # Asymmetric tucked corner flap dropping softly onto lower blanket
+        corner_drop = -0.022 * max(0.0, (u - 0.65) / 0.35) * max(0.0, (v - 0.55) / 0.45)
+        loft = 0.024 * (edge_x ** 0.42) * (edge_y ** 0.42)
+        folds = 0.010 * math.sin(u * 19.0 - v * 11.0) * edge_x * edge_y
+        return (x, y, loft + folds + corner_drop)
 
-    # Small child-sized yellow honeycomb rubber slippers (scaled ~0.76x, placed slightly askew beside blanket)
-    for side, pos, yaw in (("L", (0.22, -0.06, 0), 0.28), ("R", (0.34, 0.02, 0), -0.34)):
-        ca, sa = math.cos(yaw), math.sin(yaw)
+    b1 = C.make_cloth_grid("FoldedBlanketBase", 0.52, 0.38, 26, 20, lower_fold_fn, (-0.12, 0.04, 0.004), "TextileOld", thickness=0.018, uv_tile=(2.0, 1.6))
+    b2 = C.make_cloth_grid("FoldedBlanketTop", 0.44, 0.32, 22, 18, upper_fold_fn, (-0.09, 0.06, 0.044), "CottonOld", thickness=0.014, uv_tile=(1.8, 1.4))
+    b2.rotation_euler.z = 0.11
+    bpy.ops.object.select_all(action="DESELECT")
+    b2.select_set(True)
+    bpy.context.view_layer.objects.active = b2
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    objs.extend([b1, b2])
 
-        def pt(lx, ly, lz):
-            return (pos[0] + lx * ca - ly * sa, pos[1] + lx * sa + ly * ca, pos[2] + lz)
-
-        objs.append(C.make_box(f"SmallSole_{side}", pt(0, 0, 0.009), (0.068, 0.172, 0.016), "SlipperYellow", bevel=0.006, segments=3, rot=(0, 0, yaw)))
-        objs.append(C.make_box(f"SmallVamp_{side}", pt(0, 0.018, 0.027), (0.066, 0.066, 0.032), "SlipperYellow", bevel=0.012, segments=3, rot=(0, 0, yaw)))
-        objs.append(C.make_box(f"SmallCav_{side}", pt(0, 0.018, 0.021), (0.048, 0.070, 0.018), "Rubber", bevel=0.004, rot=(0, 0, yaw)))
+    # Small child-sized contoured honeycomb rubber slippers (~17.5 cm, slightly askew beside folded blanket)
+    # Keep "Small*" prefix so build_ch01_rebirth.py binds Bed4RubberTrace -> OBS101A_SLIPPERS cleanly!
+    objs.extend(_make_contoured_slipper("SmallL_", (0.23, -0.05, 0.0), yaw=0.26, scale=0.76, mirror=1.0))
+    objs.extend(_make_contoured_slipper("SmallR_", (0.35, 0.03, 0.0), yaw=-0.32, scale=0.76, mirror=-1.0))
     return objs
 
 

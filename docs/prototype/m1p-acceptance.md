@@ -88,4 +88,4 @@ Gói kiểm `output/CaTrucCuoiCung-M1P-Windows.zip` có 179 tệp, 196.705.318 b
 | Preset High | Mức chất lượng tùy chọn. Medium là đích 60 Hz đã nghiệm thu trên Intel Arc iGPU. |
 | Culling, chuyển vùng và duyệt nội dung | Scene hiện dùng frustum/LOD. Bake occlusion, load additive liên vùng và playtest người mới hoặc review `TASK026–028` theo cổng M2. |
 
-[Bàn giao ranh giới scene](m2-scene-handoff.md) ghi điều kiện nối vùng additive trong M2. Các cập nhật sản xuất nằm trong [Production Database](../07_Production_Database.xlsx).
+[Bàn giao ranh giới scene](../archive/m1-to-m2/m2-scene-handoff.md) ghi điều kiện nối vùng additive trong M2. Các cập nhật sản xuất nằm trong [Production Database](../07_Production_Database.xlsx).

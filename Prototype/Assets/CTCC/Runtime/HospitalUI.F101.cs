@@ -18,10 +18,10 @@ namespace CTCC
             ActionChoice editLink, Action<string> attach)
         {
             if (!editing) return;
-            NotebookLabel(notebookLeft, count, 20, 0, .134f, 1, .193f, bold: true, color: NoteInk);
-            NotebookLabel(notebookLeft, link, 17, 0, .186f, 1, .245f, color: NoteInk);
-            NotebookButton(notebookLeft, .041f, .047f, .485f, .132f, compare, PaperLight, true, 17);
-            NotebookButton(notebookLeft, .5f, .047f, .958f, .132f, editLink, PaperLight, true, 17);
+            NotebookLabel(notebookLeft, count, 17, 0, .214f, 1, .260f, bold: true, color: NoteInk);
+            NotebookLabel(notebookLeft, link, 15, 0, .148f, 1, .214f, color: NoteInk);
+            NotebookButton(notebookLeft, .041f, .068f, .488f, .140f, compare, PaperLight, true, 15);
+            NotebookButton(notebookLeft, .506f, .068f, .958f, .140f, editLink, PaperLight, true, 15);
             dropSlip = (id, point) =>
             {
                 if (RectTransformUtility.RectangleContainsScreenPoint(notebookRight, point))
@@ -33,30 +33,30 @@ namespace CTCC
             IReadOnlyList<ActionChoice> claims, Action review, ActionChoice lift, string feedback, bool ready)
         {
             NotebookFormHeader(revision);
-            NotebookButton(notebookRight, .767f, .909f, .976f, .978f, lift, Paper, true, 18);
-            NotebookLabel(notebookRight, "GIƯỜNG   /   GHI NHẬN TRONG BẢN KÊ", 17, 0, .817f, 1, .876f, bold: true, color: NoteInk);
+            NotebookButton(notebookRight, .767f, .908f, .976f, .978f, lift, Paper, true, 17);
+            NotebookLabel(notebookRight, "GIƯỜNG   /   GHI NHẬN TRONG BẢN KÊ", 15, 0, .838f, 1, .882f, bold: true, color: NoteInk);
             NotebookLabel(notebookRight, "01   Đã xuất viện, dọn giường ngày 16/11\n02   Chuyển Nội B lúc 19g20, đủ hai chữ ký\n03   Xuất viện lúc 10g15, khóa phiếu thuốc ngày 17/11",
-                18, 0, .704f, 1, .818f);
-            NotebookButton(notebookRight, .022f, .637f, .977f, .698f, zero, Paper, size: 20);
-            NotebookLabel(notebookRight, "GHI NHẬN CỦA NGƯỜI TRỰC", 17, 0, .567f, 1, .634f, bold: true, color: NoteInk);
+                16, 0, .728f, 1, .836f);
+            NotebookButton(notebookRight, .022f, .668f, .977f, .722f, zero, Paper, size: 18);
+            NotebookLabel(notebookRight, "GHI NHẬN CỦA NGƯỜI TRỰC", 15, 0, .618f, 1, .662f, bold: true, color: NoteInk);
             for (int i = 0; i < decisions.Count; i++)
             {
-                float y = .516f - i * .056f;
-                NotebookButton(notebookRight, .022f, y, .977f, y + .052f, decisions[i], PaperLight, size: 19);
+                float y = .562f - i * .055f;
+                NotebookButton(notebookRight, .022f, y, .977f, y + .050f, decisions[i], PaperLight, size: 19);
             }
             if (claims.Count != 0)
             {
-                NotebookLabel(notebookRight, "Lời ghi kèm phiếu", 18, 0, .348f, 1, .407f, bold: true, color: NoteInk);
+                NotebookLabel(notebookRight, "Lời ghi kèm phiếu", 16, 0, .398f, 1, .440f, bold: true, color: NoteInk);
                 for (int i = 0; i < claims.Count; i++)
                 {
-                    float y = .302f - i * .052f;
-                    NotebookButton(notebookRight, .022f, y, .977f, y + .049f, claims[i], PaperLight, size: 17).Label.color = NoteInk;
+                    float y = .340f - i * .055f;
+                    NotebookButton(notebookRight, .022f, y, .977f, y + .050f, claims[i], PaperLight, size: 15).Label.color = NoteInk;
                 }
             }
 
-            NotebookLabel(notebookRight, feedback ?? "", 18, 0, .01f, .732f, .092f, color: MarkInk);
-            NotebookButton(notebookRight, .751f, .023f, .976f, .091f,
-                new ActionChoice("Đọc lại trên phiếu", review, ready), Paper, true, 17);
+            NotebookLabel(notebookRight, feedback ?? "", 16, 0, .014f, .736f, .106f, color: MarkInk);
+            NotebookButton(notebookRight, .751f, .022f, .976f, .096f,
+                new ActionChoice("Đọc lại trên phiếu", review, ready), Paper, true, 16);
         }
 
         internal void NotebookFormReview(string copy, Texture original, bool sealArmed, Action back, Action sign, Action seal,
@@ -118,9 +118,9 @@ namespace CTCC
 
         private Text NotebookFormHeader(string status)
         {
-            NotebookLabel(notebookRight, "Phiếu bàn giao ca đêm", 32, 0, .903f, .62f, .991f, bold: true);
-            NotebookLabel(notebookLeft, "An Sinh  /  18.11.2005  /  Mẫu AS-05 · F101", 16, 0, .008f, 1, .058f, color: NoteInk);
-            return NotebookLabel(notebookRight, status, 17, .51f, .904f, .765f, .993f, color: NoteInk);
+            NotebookLabel(notebookRight, "Phiếu bàn giao ca đêm", 27, 0, .934f, .755f, .996f, bold: true);
+            NotebookLabel(notebookLeft, "An Sinh  /  18.11.2005  /  Mẫu AS-05 · F101", 14, 0, .010f, 1, .056f, color: NoteInk);
+            return NotebookLabel(notebookRight, status, 15, 0, .894f, .755f, .936f, color: NoteInk);
         }
 
         private void EnsureFormInk()

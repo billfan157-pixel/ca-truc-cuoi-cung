@@ -163,8 +163,8 @@ Shader "CTCC/DigitalHumanEye"
                 half3 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, refractUV).rgb * _BaseColor.rgb;
                 albedo *= (1.0h - limbalRing * _LimbalDarkening);
 
-                // Subtle upper-eyelid ambient shadow grounding the top of the eyeball in the socket
-                half upperLidShadow = lerp(1.0h, 0.74h, smoothstep(0.02h, 0.15h, (half)rel.y));
+                // Natural upper-eyelid ambient shadow grounding the top of the eyeball in the orbital socket
+                half upperLidShadow = lerp(1.0h, 0.56h, smoothstep(0.01h, 0.135h, (half)rel.y));
                 albedo *= upperLidShadow;
 
                 half3 nIrisTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, refractUV), _BumpScale * irisMask);

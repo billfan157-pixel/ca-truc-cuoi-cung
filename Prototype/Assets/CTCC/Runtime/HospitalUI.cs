@@ -92,13 +92,13 @@ namespace CTCC
 
             hud = Rect("Play controls", canvas, Vector2.zero, Vector2.one);
             // Subtle dark vignette header bar top-left for razor-sharp contrast over bright B or dark R
-            var objBg = Fixed("ObjectiveBacking", hud, new Vector2(0, 1), new Vector2(40, -76), new Vector2(560, 102));
+            var objBg = Fixed("ObjectiveBacking", hud, new Vector2(0, 1), new Vector2(40, -80), new Vector2(620, 114));
             Graphic(objBg, new Color(0.035f, 0.052f, 0.048f, 0.52f), false);
             Graphic(Rect("ObjAccentBar", objBg, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(3, 0)), Accent, false);
 
-            place = FloatText("Current reality", hud, new Vector2(0, 1), new Vector2(56, -48), new Vector2(530, 34), 19,
+            place = FloatText("Current reality", hud, new Vector2(0, 1), new Vector2(56, -48), new Vector2(590, 38), 19,
                 Accent, TextAnchor.UpperLeft, true);
-            task = FloatText("Objective", hud, new Vector2(0, 1), new Vector2(56, -92), new Vector2(535, 62), 22,
+            task = FloatText("Objective", hud, new Vector2(0, 1), new Vector2(56, -98), new Vector2(590, 68), 22,
                 Ink, TextAnchor.MiddleLeft, true);
             help = FloatText("Controls", hud, new Vector2(0, 0), new Vector2(44, 24), new Vector2(1100, 34), 17,
                 new Color(0.72f, 0.78f, 0.73f, 0.72f), TextAnchor.MiddleLeft);
@@ -108,22 +108,24 @@ namespace CTCC
             reticleRect.pivot = new Vector2(0.5f, 0.5f);
             reticleImg = Graphic(reticleRect, new Color(0.95f, 0.92f, 0.78f, 0.62f), false);
 
-            // Compact diegetic prompt pill
-            var tag = Fixed("Interaction", hud, new Vector2(0.5f, 0.5f), new Vector2(0, -68), new Vector2(560, 44));
+            // Compact diegetic prompt pill (wide enough for dual-action prompts at 130% text scale)
+            var tag = Fixed("Interaction", hud, new Vector2(0.5f, 0.5f), new Vector2(0, -72), new Vector2(760, 54));
             tag.pivot = new Vector2(0.5f, 0.5f);
             promptBacking = Graphic(tag, new Color(0.042f, 0.065f, 0.058f, 0.84f), false);
             Graphic(Rect("PromptBorder", tag, new Vector2(0, 0), new Vector2(1, 0), Vector2.zero, new Vector2(0, 2)), Accent, false);
-            prompt = FillText("Prompt", tag, 20, Ink, TextAnchor.MiddleCenter, true);
+            prompt = FillText("Prompt", Rect("PromptInset", tag, Vector2.zero, Vector2.one, new Vector2(18, 2), new Vector2(-18, -2)),
+                20, Ink, TextAnchor.MiddleCenter, true);
 
             // Directional audio caption / subtitle strip
-            var subtitle = Fixed("Caption", hud, new Vector2(0.5f, 0.11f), Vector2.zero, new Vector2(980, 56));
+            var subtitle = Fixed("Caption", hud, new Vector2(0.5f, 0.115f), Vector2.zero, new Vector2(1080, 70));
             subtitle.pivot = new Vector2(0.5f, 0.5f);
             cueBacking = Graphic(subtitle, new Color(0.038f, 0.058f, 0.054f, 0.88f), false);
-            cue = FillText("Subtitle", subtitle, 21, Ink, TextAnchor.MiddleCenter);
+            cue = FillText("Subtitle", Rect("SubtitleInset", subtitle, Vector2.zero, Vector2.one, new Vector2(16, 2), new Vector2(-16, -2)),
+                21, Ink, TextAnchor.MiddleCenter);
             cueBacking.gameObject.SetActive(false);
 
             // Non-blocking diegetic environmental observation toast (bottom-right, cleanly above Caption & QuickSlotBar!)
-            var toastBox = Fixed("ObservationToast", hud, new Vector2(1, 0), new Vector2(-580, 158), new Vector2(536, 134));
+            var toastBox = Fixed("ObservationToast", hud, new Vector2(1, 0), new Vector2(-604, 256), new Vector2(564, 158));
             toastBacking = Graphic(toastBox, new Color(0.042f, 0.066f, 0.060f, 0.90f), false);
             Graphic(Rect("ToastRule", toastBox, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(4, 0)), Accent, false);
             toastTitle = MakeText(Rect("ToastTitle", toastBox, new Vector2(0, 0.64f), new Vector2(1, 1), new Vector2(20, 0), new Vector2(-16, -8)),

@@ -38,6 +38,7 @@ namespace CTCC
         public AnimationClip[] clips = Array.Empty<AnimationClip>();
         public AudioSource voiceSource;
         public GameObject heldClipboard;
+        public GameObject receptionPen;
         public bool enableLookAt = true;
         public bool enableBlink = true;
         public bool enableLipSync = true;
@@ -555,9 +556,9 @@ namespace CTCC
 
             if (leftArm != null && leftForeArm != null && leftHand != null)
             {
-                Vector3 lGoal = transform.position + up * 1.07f + fwd * 0.34f - right * 0.12f;
-                Vector3 lElbowHint = transform.position + up * 0.91f - fwd * 0.06f - right * 0.28f;
-                SolveTwoBoneArmIK(leftArm, leftForeArm, leftHand, lGoal, lElbowHint, propIkWeight * 0.38f);
+                Vector3 lGoal = transform.position + up * 1.095f + fwd * 0.37f - right * 0.085f;
+                Vector3 lElbowHint = transform.position + up * 0.92f - fwd * 0.04f - right * 0.28f;
+                SolveTwoBoneArmIK(leftArm, leftForeArm, leftHand, lGoal, lElbowHint, propIkWeight * 0.52f);
             }
         }
 
@@ -887,18 +888,18 @@ namespace CTCC
                 var f1 = activeTrack.frames[i1];
 
                 // Calm, natural conversational speech articulation (gentle realistic Vietnamese lip aperture, never shouting!)
-                tPP = Mathf.Lerp(f0.pp, f1.pp, a) * 68f;
-                tFF = Mathf.Lerp(f0.ff, f1.ff, a) * 62f;
-                tTH = Mathf.Lerp(f0.th, f1.th, a) * 56f;
-                tCH = Mathf.Lerp(f0.ch, f1.ch, a) * 56f;
-                tAA = Mathf.Lerp(f0.aa, f1.aa, a) * 52f;
-                tEE = Mathf.Lerp(f0.ee, f1.ee, a) * 58f;
-                tIH = Mathf.Lerp(f0.ih, f1.ih, a) * 54f;
-                tOH = Mathf.Lerp(f0.oh, f1.oh, a) * 52f;
-                tOO = Mathf.Lerp(f0.oo, f1.oo, a) * 54f;
-                tUH = Mathf.Lerp(f0.uh, f1.uh, a) * 50f;
-                tMM = Mathf.Lerp(f0.mm, f1.mm, a) * 55f;
-                tJaw = Mathf.Lerp(f0.jaw, f1.jaw, a) * 44f;
+                tPP = Mathf.Lerp(f0.pp, f1.pp, a) * 66f;
+                tFF = Mathf.Lerp(f0.ff, f1.ff, a) * 58f;
+                tTH = Mathf.Lerp(f0.th, f1.th, a) * 52f;
+                tCH = Mathf.Lerp(f0.ch, f1.ch, a) * 52f;
+                tAA = Mathf.Lerp(f0.aa, f1.aa, a) * 44f;
+                tEE = Mathf.Lerp(f0.ee, f1.ee, a) * 52f;
+                tIH = Mathf.Lerp(f0.ih, f1.ih, a) * 48f;
+                tOH = Mathf.Lerp(f0.oh, f1.oh, a) * 45f;
+                tOO = Mathf.Lerp(f0.oo, f1.oo, a) * 48f;
+                tUH = Mathf.Lerp(f0.uh, f1.uh, a) * 44f;
+                tMM = Mathf.Lerp(f0.mm, f1.mm, a) * 54f;
+                tJaw = Mathf.Lerp(f0.jaw, f1.jaw, a) * 38f;
                 tBrow = Mathf.Lerp(f0.brow, f1.brow, a) * 42f;
                 tNod = ReducedMotion ? 0f : Mathf.Lerp(f0.nod, f1.nod, a) * 3.2f;
                 ApplyReceptionAccent(activeLineId, playT, ref tBrow, ref tNod, out asymmetry);

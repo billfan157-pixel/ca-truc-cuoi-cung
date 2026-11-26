@@ -30,6 +30,7 @@ Shader "CTCC/RainWindowGlass"
                 half _GrimeAmount;
                 half _StreakSpeed;
             CBUFFER_END
+            float _CTCCReduceWeatherMotion;
 
             struct Attributes
             {
@@ -94,7 +95,7 @@ Shader "CTCC/RainWindowGlass"
 
                 // Fine physically scaled monsoon rain rivulets (grid cells ~3.5 cm wide x 18 cm tall!)
                 float2 wUV = float2(input.positionWS.x, input.positionWS.y);
-                float t = _Time.y * _StreakSpeed;
+                float t = _Time.y * _StreakSpeed * (1 - saturate(_CTCCReduceWeatherMotion));
 
                 float r1 = RainStreakLayer(wUV, t, float2(26.0, 5.2));
                 float r2 = RainStreakLayer(wUV + float2(0.17, 0.09), t * 0.78, float2(44.0, 9.5));

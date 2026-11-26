@@ -122,21 +122,22 @@ def build_ward_bed():
     objs.append(pil)
 
     # Sculpted folded & naturally draped hospital cotton blanket across lower 2/3 of bed
+    # Strictly clears MattressTopSheet crown (max z=0.716) so mattress NEVER pokes through blanket folds!
     def blanket_fn(u, v, bw, bl):
-        x = (u - 0.5) * bw + 0.010 * math.sin(v * 15.0 + u * 2.0)
-        y = (v - 0.5) * bl + 0.016 * math.sin(u * 9.0 + v * 3.0)
-        # Soft side drape over mattress edge
-        over_x = max(0.0, abs(x) - 0.375) / 0.095
+        x = (u - 0.5) * bw + 0.008 * math.sin(v * 15.0 + u * 2.0)
+        y = (v - 0.5) * bl + 0.012 * math.sin(u * 9.0 + v * 3.0)
+        # Soft side drape starting cleanly past mattress corner (0.398m)
+        over_x = max(0.0, abs(x) - 0.398) / 0.095
         droop_x = -0.22 * (min(1.0, over_x) ** 1.55)
-        over_foot = max(0.0, (0.14 - v) / 0.14)
+        over_foot = max(0.0, (0.12 - v) / 0.12)
         droop_foot = -0.15 * (over_foot ** 1.65)
-        # Organic fabric folds & bunched top edge
-        folds = 0.014 * math.sin(u * 29.0 + v * 8.0) * (0.35 + 0.65 * math.sin(v * 3.1) ** 2)
-        folds += 0.008 * math.cos(u * 11.0 - v * 17.0)
+        # Non-negative organic fabric folds & bunched top cuff so troughs never dip into mattress
+        folds = 0.012 * (0.5 + 0.5 * math.sin(u * 29.0 + v * 8.0)) * (0.35 + 0.65 * math.sin(v * 3.1) ** 2)
+        folds += 0.006 * (0.5 + 0.5 * math.cos(u * 11.0 - v * 17.0))
         cuff = 0.020 * math.exp(-((v - 0.94) / 0.06) ** 2)
         return (x, y, folds + droop_x + droop_foot + cuff)
 
-    objs.append(C.make_cloth_grid("DrapedBlanket", 0.94, 1.24, 34, 38, blanket_fn, (0, -0.22, 0.722), "Textile", thickness=0.009, uv_tile=(3.0, 4.0)))
+    objs.append(C.make_cloth_grid("DrapedBlanket", 0.96, 1.24, 34, 38, blanket_fn, (0, -0.22, 0.728), "Textile", thickness=0.010, uv_tile=(3.0, 4.0)))
     return objs
 
 
@@ -410,18 +411,39 @@ def build_reception_props():
     # Ballpoint pen resting diagonally on ledger
     objs.append(C.make_cylinder("DeskPen", (lx + 0.08, ly - 0.07, 0.038), (lx + 0.21, ly + 0.04, 0.038), 0.0045, "EnamelBlue", segments=10))
 
-    # Vintage 2000s ivory push-button landline desk phone at (-0.18, 0.42, 0)
+    # Vintage 2000s ivory push-button landline desk phone at (-0.18, 0.44, 0)
+    # Flat-bottomed grounded chassis (z=0.0 solid on ceramic counter!) with sloped keypad face & coiled cord
     px, py = -0.18, 0.44
-    objs.append(C.make_box("PhoneBase", (px, py, 0.038), (0.175, 0.21, 0.072), "PlasticIvory", bevel=0.012, rot=(math.radians(12), 0, 0.18)))
+    yaw_p = 0.14
+    cp, sp = math.cos(yaw_p), math.sin(yaw_p)
+
+    def ppt(lx, ly, lz):
+        return (px + lx * cp - ly * sp, py + lx * sp + ly * cp, lz)
+
+    # Flat grounded plinth + tapered upper keypad wedge + raised cradle shoulder (zero floating!)
+    objs.append(C.make_box("PhonePlinth", ppt(0.0, 0.0, 0.016), (0.182, 0.214, 0.032), "PlasticIvory", bevel=0.006, rot=(0, 0, yaw_p)))
+    objs.append(C.make_box("PhoneCradleDeck", ppt(-0.044, 0.0, 0.044), (0.088, 0.202, 0.054), "PlasticIvory", bevel=0.009, rot=(0, 0, yaw_p)))
+    objs.append(C.make_box("PhoneKeypadSlope", ppt(0.042, 0.008, 0.038), (0.094, 0.172, 0.038), "PlasticIvory", bevel=0.008, rot=(math.radians(11), 0, yaw_p)))
+    # Rubber feet & cradle prongs
+    for fy in (-0.064, 0.064):
+        objs.append(C.make_box(f"PhoneProng_{fy:.2f}", ppt(-0.044, fy, 0.078), (0.044, 0.014, 0.022), "PlasticIvory", bevel=0.003, rot=(0, 0, yaw_p)))
+    # Sloped 4x3 keypad buttons flush on keypad deck
     for row in range(4):
         for col in range(3):
-            objs.append(C.make_box(f"PhoneKey_{row}_{col}", (px - 0.032 + col * 0.026, py - 0.048 + row * 0.024, 0.076 + row * 0.005),
-                                   (0.017, 0.015, 0.012), "Black", bevel=0.002))
-    # Cradle handset
-    objs.append(C.make_pipe("HandsetArc", [(px - 0.068, py - 0.09, 0.095), (px - 0.068, py, 0.118), (px - 0.068, py + 0.09, 0.095)],
-                            0.017, "PlasticIvory", bevel_res=4))
-    for ey in (-0.09, 0.09):
-        objs.append(C.make_cylinder(f"HandsetCup_{ey:.2f}", (px - 0.068, py + ey, 0.072), (px - 0.068, py + ey, 0.105), 0.028, "PlasticIvory", segments=16))
+            kx = 0.016 + col * 0.025
+            ky = -0.052 + row * 0.026
+            kz = 0.049 + row * 0.0048
+            objs.append(C.make_box(f"PhoneKey_{row}_{col}", ppt(kx, ky, kz),
+                                   (0.017, 0.015, 0.010), "Black", bevel=0.002, rot=(math.radians(11), 0, yaw_p)))
+    # Grounded coiled cord loop connecting phone base to handset
+    cord_pts = [ppt(-0.095 - 0.022 * math.sin(k * 0.9), -0.095 - k * 0.012, 0.016 + 0.007 * abs(math.cos(k * 1.4))) for k in range(7)]
+    cord_pts.append(ppt(-0.068, -0.095, 0.072))
+    objs.append(C.make_pipe("PhoneCord", cord_pts, 0.0042, "Black", bevel_res=3))
+    # Cradle handset resting solidly in prongs (names start with Handset for build_ch01_rebirth.py!)
+    objs.append(C.make_pipe("HandsetArc", [ppt(-0.048, -0.092, 0.094), ppt(-0.048, 0.0, 0.114), ppt(-0.048, 0.092, 0.094)],
+                            0.0165, "PlasticIvory", bevel_res=4))
+    for ey in (-0.092, 0.092):
+        objs.append(C.make_cylinder(f"HandsetCup_{ey:.2f}", ppt(-0.048, ey, 0.070), ppt(-0.048, ey, 0.100), 0.027, "PlasticIvory", segments=16))
 
     # Vintage green enameled desk lamp at (-0.22, -0.58, 0)
     dx, dy = -0.22, -0.58

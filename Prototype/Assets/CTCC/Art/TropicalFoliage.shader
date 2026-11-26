@@ -36,6 +36,7 @@ Shader "CTCC/TropicalFoliage"
                 half _WindAmp;
                 half _Wetness;
             CBUFFER_END
+            float _CTCCReduceWeatherMotion;
 
             struct Attributes
             {
@@ -59,7 +60,9 @@ Shader "CTCC/TropicalFoliage"
                 float3 posWS = TransformObjectToWorld(input.positionOS);
                 // Organic monsoon wind flutter stronger toward leaf tips (uv.y) and higher canopy
                 float swayPhase = _Time.y * _WindSpeed + posWS.x * 1.15 + posWS.z * 0.92;
-                float tipMask = saturate(input.uv.y * 1.15) * saturate((posWS.y + 0.5) * 0.25);
+                swayPhase += 0.65 * sin(_Time.y * 0.37 + posWS.z * 0.44);
+                float tipMask = saturate(input.uv.y * 1.15) * saturate((posWS.y + 0.5) * 0.25)
+                    * (1 - saturate(_CTCCReduceWeatherMotion));
                 posWS.x += sin(swayPhase) * _WindAmp * tipMask;
                 posWS.z += cos(swayPhase * 1.37) * (_WindAmp * 0.65) * tipMask;
                 posWS.y += sin(swayPhase * 2.1) * (_WindAmp * 0.22) * tipMask;
@@ -82,15 +85,21 @@ Shader "CTCC/TropicalFoliage"
                 Light mainLight = GetMainLight();
                 float3 L = normalize(mainLight.direction);
 
-                float ndl = saturate(dot(N, L) * 0.65 + 0.35);
-                // Subtle translucent backlighting through wet tropical leaves
-                float backLight = pow(saturate(dot(V, -L)), 2.5) * 0.38;
-                // Wet monsoon specular rim
+                float ndl = saturate(dot(N, L) * 0.55 + 0.28);
+                // Subtle translucent backlighting through wet tropical leaves (deep emerald, never blown white)
+                float backLight = pow(saturate(dot(V, -L)), 3.2) * 0.22;
+                // Tight wet cuticle moonlight glint + gentle rain-film Fresnel rim (prevents white plastic washout!)
                 float3 H = normalize(L + V);
-                float spec = pow(saturate(dot(N, H)), 24.0) * _Wetness * 0.45;
+                float leafMask = saturate(dot(tex.rgb, float3(0.3, 0.6, 0.1)) * 2.2);
+                float spec = pow(saturate(dot(N, H)), 64.0) * _Wetness * 0.15 * leafMask;
+                float rim = pow(1.0 - saturate(dot(N, V)), 3.0) * _Wetness * 0.075;
+                // Deepen canopy interior slightly toward frond base for natural 3D volume
+                float canopyShade = lerp(0.58, 1.0, saturate(input.uv.y * 0.85 + 0.18));
 
-                half3 ambient = SampleSH(N) * 0.85;
-                half3 lit = tex.rgb * _BaseColor.rgb * (ambient + mainLight.color * (ndl + backLight)) + mainLight.color * spec;
+                half3 ambient = SampleSH(N) * 0.72;
+                half3 albedo = tex.rgb * _BaseColor.rgb * canopyShade;
+                half3 lit = albedo * (ambient + mainLight.color * (ndl + backLight))
+                    + mainLight.color * (spec + rim) * lerp(half3(0.55, 0.75, 0.62), half3(1.0, 1.0, 1.0), 0.35);
                 lit = MixFog(lit, input.fogFactor);
                 return half4(lit, 1.0);
             }
