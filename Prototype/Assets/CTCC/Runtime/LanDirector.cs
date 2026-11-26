@@ -576,7 +576,7 @@ namespace CTCC
                     }
                     if (beat.id == "CH01-D07b")
                     {
-                        voice.Present(beat.id, speaker, text, DialoguePresentationMode.CUT_TO_JOURNAL);
+                        voice.Present(beat.id, speaker, text, DialoguePresentationMode.CUT_TO_JOURNAL, pocketNoteText: text);
                         continue;
                     }
 
@@ -720,9 +720,23 @@ namespace CTCC
                 bool finished = false;
                 bool completed = false;
                 bool isLan = speaker == "Lan";
-                voice.Speak(beat.id, speaker, text,
-                    isLan ? scene.LanVoiceAnchor : null, isLan ? lan : null,
-                    onComplete: heard => { completed = heard; finished = true; });
+                // DEC-VO-01: CH01-D03b (INNER_SUB_SILENT) and CH01-D07b (CUT_TO_JOURNAL) must NEVER enter voice.Speak().
+                if (beat.id == "CH01-D03b")
+                {
+                    voice.Present(beat.id, "", text, DialoguePresentationMode.INNER_SUB_SILENT,
+                        onComplete: heard => { completed = heard; finished = true; });
+                }
+                else if (beat.id == "CH01-D07b")
+                {
+                    voice.Present(beat.id, "Minh", text, DialoguePresentationMode.CUT_TO_JOURNAL,
+                        onComplete: heard => { completed = heard; finished = true; }, pocketNoteText: text);
+                }
+                else
+                {
+                    voice.Speak(beat.id, speaker, text,
+                        isLan ? scene.LanVoiceAnchor : null, isLan ? lan : null,
+                        onComplete: heard => { completed = heard; finished = true; });
+                }
 
                 if (beat.id == "CH01-D04") voice.SetLanMotif(true, 0.13f);
 

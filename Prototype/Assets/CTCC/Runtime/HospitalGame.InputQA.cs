@@ -66,44 +66,40 @@ namespace CTCC
             yield return Choose("Ca trực mới");
             if (restart) yield return Choose("Bắt đầu");
             yield return Until(() => !ui.IsModal && !busy, "free view at the gate");
-            Require(!State.Happened("E10a.SMSRead"), "the envelope starts unread");
-            yield return AimAndUseHere("E10a");
-            yield return Until(() => inspector.IsInspecting, branch + " letter uses physical inspector");
+            Require(State.evidence.Count == 0 && !State.Has("E10a") && !State.Happened(E10aParts.PostponementSms) && E10aParts.ReadCount(State) == 0,
+                "B01 S0 starts with 0 evidence, unread SMS, and 0/4 E10a parts read");
+
             if (branch == FormStatus.Affirmed)
             {
-                var holder = player.Eye.transform.Find("Physical Inspector Stage/Inspect Holder");
-                Quaternion before = holder.localRotation;
-                float zoom = holder.parent.localPosition.z;
-                yield return Hold(Key.A, 0.18f);
-                yield return Hold(Key.Q, 0.18f);
-                Require(Quaternion.Angle(before, holder.localRotation) > 9 && Mathf.Abs(zoom - holder.parent.localPosition.z) > 0.017f,
-                    "physical inspector keyboard rotation and zoom");
-            }
-            if (branch == FormStatus.Refuted)
-            {
-                yield return Choose("2. Thư cũ của Lan");
-                yield return Until(() => !busy && inspector.IsInspecting && inspector.HasBackSide, "E10a Lan letter 2-sided layer");
-                yield return Tap(Key.Space);
-                yield return Until(() => inspector.ShowingBack, "E10a Lan letter flips to back");
-                CaptureInvestigation("walkthrough-e10a-letter");
-                yield return null;
-            }
-            yield return Choose("4. Tin nhắn Bảy");
-            yield return Choose("Xác nhận đã đọc tin nhắn Bảy");
-            yield return Until(() => !busy && State.Happened("E10a.SMSRead"), "letter SMS checkpoint");
-            yield return Choose("5. Rút hai chìa khóa");
-            if (branch == FormStatus.Affirmed)
-            {
-                yield return Choose("Rút 2 chìa khóa cất vào ba lô");
-                yield return Until(() => !busy && InventoryService.HasPhysical(State, BackpackCatalog.GateKey) &&
-                    InventoryService.HasPhysical(State, BackpackCatalog.WingCKey), "both keys extracted to backpack");
-                yield return Choose("Cầm chìa khu C trên tay");
-                yield return Until(() => !busy && !ui.IsModal && !inspector.IsInspecting &&
-                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.WingCKey, "Wing-C key equipped");
+                // ADVERSARIAL ROUTE (Core v3.6.2 / 4.2): Skip phone & all documents -> open mailbox -> take atomic package ->
+                // reject KEY_WING_C -> test Quick-Slot [1]/[H] -> unlock GATE-CONG while strictly keeping 0/4 parts read!
+                yield return AimAndUseHere("MAILBOX");
+                yield return Until(() => !busy && ui.IsModal, "Adversarial route opens gate mailbox");
+                yield return Choose("Nhận gói");
+                yield return Until(() => !busy && !ui.IsModal && State.Happened(E10aParts.MailboxPickedUp) &&
+                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey,
+                    "Adversarial atomic mailbox pickup grants E10a + keys (KEY_GATE equipped)");
+                Require(State.evidence.Count == 1 && State.Has("E10a") && E10aParts.ReadCount(State) == 0 && !State.Happened(E10aParts.PostponementSms),
+                    "Adversarial pickup keeps strictly 0/4 E10a parts read");
+
+                // Phase 1 Ch01JournalPolicy: Verify 5-tab Journal is ABSENT in B01 Backpack!
+                yield return Tap(Key.Tab);
+                yield return Until(() => ui.IsModal, "B01 Backpack opens");
+                yield return Choose("Pocket Note");
+                Require(ui.GetComponentsInChildren<Button>(false).All(b =>
+                    !(b.GetComponentInChildren<Text>()?.text ?? "").Contains("Mở sổ trực đầy đủ")),
+                    "Ch01JournalPolicy hides 5-tab Journal entry in B01 Backpack");
+                yield return Choose("Dụng cụ");
+                yield return Choose("Chìa khu C");
+                yield return Choose("Cầm ra tay");
+                yield return Until(() => !busy && !ui.IsModal &&
+                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.WingCKey, "Wing-C key equipped from Backpack");
+
                 yield return AimAndUseHere("GATE-CONG");
                 yield return new WaitForSecondsRealtime(0.25f);
                 Require(!State.Happened("CH01-T02") && InventoryService.HasPhysical(State, BackpackCatalog.WingCKey),
                     "wrong Wing-C key rejected at outer gate and retained in backpack");
+
                 // Test real keyboard Quick-Slot [1] & [H] stow (Proposal V1.1 §3.1 / BP-02)
                 Require(State.quickSlots.Count >= 2 && State.quickSlots[0] == BackpackCatalog.GateKey,
                     "GateKey auto-assigned to Quick-Slot #1");
@@ -116,16 +112,84 @@ namespace CTCC
                 yield return Tap(Key.Digit1);
                 yield return Until(() => !busy && InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey,
                     "Quick-Slot [1] re-equips GateKey for outer gate");
+
+                Require(State.evidence.Count == 1 && State.Has("E10a") && E10aParts.ReadCount(State) == 0,
+                    "Adversarial route reaches outer gate with strictly 0/4 E10a parts read");
+                yield return AimAndUseHere("GATE-CONG");
+                yield return Until(() => State.Happened("CH01-T02"), "Adversarial route unlocks gate with KEY_GATE at 0/4 parts");
+                Require(E10aParts.ReadCount(State) == 0 && !State.Happened(E10aParts.PostponementSms),
+                    "Adversarial gate unlock preserves 0/4 parts read without faking SMS");
             }
             else
             {
-                yield return Choose("Rút 2 chìa khóa & cầm chìa cổng phụ");
-                yield return Until(() => !busy && !ui.IsModal && !inspector.IsInspecting &&
-                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey, "keys extracted and gate key equipped");
+                // NARRATIVE ROUTE (Core v3.6.2 / 4.2): [P] Phone -> read 22:48 SMS (commits postponementSMS) -> call Bảy ->
+                // close phone (CH01-D01 silent thought, zero VO) -> open mailbox -> take atomic package -> inspect Lan letter -> unlock GATE-CONG!
+                int nonVoBeforePhone = voice.NonVoAudioPlayCount;
+                yield return Tap(Key.P);
+                yield return Until(() => !busy && ui.IsModal && inspector.IsInspecting && State.Happened(E10aParts.PostponementSms),
+                    branch + " [P] opens 3D Minh phone and commits postponementSMS");
+                if (branch == FormStatus.Unverified)
+                {
+                    var holder = player.Eye.transform.Find("Physical Inspector Stage/Inspect Holder");
+                    Quaternion before = holder.localRotation;
+                    float zoom = holder.parent.localPosition.z;
+                    yield return Hold(Key.A, 0.18f);
+                    yield return Hold(Key.Q, 0.18f);
+                    Require(Quaternion.Angle(before, holder.localRotation) > 9 && Mathf.Abs(zoom - holder.parent.localPosition.z) > 0.017f,
+                        "physical inspector keyboard rotation and zoom on Minh 2012 phone");
+                }
+                if (branch == FormStatus.Refuted)
+                {
+                    yield return new WaitForSecondsRealtime(0.22f);
+                    CaptureInvestigation("walkthrough-b01-phone");
+                    yield return null;
+                }
+                yield return Choose("Gọi cho chú Bảy");
+                yield return Until(() => !busy && State.Happened(E10aParts.PhoneCalledBay), "Narrative route calls Bảy (no answer)");
+                yield return Choose("Cất điện thoại");
+                yield return Until(() => !busy && !ui.IsModal && !inspector.IsInspecting, "Phone closed cleanly");
+                Require(voice.Transcript.Any(t => t.LineId == "CH01-D01") && !voice.IsSpeaking && voice.NonVoAudioPlayCount == nonVoBeforePhone,
+                    "DEC-VO-01 CH01-D01 renders as silent thought after phone with zero VO playback");
+
+                if (branch == FormStatus.Refuted)
+                {
+                    CaptureInvestigation("walkthrough-b01-mailbox-closed");
+                    yield return null;
+                }
+                yield return AimAndUseHere("MAILBOX");
+                yield return Until(() => !busy && ui.IsModal, "Narrative route opens gate mailbox");
+                yield return Choose("Nhận gói");
+                yield return Until(() => !busy && !ui.IsModal && State.Happened(E10aParts.MailboxPickedUp) &&
+                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey,
+                    "Narrative atomic mailbox pickup equips KEY_GATE");
+                if (branch == FormStatus.Refuted)
+                {
+                    CaptureInvestigation("walkthrough-b01-mailbox-open");
+                    yield return null;
+                    // Open separated 2-sided Lan 2005 letter from Backpack -> Papers -> E10a
+                    yield return Tap(Key.Tab);
+                    yield return Until(() => ui.IsModal, "Backpack opens for E10a reading");
+                    yield return Choose("Giấy tờ & vật chứng");
+                    yield return Choose("Mở gói tài liệu E10a");
+                    yield return Until(() => !busy && inspector.IsInspecting, "E10a 3D document inspector opens");
+                    yield return Choose("2. Thư cũ của Lan");
+                    yield return Until(() => !busy && inspector.IsInspecting && inspector.HasBackSide, "E10a Lan letter 2-sided layer");
+                    yield return Tap(Key.Space);
+                    yield return Until(() => inspector.ShowingBack, "E10a Lan letter flips to back");
+                    CaptureInvestigation("walkthrough-e10a-letter");
+                    yield return null;
+                    Require(State.Happened(E10aParts.Letter) && E10aParts.ReadCount(State) >= 2,
+                        "Narrative route commits Lan letter read truthfully alongside SMS");
+                    yield return Tap(Key.Escape);
+                    yield return Until(() => !busy && !inspector.IsInspecting, "E10a returns to Backpack");
+                    if (ui.IsModal) yield return Tap(Key.Escape);
+                    yield return Until(() => !ui.IsModal, "Backpack closed cleanly");
+                }
+                Require(State.evidence.Count == 1 && State.Has("E10a") && E10aParts.ReadCount(State) >= 1,
+                    "Narrative route preserves single E10a evidence with >= 1 part read");
+                yield return AimAndUseHere("GATE-CONG");
+                yield return Until(() => State.Happened("CH01-T02"), "Narrative route unlocks outer gate with gate key");
             }
-            Require(State.evidence.Count == 1 && State.Has("E10a"), "CH01 official evidence strictly remains E10a only");
-            yield return AimAndUseHere("GATE-CONG");
-            yield return Until(() => State.Happened("CH01-T02"), "gate unlocked with gate key");
             yield return Until(() => Quaternion.Angle(scene.outerGate.pivot.localRotation, Quaternion.Euler(0, scene.outerGate.openAngle, 0)) < 3f,
                 "outer gate swings smoothly open");
             if (branch == FormStatus.Affirmed)
@@ -197,11 +261,16 @@ namespace CTCC
                     yield return Tap(Key.Tab);
                     yield return Until(() => ui.IsModal, "Tab opens Backpack");
                     yield return Choose("Pocket Note");
-                    yield return Choose("Mở sổ trực đầy đủ");
-                    yield return Choose("Lời Lan tại quầy");
+                    // Phase 1 Ch01JournalPolicy: 5-tab Journal is hidden in B03; player reads Lan transcript via Backpack!
+                    Require(ui.GetComponentsInChildren<Button>(false).All(b =>
+                        !(b.GetComponentInChildren<Text>()?.text ?? "").Contains("Mở sổ trực đầy đủ")),
+                        "Ch01JournalPolicy keeps 5-tab Journal hidden in B03 Pocket Note");
+                    yield return Choose("Bản ghi hội thoại");
                     Require(ActivePageContains("Lan — " + Line("CH01-D04c")) &&
                             !ActivePageContains("không thấy bóng em"),
                         "Lan transcript keeps the clock line and omits the retired reflection beat");
+                    yield return Choose("Quay lại ba lô (Pocket Note)");
+                    yield return Until(() => ui.IsModal, "TranscriptPage returns cleanly to Backpack in CH01");
                     yield return Tap(Key.Escape);
                     if (ui.IsModal) yield return Tap(Key.Escape);
 

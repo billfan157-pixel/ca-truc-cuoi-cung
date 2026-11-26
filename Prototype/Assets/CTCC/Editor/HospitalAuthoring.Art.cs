@@ -394,6 +394,7 @@ namespace CTCC.Editor
                     "ObsCard", "ObsCard_Back", "Doc_Bed2Transfer", "Doc_Bed2Transfer_Back",
                     "Doc_Bed3Meds", "Doc_Bed3Meds_Back", "Doc_ShiftGuide", "Doc_ShiftGuide_Back",
                     "Doc_WardOverflow", "Doc_DutyRoster", "Doc_BayEnvelopeFront", "Doc_BayLetter", "Doc_BayLetter_Back",
+                    "Doc_BayNote", "Doc_LanLetter2005", "Doc_LanLetter2005_Back", "Doc_Newspaper2005", "Doc_KeyCTag", "Doc_PhoneScreen",
                     "Sign_NursingAlcove",
                     "BedList", "Transfer", "Drawing", "WardRules", "ChartCard",
                     "Sign_EmergencyBox", "Sign_KhuBClosed", "Sign_ReceptionWindow", "Sign_HospitalGate",
@@ -1502,7 +1503,7 @@ namespace CTCC.Editor
             CapsuleTarget("SEAM", "Thử ra cổng", new Vector3(4, 1.09f, -20.46f), new Vector3(2, 1.6f, 0.2f));
             CapsuleTarget("AN01", "Sổ trực", new Vector3(1.95f, 1.17f, -3.42f), new Vector3(0.36f, 0.23f, 0.40f));
             CapsuleTarget("BOARD", "Phiếu bàn giao 101", new Vector3(2.14f, 1.21f, -2.91f), new Vector3(0.30f, 0.30f, 0.55f));
-            CapsuleTarget("E10a", "Bì thư của Bảy", new Vector3(3.17f, 0.27f, -21.44f), new Vector3(0.43f, 0.22f, 0.44f));
+            // Core v3.6.2 (DEC-V36-CH01-01): E10a moved from ground canvas bag to the East Gate Pillar iron mailbox (MAILBOX in DressLoc01Exterior).
             CapsuleTarget("AN02", "Điểm neo phòng 101", new Vector3(6.51f, 0.55f, 5.14f), new Vector3(0.59f, 0.45f, 0.33f));
 
             // Hero Blender Wooden Clipboard F101 on Room 101 Wall
@@ -1568,6 +1569,7 @@ namespace CTCC.Editor
                 "Doc_ShiftGuide", "Doc_ShiftGuide_Back",
                 "Doc_WardOverflow", "Doc_DutyRoster", "Calendar2005",
                 "Doc_BayEnvelopeFront", "Doc_BayLetter", "Doc_BayLetter_Back",
+                "Doc_BayNote", "Doc_LanLetter2005", "Doc_LanLetter2005_Back", "Doc_Newspaper2005", "Doc_KeyCTag", "Doc_PhoneScreen",
                 "Doc_Ch05_PostedMap2005", "Doc_Ch05_AsBuilt2004_E05",
                 "BedList", "Transfer", "Drawing",
                 "DrawingPiece1", "DrawingPiece2", "DrawingPiece3"
@@ -1579,15 +1581,18 @@ namespace CTCC.Editor
             envTmpl.SetActive(false);
             var wristTmpl = PlaceBlenderModel("CTCC_PROP_WristbandC01", templates, Vector3.zero, 0f, pairRB: false);
             wristTmpl.SetActive(false);
+            var phoneTmpl = PlaceBlenderModel("CTCC_PROP_MinhPhone", templates, Vector3.zero, 0f, pairRB: false);
+            var phoneScreen = Flat("PhoneScreenFace", "Doc_PhoneScreen", new Vector3(0f, 0.022f, -0.0085f), Vector3.back, new Vector2(0.041f, 0.051f), phoneTmpl.transform);
+            if (phoneScreen != null) phoneScreen.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            phoneTmpl.SetActive(false);
             world.inspectModels = new[]
             {
                 new InspectModel { id = "E10a", template = envTmpl },
-                new InspectModel { id = "WRIST", template = wristTmpl }
+                new InspectModel { id = "WRIST", template = wristTmpl },
+                new InspectModel { id = "PHONE", template = phoneTmpl }
             };
 
-            // Bảy's Kraft Envelope + Keys resting on canvas bag beside exterior gate
-            PlaceBlenderModel("CTCC_PROP_PatientBag", permanent, new Vector3(3.17f, 0.0f, -21.44f), -28f, pairRB: false);
-            PlaceBlenderModel("CTCC_PROP_BayEnvelope", permanent, new Vector3(3.17f, 0.22f, -21.44f), 14f, pairRB: false);
+            // Ground bag & envelope at (3.17, 0, -21.44) removed per Core v3.6.2 (replaced by East Gate Pillar iron mailbox).
 
             var notice = new Vector3(5.492f, 1.92f, 5.96f);
             Sign("Form A", "FileA", notice, Vector3.left, new Vector2(0.91f, 0.34f), statusAObj.transform);

@@ -22,22 +22,56 @@ namespace CTCC
         {
             public string id, chapter, speaker, displaySpeaker, context, presentationMode;
             public bool needsVO, showSpeakerPrefix, isItalicSilentThought;
-            public string runtimeCopy, legacyCopy, uiAudioRule;
+            public string runtimeCopy, legacyCopy, pocketNoteText, stageDirection, timecodeCard, uiAudioRule;
             public string copy;
             public DialogueVariant[] variants;
+        }
+        [Serializable] private sealed class AmbientBarkEntry
+        {
+            public string id, channel, speaker, trigger, copy;
+        }
+        [Serializable] private sealed class SilentThoughtUiSpec
+        {
+            public bool playVO, showSpeakerPrefix, textShadow, respectsFontScaling, routeToTranscriptHistory;
+            public string fontStyle, colorHex, scrimColorHex, accessibilitySettingToggle, position, durationScaleSettingKey;
+            public float scrimAlpha, highContrastBoxAlpha, minContrastRatioWCAG, fadeInSec, holdSecMin, holdSecMax, fadeOutSec;
+            public float autoScaleWhenLargePrint, holdSecMaxWithExtendedScale;
+            public float[] durationScaleOptions;
+        }
+        [Serializable] private sealed class UiPresentationSpecDto
+        {
+            public SilentThoughtUiSpec INNER_SUB_SILENT;
+        }
+        [Serializable] private sealed class Ch01WorldFirstDto
+        {
+            public string scope, source, smsAppointmentPropCopy, smsPostponementPropCopy, mailboxNotePropCopy;
+            public string gateInContract, mailboxPickupContract, e10aRecoveryContract, exitBoundaryPrototype, obs101AContract;
+            public bool pocketNoteReadOnly, mandatoryJournalGameplay, legacyDialogueIdsPreserved, propCopyNotDialogue;
+            public bool requiresRuntimeIntegration, task02HardGate, schemaCompatibilityUnverified;
         }
         [Serializable] private sealed class DialogueSheet
         {
             public string schemaVersion;
+            public string designRevision;
             public string decisionRef;
+            public UiPresentationSpecDto uiPresentationSpec;
+            public AmbientBarkEntry[] ambientBarks;
+            public Ch01WorldFirstDto ch01WorldFirst;
             public string sourceRevision;
             public string sourceFile;
             public string sourceSha256;
             public DialogueEntry[] entries;
             public DialogueCondition[] conditions;
         }
+        private string dialogueSchemaVersion = "";
+        private string dialogueDesignRevision = "";
+        private string dialogueDecisionRef = "";
         private string dialogueSourceRevision = "";
         private string dialogueSourceSha256 = "";
+        private UiPresentationSpecDto dialogueUiSpec;
+        private AmbientBarkEntry[] ambientBarks = Array.Empty<AmbientBarkEntry>();
+        private Ch01WorldFirstDto ch01WorldFirst;
+        private int canonicalDialogueCount;
         private readonly Dictionary<string, DialogueEntry> dialogue = new();
         private readonly Dictionary<string, DialogueCondition> revealConditions = new();
         private readonly Queue<string> staffReactions = new();
@@ -114,10 +148,22 @@ namespace CTCC
 
             var lineSheet = Resources.Load<TextAsset>("CTCC/Dialogue");
             var sheet = JsonUtility.FromJson<DialogueSheet>(lineSheet.text);
+            dialogueSchemaVersion = sheet.schemaVersion ?? "";
+            dialogueDesignRevision = sheet.designRevision ?? "";
+            dialogueDecisionRef = sheet.decisionRef ?? "";
+            dialogueUiSpec = sheet.uiPresentationSpec;
+            ambientBarks = sheet.ambientBarks ?? Array.Empty<AmbientBarkEntry>();
+            ch01WorldFirst = sheet.ch01WorldFirst;
             dialogueSourceRevision = sheet.sourceRevision ?? "";
             dialogueSourceSha256 = sheet.sourceSha256 ?? "";
+            canonicalDialogueCount = sheet.entries != null ? sheet.entries.Length : 0;
             foreach (var entry in sheet.entries)
+            {
+                if (string.IsNullOrEmpty(entry.copy))
+                    entry.copy = !string.IsNullOrWhiteSpace(entry.runtimeCopy) ? entry.runtimeCopy
+                        : (!string.IsNullOrWhiteSpace(entry.pocketNoteText) ? entry.pocketNoteText : (entry.legacyCopy ?? ""));
                 dialogue.Add(entry.id, entry);
+            }
             // DEC-VO-01 groups D10/D11/D12 and D13/D14 into one source row with explicit variants.
             // Expand the variants into stable IDs so existing beat/transcript references keep working.
             foreach (var entry in sheet.entries)
@@ -127,6 +173,7 @@ namespace CTCC
             AddDialogueAlias("CH01-D14", "CH01-D13", 2);
             foreach (var condition in sheet.conditions)
                 revealConditions.Add(condition.id, condition);
+            ValidateDialogueRuntimeContract(throwOnError: false);
 
             qaFolder = Argument("-ctcc-qa");
             if (Argument("-ctcc-benchmark") != null) benchmarkAwakeQpc = PerformanceCounter();
@@ -338,6 +385,8 @@ namespace CTCC
         {
             if (bootReady && (staffReactionCaption != null || staffReactions.Count > 0))
             {
+                if (staffReactionCaption != null && !ui.IsShowingCaption(staffReactionCaption))
+                    staffReactionCaption = null;
                 bool inContext = StaffReactionContext();
                 if (!inContext) staffReactions.Clear();
                 if (!inContext || ui.IsModal) CancelStaffReaction();
@@ -368,6 +417,11 @@ namespace CTCC
             if (keys[Options.alternateBindings ? Key.J : Key.Tab].wasPressedThisFrame)
             {
                 OpenBackpack();
+                return;
+            }
+            if (keys.pKey.wasPressedThisFrame)
+            {
+                OpenPhone();
                 return;
             }
             if (keys.hKey.wasPressedThisFrame && InventoryService.GetEquipped(State) != null)
@@ -484,8 +538,7 @@ namespace CTCC
                     scene.atmosphere?.From("slippers", slipperPosition);
                     string direction = scene.atmosphere?.DirectionTo(slipperPosition) ?? "phía phòng 101";
                     anDirector?.PlaySlipperGlimpse(Options.reduceMotion);
-                    voice?.Speak("CH02-D02", "Minh", Line("CH02-D02"),
-                        directionalPrefix: $"[Tiếng dép tổ ong · {direction} · phòng 101]");
+                    PresentLine("CH02-D02", directionalPrefix: $"[Tiếng dép tổ ong · {direction} · phòng 101]");
                 });
                 return;
             }
@@ -689,8 +742,10 @@ namespace CTCC
             {
                 RestoreJournal(State);
                 if (!StaffReactionContext() || ui.IsModal || voice.IsSpeaking || lanDirector.IsEncounterRunning) return;
+                bool isSilent = dialogue.TryGetValue(lineId, out var staffEntry) &&
+                    ParsePresentationMode(staffEntry.presentationMode) == DialoguePresentationMode.INNER_SUB_SILENT;
                 staffReactionCaption = copy;
-                PresentLine(lineId, 1, "STAFF", onComplete: _ => staffReactionCaption = null);
+                PresentLine(lineId, 1, "STAFF", onComplete: isSilent ? null : (_ => staffReactionCaption = null));
             });
             return true;
         }
@@ -699,6 +754,7 @@ namespace CTCC
         {
             if (staffReactionCaption == null) return;
             ui.ClearCaption(staffReactionCaption);
+            staffReactionCaption = null;
             voice.StopCurrent();
         }
 
@@ -729,8 +785,9 @@ namespace CTCC
         {
             if (State.chapter == "CH01")
             {
-                if (!State.Happened("E10a.SMSRead")) return "Kiểm tra bì thư của Bảy đặt trên túi vải cạnh xe máy để đọc tin nhắn và rút chìa khóa.";
-                if (!State.Happened("CH01-T02")) return "Dùng chìa cổng phụ đã rút từ bì thư để mở cổng sắt phía trước.";
+                if (!State.Happened(E10aParts.MailboxPickedUp))
+                    return "Mở hộp thư sắt gắn ở trụ cổng bên phải để lấy chìa cổng phụ và gói tài liệu E10a (hoặc nhấn [P] xem SMS của chú Bảy).";
+                if (!State.Happened("CH01-T02")) return "Dùng chìa cổng phụ đang cầm trên tay để mở khóa cổng sắt phía trước.";
                 if (!State.Happened("CH01-T03")) return "Qua sân vào sảnh và giở sổ trực trên quầy tiếp nhận.";
                 if (!State.Happened("CH01-T04")) return "Lại gần quầy và nhấn tương tác để nói chuyện với Lan.";
                 if (!State.Happened("CH01-T05")) return "Xem và nhận bảng kẹp phân công phòng 101 đặt trên mặt quầy lễ tân.";
@@ -759,6 +816,7 @@ namespace CTCC
         {
             "CHAIR-STAFF" => State.chapter == "CH01",
             "GATE-CONG" => !State.Happened("CH01-T02"),
+            "MAILBOX" => State.chapter == "CH01" && State.layer == Reality.R,
             "SEAM" => State.Happened("CH01-T08"),
             "AN01" => State.Happened("CH01-T02") && !(F101SignaturePlaying && NeedsHub()),
             "BOARD" => State.layer == Reality.B && State.chapter == "CH01" && State.Happened("CH01-T03") && !State.Happened("CH01-T05"),
@@ -839,6 +897,9 @@ namespace CTCC
                 case "SEAM":
                     ExecuteB07GateAttempt();
                     break;
+                case "MAILBOX":
+                    InteractGateMailbox(source);
+                    break;
                 case "E10a": Letter(source); break;
                 case "LAN_TALK":
                     SpeakAtReception();
@@ -860,7 +921,8 @@ namespace CTCC
                     break;
                 case "AN01":
                     if (NeedsHub() && State.chapter == "CH01") Hub(source);
-                    else Journal();
+                    else if (IsJournalAllowedOnAn01) Journal();
+                    else OpenAn01ReadOnlyInCh01();
                     break;
                 case "F101":
                     if (State.layer == Reality.B) WorldF101(source);
@@ -1089,7 +1151,7 @@ namespace CTCC
                     WritePlaytestTelemetryIfEnabled();
                     ui.ShowChapterCard("CHƯƠNG 02  ·  LỚP R / B", "PHÒNG BỆNH TRỐNG", 4.6f);
                     scene.atmosphere?.From("phoneBuzz", scene.PhoneAnchor != null ? scene.PhoneAnchor.transform.position : new Vector3(1.8f, 1.2f, -3.2f));
-                    voice?.Speak("CH02-D01", "Minh", Line("CH02-D01"));
+                    PresentLine("CH02-D01");
                 }
             });
         }
@@ -1294,7 +1356,10 @@ namespace CTCC
 
         private bool MayDeliver(string id, string beat)
         {
-            if (string.IsNullOrEmpty(id) || !dialogue.ContainsKey(id)) return false;
+            if (string.IsNullOrEmpty(id) || !dialogue.TryGetValue(id, out var dEntry)) return false;
+            if (dEntry.chapter is ("CH06" or "CH07" or "CH08") &&
+                !string.Equals(State?.chapter, dEntry.chapter, StringComparison.Ordinal))
+                return false;
             if (beat == "STAFF" && !StaffReactionContext()) return false;
             return !revealConditions.TryGetValue(id, out var condition) || condition.Allows(State, beat);
         }
@@ -1309,7 +1374,10 @@ namespace CTCC
         {
             if (!dialogue.TryGetValue(id, out var entry)) return (null, null);
             string speaker = string.IsNullOrEmpty(entry.displaySpeaker) ? entry.speaker : entry.displaySpeaker;
-            return (speaker, Line(id));
+            string text = Line(id);
+            if (string.IsNullOrWhiteSpace(text) && !string.IsNullOrWhiteSpace(entry.pocketNoteText))
+                text = entry.pocketNoteText;
+            return (speaker, text);
         }
 
         private string Line(string id, int ordinal = 1) => LineAtBeat(id, ordinal, null);
@@ -1350,7 +1418,7 @@ namespace CTCC
                     runtimeCopy = variant.runtimeCopy,
                     legacyCopy = entry.legacyCopy,
                     uiAudioRule = variant.uiAudioRule,
-                    copy = entry.copy,
+                    copy = !string.IsNullOrWhiteSpace(variant.runtimeCopy) ? variant.runtimeCopy : entry.copy,
                     variants = Array.Empty<DialogueVariant>(),
                 });
             }
@@ -1410,7 +1478,100 @@ namespace CTCC
             bool prefix = variant?.showSpeakerPrefix ?? entry.showSpeakerPrefix;
             bool italic = variant?.isItalicSilentThought ?? entry.isItalicSilentThought;
             voice?.Present(id, speaker, text, mode, spatialAnchor, speakerActor, directionalPrefix,
-                onComplete, essential, beat, prefix, italic);
+                onComplete, essential, beat, prefix, italic, pocketNoteText: entry.pocketNoteText);
+        }
+
+        internal bool ValidateDialogueRuntimeContract(bool throwOnError, out string report)
+        {
+            var issues = new List<string>();
+            if (!string.Equals(dialogueDesignRevision, "3.6.2-documentation-consolidation", StringComparison.Ordinal))
+                issues.Add($"designRevision='{dialogueDesignRevision}' (expected 3.6.2-documentation-consolidation)");
+            if (canonicalDialogueCount != 143)
+                issues.Add($"canonicalDialogueCount={canonicalDialogueCount} (expected 143)");
+            if (ambientBarks == null || ambientBarks.Length != 14)
+                issues.Add($"ambientBarks={ambientBarks?.Length ?? 0} (expected 14)");
+            if (ch01WorldFirst == null || ch01WorldFirst.mandatoryJournalGameplay || !ch01WorldFirst.pocketNoteReadOnly || ch01WorldFirst.task02HardGate)
+                issues.Add("ch01WorldFirst metadata missing or mismatched");
+            if (dialogueUiSpec?.INNER_SUB_SILENT == null ||
+                !string.Equals(dialogueUiSpec.INNER_SUB_SILENT.colorHex, "#F4F1E8", StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(dialogueUiSpec.INNER_SUB_SILENT.scrimColorHex, "#101414", StringComparison.OrdinalIgnoreCase) ||
+                Mathf.Abs(dialogueUiSpec.INNER_SUB_SILENT.scrimAlpha - 0.56f) > 0.02f)
+                issues.Add("uiPresentationSpec.INNER_SUB_SILENT WCAG AA spec missing or mismatched");
+
+            int cutToJournalCount = 0;
+            int cutWithNoteCount = 0;
+            foreach (var kv in dialogue)
+            {
+                var e = kv.Value;
+                if (e == null) continue;
+                if (!string.IsNullOrWhiteSpace(e.stageDirection) && !string.IsNullOrWhiteSpace(e.runtimeCopy) &&
+                    e.runtimeCopy.Contains(e.stageDirection, StringComparison.Ordinal))
+                    issues.Add($"stageDirection leaked into runtimeCopy for {e.id}");
+                if (e.presentationMode == "CUT_TO_JOURNAL")
+                {
+                    cutToJournalCount++;
+                    if (!string.IsNullOrWhiteSpace(e.pocketNoteText)) cutWithNoteCount++;
+                }
+                if (voice != null && !e.needsVO && voice.HasLoadedClipRaw(e.id))
+                    issues.Add($"Forbidden non-VO WAV loaded into build for {e.id} ({e.presentationMode})");
+            }
+            if (cutToJournalCount < 12 || cutWithNoteCount < 12)
+                issues.Add($"CUT_TO_JOURNAL pocketNoteText incomplete ({cutWithNoteCount}/{cutToJournalCount})");
+
+            report = issues.Count == 0
+                ? $"VAL-V3-01 PASS: rev={dialogueDesignRevision}, rows={canonicalDialogueCount}, barks={ambientBarks.Length}, cutNotes={cutWithNoteCount}/{cutToJournalCount}"
+                : "VAL-V3-01 FAIL: " + string.Join("; ", issues);
+            if (issues.Count > 0)
+            {
+                if (throwOnError) throw new InvalidOperationException(report);
+                Debug.LogWarning("CTCC " + report);
+            }
+            return issues.Count == 0;
+        }
+
+        private void ValidateDialogueRuntimeContract(bool throwOnError) => ValidateDialogueRuntimeContract(throwOnError, out _);
+
+        private string BuildPocketNoteWithCutToJournalEntries(Investigation state)
+        {
+            string baseNote = PocketNoteBuilder.BuildEpistemicSummary(state);
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var notes = new List<string>();
+            void Collect(IEnumerable<TranscriptEntry> source)
+            {
+                if (source == null) return;
+                foreach (var t in source)
+                {
+                    if (string.IsNullOrEmpty(t.LineId) || !seen.Add(t.LineId)) continue;
+                    if (dialogue.TryGetValue(t.LineId, out var entry) && entry.presentationMode == "CUT_TO_JOURNAL" && !string.IsNullOrWhiteSpace(t.Text))
+                        notes.Add("• " + t.Text);
+                }
+            }
+            Collect(state?.transcript);
+            if (ReferenceEquals(state, State)) Collect(voice?.Transcript);
+            if (notes.Count == 0) return baseNote;
+            return baseNote + "\n\nGhi nhận trong không gian:\n" + string.Join("\n", notes);
+        }
+
+        private string ResolveCh01ObjectiveHud()
+        {
+            // Core v3.6.2: drive CH01 HUD objective from canonical Dialogue.json CH01-OBJ01–05 & CH01-OBJ06 entries.
+            string obj06 = dialogue.TryGetValue("CH01-OBJ06", out var o6) && !string.IsNullOrWhiteSpace(o6.runtimeCopy)
+                ? o6.runtimeCopy : "Tìm lối ra.";
+            if (State.Happened("CH01-T09"))
+                return obj06;
+
+            string[] steps = null;
+            if (dialogue.TryGetValue("CH01-OBJ01–05", out var o15) && !string.IsNullOrWhiteSpace(o15.runtimeCopy))
+                steps = o15.runtimeCopy.Split(new[] { '→' }, StringSplitOptions.RemoveEmptyEntries);
+
+            string StepAt(int idx, string fallback) =>
+                steps != null && idx >= 0 && idx < steps.Length ? steps[idx].Trim().TrimEnd('.') + "." : fallback;
+
+            if (!State.Happened("CH01-T02")) return StepAt(0, "Đến An Sinh.");
+            if (!State.Happened("CH01-T05")) return StepAt(1, "Tìm người đã hẹn.");
+            if (!GateService.G01(State)) return StepAt(2, "Kiểm tra phòng 101.");
+            if (!State.Happened("CH01-T08")) return StepAt(3, "Mang phiếu về bàn trực.");
+            return StepAt(4, "Thử ra cổng.");
         }
 
         internal DialoguePresentationMode PresentationModeOf(string id, string beat = null)
@@ -1448,7 +1609,7 @@ namespace CTCC
         private void RefreshObjective()
         {
             string task = State.chapter == "CH01"
-                ? !State.Happened("E10a.SMSRead") ? "Đọc bì thư và tin nhắn của Bảy."
+                ? !State.Happened(E10aParts.MailboxPickedUp) ? "Lấy chìa cổng và gói E10a trong hộp thư ngoài trụ cổng."
                 : !State.Happened("CH01-T02") ? "Mở cổng phụ."
                 : !State.Happened("CH01-T03") ? "Tới bàn trực phía trong sảnh."
                 : !State.Happened("CH01-T04") ? "Nói chuyện với Lan tại quầy tiếp nhận."
@@ -1456,7 +1617,7 @@ namespace CTCC
                 : !GateService.G01(State) ? "Kiểm tra phòng 101 và xử lý phiếu."
                 : !State.Happened("CH01-T08") ? "Mang phiếu về sổ trực."
                 : !State.Happened("CH01-T09") ? "Thử ra cổng phụ."
-                : "Trở lại sổ trực."
+                : "Tìm lối ra."
                 : State.chapter == "CH03"
                 ? !State.Has("E03") ? "Đi qua trạm khu B lên kho hồ sơ tầng 3. Tìm sổ trên bàn đọc."
                 : !GateService.G03(State) ? "Đối chiếu sổ bàn giao, ghi chú và túi len tại bàn đọc."
@@ -1496,9 +1657,7 @@ namespace CTCC
             }
             string layerLabel = State.layer == Reality.M ? "M  ·  LỚP KÝ ỨC"
                 : State.layer == Reality.B ? "B  ·  BẢN BÁO CÁO 2005" : "R  ·  HIỆN TRƯỜNG 2012";
-            string hudLine = Options.hintsEnabled && State.chapter != "CH01"
-                ? task
-                : State.chapter == "CH01" ? "Người trở về" : task;
+            string hudLine = State.chapter == "CH01" ? ResolveCh01ObjectiveHud() : task;
             ui.Hud(layerLabel, hudLine);
         }
     }

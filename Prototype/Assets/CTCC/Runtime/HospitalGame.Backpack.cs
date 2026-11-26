@@ -215,6 +215,24 @@ namespace CTCC
                         DrawBackpack();
                     }));
                 }
+                else if (selectedDef.Id == BackpackCatalog.MinhPhone)
+                {
+                    sb.Append(State.Happened(E10aParts.PostponementSms)
+                        ? "\n\n✓ Đã đọc tin nhắn báo hoãn (22:48) của chú Bảy."
+                        : "\n\n• Có 2 tin nhắn từ chú Bảy chưa mở đọc (16/11 và 22:48).");
+                    if (State.Happened(E10aParts.PhoneCalledBay))
+                        sb.Append("\n✓ Đã thử gọi chú Bảy (không bắt máy).");
+                    actions.Add(new ActionChoice("Mở điện thoại (SMS & Gọi chú Bảy)", () =>
+                    {
+                        backpackStage?.Close();
+                        OpenPhone(0, returnToBackpack: true);
+                    }));
+                    actions.Add(new ActionChoice("Xem SMS hẹn hôm 16/11", () =>
+                    {
+                        backpackStage?.Close();
+                        OpenPhone(1, returnToBackpack: true);
+                    }));
+                }
                 else
                 {
                     if (selectedEntry != null && selectedEntry.status == BackpackItemStatus.Placed)
@@ -346,7 +364,13 @@ namespace CTCC
 
                         if (selectedDef.Id == BackpackCatalog.E10aEnvelope)
                         {
-                            actions.Add(new ActionChoice("Mở bì thư E10a", () =>
+                            int partsRead = E10aParts.ReadCount(State);
+                            sb.Append($"\n\nTiến độ đọc tài liệu trong gói: {partsRead}/4 mục")
+                              .Append(State.Happened(E10aParts.SignedAppointment) ? "\n✓ Giấy nhắn ngoài bì (Bảy)" : "\n• Chưa đọc giấy nhắn ngoài bì")
+                              .Append(State.Happened(E10aParts.Letter) ? "\n✓ Thư cũ của Lan (2005)" : "\n• Chưa đọc thư cũ của Lan")
+                              .Append(State.Happened(E10aParts.PublicReportSummary) ? "\n✓ Mẩu báo vụ cháy 18/11/2005" : "\n• Chưa đọc mẩu báo 18/11/2005")
+                              .Append(State.Happened(E10aParts.PostponementSms) ? "\n✓ Tin nhắn SMS hoãn 22:48 (trên điện thoại)" : "\n• Tin nhắn SMS hoãn 22:48 (xem trên điện thoại [P])");
+                            actions.Add(new ActionChoice("Mở gói tài liệu E10a", () =>
                             {
                                 backpackStage?.Close();
                                 Letter(null, returnToBackpack: true);
@@ -460,12 +484,15 @@ namespace CTCC
                     }
                 }
 
-                actions.Add(new ActionChoice("Mở sổ ghi chép đầy đủ", () =>
+                if (IsJournalAllowedInBackpack)
                 {
-                    backpackStage?.Close();
-                    journalReturn = () => OpenBackpack(BackpackCompartment.Papers);
-                    DrawJournal(JournalTab.Documents, pageTurn: !Options.reduceMotion);
-                }));
+                    actions.Add(new ActionChoice("Mở sổ ghi chép đầy đủ", () =>
+                    {
+                        backpackStage?.Close();
+                        journalReturn = () => OpenBackpack(BackpackCompartment.Papers);
+                        DrawJournal(JournalTab.Documents, pageTurn: !Options.reduceMotion);
+                    }));
+                }
             }
             else
             {
@@ -479,12 +506,15 @@ namespace CTCC
                         DrawBackpack();
                     }));
                 }
-                entries.Add(new NotebookEntry("Mở sổ trực đầy đủ (5 mục)", () =>
+                if (IsJournalAllowedInBackpack)
                 {
-                    backpackStage?.Close();
-                    journalReturn = () => OpenBackpack(BackpackCompartment.PocketNote);
-                    DrawJournal(JournalTab.Field, pageTurn: !Options.reduceMotion);
-                }));
+                    entries.Add(new NotebookEntry("Mở sổ trực đầy đủ (5 mục)", () =>
+                    {
+                        backpackStage?.Close();
+                        journalReturn = () => OpenBackpack(BackpackCompartment.PocketNote);
+                        DrawJournal(JournalTab.Field, pageTurn: !Options.reduceMotion);
+                    }));
+                }
                 if (voice != null && voice.Transcript.Count > 0)
                     entries.Add(new NotebookEntry("Bản ghi hội thoại", () => { backpackStage?.Close(); TranscriptPage(); }));
 
@@ -495,20 +525,31 @@ namespace CTCC
                 else
                 {
                     title = "Pocket Note · Ghi nhớ của Minh";
-                    body = PocketNoteBuilder.BuildEpistemicSummary(State);
-                    actions.Add(new ActionChoice("Mở sổ ghi chép & đối chiếu", () =>
+                    body = BuildPocketNoteWithCutToJournalEntries(State);
+                    if (voice != null && voice.Transcript.Count > 0)
                     {
-                        backpackStage?.Close();
-                        journalReturn = () => OpenBackpack(BackpackCompartment.PocketNote);
-                        DrawJournal(JournalTab.Field, pageTurn: !Options.reduceMotion);
-                    }));
-                    if (State.f101.revision > 0)
-                        actions.Add(new ActionChoice("Xem lịch sử quyết định F101", () =>
+                        actions.Add(new ActionChoice("Xem bản ghi hội thoại & ghi nhớ", () =>
+                        {
+                            backpackStage?.Close();
+                            TranscriptPage();
+                        }));
+                    }
+                    if (IsJournalAllowedInBackpack)
+                    {
+                        actions.Add(new ActionChoice("Mở sổ ghi chép & đối chiếu", () =>
                         {
                             backpackStage?.Close();
                             journalReturn = () => OpenBackpack(BackpackCompartment.PocketNote);
-                            DrawJournal(JournalTab.Decisions, pageTurn: !Options.reduceMotion);
+                            DrawJournal(JournalTab.Field, pageTurn: !Options.reduceMotion);
                         }));
+                        if (State.f101.revision > 0)
+                            actions.Add(new ActionChoice("Xem lịch sử quyết định F101", () =>
+                            {
+                                backpackStage?.Close();
+                                journalReturn = () => OpenBackpack(BackpackCompartment.PocketNote);
+                                DrawJournal(JournalTab.Decisions, pageTurn: !Options.reduceMotion);
+                            }));
+                    }
                 }
             }
 

@@ -822,8 +822,10 @@ namespace CTCC.Editor
             bus.partitionKnock = Clip("PartitionKnock");
             bus.lanMotif = Clip("MUS_LanMotif");
 
-            // Load canonical Vietnamese Temp VO clips (TASK009-B) with hard LOCK-V22-02 filter
+            // Load canonical Vietnamese Temp VO clips (TASK009-B) with hard LOCK-V22-02 & DEC-VO-01 needsVO filter!
+            var allowedVoIds = LoadAllowedVoIdsFromDialogueJson();
             var voList = new List<VoiceClipEntry>();
+            int skippedNonVo = 0;
             string voDir = audioPath + "VO/";
             if (Directory.Exists(voDir))
             {
@@ -831,12 +833,17 @@ namespace CTCC.Editor
                 {
                     string id = Path.GetFileNameWithoutExtension(wav);
                     if (id == "CH01-D16b" || id == "CH04-D06") continue;
+                    if (allowedVoIds.Count > 0 && !allowedVoIds.Contains(id))
+                    {
+                        skippedNonVo++;
+                        continue;
+                    }
                     var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(wav.Replace('\\', '/'));
                     if (clip != null) voList.Add(new VoiceClipEntry { id = id, clip = clip });
                 }
             }
             bus.voiceClips = voList.ToArray();
-            Debug.Log($"CTCC_AUDIO_WIRED {voList.Count} VO clips, lanMotif={(bus.lanMotif != null)}");
+            Debug.Log($"CTCC_AUDIO_WIRED {voList.Count} VO clips (DEC-VO-01 filtered out {skippedNonVo} non-VO WAVs), lanMotif={(bus.lanMotif != null)}");
 
             void AddReverb(string rName, Vector3 pos, float minD, float maxD, AudioReverbPreset preset)
             {
@@ -851,6 +858,63 @@ namespace CTCC.Editor
             AddReverb("Reverb · Emergency Bay", new Vector3(4.00f, 1.65f, 19.0f), 2.5f, 6.2f, AudioReverbPreset.Hallway);
 
             return bus;
+        }
+
+        [Serializable]
+        private sealed class DialogueFilterVariant
+        {
+            public string variantId;
+            public bool needsVO;
+        }
+
+        [Serializable]
+        private sealed class DialogueFilterEntry
+        {
+            public string id;
+            public bool needsVO;
+            public DialogueFilterVariant[] variants;
+        }
+
+        [Serializable]
+        private sealed class DialogueFilterSheet
+        {
+            public DialogueFilterEntry[] entries;
+        }
+
+        /// <summary>
+        /// Core v3.6.2 (DEC-VO-01 / D6): Only audio clips explicitly flagged needsVO=true in Dialogue.json
+        /// may be wired into the build, excluding all 9 forbidden CH01 WAVs and 4 forbidden CH02-03 WAVs.
+        /// </summary>
+        private static HashSet<string> LoadAllowedVoIdsFromDialogueJson()
+        {
+            var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            string jsonPath = Root + "/Art/Resources/CTCC/Dialogue.json";
+            if (!File.Exists(jsonPath))
+                return allowed;
+            var sheet = JsonUtility.FromJson<DialogueFilterSheet>(File.ReadAllText(jsonPath));
+            if (sheet?.entries == null)
+                return allowed;
+            foreach (var entry in sheet.entries)
+            {
+                if (entry == null) continue;
+                if (entry.variants != null && entry.variants.Length > 0)
+                {
+                    foreach (var v in entry.variants)
+                    {
+                        if (v != null && v.needsVO && !string.IsNullOrEmpty(v.variantId))
+                            allowed.Add(v.variantId);
+                    }
+                    // Also honor top-level ID if any variant uses the parent ID with needsVO=true
+                    if (entry.needsVO && !string.IsNullOrEmpty(entry.id) &&
+                        !Array.Exists(entry.variants, v => v != null && v.variantId == entry.id && !v.needsVO))
+                        allowed.Add(entry.id);
+                }
+                else if (entry.needsVO && !string.IsNullOrEmpty(entry.id))
+                {
+                    allowed.Add(entry.id);
+                }
+            }
+            return allowed;
         }
     }
 }

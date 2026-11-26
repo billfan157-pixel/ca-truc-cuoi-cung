@@ -59,6 +59,49 @@ namespace CTCC.Editor
             Sign("Night gate notice plaque", "Sign_NightGate", new Vector3(5.38f, 1.50f, -20.19f), Vector3.back,
                 new Vector2(0.74f, 0.24f), perm, metalBacking: true);
 
+            // Core v3.6.2 (DEC-V36-CH01-01 / D4): Exterior iron hospital mailbox mounted flush on the South face (-Z)
+            // of the East Gate Pillar (x in [5.20..5.52], south face z = -20.17). Strictly clear of gate opening [2.80..5.20].
+            var mailbox = PlaceBlenderModel("CTCC_PROP_GateMailbox", perm, new Vector3(5.36f, 1.12f, -20.24f), 0f, pairRB: false);
+            if (mailbox.transform.childCount > 0)
+            {
+                var prefabRoot = mailbox.transform.GetChild(0).gameObject;
+                if (PrefabUtility.IsPartOfAnyPrefab(prefabRoot))
+                    PrefabUtility.UnpackPrefabInstance(prefabRoot, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            }
+            var mailboxColGo = Box("Gate mailbox collider", new Vector3(5.36f, 1.12f, -20.24f), new Vector3(0.26f, 0.34f, 0.14f),
+                Mat("MetalOld"), perm, solid: true);
+            mailboxColGo.GetComponent<Renderer>().enabled = false;
+            var mailboxLidTf = FindDescendant(mailbox.transform, "MailboxLid");
+            var mailboxPkgTf = FindDescendant(mailbox.transform, "MailboxPackageVisual");
+            Transform mailboxLidPivot = null;
+            if (mailboxLidTf != null)
+            {
+                var lidRend = mailboxLidTf.GetComponentInChildren<Renderer>(true);
+                Vector3 hingeWorld = lidRend != null
+                    ? new Vector3(lidRend.bounds.max.x, lidRend.bounds.center.y, lidRend.bounds.min.z)
+                    : new Vector3(5.48f, 1.10f, -20.305f);
+                mailboxLidPivot = new GameObject("MailboxLidPivot").transform;
+                mailboxLidPivot.SetParent(mailbox.transform.parent, false);
+                mailboxLidPivot.position = hingeWorld;
+                mailboxLidPivot.rotation = Quaternion.identity;
+                mailboxLidTf.SetParent(mailboxLidPivot, true);
+            }
+            if (loc01 != null)
+            {
+                loc01.region.mailboxLidPivot = mailboxLidPivot;
+                loc01.region.mailboxPackageVisual = mailboxPkgTf != null ? mailboxPkgTf.gameObject : null;
+            }
+            var mailboxMarker = CapsuleTarget("MAILBOX", "Hộp thư cũ cạnh trụ cổng",
+                new Vector3(5.36f, 1.12f, -20.30f), new Vector3(0.36f, 0.44f, 0.24f), perm);
+            mailboxMarker.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            var mailboxTarget = mailboxMarker.GetComponent<SceneTarget>();
+            mailboxTarget.handhold = mailboxMarker.transform;
+            mailboxTarget.visibilitySurface = mailboxColGo.GetComponent<Collider>();
+            mailboxTarget.frontOnly = true;
+            // Subtle warm grazing catch-light on the mailbox & night gate notice so B01 pickup is clearly readable in monsoon night!
+            Lamp("Mailbox warm rim R", LightType.Point, new Vector3(5.36f, 1.38f, -20.72f), 0.72f, 2.2f,
+                new Color(0.98f, 0.80f, 0.52f), perm);
+
             // Freestanding An Sinh Hospital 6-Block Campus Wayfinding Directory Board on west courtyard flank
             // Placed cleanly at x=-3.65, z=-14.8 (well outside walking axis x=[1.5..6.5] and clear of terrazzo benches at x=-1.35!)
             var mapBoard = Group("Campus wayfinding directory board", perm, new Vector3(-3.65f, 0f, -14.8f));

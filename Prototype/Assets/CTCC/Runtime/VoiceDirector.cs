@@ -72,6 +72,9 @@ namespace CTCC
         public IReadOnlyList<TranscriptEntry> Transcript => transcript;
         public bool IsSpeaking => activeRoutine != null;
         internal bool IsPaused => paused;
+        internal int NonVoAudioPlayCount { get; private set; }
+        internal IReadOnlyCollection<string> LoadedClipIds => clipMap.Keys;
+        internal bool HasLoadedClipRaw(string lineId) => !string.IsNullOrEmpty(lineId) && clipMap.ContainsKey(lineId);
 
         public void Initialize(VoiceClipEntry[] voiceEntries, AudioClip lanMotif, EnvironmentalAudio envAudio,
             HospitalUI hud, Func<string, string, bool> mayDeliver)
@@ -204,26 +207,34 @@ namespace CTCC
 
         /// <summary>
         /// DEC-VO-01 router. VO_DIALOGUE and VO_REACTION_SFX play an AudioClip plus a subtitle;
-        /// INNER_SUB_SILENT never touches the AudioBus and renders an italic silent thought;
-        /// CUT_TO_JOURNAL stays out of the HUD and only updates the journal/transcript.
+        /// INNER_SUB_SILENT never touches the AudioBus and renders an italic silent thought with WCAG AA scrim;
+        /// CUT_TO_JOURNAL stays out of the HUD and routes pocketNoteText (12/12 lines) into Pocket Note / Transcript.
         /// </summary>
         public void Present(string lineId, string speakerLabel, string text, DialoguePresentationMode mode,
             AudioSource spatialAnchor = null, CharacterActor speakerActor = null, string directionalPrefix = null,
             Action<bool> onComplete = null, bool essential = true, string beat = null,
-            bool showSpeakerPrefix = true, bool italic = false)
+            bool showSpeakerPrefix = true, bool italic = false, string pocketNoteText = null)
         {
-            if (!mayDeliver(lineId, beat) || string.IsNullOrWhiteSpace(text))
+            if (mode == DialoguePresentationMode.CUT_TO_JOURNAL)
             {
-                onComplete?.Invoke(false);
+                if (!mayDeliver(lineId, beat))
+                {
+                    onComplete?.Invoke(false);
+                    return;
+                }
+                // Core v3.6.2 DEC-VO-01: no HUD, no VO — route canonical pocketNoteText into Pocket Note / Transcript.
+                string note = !string.IsNullOrWhiteSpace(pocketNoteText)
+                    ? pocketNoteText
+                    : (!string.IsNullOrWhiteSpace(text) && !text.StartsWith("[ẨN", StringComparison.Ordinal) ? text : "");
+                if (!string.IsNullOrWhiteSpace(note))
+                    RecordTranscriptOnly(lineId, string.IsNullOrEmpty(speakerLabel) ? "Ghi nhớ" : speakerLabel, note, beat);
+                onComplete?.Invoke(true);
                 return;
             }
 
-            if (mode == DialoguePresentationMode.CUT_TO_JOURNAL)
+            if (!mayDeliver(lineId, beat) || string.IsNullOrWhiteSpace(text))
             {
-                // Core 06: no HUD, no VO. A real (non-hidden) line may still enter the transcript.
-                if (!text.StartsWith("[ẨN", StringComparison.Ordinal))
-                    RecordTranscriptOnly(lineId, speakerLabel, text, beat);
-                onComplete?.Invoke(true);
+                onComplete?.Invoke(false);
                 return;
             }
 
@@ -236,8 +247,8 @@ namespace CTCC
 
             if (mode == DialoguePresentationMode.INNER_SUB_SILENT)
             {
-                // Silent thought is text-only and never blocks player control.
-                RecordTranscriptOnly(lineId, speakerLabel, text, beat);
+                // Silent thought is text-only and never blocks player control or touches AudioBus.
+                RecordTranscriptOnly(lineId, string.IsNullOrEmpty(speakerLabel) ? "Minh (suy nghĩ)" : speakerLabel, text, beat);
                 float hold = Mathf.Clamp(2.8f + text.Length * 0.025f, 2.8f, 4.5f);
                 ui?.SilentThought(text, hold);
                 onComplete?.Invoke(true);

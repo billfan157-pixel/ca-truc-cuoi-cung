@@ -24,6 +24,18 @@ namespace CTCC
         {
             if (target == null) return null;
 
+            if (target.id == "MAILBOX")
+            {
+                bool picked = State.Happened(E10aParts.MailboxPickedUp) &&
+                              InventoryService.HasPhysical(State, BackpackCatalog.GateKey) &&
+                              InventoryService.HasPhysical(State, BackpackCatalog.E10aEnvelope);
+                if (picked)
+                    return "[" + UseKey + "]  Kiểm tra hộp thư sắt (đã lấy gói)";
+                return State.Happened(E10aParts.MailboxOpened)
+                    ? "★ [" + UseKey + "]  Nhận gói chìa cổng & phong bì E10a trong hộp thư"
+                    : "★ [" + UseKey + "]  Mở hộp thư sắt ngoài trụ cổng";
+            }
+
             if (target.id == "GATE-CONG")
             {
                 var eq = InventoryService.GetEquipped(State);
@@ -31,7 +43,7 @@ namespace CTCC
                     return "★ [" + UseKey + "]  Mở khóa cổng phụ bằng chìa đồng";
                 if (eq?.itemDefId == BackpackCatalog.WingCKey)
                     return "[" + UseKey + "]  Thử chìa khu C trên ổ khóa cổng phụ";
-                if (State.Happened("E10a.SMSRead") && InventoryService.HasPhysical(State, BackpackCatalog.GateKey))
+                if (InventoryService.HasPhysical(State, BackpackCatalog.GateKey))
                     return "[" + UseKey + "]  Mở khóa cổng phụ (dùng chìa cổng phụ)";
                 return "[" + UseKey + "]  Kiểm tra ổ khóa cổng phụ";
             }
@@ -88,6 +100,7 @@ namespace CTCC
             {
                 "AN01" when State.chapter == "CH01" && NeedsHub() =>
                     GateService.G01(State) && !State.Happened("CH01-T08") ? "Bàn giao phiếu tại sổ trực" : "Giở sổ trên quầy",
+                "AN01" when State.chapter == "CH01" => "Sổ trực quầy tiếp nhận",
                 "AN01" => "Mở sổ trực",
                 "BOARD" => State.Happened("CH01-T04") ? "Xem & nhận bảng kẹp Phòng 101" : "Xem bảng kẹp trên quầy",
                 "F101" when State.chapter == "CH02" => "Bảng kẹp 101   ·   Q Đổi lớp",
@@ -313,7 +326,7 @@ namespace CTCC
 
                 default:
                     scene.atmosphere?.From("doorLatch", new Vector3(4f, 1.24f, -20.0f), 0.60f);
-                    ui.Caption("Ổ khóa cổng phụ đang cài chặt. Kiểm tra bì thư của Bảy đặt cạnh xe.", 3.6f, true);
+                    ui.Caption("Ổ khóa cổng phụ đang cài chặt. Kiểm tra hộp thư sắt gắn ở trụ cổng bên phải.", 3.8f, true);
                     break;
             }
         }

@@ -61,6 +61,7 @@ namespace CTCC
         private AudioClip signaturePen;
         private AudioClip cradleClick, enamelPedal, ceramicContact;
         private AudioClip signKnock, keyTurn, latchClick, gateSlam, bagZip, clipSnap;
+        private AudioClip mailboxLatch, mailboxLidCreak, mailboxPackagePickup, phoneSmsChime, phoneRingNoAnswer;
         private AudioSource handset;
         private AudioSource penWriteLoop;
         private bool penWriteActive;
@@ -387,6 +388,11 @@ namespace CTCC
                 "gateSlam" => gateSlam != null ? gateSlam : gateSlam = Resources.Load<AudioClip>("CTCC/CH01_GateSlam"),
                 "bagZip" => bagZip != null ? bagZip : bagZip = Resources.Load<AudioClip>("CTCC/CH01_BagZip"),
                 "clipSnap" => clipSnap != null ? clipSnap : clipSnap = Resources.Load<AudioClip>("CTCC/CH01_ClipSnap"),
+                "mailboxLatch" => mailboxLatch != null ? mailboxLatch : mailboxLatch = Resources.Load<AudioClip>("CTCC/CH01_MailboxLatch"),
+                "mailboxLidCreak" => mailboxLidCreak != null ? mailboxLidCreak : mailboxLidCreak = Resources.Load<AudioClip>("CTCC/CH01_MailboxLidCreak"),
+                "mailboxPackagePickup" => mailboxPackagePickup != null ? mailboxPackagePickup : mailboxPackagePickup = Resources.Load<AudioClip>("CTCC/CH01_MailboxPackagePickup"),
+                "phoneSmsChime" => phoneSmsChime != null ? phoneSmsChime : phoneSmsChime = Resources.Load<AudioClip>("CTCC/CH01_PhoneSmsChime"),
+                "phoneRingNoAnswer" => phoneRingNoAnswer != null ? phoneRingNoAnswer : phoneRingNoAnswer = Resources.Load<AudioClip>("CTCC/CH01_PhoneRingNoAnswer"),
                 _ => null
             };
             if (sound == null || propCue == null) return;

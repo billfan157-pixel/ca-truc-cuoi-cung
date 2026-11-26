@@ -37,6 +37,7 @@ namespace CTCC
 
         // Dynamic item visuals inside the open canvas satchel
         private Transform flashlightVisual;
+        private Transform phoneVisual;
         private Transform gateKeyVisual;
         private Transform wingCKeyVisual;
         private Transform envelopeVisual;
@@ -155,6 +156,7 @@ namespace CTCC
             if (envTex != null && envelopeMat != null) envelopeMat.SetTexture("_BaseMap", envTex);
 
             SetActive(flashlightVisual, InventoryService.HasPhysical(state, BackpackCatalog.Flashlight));
+            SetActive(phoneVisual, InventoryService.HasPhysical(state, BackpackCatalog.MinhPhone));
             SetActive(gateKeyVisual, InventoryService.HasPhysical(state, BackpackCatalog.GateKey));
             SetActive(wingCKeyVisual, InventoryService.HasPhysical(state, BackpackCatalog.WingCKey));
             SetActive(envelopeVisual, InventoryService.HasPhysical(state, BackpackCatalog.E10aEnvelope));
@@ -264,6 +266,14 @@ namespace CTCC
             Part(flashlightVisual, "Body", PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.026f, 0.062f, 0.026f), torchBodyMat);
             Part(flashlightVisual, "Bezel", PrimitiveType.Cylinder, new Vector3(0f, 0.064f, 0f), new Vector3(0.034f, 0.012f, 0.034f), brassMat);
             selectableVisuals[BackpackCatalog.Flashlight] = (flashlightVisual, flashlightVisual.localPosition);
+
+            phoneVisual = new GameObject("BagMinhPhone").transform;
+            phoneVisual.SetParent(bagPivot, false);
+            phoneVisual.localPosition = new Vector3(-0.088f, 0.036f, -0.028f);
+            phoneVisual.localRotation = Quaternion.Euler(10f, 14f, -6f);
+            Part(phoneVisual, "PhoneBody", PrimitiveType.Cube, Vector3.zero, new Vector3(0.034f, 0.068f, 0.010f), torchBodyMat);
+            Part(phoneVisual, "PhoneScreen", PrimitiveType.Cube, new Vector3(0f, 0.012f, -0.0055f), new Vector3(0.026f, 0.030f, 0.002f), wristbandMat);
+            selectableVisuals[BackpackCatalog.MinhPhone] = (phoneVisual, phoneVisual.localPosition);
 
             gateKeyVisual = BuildMiniKey("BagGateKey", brassMat, hasTag: false);
             gateKeyVisual.SetParent(bagPivot, false);

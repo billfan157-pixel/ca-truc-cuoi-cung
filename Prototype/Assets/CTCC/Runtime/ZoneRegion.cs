@@ -44,6 +44,8 @@ namespace CTCC
         public GameObject clockHandsR;
         public GameObject clockHandsB;
         public GameObject spareBatteryProp;
+        public Transform mailboxLidPivot;
+        public GameObject mailboxPackageVisual;
         public GameObject receptionGlassSilhouette;
         public GameObject receptionBoard;
         public AudioSource receptionFan;
@@ -176,6 +178,19 @@ namespace CTCC
 
         public void PresentCasework(Investigation state)
         {
+            if (mailboxLidPivot != null)
+            {
+                bool opened = state.Happened(E10aParts.MailboxOpened) || state.Happened(E10aParts.MailboxPickedUp);
+                mailboxLidPivot.localRotation = Quaternion.Euler(0f, opened ? -104f : 0f, 0f);
+            }
+            if (mailboxPackageVisual != null)
+            {
+                bool hasComplete = state.Happened(E10aParts.MailboxPickedUp) &&
+                                   InventoryService.HasPhysical(state, BackpackCatalog.E10aEnvelope) &&
+                                   InventoryService.HasPhysical(state, BackpackCatalog.GateKey) &&
+                                   InventoryService.HasPhysical(state, BackpackCatalog.WingCKey);
+                mailboxPackageVisual.SetActive(!hasComplete);
+            }
             Toggle(receptionBoard, state.chapter == "CH01" && state.layer == Reality.B &&
                 state.Happened("CH01-T03") && !state.Happened("CH01-T05"));
             if (receptionFan != null)

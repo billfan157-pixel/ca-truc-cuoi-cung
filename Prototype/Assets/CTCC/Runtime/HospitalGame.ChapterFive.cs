@@ -350,7 +350,7 @@ namespace CTCC
             SaveCheckpoint(() => ChapterFive.AcquireBlueprintsAtLoc09Async(transaction), () =>
             {
                 if (firstAcquire)
-                    voice?.Speak("CH05-D05", "Minh", Line("CH05-D05"));
+                    PresentLine("CH05-D05");
                 ShowCh05BlueprintCabinetModal();
             });
         }
@@ -522,7 +522,7 @@ namespace CTCC
             SaveCheckpoint(() => ChapterFive.ObserveOptionalValveAsync(transaction), () =>
             {
                 string line = LineAtBeat("CH05-D08", 1, "B06");
-                voice?.Speak("CH05-D08", "Minh", line, beat: "B06");
+                PresentLine("CH05-D08", 1, "B06");
                 bool hasE09 = State.Has(EvidenceRegistry.DutyLog);
                 string e09Note = hasE09
                     ? "• Đối chiếu Sổ trực ca đêm E09 (02:58 báo cháy LOC09, ghi nhận mùi dung môi lạ): dấu vết cơ học củng cố nghi vấn vụ cháy có thể không phải sự cố ngẫu nhiên."
@@ -553,7 +553,7 @@ namespace CTCC
             SaveCheckpoint(() => ChapterFive.ObserveSealedWallE05bAsync(transaction), () =>
             {
                 string line = LineAtBeat("CH05-D06", 1, "B07");
-                voice?.Speak("CH05-D06", "Minh", line, beat: "B07");
+                PresentLine("CH05-D06", 1, "B07");
                 bool aligned = State.Happened(ChapterFive.FlagOverlayAligned);
                 bool g05 = GateService.G05(State);
                 var choices = new List<ActionChoice>();

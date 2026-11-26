@@ -704,7 +704,7 @@ def build_bay_envelope_and_letter() -> None:
     draw_handwritten(lt, (96, 756), "23 giờ, 17/11/2012, chốt cổng phụ. Tôi trực ca cuối.", size=28, color=(26, 28, 30), slant=-0.10, angle_deg=0.4)
     draw_handwritten(lt, (96, 816), "Kèm chìa cổng phụ và chìa khu C cũ (đã thay khóa). — Bảy", size=24, color=(38, 40, 42), slant=-0.10)
     dl.line((84, 892, W - 84, 892), fill=INK_RULE, width=2)
-    dl.text((84, 916), "TIN NHẮN SMS MỚI NHẬN (22g54 · TỪ CHÚ BẢY):", font=font(21, True), fill=INK_STAMP_RED)
+    dl.text((84, 916), "TIN NHẮN SMS MỚI NHẬN (22:48 · TỪ CHÚ BẢY):", font=font(21, True), fill=INK_STAMP_RED)
     dl.text((96, 962), "“Tôi đang ở viện. Hoãn nhé, cậu đừng vào trong.”", font=font(29, True), fill=INK_PRINT)
     dl.line((84, 1036, W - 84, 1036), fill=INK_RULE_FAINT, width=1)
     dl.text((84, 1062), "MẨU BÁO CŨ KẸP KÈM (11/2005 — GÓC DƯỚI RÁCH ẨM):", font=font(20, True), fill=INK_SUB)
@@ -728,6 +728,158 @@ def build_bay_envelope_and_letter() -> None:
         ],
     )
     back.save(DEST / "Doc_BayLetter_Back.png")
+
+
+def build_ch01_rebirth3_e10a_parts() -> None:
+    """Core v3.6.2 (DEC-V36-CH01-01) separated E10a physical artifacts + Minh's 2012 phone LCD screen.
+
+    Separates the 4 distinct E10a artifacts so Acquisition != Inspect != Read:
+    - Doc_BayNote.png: External folded appointment note tucked outside envelope in the gate mailbox.
+    - Doc_LanLetter2005.png / _Back.png: Pure 2005 faded blue-ballpoint Lan letter ONLY (no 2012 text mixed in).
+    - Doc_Newspaper2005.png: Torn 11/2005 Vietnamese local newspaper clipping (13 deaths, torn victim list).
+    - Doc_KeyCTag.png: Weathered manila key tag tied to Wing-C key ('KHU C — ĐÃ THAY KHÓA').
+    - Doc_PhoneScreen.png: Backlit 2012 monochrome-teal mobile screen showing 22:48 SMS arrival.
+    """
+    # 1. External Appointment Note outside envelope (Doc_BayNote.png — 1024 x 760 folded note)
+    nw, nh = 1024, 760
+    note = make_paper_base(nw, nh, base_rgb=(228, 222, 200), seed=7631, age=0.35, punch_holes=False, fold_y=0.48, damp_corner=True)
+    dn = ImageDraw.Draw(note)
+    dn.rectangle((36, 36, nw - 36, nh - 36), outline=(112, 108, 92), width=2)
+    for gy in range(132, nh - 70, 56):
+        dn.line((64, gy, nw - 64, gy), fill=(182, 186, 174), width=1)
+    dn.text((74, 62), "GIẤY NHẮN NGOÀI BÌ  ·  ĐÊM 17/11/2012", font=font(22, True), fill=INK_PRINT)
+    draw_handwritten(note, (88, 152), "Minh à,", size=34, color=(26, 28, 32), slant=-0.12, angle_deg=-0.4)
+    draw_handwritten(note, (88, 226), "Nếu chưa thấy tôi, vào quầy trực chờ.", size=36, color=(22, 26, 30), slant=-0.12, angle_deg=-0.2)
+    draw_handwritten(note, (88, 308), "Chìa cổng phụ tôi buộc sẵn bên ngoài bì chống ẩm.", size=28, color=(38, 42, 46), slant=-0.10)
+    draw_handwritten(note, (88, 368), "Trong bì có lá thư cũ của cô Lan, mẩu báo 2005", size=28, color=(38, 42, 46), slant=-0.10)
+    draw_handwritten(note, (88, 426), "và chìa khu C (ổ khóa khu C đã thay từ 2006).", size=28, color=(38, 42, 46), slant=-0.10)
+    draw_handwritten(note, (540, 540), "23g00 · Cổng phụ An Sinh", size=24, color=INK_SUB, slant=-0.08)
+    draw_handwritten(note, (640, 600), "— Bảy", size=38, color=(24, 28, 34), slant=-0.14, angle_deg=-1.0)
+    draw_signature_flourish(dn, 735, 620, seed=7632, color=(30, 34, 40), scale=0.82)
+    note.save(DEST / "Doc_BayNote.png")
+
+    # 2. Pure 2005 Lan Letter (Doc_LanLetter2005.png + _Back.png)
+    lan = make_paper_base(seed=7641, base_rgb=(218, 206, 176), age=0.72, punch_holes=False, fold_y=0.50, damp_corner=True)
+    dl = ImageDraw.Draw(lan)
+    for gy in range(200, H - 140, 68):
+        dl.line((88, gy, W - 88, gy), fill=(176, 168, 144), width=1)
+    dl.text((92, 86), "ĐÊM TRỰC KHOA NỘI TRÚ  ·  THÁNG 11/2005", font=font(19, True), fill=(108, 102, 86))
+    dl.line((92, 122, W - 92, 122), fill=(148, 138, 112), width=2)
+    lan_body = [
+        "Anh Minh,",
+        "",
+        "Em cần nói với anh một chuyện ở bệnh viện.",
+        "Mấy hôm nay sổ sách ở tầng trệt và khu sau",
+        "cứ bị sửa lại mỗi lần giao ca.",
+        "",
+        "Anh có thể đến gặp em sau ca trực không?",
+        "Em không muốn để chuyện này qua thêm một ngày nữa.",
+        "",
+        "",
+        "                                                         — Lan",
+    ]
+    for i, ln in enumerate(lan_body):
+        draw_handwritten(lan, (104, 208 + i * 68), ln, size=31, color=(36, 62, 114), slant=-0.20, angle_deg=-0.5, alpha=208)
+    draw_ink_smudge(lan, (790, 960), radius=42, color=(48, 70, 112), seed=7644)
+    lan.save(DEST / "Doc_LanLetter2005.png")
+
+    lan_back = make_back_sheet(
+        lan,
+        seed=7645,
+        title_note="Nếp gấp và mặt sau tờ thư cũ (2005):",
+        lines=[
+            "Giấy vở kẻ ngang cũ, gấp làm tư từ năm 2005.",
+            "Mép phải có vết ố nâu do nằm lâu trong tủ hồ sơ thanh lý.",
+            "",
+            "Góc dưới ghi mờ bằng bút chì của chú Bảy (2012):",
+            "«Tìm thấy kẹp sau ngăn kéo tủ lưu trữ khi dọn kho.»",
+        ],
+    )
+    lan_back.save(DEST / "Doc_LanLetter2005_Back.png")
+
+    # 3. Torn 11/2005 Newspaper Clipping (Doc_Newspaper2005.png — 1024 x 1180)
+    pw, ph = 1024, 1180
+    news = make_paper_base(pw, ph, base_rgb=(196, 188, 166), seed=7651, age=0.80, punch_holes=False, fold_y=0.52, damp_corner=True)
+    dnw = ImageDraw.Draw(news)
+    dnw.rectangle((40, 40, pw - 40, ph - 40), outline=(72, 68, 58), width=3)
+    dnw.text((70, 62), "BÁO ĐỊA PHƯƠNG  ·  SỐ RA NGÀY 19/11/2005  ·  TIN THỜI SỰ", font=font(20, True), fill=(62, 58, 50))
+    dnw.line((64, 102, pw - 64, 102), fill=(48, 46, 40), width=4)
+    dnw.line((64, 112, pw - 64, 112), fill=(82, 78, 68), width=1)
+    dnw.text((pw // 2, 176), "HỎA HOẠN RẠNG SÁNG TẠI", font=font(40, True), fill=(32, 30, 26), anchor="mm")
+    dnw.text((pw // 2, 232), "BỆNH VIỆN ĐA KHOA AN SINH:", font=font(42, True), fill=(32, 30, 26), anchor="mm")
+    dnw.text((pw // 2, 290), "13 NGƯỜI TỬ VONG", font=font(46, True), fill=(116, 36, 30), anchor="mm")
+    dnw.line((90, 336, pw - 90, 336), fill=(92, 88, 76), width=2)
+
+    col_lines = [
+        "Rạng sáng ngày 18/11/2005, một vụ cháy cục bộ bùng phát tại khu",
+        "nội trú và cánh phía sau Bệnh viện Đa khoa An Sinh. Lực lượng",
+        "cứu hỏa tiếp cận hiện trường trong đêm mưa lớn nhưng khu vực",
+        "phía sau đã bị khói lửa cô lập nhiều giờ.",
+        "",
+        "Theo thông cáo ban đầu của cơ quan chức năng, vụ hỏa hoạn làm",
+        "13 người tử vong, trong đó có nhân viên trực ca đêm. Nguyên nhân",
+        "sơ bộ được ghi nhận là sự cố kỹ thuật — chập điện khu vực tầng",
+        "bán hầm và buồng lưu trữ.",
+        "",
+        "Toàn bộ Bệnh viện Đa khoa An Sinh đã ngừng tiếp nhận bệnh nhân",
+        "từ đầu năm 2006 và nằm trong diện niêm phong chờ thanh lý,",
+        "tháo dỡ toàn bộ mặt bằng.",
+    ]
+    y_cur = 374
+    for ln in col_lines:
+        if ln:
+            dnw.text((76, y_cur), ln, font=font(24, False), fill=(44, 42, 36))
+        y_cur += 40
+    dnw.line((76, y_cur + 16, pw - 76, y_cur + 16), fill=(112, 108, 94), width=2)
+    dnw.text((76, y_cur + 38), "DANH SÁCH NẠN NHÂN ĐƯỢC CÔNG BỐ:", font=font(21, True), fill=(58, 54, 46))
+    dnw.text((76, y_cur + 78), "1. Điều dưỡng trực đêm: Trần Thị Lan (26 tuổi)...", font=font(22, False), fill=(62, 58, 50))
+    dnw.text((76, y_cur + 116), "2–13. [Mép báo rách ướt, chữ nhòe không đọc được...]", font=font(22, False), fill=(86, 78, 66))
+    draw_ink_smudge(news, (690, y_cur + 128), radius=110, color=(88, 78, 62), seed=7655)
+    news.save(DEST / "Doc_Newspaper2005.png")
+
+    # 4. Wing-C Key Manila Tag (Doc_KeyCTag.png — 1024 x 620)
+    tw, th = 1024, 620
+    tag = make_paper_base(tw, th, base_rgb=(210, 192, 148), seed=7661, age=0.62, punch_holes=False, fold_y=0.0, damp_corner=False)
+    dt = ImageDraw.Draw(tag)
+    dt.rectangle((34, 34, tw - 34, th - 34), outline=(98, 84, 58), width=4)
+    dt.ellipse((78, th // 2 - 36, 150, th // 2 + 36), fill=(130, 102, 66), outline=(74, 58, 38), width=5)
+    dt.ellipse((96, th // 2 - 18, 132, th // 2 + 18), fill=(42, 38, 32))
+    dt.text((220, 130), "THẺ CHÌA KHÓA KHO THANH LÝ", font=font(26, True), fill=INK_SUB)
+    dt.line((220, 174, tw - 80, 174), fill=(116, 98, 68), width=2)
+    draw_handwritten(tag, (226, 224), "KHU C  —  CỬA SAU CŨ", size=46, color=INK_PRINT, slant=-0.10)
+    draw_handwritten(tag, (226, 328), "ĐÃ THAY KHÓA (2006)", size=44, color=INK_STAMP_RED, slant=-0.12, angle_deg=-1.2)
+    draw_handwritten(tag, (226, 434), "Không dùng cho cổng phụ ngoài đường. — Bảy", size=27, color=INK_SUB, slant=-0.08)
+    tag.save(DEST / "Doc_KeyCTag.png")
+
+    # 5. Minh's 2012 Mobile Phone LCD Screen (Doc_PhoneScreen.png — 512 x 680)
+    sw, sh = 512, 680
+    scr = Image.new("RGB", (sw, sh), (18, 34, 36))
+    ds = ImageDraw.Draw(scr)
+    # Subtle retro LCD backlight gradient
+    arr = np.asarray(scr, dtype=np.float32)
+    yy = np.linspace(0.0, 1.0, sh, dtype=np.float32)[:, None]
+    arr[..., 0] += 18.0 + 16.0 * (1.0 - yy)
+    arr[..., 1] += 48.0 + 28.0 * (1.0 - yy)
+    arr[..., 2] += 42.0 + 22.0 * (1.0 - yy)
+    scr = Image.fromarray(np.uint8(np.clip(arr, 0, 255)), mode="RGB")
+    ds = ImageDraw.Draw(scr)
+    ds.rectangle((14, 14, sw - 14, sh - 14), outline=(140, 188, 176), width=3)
+    ds.rectangle((14, 14, sw - 14, 72), fill=(26, 56, 56))
+    ds.text((34, 30), "VN-MOBI", font=font(22, True), fill=(182, 232, 214))
+    ds.text((sw - 34, 30), "22:50", font=font(24, True), fill=(224, 244, 232), anchor="ra")
+    ds.text((sw // 2, 126), "TIN NHẮN ĐẾN (2)", font=font(24, True), fill=(216, 240, 224), anchor="mm")
+    ds.line((32, 162, sw - 32, 162), fill=(104, 152, 140), width=2)
+    ds.rounded_rectangle((28, 190, sw - 28, 390), 10, fill=(24, 52, 52), outline=(136, 192, 174), width=2)
+    ds.text((48, 208), "Chú Bảy · 22:48 (MỚI)", font=font(22, True), fill=(244, 236, 178))
+    ds.text((48, 252), "Tôi đang ở viện.", font=font(26, True), fill=(238, 246, 238))
+    ds.text((48, 292), "Hoãn nhé, cậu đừng", font=font(26, True), fill=(238, 246, 238))
+    ds.text((48, 332), "vào trong.", font=font(26, True), fill=(238, 246, 238))
+    ds.rounded_rectangle((28, 414, sw - 28, 560), 10, fill=(20, 44, 44), outline=(92, 134, 124), width=2)
+    ds.text((48, 432), "Chú Bảy · 16/11 19:15", font=font(20, True), fill=(176, 212, 198))
+    ds.text((48, 468), "Minh à, dọn kho thanh lý", font=font(20, False), fill=(204, 224, 214))
+    ds.text((48, 500), "tôi tìm thấy lá thư cũ...", font=font(20, False), fill=(204, 224, 214))
+    ds.text((sw // 2, 622), "[P] Mở điện thoại · Gọi lại", font=font(20, True), fill=(178, 224, 204), anchor="mm")
+    scr.save(DEST / "Doc_PhoneScreen.png")
 
 
 def build_signs_and_pr01() -> None:
@@ -858,6 +1010,7 @@ def main() -> None:
     build_bed3_medication_log()
     build_nursing_alcove_and_reception_docs()
     build_bay_envelope_and_letter()
+    build_ch01_rebirth3_e10a_parts()
     build_signs_and_pr01()
     build_raking_indentation_maps()
     print(f"CH01-R documents + raking indentation maps generated cleanly in {DEST}")

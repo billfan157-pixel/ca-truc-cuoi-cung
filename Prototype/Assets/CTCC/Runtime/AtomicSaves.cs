@@ -119,6 +119,8 @@ namespace CTCC
                     MigrateV1ToV2(decoded);
                 else if (data.schemaVersion < Investigation.Schema || decoded.schemaVersion < Investigation.Schema)
                     UpgradeLegacy(decoded);
+                // Run idempotent Rebirth III Save v7 normalizer for ALL schema versions (1..7) before structural validation.
+                InventoryService.ReconcileSaveV7ForRebirthIII(decoded);
                 if (!Valid(decoded)) return SaveRead.Damaged;
                 decoded.transcript ??= new();
                 decoded.forms ??= new();
@@ -257,9 +259,26 @@ namespace CTCC
                 s.f101.current == FormStatus.Refuted && !FormService.RefutationAvailable(s))
                 return false;
             if (new HashSet<string>(s.evidence).Count != s.evidence.Count || new HashSet<string>(s.events).Count != s.events.Count ||
-                new HashSet<string>(s.observed).Count != s.observed.Count || !s.Has("E10a") ||
+                new HashSet<string>(s.observed).Count != s.observed.Count ||
                 s.evidence.Exists(e => !EvidenceRegistry.Registered(e)))
                 return false;
+            // Core v3.6.2 (DEC-V36-CH01-01 / D3 Rev 1.1): CH01 allows 0 evidence before mailbox pickup and 1 ("E10a") once acquired (or legacy partial-inspect).
+            if (s.chapter == "CH01")
+            {
+                if (!s.Has("E10a"))
+                {
+                    if (s.evidence.Count != 0 || s.Happened("CH01-T02") || s.Happened(E10aParts.MailboxPickedUp))
+                        return false;
+                }
+                else if (s.evidence.Count != 1)
+                {
+                    return false;
+                }
+            }
+            else if (!s.Has("E10a"))
+            {
+                return false;
+            }
             if (s.Has(EvidenceRegistry.Drawing) && !EvidenceRegistry.HaveFragments(s) ||
                 s.Happened("C01.verified") && (!EvidenceRegistry.BundleComplete(s) || !s.Has("E12")) ||
                 s.chapter != "CH01" && (!GateService.G01(s) || !s.Happened("CH01-T10")) ||
@@ -267,8 +286,7 @@ namespace CTCC
                 s.chapter == "CH04" && (!GateService.G03(s) ||
                     !s.checkpoint.StartsWith("CH04-", StringComparison.Ordinal) || s.layer != Reality.R) ||
                 s.chapter == "CH05" && (!GateService.G03(s) || !GateService.G04(s) || !s.Happened("CH04-T06") ||
-                    !s.checkpoint.StartsWith("CH05-", StringComparison.Ordinal) || s.layer == Reality.B) ||
-                s.chapter == "CH01" && s.evidence.Count != 1)
+                    !s.checkpoint.StartsWith("CH05-", StringComparison.Ordinal) || s.layer == Reality.B))
                 return false;
             if (s.Happened("C12.verified") || !FormService.ValidExtras(s) ||
                 !ChapterFour.ValidPower(s.servicePower) ||

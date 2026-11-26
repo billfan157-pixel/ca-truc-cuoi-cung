@@ -66,12 +66,21 @@ namespace CTCC
         private float cueUntil, cueFadeInEnd, cueHideAt, toastUntil, chapterUntil;
         private float scale = 1f;
         private bool captions = true;
+        private bool highContrastThoughtBox;
+        private float thoughtReadDurationScale = 1f;
         private int selected;
         private int modalOpenedFrame = -1;
 
         public bool IsModal => modal != null && modal.gameObject.activeSelf;
         public bool ModalInputBlocked { get; set; }
         public event Action OpenChanged;
+        internal Color ActiveCueTextColor => cue != null ? cue.color : Color.clear;
+        internal Color ActiveCueBackingColor => cueBacking != null ? cueBacking.color : Color.clear;
+        internal bool ActiveCueBackingEnabled => cueBacking != null && cueBacking.enabled;
+        internal SubtitleStyle ActiveCueStyle => cueStyle;
+        internal float EffectiveThoughtDurationScale =>
+            thoughtReadDurationScale > 1.05f ? Mathf.Clamp(thoughtReadDurationScale, 1f, 1.6f)
+            : scale >= 1.25f ? 1.35f : 1f;
 
         public void Initialize()
         {
@@ -175,6 +184,9 @@ namespace CTCC
         {
             scale = Mathf.Clamp(options.textScale, 0.85f, 1.35f);
             captions = options.captions;
+            highContrastThoughtBox = options.highContrastThoughtBox;
+            thoughtReadDurationScale = options.thoughtReadDurationScale > 0.1f
+                ? Mathf.Clamp(options.thoughtReadDurationScale, 1f, 1.6f) : 1f;
             place.fontSize = Scaled(19);
             task.fontSize = Scaled(22);
             help.fontSize = Scaled(17);
@@ -183,8 +195,8 @@ namespace CTCC
             toastTitle.fontSize = Scaled(20);
             toastBody.fontSize = Scaled(19);
             help.text = options.alternateBindings
-                ? "Mũi tên  Đi    K  Tương tác    L  Đèn pin    J  Ba lô    1-4  Ô nhanh    H  Cất đồ    Esc  Menu"
-                : "WASD  Đi    E  Tương tác    F  Đèn pin    Tab  Ba lô    1-4  Ô nhanh    H  Cất đồ    Esc  Menu";
+                ? "Mũi tên  Đi    K  Tương tác    L  Đèn pin    P  Điện thoại    J  Ba lô    1-4  Ô nhanh    H  Cất đồ    Esc  Menu"
+                : "WASD  Đi    E  Tương tác    F  Đèn pin    P  Điện thoại    Tab  Ba lô    1-4  Ô nhanh    H  Cất đồ    Esc  Menu";
         }
 
         public void Hud(string reality, string objective)
@@ -221,23 +233,30 @@ namespace CTCC
             cue.color = style switch
             {
                 SubtitleStyle.Reaction => new Color(0.902f, 0.914f, 0.894f, 1f),       // #E6E9E4
-                SubtitleStyle.SilentThought => new Color(0.851f, 0.831f, 0.765f, 1f),  // #D9D4C3
+                SubtitleStyle.SilentThought => new Color(0.957f, 0.945f, 0.910f, 1f),  // #F4F1E8 (DEC-VO-01 WCAG AA)
                 _ => new Color(0.949f, 0.957f, 0.949f, 1f),                            // #F2F4F2
             };
-            cueBacking.enabled = style != SubtitleStyle.SilentThought;
-            cueBacking.color = style == SubtitleStyle.Reaction
-                ? new Color(0.038f, 0.058f, 0.054f, 0.55f)
-                : new Color(0.038f, 0.058f, 0.054f, 0.72f);
+            // DEC-VO-01 / AU05: SilentThoughtSubtitle uses a soft WCAG AA scrim (#101414 @ 0.56, or 0.80 HighContrastThoughtBox).
+            cueBacking.enabled = true;
+            cueBacking.color = style switch
+            {
+                SubtitleStyle.SilentThought => new Color(0.063f, 0.078f, 0.078f, highContrastThoughtBox ? 0.80f : 0.56f),
+                SubtitleStyle.Reaction => new Color(0.038f, 0.058f, 0.054f, 0.55f),
+                _ => new Color(0.038f, 0.058f, 0.054f, 0.72f),
+            };
             cueGroup.alpha = style == SubtitleStyle.SilentThought ? 0f : 1f;
             cueRoot.anchoredPosition = style == SubtitleStyle.SilentThought ? new Vector2(0f, -22f) : Vector2.zero;
+            float effectiveSeconds = style == SubtitleStyle.SilentThought
+                ? Mathf.Clamp(seconds * EffectiveThoughtDurationScale, 2.8f, 7.2f)
+                : seconds;
             float now = Time.unscaledTime;
-            cueUntil = now + seconds;
+            cueUntil = now + effectiveSeconds;
             cueFadeInEnd = now + (style == SubtitleStyle.SilentThought ? 0.35f : 0f);
             cueHideAt = cueUntil + (style == SubtitleStyle.SilentThought ? 0.6f : 0f);
             cueBacking.gameObject.SetActive(true);
         }
 
-        /// <summary>Core v3.3.3 SilentThoughtSubtitle: italic, no speaker prefix, no heavy box.</summary>
+        /// <summary>Core v3.6.2 DEC-VO-01 SilentThoughtSubtitle: italic #F4F1E8, soft WCAG AA scrim #101414 (0.56 / 0.80), duration scale.</summary>
         public void SilentThought(string text, float seconds) =>
             CaptionStyled(text, seconds, true, false, SubtitleStyle.SilentThought);
 
@@ -245,6 +264,9 @@ namespace CTCC
         {
             if (cue.text == text) cueBacking.gameObject.SetActive(false);
         }
+
+        internal bool IsShowingCaption(string text) =>
+            cueBacking != null && cueBacking.gameObject.activeSelf && cue != null && cue.text == text;
 
         public void Toast(string title, string body, float seconds = 6f)
         {

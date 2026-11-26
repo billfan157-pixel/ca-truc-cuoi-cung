@@ -52,6 +52,47 @@ namespace CTCC
         public float musicVolume = .65f;
         public bool hintsEnabled = true;
         public bool storyMode;
+        // Core v3.5–v3.6.2 DEC-VO-01 SilentThoughtSubtitle WCAG AA settings (backward compatible Save v7 defaults)
+        public bool highContrastThoughtBox;
+        public float thoughtReadDurationScale = 1f;
+    }
+
+    /// <summary>
+    /// Core v3.6.2 (DEC-V36-CH01-01 / DEC-V361-CH01-01) E10a epistemic read tracker stored inside Investigation.events[]
+    /// to preserve Save Schema v7 without breaking legacy saves. Strictly separates Acquisition from Inspect and Reading.
+    /// </summary>
+    public static class E10aParts
+    {
+        public const string MailboxOpened = "CH01-MAILBOX-OPENED";
+        public const string MailboxPickedUp = "CH01-MAILBOX-PICKUP";
+        public const string PhoneCalledBay = "E10a.PhoneCalledBay";
+        public const string SmsAppointmentViewed = "E10a.SmsAppointmentViewed";
+        public const string Letter = "E10a.Part.letter";
+        public const string SignedAppointment = "E10a.Part.signedAppointment";
+        public const string PostponementSms = "E10a.Part.postponementSMS";
+        public const string PublicReportSummary = "E10a.Part.publicReportSummary";
+
+        public static readonly string[] All =
+        {
+            Letter,
+            SignedAppointment,
+            PostponementSms,
+            PublicReportSummary
+        };
+
+        public static bool HasRead(Investigation state, string partEvent) =>
+            state != null && !string.IsNullOrEmpty(partEvent) && state.Happened(partEvent);
+
+        public static int ReadCount(Investigation state)
+        {
+            if (state == null) return 0;
+            int count = 0;
+            for (int i = 0; i < All.Length; i++)
+                if (state.Happened(All[i])) count++;
+            return count;
+        }
+
+        public static bool AllRead(Investigation state) => ReadCount(state) == All.Length;
     }
 
     [Serializable]
@@ -255,7 +296,7 @@ namespace CTCC
         public static Investigation New()
         {
             var state = new Investigation();
-            state.evidence.Add("E10a");
+            // Core v3.6.2 DEC-V36-CH01-01: T01 seeds mailbox fixture outside East gate pillar; E10a is NOT pre-seeded at frame 0.
             state.Remember("CH01-T01");
             InventoryService.EnsureDefaultTools(state);
             return state;
@@ -577,6 +618,9 @@ namespace CTCC
         public static bool H03(Investigation state) => state.Has(EvidenceRegistry.AsBuilt2004) &&
             state.Has(EvidenceRegistry.SealedWallPhoto) && state.Happened("PZ07.Aligned") && state.Happened("H03.verified");
         public static bool G05(Investigation state) => state.chapter == "CH05" && H03(state);
+        // Core 07 Chapter gates: G08 is ONLY satisfied in CH08 once the real ending gate is committed (never stubbed in CH01-CH05).
+        public static bool G08(Investigation state) =>
+            state != null && state.chapter == "CH08" && state.Happened("G08.opened");
     }
 
     public static class SafeCheckpoints

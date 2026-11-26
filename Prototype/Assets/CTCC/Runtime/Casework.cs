@@ -17,6 +17,102 @@ namespace CTCC
             return reality.Commit(proposed, feet, warp: true, geometryChanges: true, newVisit: true);
         }
 
+        public Task<CommitResult> OpenMailboxAsync()
+        {
+            if (State.chapter != "CH01" || State.layer != Reality.R)
+                return Task.FromResult(CommitResult.PadRequired);
+            if (State.Happened(E10aParts.MailboxOpened))
+                return Task.FromResult(CommitResult.Applied);
+            var next = State.Copy();
+            next.Remember(E10aParts.MailboxOpened);
+            return reality.CommitEvidenceAsync(next, publishGameplay: false);
+        }
+
+        /// <summary>
+        /// Core v3.6.2 (DEC-V36-CH01-01 / DEC-V361-CH01-01) atomic mailbox pickup:
+        /// Grants "E10a" + E10A_ENVELOPE + KEY_WING_C into bag and equips KEY_GATE directly in hand,
+        /// with ZERO parts marked read (Acquisition != Inspect != Read). Also safely completes partial legacy saves without duplication.
+        /// </summary>
+        public CommitResult TakeMailboxPackage(Vector3 feet, bool equipGateKey = true)
+        {
+            if (!PrepareTakeMailboxPackage(equipGateKey, out var next))
+                return State.Happened(E10aParts.MailboxPickedUp) ? CommitResult.Applied : CommitResult.PadRequired;
+            return reality.Commit(next, feet);
+        }
+
+        public Task<CommitResult> TakeMailboxPackageAsync(bool equipGateKey = true)
+        {
+            if (!PrepareTakeMailboxPackage(equipGateKey, out var next))
+                return Task.FromResult(State.Happened(E10aParts.MailboxPickedUp) ? CommitResult.Applied : CommitResult.PadRequired);
+            return reality.CommitEvidenceAsync(next);
+        }
+
+        private bool PrepareTakeMailboxPackage(bool equipGateKey, out Investigation next)
+        {
+            next = null;
+            if (State.chapter != "CH01" || State.layer != Reality.R) return false;
+            bool alreadyAll = State.Happened(E10aParts.MailboxPickedUp) &&
+                              State.Has("E10a") &&
+                              InventoryService.HasPhysical(State, BackpackCatalog.E10aEnvelope) &&
+                              InventoryService.HasPhysical(State, BackpackCatalog.GateKey) &&
+                              InventoryService.HasPhysical(State, BackpackCatalog.WingCKey);
+            if (alreadyAll) return false;
+
+            next = State.Copy();
+            next.Remember(E10aParts.MailboxOpened);
+            next.Remember(E10aParts.MailboxPickedUp);
+            if (!next.Has("E10a"))
+                EvidenceRegistry.Grant(next, "E10a", Reality.R, "LOC01");
+            InventoryService.TryAcquire(next, BackpackCatalog.E10aEnvelope, Reality.R, "LOC01", out _);
+            InventoryService.TryAcquire(next, BackpackCatalog.GateKey, Reality.R, "LOC01", out _);
+            InventoryService.TryAcquire(next, BackpackCatalog.WingCKey, Reality.R, "LOC01", out _);
+            if (equipGateKey)
+                InventoryService.TryEquip(next, BackpackCatalog.GateKey);
+            return true;
+        }
+
+        /// <summary>
+        /// Explicit epistemic read commit for an individual E10a part (letter, signedAppointment, postponementSMS, publicReportSummary).
+        /// Never auto-grants E10a or keys and never marks any other part as read.
+        /// </summary>
+        public Task<CommitResult> RecordE10aPartReadAsync(string partEvent, string viewedFlag = null)
+        {
+            if (string.IsNullOrEmpty(partEvent)) return Task.FromResult(CommitResult.PadRequired);
+            var env = InventoryService.FindByDef(State, BackpackCatalog.E10aEnvelope);
+            bool alreadyEvent = State.Happened(partEvent);
+            bool alreadySmsAlias = partEvent != E10aParts.PostponementSms || State.Happened("E10a.SMSRead");
+            bool alreadyFlag = string.IsNullOrEmpty(viewedFlag) || env == null || env.HasViewed(viewedFlag);
+            if (alreadyEvent && alreadySmsAlias && alreadyFlag)
+                return Task.FromResult(CommitResult.Applied);
+
+            var next = State.Copy();
+            next.Remember(partEvent);
+            if (partEvent == E10aParts.PostponementSms)
+                next.Remember("E10a.SMSRead");
+            var nextEnv = InventoryService.FindByDef(next, BackpackCatalog.E10aEnvelope);
+            if (nextEnv != null && !string.IsNullOrEmpty(viewedFlag))
+                nextEnv.MarkViewed(viewedFlag);
+            return reality.CommitEvidenceAsync(next, publishGameplay: false);
+        }
+
+        public Task<CommitResult> RecordSmsAppointmentViewedAsync()
+        {
+            if (State.Happened(E10aParts.SmsAppointmentViewed))
+                return Task.FromResult(CommitResult.Applied);
+            var next = State.Copy();
+            next.Remember(E10aParts.SmsAppointmentViewed);
+            return reality.CommitEvidenceAsync(next, publishGameplay: false);
+        }
+
+        public Task<CommitResult> RecordPhoneCallBayAsync()
+        {
+            if (State.Happened(E10aParts.PhoneCalledBay))
+                return Task.FromResult(CommitResult.Applied);
+            var next = State.Copy();
+            next.Remember(E10aParts.PhoneCalledBay);
+            return reality.CommitEvidenceAsync(next, publishGameplay: false);
+        }
+
         public CommitResult ReadLetter(Vector3 feet)
         {
             var next = PrepareReadLetter(extractKeys: true);
@@ -31,17 +127,23 @@ namespace CTCC
 
         private Investigation PrepareReadLetter(bool extractKeys)
         {
-            bool smsAlready = State.Happened("E10a.SMSRead");
-            bool envAlready = InventoryService.HasPhysical(State, BackpackCatalog.E10aEnvelope);
+            bool smsAlready = State.Happened("E10a.SMSRead") && State.Happened(E10aParts.PostponementSms);
+            bool envAlready = InventoryService.HasPhysical(State, BackpackCatalog.E10aEnvelope) && State.Has("E10a");
             bool keysAlready = !extractKeys ||
                 (InventoryService.HasPhysical(State, BackpackCatalog.GateKey) && InventoryService.HasPhysical(State, BackpackCatalog.WingCKey));
-            if (smsAlready && envAlready && keysAlready) return null;
+            if (smsAlready && envAlready && keysAlready && State.Happened(E10aParts.MailboxPickedUp)) return null;
 
             var next = State.Copy();
             next.Remember("E10a.SMSRead");
+            next.Remember(E10aParts.PostponementSms);
+            if (extractKeys)
+            {
+                next.Remember(E10aParts.MailboxOpened);
+                next.Remember(E10aParts.MailboxPickedUp);
+                if (!next.Has("E10a")) EvidenceRegistry.Grant(next, "E10a", Reality.R, "LOC01");
+            }
             if (InventoryService.TryAcquire(next, BackpackCatalog.E10aEnvelope, Reality.R, "LOC01", out var env))
             {
-                env.MarkViewed("FLAP");
                 env.MarkViewed("BAY_SMS");
                 if (extractKeys) env.MarkViewed("KEYS_EXTRACTED");
             }
@@ -60,26 +162,46 @@ namespace CTCC
             int clamped = Mathf.Clamp(tabIndex, 0, 4);
             if (next.e10aLastTab != clamped) { next.e10aLastTab = clamped; changed = true; }
 
-            bool hadEnv = InventoryService.HasPhysical(next, BackpackCatalog.E10aEnvelope);
-            if (InventoryService.TryAcquire(next, BackpackCatalog.E10aEnvelope, Reality.R, "LOC01", out var env))
-            {
-                if (!hadEnv) changed = true;
-                if (!string.IsNullOrEmpty(pageKey) && env.MarkViewed(pageKey)) changed = true;
-            }
-            if (markSmsRead && !next.Happened("E10a.SMSRead"))
-            {
-                next.Remember("E10a.SMSRead");
-                env?.MarkViewed("BAY_SMS");
+            var env = InventoryService.FindByDef(next, BackpackCatalog.E10aEnvelope);
+            if (env != null && !string.IsNullOrEmpty(pageKey) && env.MarkViewed(pageKey))
                 changed = true;
+
+            // Map explicit physical document inspection to its single corresponding epistemic E10a part (zero cross-part auto-read!).
+            if (pageKey == "SIGNED_APPT" && !next.Happened(E10aParts.SignedAppointment))
+            {
+                next.Remember(E10aParts.SignedAppointment);
+                changed = true;
+            }
+            else if (pageKey == "LAN_LETTER" && !next.Happened(E10aParts.Letter))
+            {
+                next.Remember(E10aParts.Letter);
+                changed = true;
+            }
+            else if (pageKey == "NEWSPAPER" && !next.Happened(E10aParts.PublicReportSummary))
+            {
+                next.Remember(E10aParts.PublicReportSummary);
+                changed = true;
+            }
+
+            if (markSmsRead)
+            {
+                if (!next.Happened("E10a.SMSRead")) { next.Remember("E10a.SMSRead"); changed = true; }
+                if (!next.Happened(E10aParts.PostponementSms)) { next.Remember(E10aParts.PostponementSms); changed = true; }
+                if (env != null && env.MarkViewed("BAY_SMS")) changed = true;
             }
             if (extractKeys)
             {
+                if (!next.Has("E10a")) { EvidenceRegistry.Grant(next, "E10a", Reality.R, "LOC01"); changed = true; }
+                if (!next.Happened(E10aParts.MailboxOpened)) { next.Remember(E10aParts.MailboxOpened); changed = true; }
+                if (!next.Happened(E10aParts.MailboxPickedUp)) { next.Remember(E10aParts.MailboxPickedUp); changed = true; }
+                bool hadEnv = InventoryService.HasPhysical(next, BackpackCatalog.E10aEnvelope);
                 bool hadGate = InventoryService.HasPhysical(next, BackpackCatalog.GateKey);
                 bool hadWing = InventoryService.HasPhysical(next, BackpackCatalog.WingCKey);
+                InventoryService.TryAcquire(next, BackpackCatalog.E10aEnvelope, Reality.R, "LOC01", out env);
                 InventoryService.TryAcquire(next, BackpackCatalog.GateKey, Reality.R, "LOC01", out _);
                 InventoryService.TryAcquire(next, BackpackCatalog.WingCKey, Reality.R, "LOC01", out _);
                 if (env != null && env.MarkViewed("KEYS_EXTRACTED")) changed = true;
-                if (!hadGate || !hadWing) changed = true;
+                if (!hadEnv || !hadGate || !hadWing) changed = true;
             }
             return changed ? reality.CommitEvidenceAsync(next) : Task.FromResult(CommitResult.Applied);
         }
@@ -164,14 +286,17 @@ namespace CTCC
 
         public CommitResult OpenGate(Vector3 feet)
         {
-            if (!State.Happened("E10a.SMSRead")) return CommitResult.PadRequired;
+            // Core v3.6.2 (DEC-V361-CH01-01): T02 requires S0 (CH01/R) + acquired physical GateKey; NO SMSRead/E10a read gate!
+            if (State.chapter != "CH01" || State.layer != Reality.R || !InventoryService.HasPhysical(State, BackpackCatalog.GateKey))
+                return CommitResult.PadRequired;
             var next = PrepareOpenGate();
             return next == null ? CommitResult.Applied : reality.Commit(next, feet, geometryChanges: true);
         }
 
         public Task<CommitResult> OpenGateAsync(Vector3 feet)
         {
-            if (!State.Happened("E10a.SMSRead")) return Task.FromResult(CommitResult.PadRequired);
+            if (State.chapter != "CH01" || State.layer != Reality.R || !InventoryService.HasPhysical(State, BackpackCatalog.GateKey))
+                return Task.FromResult(CommitResult.PadRequired);
             var next = PrepareOpenGate();
             return next == null ? Task.FromResult(CommitResult.Applied) : reality.CommitAsync(next, feet, geometryChanges: true);
         }
@@ -182,8 +307,7 @@ namespace CTCC
             var next = State.Copy();
             next.Remember("CH01-T02");
             next.checkpoint = "CH01-S1";
-            // Ensure gate key is cleanly in bag (stowed after unlocking)
-            InventoryService.TryAcquire(next, BackpackCatalog.GateKey, Reality.R, "LOC01", out _);
+            // Stow gate key cleanly into bag after unlocking (never conjures a missing key).
             if (InventoryService.GetEquipped(next)?.itemDefId == BackpackCatalog.GateKey)
                 InventoryService.UnequipAll(next);
             return next;

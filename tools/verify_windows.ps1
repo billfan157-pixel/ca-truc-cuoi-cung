@@ -6,7 +6,7 @@ param(
     [switch]$S1Only,
     [ValidateSet('D3D12','D3D11')][string]$GraphicsApi = 'D3D12',
     [ValidateRange(30,900)][int]$TimeoutSeconds = 240,
-    [ValidateSet('module-failure','keyboard-failure','visual-failure','escape-premature','char-mesh','char-track','char-interruption','invalid-reasoning','broken-progression')][string]$ProbeFailure,
+    [ValidateSet('module-failure','keyboard-failure','visual-failure','escape-premature','char-mesh','char-track','char-interruption','invalid-reasoning','broken-progression','v36-t02-wrong-key','v36-vo-leak')][string]$ProbeFailure,
     [ValidateSet('Low','Medium','High')][string]$Quality = 'Medium'
 )
 
@@ -56,6 +56,8 @@ if ($ProbeFailure) {
         'char-interruption' { 'interrupted character voice did not release face, voice source and callback' }
         'invalid-reasoning' { 'CH01-R fault-injection guard: unsupported falsification overclaim must be rejected' }
         'broken-progression' { 'CH01-R fault-injection guard: Unverified must open G01 without blocking CH01 progression' }
+        'v36-t02-wrong-key' { 'v36-t02-wrong-key probe: simulated Wing-C key unlocking outer gate' }
+        'v36-vo-leak' { 'v36-vo-leak probe: simulated non-VO line routed to AudioBus' }
     }
     if ($ctccRun.ExitCode -ne 1 -or !(Test-Path -LiteralPath $verdict) -or
         !(Select-String -LiteralPath $verdict -Quiet -Pattern '^RESULT=FAIL$') -or

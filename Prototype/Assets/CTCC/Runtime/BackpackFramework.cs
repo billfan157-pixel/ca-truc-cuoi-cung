@@ -167,6 +167,7 @@ namespace CTCC
     {
         // CH01 Tools & Papers
         public const string Flashlight = "FLASHLIGHT";
+        public const string MinhPhone = "MINH_PHONE";
         public const string GateKey = "KEY_GATE";
         public const string WingCKey = "KEY_WING_C";
         public const string E10aEnvelope = "E10A_ENVELOPE";
@@ -215,11 +216,23 @@ namespace CTCC
                 canEquip: false,
                 canPlace: false),
             new(
+                MinhPhone,
+                "Điện thoại di động của Minh",
+                "Điện thoại [P]",
+                "Chiếc điện thoại phím bấm mang theo đêm 17/11/2012. Lưu tin nhắn hẹn hôm 16/11 và tin nhắn báo hoãn lúc 22:48 từ chú Bảy; có thể nhấn [P] bất cứ lúc nào để đọc lại hoặc gọi lại chú Bảy.",
+                "Đồ mang theo · Lớp R · 17/11/2012",
+                ItemKind.EquippableTool,
+                BackpackCompartment.Tools,
+                canEquip: false,
+                canPlace: false,
+                frontTexture: "Doc_PhoneScreen",
+                inspectModelId: "PHONE"),
+            new(
                 GateKey,
                 "Chìa cổng phụ An Sinh",
                 "Chìa cổng phụ",
-                "Chìa đồng cũ đã sờn mép rút từ bì thư của Bảy. Khớp với ổ khóa cổng phụ phía trước chốt bảo vệ.",
-                "Từ bì thư E10a · Lớp R · LOC01",
+                "Chìa đồng cũ buộc ngoài bì thư trong hộp thư trụ cổng. Khớp với ổ khóa cổng phụ phía trước chốt bảo vệ.",
+                "Từ hộp thư cổng phụ · Lớp R · LOC01",
                 ItemKind.EquippableTool,
                 BackpackCompartment.Tools,
                 canEquip: true,
@@ -228,17 +241,17 @@ namespace CTCC
                 WingCKey,
                 "Chìa khu C (đã thay khóa)",
                 "Chìa khu C",
-                "Chìa sắt sẫm màu có thẻ giấy nhỏ ghi ký hiệu khu C. Bảy chú thích ổ khóa khu C đã thay từ trước khi thanh lý — hiện chưa rõ dùng vào đâu trong đêm nay.",
-                "Từ bì thư E10a · Lớp R · LOC01",
+                "Chìa sắt sẫm màu có thẻ giấy ghi «Khu C — đã thay khóa». Thu hồi từ kho thanh lý — không khớp ổ cổng phụ đêm nay.",
+                "Từ hộp thư cổng phụ · Lớp R · LOC01",
                 ItemKind.EquippableTool,
                 BackpackCompartment.Tools,
                 canEquip: true,
                 canPlace: false),
             new(
                 E10aEnvelope,
-                "Bì thư của Bảy (E10a)",
-                "Bì thư E10a",
-                "Phong bì giấy kraft chứa tờ hẹn lúc 23 giờ của Bảy, tin nhắn báo hoãn, thư cũ của Lan và mẩu báo vụ cháy rạng sáng 18/11/2005 (13 người tử vong).",
+                "Gói tài liệu của Bảy (E10a)",
+                "Gói E10a",
+                "Phong bì chống ẩm lấy từ hộp thư sắt trụ cổng Đông gồm giấy nhắn ngoài bì của Bảy, thư cũ năm 2005 của Lan, mẩu báo vụ cháy 18/11/2005 (13 người tử vong) và chìa khu C đã thay khóa.",
                 "Vật chứng lớp R · LOC01 · 17/11/2012",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
@@ -246,7 +259,7 @@ namespace CTCC
                 canPlace: false,
                 linkedEvidenceId: "E10a",
                 frontTexture: "Doc_BayEnvelopeFront",
-                backTexture: "Doc_BayLetter"),
+                backTexture: "Doc_LanLetter2005"),
             new(
                 BoardAssignment,
                 "Bảng kẹp bàn giao ca (BOARD)",
@@ -613,6 +626,19 @@ namespace CTCC
                 {
                     instanceId = "ITEM_" + BackpackCatalog.Flashlight,
                     itemDefId = BackpackCatalog.Flashlight,
+                    status = BackpackItemStatus.InBag,
+                    originLayer = Reality.R,
+                    originLoc = "LOC01",
+                    acquiredChapter = "CH01",
+                    placedAnchorId = ""
+                });
+            }
+            if (FindByDef(state, BackpackCatalog.MinhPhone) == null)
+            {
+                state.backpackItems.Add(new BackpackEntry
+                {
+                    instanceId = "ITEM_" + BackpackCatalog.MinhPhone,
+                    itemDefId = BackpackCatalog.MinhPhone,
                     status = BackpackItemStatus.InBag,
                     originLayer = Reality.R,
                     originLoc = "LOC01",
@@ -1031,6 +1057,112 @@ namespace CTCC
             PruneQuickSlots(state);
         }
 
+        /// <summary>
+        /// Core v3.6.2 (DEC-V36-CH01-01 / D3 Rev 1.1) strictly idempotent Save v7 migration normalizer.
+        /// Never relies on Has("E10a") alone because pre-Rebirth-III New() seeded "E10a" at frame 0 without keys.
+        /// Distinguishes 6 structural states cleanly:
+        /// 1) Seed-only E10a at CH01 start -> strip legacy seed, keep mailbox unlooted (prevents P0 softlock).
+        /// 2) Partial inspection missing key/envelope -> preserve held items & evidenced reads, keep mailbox open for missing items.
+        /// 3) Complete envelope + both keys before T02 -> preserve items, mark CH01-MAILBOX-PICKUP (no duplicate spawn).
+        /// 4) Past T02 in CH01 -> keep gate & committed progress, ensure physical envelope/keys & CH01-MAILBOX-PICKUP.
+        /// 5) Partial read evidence -> map ONLY evidenced viewedFlags/E10a.SMSRead (never map legacy FLAP or unread parts).
+        /// 6) Post-CH01 (CH02+) -> never reset chapter or force return to LOC01; keep E10aEnvelope + MinhPhone available for CH05-D08/LOC08 H08.
+        /// </summary>
+        public static void ReconcileSaveV7ForRebirthIII(Investigation state)
+        {
+            if (state == null) return;
+            state.events ??= new();
+            state.evidence ??= new();
+            EnsureDefaultTools(state);
+
+            var env = FindByDef(state, BackpackCatalog.E10aEnvelope);
+            bool hasEnv = HasPhysical(state, BackpackCatalog.E10aEnvelope);
+            bool hasGateKey = HasPhysical(state, BackpackCatalog.GateKey);
+            bool hasWingKey = HasPhysical(state, BackpackCatalog.WingCKey);
+            bool hasAnyViewed = env != null && env.viewedFlags != null && env.viewedFlags.Count > 0;
+            bool hasSmsLegacy = state.Happened("E10a.SMSRead");
+            bool pastT02 = state.Happened("CH01-T02");
+            bool pastCh01 = !string.Equals(state.chapter, "CH01", StringComparison.Ordinal);
+
+            // Case 5 (cross-cutting, strictly evidence-based read-flag mapping — NEVER auto-mark unread parts or legacy FLAP):
+            if ((env != null && env.HasViewed("LAN_LETTER")) || state.Happened("E10a.Page.LAN_LETTER"))
+                state.Remember(E10aParts.Letter);
+            if ((env != null && env.HasViewed("NEWSPAPER")) || state.Happened("E10a.Page.NEWSPAPER"))
+                state.Remember(E10aParts.PublicReportSummary);
+            if (hasSmsLegacy || (env != null && env.HasViewed("BAY_SMS")) || state.Happened("E10a.Page.BAY_SMS"))
+            {
+                state.Remember(E10aParts.PostponementSms);
+                state.Remember("E10a.SMSRead");
+            }
+            if ((env != null && env.HasViewed("SIGNED_APPT")) || state.Happened("E10a.Page.SIGNED_APPT"))
+                state.Remember(E10aParts.SignedAppointment);
+
+            // Already a Rebirth III post-pickup save or already reconciled to completed pickup: idempotent exit.
+            if (state.Happened(E10aParts.MailboxPickedUp))
+            {
+                PruneQuickSlots(state);
+                return;
+            }
+
+            // Case 6 — Post-CH01 (CH02..CH08): never reset chapter/checkpoint/layer; ensure bag has E10aEnvelope + keys + MinhPhone.
+            if (pastCh01)
+            {
+                if (!state.Has("E10a")) state.evidence.Add("E10a");
+                TryAcquire(state, BackpackCatalog.E10aEnvelope, Reality.R, "LOC01", out _);
+                TryAcquire(state, BackpackCatalog.GateKey, Reality.R, "LOC01", out _);
+                TryAcquire(state, BackpackCatalog.WingCKey, Reality.R, "LOC01", out _);
+                state.Remember(E10aParts.MailboxOpened);
+                state.Remember(E10aParts.MailboxPickedUp);
+                PruneQuickSlots(state);
+                return;
+            }
+
+            // Case 4 — Past T02 in CH01: preserve open gate & committed progress; ensure physical package without duplicating.
+            if (pastT02)
+            {
+                if (!state.Has("E10a")) state.evidence.Add("E10a");
+                TryAcquire(state, BackpackCatalog.E10aEnvelope, Reality.R, "LOC01", out _);
+                TryAcquire(state, BackpackCatalog.GateKey, Reality.R, "LOC01", out _);
+                TryAcquire(state, BackpackCatalog.WingCKey, Reality.R, "LOC01", out _);
+                state.Remember(E10aParts.MailboxOpened);
+                state.Remember(E10aParts.MailboxPickedUp);
+                PruneQuickSlots(state);
+                return;
+            }
+
+            // Case 3 — Pre-T02 in CH01, already has envelope + both physical keys: preserve items & close mailbox cleanly.
+            if (hasEnv && hasGateKey && hasWingKey)
+            {
+                if (!state.Has("E10a")) state.evidence.Add("E10a");
+                state.Remember(E10aParts.MailboxOpened);
+                state.Remember(E10aParts.MailboxPickedUp);
+                PruneQuickSlots(state);
+                return;
+            }
+
+            // Case 2 — Pre-T02 in CH01, partially inspected (has a key, viewed flag, read flag, SMS, or opened mailbox)
+            // while missing at least one physical piece of the package:
+            // Preserve held items & evidenced reads, leave mailbox open (CH01-MAILBOX-PICKUP remains false) for partial pickup!
+            bool hasPartialEvidence = hasGateKey || hasWingKey || hasSmsLegacy || hasAnyViewed ||
+                                      E10aParts.ReadCount(state) > 0 || state.Happened(E10aParts.MailboxOpened);
+            if (hasPartialEvidence)
+            {
+                if (hasEnv && !state.Has("E10a")) state.evidence.Add("E10a");
+                PruneQuickSlots(state);
+                return;
+            }
+
+            // Case 1 — Seed-only legacy save (CH01, !T02, zero keys, zero viewed/read flags, never opened mailbox):
+            // Strip legacy frame-0 "E10a" seed & uninspected envelope so player starts cleanly at S0 pre-pickup (ZERO softlock!).
+            state.evidence.Remove("E10a");
+            if (env != null && state.backpackItems != null)
+            {
+                if (state.equippedInstanceId == env.instanceId) state.equippedInstanceId = "";
+                state.backpackItems.Remove(env);
+            }
+            PruneQuickSlots(state);
+        }
+
         public static bool ValidState(Investigation state)
         {
             if (state == null || state.backpackItems == null) return false;
@@ -1148,10 +1280,7 @@ namespace CTCC
                 if (equippedItemDefId == BackpackCatalog.GateKey ||
                     (string.IsNullOrEmpty(equippedItemDefId) && InventoryService.HasPhysical(state, BackpackCatalog.GateKey)))
                 {
-                    if (!state.Happened("E10a.SMSRead"))
-                        return new WorldUseResolution(
-                            WorldUseOutcome.NeedSmsBeforeGate,
-                            "Chìa khớp ổ, nhưng mình vẫn chưa đọc hết tin nhắn của chú Bảy trong bì thư.");
+                    // Core v3.6.2 (DEC-V361-CH01-01): T02 strictly requires S0 + correct acquired KEY_GATE; zero SMSRead/E10a read gate!
                     return new WorldUseResolution(WorldUseOutcome.UnlockOuterGate);
                 }
             }
@@ -1233,11 +1362,13 @@ namespace CTCC
                 return "Theo dõi các ghi chép thực tế đã kiểm chứng trong sổ hồ sơ.";
             }
 
-            if (!state.Happened("E10a.SMSRead"))
-                return "Chú Bảy để lại bì thư gần xe máy. Cần mở xem tin nhắn và giấy hẹn trước khi quyết định.";
+            if (!state.Happened(E10aParts.MailboxPickedUp))
+                return "Hộp thư sắt gắn ở trụ cổng bên phải. Có thể mở điện thoại [P] xem tin nhắn chú Bảy hoặc lấy gói chìa khóa và phong bì ngoài hộp thư.";
 
             if (!state.Happened("CH01-T02"))
-                return "Chú Bảy báo hoãn, không muốn mình vào. Nhưng trong bệnh viện bỏ hoang kia vẫn có ánh đèn.";
+                return state.Happened(E10aParts.PostponementSms)
+                    ? "Chú Bảy báo hoãn, không muốn mình vào. Nhưng bên trong vẫn sáng đèn — chìa cổng phụ đang sẵn sàng."
+                    : "Đã lấy chìa cổng phụ và gói phong bì từ hộp thư ngoài trụ cổng.";
 
             if (!state.Happened("CH01-T03"))
                 return "Sau ô kính quầy tiếp nhận như có người. Cần đi vào tận bàn trực để tự kiểm tra.";

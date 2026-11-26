@@ -51,6 +51,8 @@ namespace CTCC
             playedHe04CorridorCut = false;
             playedCh01Ex01Monologue = false;
             pendingCh01D01AfterLetter = false;
+            pendingCh01D01AfterPhone = false;
+            phoneActiveTab = 0;
             b01SignKnockAt = 0f;
             ch01StartUnscaledTime = Time.unscaledTime;
             scene.atmosphere?.SetReturnWalkRainScale(1f);
@@ -66,6 +68,10 @@ namespace CTCC
             player.Teleport(scene.Pad("AP00"));
             player.RestoreBattery(State.torchSeconds);
             ui.ShowChapterCard("CHƯƠNG 01  ·  17.11.2012", "NGƯỜI TRỞ VỀ", 4.4f);
+            // Epistemic SMS arrival cue (4.2): passive notification only — NEVER auto-marks postponementSMS as read!
+            scene.atmosphere?.From("phoneSmsChime", player.Eye.transform.position + player.Eye.transform.forward * 0.25f, 0.45f);
+            ui.Toast("ĐIỆN THOẠI · 2 TIN NHẮN TỪ CHÚ BẢY",
+                "Nhấn [P] để mở điện thoại xem tin nhắn hoặc gọi lại chú Bảy · Hộp thư sắt gắn ở trụ cổng bên phải.", 5.2f);
             CloseModal();
         }
 
@@ -116,7 +122,11 @@ namespace CTCC
             scene.atmosphere?.SetPenWriting(false, Vector3.zero);
             scene.atmosphere?.SetReturnWalkRainScale(1f);
             pendingCh01D01AfterLetter = false;
+            pendingCh01D01AfterPhone = false;
+            phoneActiveTab = 0;
             b01SignKnockAt = 0f;
+            heardLobbySilhouette = State != null && (State.Happened("CH01-T03") || State.transcript.Exists(t => t.LineId == "CH01-D02"));
+            playedHe04CorridorCut = State != null && (State.Happened("CH01-T08") || State.transcript.Exists(t => t.LineId == "CH01-PA04"));
             playedCh01Ex01Monologue = State != null && State.transcript.Exists(t => t.LineId == "CH01-D19");
             ResetNotebookSession();
             RestoreJournal(State);
@@ -200,6 +210,9 @@ namespace CTCC
                     new ActionChoice("Nhạc nền · " + Mathf.RoundToInt(musVal * 100) + "%", () => Change(x => x.musicVolume = musVal >= 0.95f ? 0f : Mathf.Min(1f, musVal + 0.25f))),
                     new ActionChoice(current.monoAudio ? "Âm thanh · Mono" : "Âm thanh · Không gian 3D", () => Change(x => x.monoAudio = !x.monoAudio)),
                     new ActionChoice("Cỡ chữ · " + Mathf.RoundToInt(current.textScale * 100) + "%", () => Change(x => x.textScale = x.textScale >= 1.30f ? 1f : 1.30f)),
+                    new ActionChoice(current.highContrastThoughtBox ? "Nền chữ suy nghĩ · Tương phản cao (80%)" : "Nền chữ suy nghĩ · Tiêu chuẩn WCAG AA (56%)", () => Change(x => x.highContrastThoughtBox = !x.highContrastThoughtBox)),
+                    new ActionChoice("Thời lượng đọc chữ suy nghĩ · " + (current.thoughtReadDurationScale > 1.5f ? "1.6x" : current.thoughtReadDurationScale > 1.2f ? "1.35x" : "1.0x"),
+                        () => Change(x => x.thoughtReadDurationScale = x.thoughtReadDurationScale < 1.2f ? 1.35f : x.thoughtReadDurationScale < 1.5f ? 1.6f : 1.0f)),
                     new ActionChoice("Độ sáng / Gamma · " + (current.visibility <= 0.05f ? "Chuẩn" : current.visibility < 0.7f ? "Sáng vừa" : "Tăng sáng"), () => Change(x => x.visibility = x.visibility <= 0.05f ? 0.5f : x.visibility < 0.7f ? 1f : 0f)),
                     new ActionChoice("Độ nhạy chuột · " + sensVal.ToString("0.0") + "x", () => Change(x => x.mouseSensitivity = sensVal >= 1.7f ? 0.6f : sensVal + 0.4f)),
                     new ActionChoice(current.alternateBindings ? "Phím · Mũi tên / K / J / L" : "Phím · WASD / E / Tab / F", () => Change(x => x.alternateBindings = !x.alternateBindings)),
@@ -222,7 +235,12 @@ namespace CTCC
 
         private void Letter(Transform source, bool returnToBackpack = false)
         {
-            int activeTab = Mathf.Clamp(State.e10aLastTab, 0, 4);
+            // Core v3.6.2 (DEC-V36-CH01-01): 4 separated physical items inside E10a package (no cross-part auto-read!).
+            // Tab 0: Giấy nhắn ngoài bì (Bảy) -> E10a.Part.signedAppointment
+            // Tab 1: Thư cũ của Lan (2005, 2 mặt) -> E10a.Part.letter
+            // Tab 2: Mẩu báo 18/11/2005 (13 tử vong) -> E10a.Part.publicReportSummary
+            // Tab 3: Nhãn chìa khu C & chìa cổng (và lối sang điện thoại đọc SMS 22:48)
+            int activeTab = Mathf.Clamp(State.e10aLastTab, 0, 3);
             bool largePrintMode = qaFolder != null || inspector == null;
             bool playedOpenSound = false;
 
@@ -239,99 +257,61 @@ namespace CTCC
 
             string TabPageKey(int tab) => tab switch
             {
-                0 => "FLAP",
+                0 => "SIGNED_APPT",
                 1 => "LAN_LETTER",
                 2 => "NEWSPAPER",
-                3 => "BAY_SMS",
                 _ => "KEYS"
             };
 
             void RecordTab(int tab)
             {
-                activeTab = Mathf.Clamp(tab, 0, 4);
+                activeTab = Mathf.Clamp(tab, 0, 3);
                 SaveCheckpoint(() => casework.InspectE10aLayerAsync(activeTab, TabPageKey(activeTab), markSmsRead: false),
                     () => RenderLayer(reopen3D: true));
             }
 
-            void ConfirmSms()
-            {
-                bool firstSms = !State.Happened("E10a.SMSRead");
-                SaveCheckpoint(() => casework.InspectE10aLayerAsync(3, "BAY_SMS", markSmsRead: true), () =>
-                {
-                    voice?.RecordTranscriptOnly("CH01-D15", "Bảy (SMS)", Line("CH01-D15"));
-                    if (firstSms) pendingCh01D01AfterLetter = true;
-                    ui.Caption("Đã đọc tin nhắn của Bảy và ghi vào sổ trực.", 3.2f, aboveModal: true);
-                    RenderLayer(reopen3D: false);
-                });
-            }
-
-            void ExtractKeys(bool alsoEquipGate)
-            {
-                SaveCheckpoint(async () =>
-                {
-                    var r = await casework.InspectE10aLayerAsync(4, "KEYS_EXTRACTED", markSmsRead: false, extractKeys: true);
-                    if (r != CommitResult.Applied) return r;
-                    if (alsoEquipGate)
-                        return await casework.EquipItemAsync(BackpackCatalog.GateKey);
-                    return CommitResult.Applied;
-                }, () =>
-                {
-                    scene.atmosphere?.From("keyJingle", player.Eye.transform.position + player.Eye.transform.forward * 0.35f, 0.45f);
-                    handPresenter?.SyncState(State, scene, hideViewModel: ui.IsModal);
-                    if (alsoEquipGate)
-                    {
-                        ui.Toast("ĐÃ RÚT HAI CHÌA KHÓA", "Chìa cổng phụ đang cầm trên tay. Chìa khu C cất trong ba lô.", 4.6f);
-                        FinishEnvelope();
-                    }
-                    else
-                    {
-                        ui.Caption("Đã rút chìa cổng phụ và chìa khu C vào ba lô.", 3.4f, aboveModal: true);
-                        RenderLayer(reopen3D: false);
-                    }
-                });
-            }
-
             string TabSection(int tab) => tab switch
             {
-                0 => "E10a · 1/5 · MẶT NGOÀI & GIẤY HẸN",
-                1 => "E10a · 2/5 · THƯ CŨ CỦA LAN (HAI MẶT)",
-                2 => "E10a · 3/5 · MẨU BÁO 18/11/2005",
-                3 => "E10a · 4/5 · TIN NHẮN CỦA BẢY (SMS)",
-                _ => "E10a · 5/5 · HAI CHÌA KHÓA TRONG BÌ THƯ"
+                0 => "E10a · 1/4 · GIẤY NHẮN NGOÀI BÌ (CHÚ BẢY)",
+                1 => "E10a · 2/4 · THƯ CŨ CỦA LAN (2005 · HAI MẶT)",
+                2 => "E10a · 3/4 · MẨU BÁO 18/11/2005",
+                _ => "E10a · 4/4 · HAI CHÌA KHÓA & NHÃN KHU C"
             };
 
             string TabTitle(int tab) => tab switch
             {
-                0 => "Bì thư & Giấy hẹn của Bảy",
-                1 => "Thư cũ của Lan",
-                2 => "Mẩu báo vụ cháy An Sinh",
-                3 => "Tin nhắn điện thoại từ Bảy",
-                _ => "Chìa cổng phụ & Chìa khu C"
+                0 => "Giấy nhắn ngoài bì thư",
+                1 => "Thư cũ của Lan (2005)",
+                2 => "Mẩu báo vụ cháy An Sinh (11/2005)",
+                _ => "Chìa cổng phụ & Chìa khu C (đã thay khóa)"
             };
 
             string TabBody(int tab)
             {
-                bool smsRead = State.Happened("E10a.SMSRead");
-                bool hasKeys = InventoryService.HasPhysical(State, BackpackCatalog.GateKey) &&
-                               InventoryService.HasPhysical(State, BackpackCatalog.WingCKey);
+                string noteCopy = !string.IsNullOrWhiteSpace(ch01WorldFirst?.mailboxNotePropCopy)
+                    ? ch01WorldFirst.mailboxNotePropCopy
+                    : "Nếu chưa thấy tôi, vào quầy trực chờ. — Bảy";
+                bool readNote = State.Happened(E10aParts.SignedAppointment);
+                bool readLan = State.Happened(E10aParts.Letter);
+                bool readNews = State.Happened(E10aParts.PublicReportSummary);
+                bool readSms = State.Happened(E10aParts.PostponementSms);
                 return tab switch
                 {
-                    0 => "Giấy hẹn có chữ ký Bảy:\n«23 giờ, 17/11/2012 · Chốt cổng phụ. Tôi trực ca cuối.»\n\n" +
-                         "Bì thư giấy kraft ẩm mưa đặt trên túi vải cạnh xe máy. Bên trong gồm thư cũ của Lan, mẩu báo cũ, tờ nhắn đi kèm SMS và hai chiếc chìa khóa." +
-                         (smsRead ? "\n\n✓ Đã đọc tin nhắn của Bảy." : "\n\n• Chưa xác nhận đọc tin nhắn mới của Bảy (mục 4/5).") +
-                         (hasKeys ? "\n✓ Đã rút hai chìa khóa vào ba lô." : "\n• Hai chìa khóa vẫn nằm trong bì thư (mục 5/5)."),
-                    1 => "Thư cũ của Lan (nét bút bi xanh, gấp nếp nhiều lần):\n\n" +
-                         "«Anh Minh, em cần nói với anh một chuyện ở bệnh viện. Em không muốn để chuyện này qua thêm một ngày nữa.»\n\n" +
-                         "Có thể lật mặt sau tờ thư bằng [Space] để kiểm tra dấu gấp và mép giấy ố nước.",
-                    2 => "Mẩu báo cũ cắt từ trang tin địa phương (góc dưới bị rách và nhòe nước mưa):\n\n" +
-                         "«Vụ cháy rạng sáng 18/11/2005 tại Bệnh viện An Sinh khiến 13 người tử vong.»\n\n" +
-                         "Cột danh sách nạn nhân phía dưới đã rách mất, không còn đọc được tên nào.",
-                    3 => "Tin nhắn mới từ Bảy (gửi lúc 22:54):\n\n«" + Line("CH01-D15") + "»\n\n" +
-                         (smsRead ? "✓ Đã ghi nội dung tin nhắn vào sổ trực." : "Đọc kỹ lời dặn của Bảy trước khi mở cổng phụ vào sân."),
-                    _ => "Hai chiếc chìa khóa buộc rời nhau trong góc bì thư:\n\n" +
-                         "• Chìa cổng phụ (đồng vàng cũ, răng mòn sáng) — dùng mở cổng sắt phụ phía trước.\n" +
-                         "• Chìa khu C (sắt sẫm màu, có thẻ giấy) — ổ khóa cũ đã bị thay từ trước năm 2012.\n\n" +
-                         (hasKeys ? "✓ Cả hai chìa đã nằm trong Ba lô → Dụng cụ & đồ vật." : "Rút hai chìa khóa ra ba lô để cầm và mở cổng phụ.")
+                    0 => $"Giấy nhắn tay kẹp bên ngoài phong bì chống ẩm:\n«{noteCopy}»\n\n" +
+                         "«23 giờ, 17/11/2012 · Chốt cổng phụ. Chìa cổng phụ buộc sẵn ngoài bì; chìa khu C đã thay khóa từ 2006.»\n\n" +
+                         (readNote ? "✓ Đã ghi nhận đọc giấy nhắn hẹn của chú Bảy." : "• Đang kiểm tra giấy nhắn ngoài bì.") +
+                         (readSms ? "\n✓ Đã đọc SMS báo hoãn 22:48 trên điện thoại." : "\n• Tin nhắn SMS báo hoãn (22:48) nằm trên điện thoại [P]."),
+                    1 => "Thư cũ viết bằng bút bi xanh trên giấy kẻ ngang năm 2005 (gấp tư, mép ố vàng):\n\n" +
+                         "«Anh Minh, em cần nói với anh một chuyện ở bệnh viện. Mấy hôm nay sổ sách ở tầng trệt và khu sau cứ bị sửa lại mỗi lần giao ca. Em không muốn để chuyện này qua thêm một ngày nữa. — Lan»\n\n" +
+                         (readLan ? "✓ Đã đọc lá thư cũ của Lan." : "• Đang đọc lá thư năm 2005.") +
+                         " Có thể nhấn [Space] để lật xem mặt sau.",
+                    2 => "Mẩu báo địa phương ra ngày 19/11/2005 (mép dưới rách ướt):\n\n" +
+                         "«Hỏa hoạn rạng sáng 18/11/2005 tại Bệnh viện Đa khoa An Sinh khiến 13 người tử vong. Nguyên nhân sơ bộ được ghi nhận là sự cố kỹ thuật — chập điện khu vực tầng bán hầm. Cơ sở ngừng hoạt động từ 2006 và chờ tháo dỡ.»\n\n" +
+                         (readNews ? "✓ Đã đọc mẩu báo vụ cháy 18/11/2005 (căn cứ đối chiếu về sau)." : "• Đang đọc mẩu báo công bố vụ cháy."),
+                    _ => "Hai chiếc chìa khóa nhận cùng gói trong hộp thư trụ cổng:\n\n" +
+                         "• Chìa đồng cổng phụ — khớp với ổ khóa cổng phụ ngoài chốt bảo vệ.\n" +
+                         "• Chìa sắt khu C — gắn thẻ giấy ghi rõ «KHU C — ĐÃ THAY KHÓA (2006)», không mở được cổng phụ đêm nay.\n\n" +
+                         $"Tiến độ kiểm tra 4 nguồn E10a: {E10aParts.ReadCount(State)}/4 mục."
                 };
             }
 
@@ -352,55 +332,51 @@ namespace CTCC
                     Vector3? liftOrigin = source != null && !returnToBackpack ? source.position : (Vector3?)null;
                     if (activeTab == 0)
                     {
-                        var envModel = scene.InspectTemplate("E10a");
-                        var envTex = Image("Doc_BayEnvelopeFront");
-                        if (envModel != null)
-                            inspector.Open(envModel, null, 1f, ActiveVolume(), observationId: "E10a", source: liftOrigin);
-                        else if (envTex != null)
-                            inspector.Open(null, envTex, (float)envTex.width / Mathf.Max(1, envTex.height), ActiveVolume(), observationId: "E10a", source: liftOrigin);
+                        var noteTex = Image("Doc_BayNote") ?? Image("Doc_BayEnvelopeFront");
+                        if (noteTex != null)
+                            inspector.Open(null, noteTex, (float)noteTex.width / Mathf.Max(1, noteTex.height), ActiveVolume(),
+                                observationId: "E10a_NOTE", source: liftOrigin);
                     }
                     else if (activeTab == 1)
                     {
-                        var front = Image("Doc_BayLetter");
-                        var back = Image("Doc_BayLetter_Back");
+                        var front = Image("Doc_LanLetter2005") ?? Image("Doc_BayLetter");
+                        var back = Image("Doc_LanLetter2005_Back") ?? Image("Doc_BayLetter_Back");
                         if (front != null)
                             inspector.Open(null, front, (float)front.width / Mathf.Max(1, front.height), ActiveVolume(),
                                 backTexture: back, onFlip: _ => RenderLayer(reopen3D: false), observationId: "E10a_LETTER");
                     }
-                    else if (activeTab == 4)
+                    else if (activeTab == 2)
                     {
-                        var keyTmpl = handPresenter?.GetInspectTemplate(BackpackCatalog.GateKey) ?? scene.InspectTemplate("E10a");
-                        if (keyTmpl != null)
-                            inspector.Open(keyTmpl, null, 1f, ActiveVolume(), observationId: "E10a_KEYS");
+                        var newsTex = Image("Doc_Newspaper2005") ?? Image("Doc_BayEnvelopeFront");
+                        if (newsTex != null)
+                            inspector.Open(null, newsTex, (float)newsTex.width / Mathf.Max(1, newsTex.height), ActiveVolume(),
+                                observationId: "E10a_NEWS");
                     }
                     else
                     {
-                        var front = Image("Doc_BayEnvelopeFront");
-                        if (front != null)
-                            inspector.Open(null, front, (float)front.width / Mathf.Max(1, front.height), ActiveVolume(), observationId: "E10a");
+                        var tagTex = Image("Doc_KeyCTag");
+                        if (tagTex != null)
+                            inspector.Open(null, tagTex, (float)tagTex.width / Mathf.Max(1, tagTex.height), ActiveVolume(),
+                                observationId: "E10a_KEYS");
                     }
                 }
 
-                bool smsRead = State.Happened("E10a.SMSRead");
-                bool hasKeys = InventoryService.HasPhysical(State, BackpackCatalog.GateKey) &&
-                               InventoryService.HasPhysical(State, BackpackCatalog.WingCKey);
+                bool readNote = State.Happened(E10aParts.SignedAppointment);
+                bool readLan = State.Happened(E10aParts.Letter);
+                bool readNews = State.Happened(E10aParts.PublicReportSummary);
+                bool readSms = State.Happened(E10aParts.PostponementSms);
                 var choices = new List<ActionChoice>();
 
-                // Primary contextual actions for the active layer
-                if (activeTab == 3 && !smsRead)
-                    choices.Add(new ActionChoice("Xác nhận đã đọc tin nhắn Bảy", ConfirmSms));
-                if (activeTab == 4)
+                if (activeTab == 3)
                 {
-                    if (!hasKeys)
-                    {
-                        choices.Add(new ActionChoice("Rút 2 chìa khóa & cầm chìa cổng phụ", () => ExtractKeys(alsoEquipGate: true)));
-                        choices.Add(new ActionChoice("Rút 2 chìa khóa cất vào ba lô", () => ExtractKeys(alsoEquipGate: false)));
-                    }
-                    else
+                    if (InventoryService.HasPhysical(State, BackpackCatalog.GateKey))
                     {
                         bool eqGate = InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey;
                         choices.Add(new ActionChoice(eqGate ? "Đang cầm chìa cổng phụ" : "Cầm chìa cổng phụ trên tay", () =>
                             SaveCheckpoint(() => casework.EquipItemAsync(BackpackCatalog.GateKey), FinishEnvelope), !eqGate));
+                    }
+                    if (InventoryService.HasPhysical(State, BackpackCatalog.WingCKey))
+                    {
                         choices.Add(new ActionChoice("Cầm chìa khu C trên tay", () =>
                             SaveCheckpoint(() => casework.EquipItemAsync(BackpackCatalog.WingCKey), FinishEnvelope)));
                     }
@@ -411,14 +387,12 @@ namespace CTCC
                         () => inspector.Flip()));
                 }
 
-                // Quick navigation between all 5 layers (any reading order valid!)
                 string[] navLabels =
                 {
-                    "1. Mặt ngoài & Giấy hẹn",
-                    "2. Thư cũ của Lan",
-                    "3. Mẩu báo 18/11/2005",
-                    smsRead ? "4. Tin nhắn Bảy ✓" : "4. Tin nhắn Bảy (SMS)",
-                    hasKeys ? "5. Hai chìa khóa ✓" : "5. Rút hai chìa khóa"
+                    readNote ? "1. Giấy nhắn ngoài bì ✓" : "1. Giấy nhắn ngoài bì (Bảy)",
+                    readLan ? "2. Thư cũ của Lan ✓" : "2. Thư cũ của Lan (2005)",
+                    readNews ? "3. Mẩu báo 18/11/2005 ✓" : "3. Mẩu báo 18/11/2005",
+                    "4. Hai chìa khóa & nhãn khu C"
                 };
                 for (int i = 0; i < navLabels.Length; i++)
                 {
@@ -426,6 +400,12 @@ namespace CTCC
                     int idx = i;
                     choices.Add(new ActionChoice(navLabels[i], () => RecordTab(idx)));
                 }
+
+                choices.Add(new ActionChoice(readSms ? "Mở điện thoại xem SMS Bảy ✓" : "Mở điện thoại xem SMS Bảy [P]", () =>
+                {
+                    inspector?.Close();
+                    OpenPhone(0, returnToBackpack: returnToBackpack);
+                }));
 
                 if (qaFolder == null && inspector != null)
                 {
@@ -436,25 +416,32 @@ namespace CTCC
                         RenderLayer(reopen3D: !largePrintMode);
                     }));
                 }
-                choices.Add(new ActionChoice(returnToBackpack ? "Quay lại ba lô" : "Gấp bì thư lại", FinishEnvelope));
+                choices.Add(new ActionChoice(returnToBackpack ? "Quay lại ba lô" : "Gấp gói E10a lại", FinishEnvelope));
 
                 if (!largePrintMode && inspector != null && qaFolder == null)
                 {
                     string hint = activeTab == 1
-                        ? "Space/R: Lật thư Lan · Chuột/WASD: Xoay · Lăn: Thu phóng · Chọn mục bên phải để chuyển lớp"
-                        : "Chuột/WASD: Xoay vật phẩm 3D · Lăn: Thu phóng · Chọn mục bên phải để xem các lớp trong bì thư";
+                        ? "Space/R: Lật thư Lan · Chuột/WASD: Xoay · Lăn: Thu phóng · Chọn mục bên phải để chuyển tài liệu"
+                        : "Chuột/WASD: Xoay tài liệu 3D · Lăn: Thu phóng · Chọn từng tài liệu trong gói E10a bên phải";
                     ui.ShowInspectSidebar(TabSection(activeTab), TabTitle(activeTab), TabBody(activeTab),
                         choices.ToArray(), FinishEnvelope, () => inspector.Close(), hint);
                 }
                 else
                 {
-                    Texture split = activeTab == 1 ? Image("Doc_BayLetter") : Image("Doc_BayEnvelopeFront");
+                    Texture split = activeTab switch
+                    {
+                        0 => Image("Doc_BayNote") ?? Image("Doc_BayEnvelopeFront"),
+                        1 => Image("Doc_LanLetter2005") ?? Image("Doc_BayLetter"),
+                        2 => Image("Doc_Newspaper2005") ?? Image("Doc_BayEnvelopeFront"),
+                        _ => Image("Doc_KeyCTag") ?? Image("Doc_BayEnvelopeFront")
+                    };
                     ui.Show(TabSection(activeTab), TabTitle(activeTab), TabBody(activeTab),
                         choices.ToArray(), FinishEnvelope, split, largePrint: largePrintMode);
                 }
             }
 
-            RenderLayer(reopen3D: true);
+            // Record ONLY the active tab the player explicitly opened (never auto-read other parts!).
+            RecordTab(activeTab);
         }
 
         private void InspectBoardBeforeAccept(Transform source)
@@ -1138,8 +1125,11 @@ namespace CTCC
                 foreach (var entry in voice.Transcript)
                     sb.Append(entry.Speaker).Append("  [").Append(entry.LineId).Append("]\n").Append(entry.Text).Append("\n\n");
             }
+            bool useBackpackReturn = !IsJournalAllowedOnAn01;
+            Action back = useBackpackReturn ? () => OpenBackpack(BackpackCompartment.PocketNote) : Journal;
+            string backLabel = useBackpackReturn ? "Quay lại ba lô (Pocket Note)" : "Quay lại sổ trực";
             ui.Show("BẢN GHI HỘI THOẠI", "Nhật ký thoại", sb.ToString().TrimEnd(),
-                new[] { new ActionChoice("Quay lại sổ trực", Journal), new ActionChoice("Đóng", CloseModal) }, Journal);
+                new[] { new ActionChoice(backLabel, back), new ActionChoice("Đóng", CloseModal) }, back);
         }
 
         private void EndOfVisit()
@@ -1205,7 +1195,7 @@ namespace CTCC
                     SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.PatientRegister, "LOC07"), () =>
                     {
                         CloseModal();
-                        voice?.Speak("CH03-D01", "Minh", Line("CH03-D01"));
+                        PresentLine("CH03-D01");
                     })));
             }
             choices.Add(new ActionChoice(saved ? "Đóng sổ (đã lưu E03)" : "Đặt sổ xuống", CloseModal));
@@ -1239,7 +1229,7 @@ namespace CTCC
                     {
                         if (GateService.G03(State))
                         {
-                            voice?.Speak("CH03-D02", "Minh", Line("CH03-D02"));
+                            PresentLine("CH03-D02");
                             ui.Toast("ĐÃ GHI NHẬN C02 · G03 MỞ", Line("CH03-D06"), 5.5f);
                         }
                         else ui.Caption("Mã/chi tiết chăm sóc chưa khớp.", 4f, true);
@@ -1362,7 +1352,7 @@ namespace CTCC
                 {
                     SaveCheckpoint(() => casework.TakeCh03EvidenceAsync(EvidenceRegistry.C12UnnamedBox, "LOC07"), () =>
                     {
-                        voice?.Speak("CH03-D04", "Minh", Line("CH03-D04"));
+                        PresentLine("CH03-D04");
                         CloseModal();
                         Ch03CheckG03Unlocked();
                     });

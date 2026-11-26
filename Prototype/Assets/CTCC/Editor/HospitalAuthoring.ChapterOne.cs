@@ -13,9 +13,12 @@ namespace CTCC.Editor
         {
             string zen = Root + "/Scenes/";
             var outside = EditorSceneManager.OpenScene(zen + "LOC01_Exterior.unity");
-            var envelope = UnityEngine.Object.FindObjectsByType<SceneTarget>(FindObjectsSortMode.None).Single(t => t.id == "E10a");
-            envelope.transform.position = new Vector3(3.17f, .27f, -21.44f);
-            envelope.GetComponent<BoxCollider>().size = new Vector3(.43f, .22f, .44f);
+            var mailbox = UnityEngine.Object.FindObjectsByType<SceneTarget>(FindObjectsSortMode.None).FirstOrDefault(t => t.id == "MAILBOX");
+            if (mailbox != null)
+            {
+                mailbox.transform.position = new Vector3(5.36f, 1.12f, -20.23f);
+                mailbox.GetComponent<BoxCollider>().size = new Vector3(.36f, .44f, .24f);
+            }
             EditorSceneManager.SaveScene(outside);
 
             var ward = EditorSceneManager.OpenScene(zen + "LOC03_Ward101.unity");

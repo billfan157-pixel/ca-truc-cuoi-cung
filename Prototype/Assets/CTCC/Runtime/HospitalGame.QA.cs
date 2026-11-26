@@ -54,6 +54,7 @@ namespace CTCC
             yield return VerifyKeyboard();
             yield return VerifyCh01RAdversarialSuite();
             yield return VerifyCh01WalkthroughSuite();
+            yield return VerifyCh01Rebirth3Phase1Suite();
             yield return VerifyM2FinalPhaseCDERegression();
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
             yield return VerifyScalableM3AndCh03();
@@ -153,15 +154,16 @@ namespace CTCC
                 verification.Add("M2-ADDITIVE PASS: 4 boot gameplay zones + CAMPUS_EXT; duplicate zone/pad rejected; LOC04 released, rejected unloaded restore, then rebound and restored AP05.");
             }
 
-            // 2) LOCK-V22-02 / V22-Q03 runtime VO & transcript guard
+            // 2) LOCK-V22-02 / V22-Q03 / DEC-VO-01 runtime VO & transcript guard
             Require(voice != null && !voice.HasClip("CH01-D16b") && !voice.HasClip("CH04-D06"), "Forbidden CH04 VO absent");
-            var expectedReactions = new[] { "Vậy là xong…?", "Chưa đủ căn cứ.", "Phiếu này không khớp." };
+            var expectedReactions = new[] { "Vậy là xong sao…?", "Chưa đủ căn cứ.", "Phiếu này không khớp." };
             for (int i = 0; i < expectedReactions.Length; i++)
             {
                 string id = $"CH01-D{10 + i}";
-                Require(voice.HasClip(id) && Line(id) == expectedReactions[i], "F101 voiced reaction and text match: " + id);
+                Require(!voice.HasClip(id) && Line(id) == expectedReactions[i], "DEC-VO-01 F101 silent thought has zero VO clip and exact Core v3.6.2 text: " + id);
             }
-            Require(voice.HasClip("CH01-D14") && Line("CH01-D14") == Line("CH01-D13", 2), "Outer gate D14 uses its own matching clip and transcript ID");
+            Require(!voice.HasClip("CH01-D14") && Line("CH01-D14") == "Vừa bước qua cổng mà…",
+                "DEC-VO-01 outer gate D14 is INNER_SUB_SILENT (zero VO clip) with exact Core v3.6.2 text");
             int beforeT = voice.Transcript.Count;
             int blocked = 0;
             foreach (string id in new[] { "CH01-D16b", "CH04-D06" })
@@ -598,6 +600,19 @@ namespace CTCC
             camera.transform.localRotation = Quaternion.Euler(-7, 0, 0);
             SaveFrame(camera, target, "loc01-exterior-R");
 
+            // CH01 Rebirth III Phase 1: East Gate Pillar iron mailbox close-ups (closed vs open lid outward clearance)
+            var mbSnap = State.Copy();
+            mbSnap.events.Remove(E10aParts.MailboxOpened);
+            mbSnap.events.Remove(E10aParts.MailboxPickedUp);
+            scene.PresentCasework(mbSnap);
+            player.Teleport(new Vector3(4.82f, 0.02f, -21.45f), Quaternion.Euler(0, 26, 0));
+            camera.transform.localRotation = Quaternion.Euler(14, 0, 0);
+            SaveFrame(camera, target, "loc01-mailbox-closed-R");
+            mbSnap.Remember(E10aParts.MailboxOpened);
+            scene.PresentCasework(mbSnap);
+            SaveFrame(camera, target, "loc01-mailbox-open-R");
+            scene.PresentCasework(State);
+
             player.Teleport(new Vector3(3.95f, 0.02f, -16.8f), Quaternion.Euler(0, 0, 0));
             camera.transform.localRotation = Quaternion.Euler(-9, 0, 0);
             SaveFrame(camera, target, "loc01-courtyard-R");
@@ -985,7 +1000,8 @@ namespace CTCC
                 Mathf.Abs(scene.Pad("AP08").position.y + 3.4f) < .04f, "Canonical floor elevations");
             Require(scene.archiveExitDoor != null && scene.Ch03PatrolWaypoints.Length >= 3 && scene.Ch03RadioPoint != null,
                 "Archive gate, patrol and radio are present");
-            Require(voice.HasClip("CH03-D01") && voice.HasClip("CH03-D03") && voice.HasClip("CH03-D05"), "Archive voice clips");
+            Require(!voice.HasClip("CH03-D01") && voice.HasClip("CH03-D03") && voice.HasClip("CH03-D05"),
+                "DEC-VO-01 Archive voice clips (CH03-D01 silent thought has no VO; D03 & D05 voiced)");
             VerifyLegacySave(1);
             VerifyLegacySave(2);
             VerifyLegacySave(3);
@@ -1154,16 +1170,19 @@ namespace CTCC
 
         private IEnumerator VerifyCh05Suite()
         {
-            // 1. Canonical Design-Lock Dialogue Provenance & Zero NPR-01 Draft Leakage
-            Require(dialogueSourceRevision == "3c0b955de95bcf39853c30e2669b2bac24ad969e",
-                $"CH05 dialogue provenance must lock to 3c0b955 (got {dialogueSourceRevision})");
-            Require(dialogueSourceSha256 == "adbec7e5a354b74a6a0105174862c6a73fcaadeedb7401fee56e0e4f25f3f7d6",
+            // 1. Canonical Core v3.6.2 Design-Lock Dialogue Provenance & Zero NPR-01 Draft Leakage
+            Require(dialogueDesignRevision == "3.6.2-documentation-consolidation",
+                $"CH05 dialogue designRevision must lock to 3.6.2-documentation-consolidation (got {dialogueDesignRevision})");
+            Require(dialogueSourceSha256 == "40ebb073bc5bf3e1aae0e113462d84b8064974cc9bd48321ce78d6cf4ed56658",
                 $"CH05 dialogue source SHA-256 mismatch (got {dialogueSourceSha256})");
             foreach (string id in new[] { "CH05-D01", "CH05-D02", "CH05-D03", "CH05-D04", "CH05-D05", "CH05-D06", "CH05-D07", "CH05-D08" })
                 Require(dialogue.ContainsKey(id) && !string.IsNullOrWhiteSpace(dialogue[id].copy),
                     "CH05 canonical dialogue row missing: " + id);
-            foreach (string draftId in new[] { "CH07-D19", "CH07-D23", "CH07-D24", "CH07-D27", "CH07-D28", "CH08-D20" })
-                Require(!dialogue.ContainsKey(draftId), "NPR-01 draft CH07/CH08 row must never leak into runtime: " + draftId);
+            // Core v3.6.2 (DEC-NPR01 / DEC-V35-01): promoted CH07/CH08 canonical rows exist in the 143-ID table
+            // and remain strictly blocked from delivery during CH01-CH05!
+            foreach (string ch0708Id in new[] { "CH07-D19", "CH07-D23", "CH07-D24", "CH07-D27", "CH07-D28", "CH08-D20" })
+                Require(dialogue.ContainsKey(ch0708Id) && !MayDeliver(ch0708Id, null),
+                    "Core v3.6.2 DEC-NPR01 canonical CH07/CH08 row present in table and blocked in CH05: " + ch0708Id);
 
             // 2. Legacy M3.2 CH04 AN05 Save Compatibility (Schema v7)
             var legacyDir = Path.Combine(qaFolder, "ch05-legacy-ch04");
@@ -1853,7 +1872,12 @@ namespace CTCC
                     casework.CrossCheck0317Exception(player.Feet, Observed0317Link()) != CommitResult.Applied,
                 "03:17 remains locked after a normal inspection and flip, despite having the clock and shift context");
             foreach (string id in LanDirector.EncounterLineIds())
-                Require(!string.IsNullOrEmpty(Line(id)) && voice.HasClip(id), "Lan encounter has dialogue and an imported clip: " + id);
+            {
+                bool needsVo = dialogue.TryGetValue(id, out var dEntry) && dEntry.needsVO;
+                string text = !string.IsNullOrEmpty(Line(id)) ? Line(id) : dEntry?.pocketNoteText;
+                Require(!string.IsNullOrEmpty(text) && voice.HasClip(id) == needsVo,
+                    $"DEC-VO-01 Lan encounter line {id} text present and clip matches needsVO={needsVo}");
+            }
             string encounter = BuildLanTranscript(record: false);
             Require(encounter.Contains("Lan  —  " + Line("CH01-D04c")) && !MayDeliver("CH01-D04b", null),
                 "Lan transcript attributes the clock line to Lan and removes the retired reflection cue");
@@ -2143,8 +2167,8 @@ namespace CTCC
             Apply(casework.CrossCheck0317Exception(player.Feet, Observed0317Link()), "Upgrade #5 commit CH01-EX01");
             Require(CorroborationService.IsCorroborated(State) && State.Happened(CorroborationService.Exception0317Event) &&
                     State.FindObservation(ObservationRegistry.StoppedClock0317).stage == ObservationStage.Corroborated &&
-                    State.evidence.Count == 1 && voice.HasClip("CH01-D19", "B05") && !string.IsNullOrEmpty(LineAtBeat("CH01-D19", 1, "B05")),
-                "Upgrade #5 CH01-EX01 persists cleanly, unlocks CH01-D19 at B05, and keeps CH01 evidence.Count == 1");
+                    State.evidence.Count == 1 && !voice.HasClip("CH01-D19", "B05") && !string.IsNullOrEmpty(LineAtBeat("CH01-D19", 1, "B05")),
+                "Upgrade #5 CH01-EX01 persists cleanly, unlocks silent-thought CH01-D19 at B05 (zero VO), and keeps CH01 evidence.Count == 1");
             Require(transaction.Restore(SaveSlot.Auto, out _) == SaveRead.Valid && CorroborationService.IsCorroborated(State),
                 "Upgrade #5 CH01-EX01 survives save/reload");
 
@@ -2194,34 +2218,45 @@ namespace CTCC
             scene.interactables?.ResetSessionProps();
             player.Teleport(scene.Pad("AP00"));
 
-            // 1) B01: Multi-layer E10a, key extraction, wrong-key rejection, SMS gating, single E10a evidence, wind sign knock
-            Require(InventoryService.HasPhysical(State, BackpackCatalog.Flashlight) && State.evidence.Count == 1 && State.Has("E10a"),
-                "WT B01 starts with flashlight and single E10a evidence");
+            // 1) B01 (Core v3.6.2 DEC-V36-CH01-01): Start S0 with Flashlight + MinhPhone & 0 evidence;
+            //    atomic mailbox pickup grants E10a + keys (0/4 parts read); KEY_GATE unlocks T02 without SMS gate; KEY_WING_C rejected.
+            Require(InventoryService.HasPhysical(State, BackpackCatalog.Flashlight) &&
+                    InventoryService.HasPhysical(State, BackpackCatalog.MinhPhone) &&
+                    State.evidence.Count == 0 && !State.Has("E10a") && E10aParts.ReadCount(State) == 0,
+                "WT B01 S0 starts with flashlight + phone and 0 evidence (pre-mailbox)");
             player.SetTorchEnabled(true);
             Require(player.IsTorchOn && player.TorchIntensity >= 32f && player.TorchRange >= 30f,
                 $"WT flashlight ON delivers boosted beam intensity={player.TorchIntensity:F1}, range={player.TorchRange:F1}");
             player.SetTorchEnabled(false);
             Require(!player.IsTorchOn && player.TorchIntensity == 0f, "WT flashlight toggles OFF cleanly");
-            yield return WaitForApplied(casework.InspectE10aLayerAsync(1, "LAN_LETTER", markSmsRead: false), "WT E10a tab 1");
-            Require(State.e10aLastTab == 1 && !State.Happened("E10a.SMSRead"), "WT E10a remembers tab without auto-reading SMS");
-            yield return WaitForApplied(casework.InspectE10aLayerAsync(4, "KEYS_EXTRACTED", markSmsRead: false, extractKeys: true), "WT extract 2 keys");
-            Require(InventoryService.HasPhysical(State, BackpackCatalog.GateKey) &&
-                    InventoryService.HasPhysical(State, BackpackCatalog.WingCKey) &&
-                    State.evidence.Count == 1 && State.Has("E10a"), "WT extracting keys keeps CH01 evidence.Count == 1");
 
-            // Missing SMS feedback (NOT wrong key!) even when holding KEY_GATE
-            var noSmsRes = WorldUseResolver.Resolve(State, BackpackCatalog.GateKey, "GATE-CONG");
-            Require(noSmsRes.Outcome == WorldUseOutcome.NeedSmsBeforeGate, "WT KEY_GATE before SMS reports missing SMS");
+            // Before mailbox pickup, outer gate cannot be unlocked
+            Require(casework.OpenGate(player.Feet) != CommitResult.Applied, "WT outer gate denied before acquiring KEY_GATE");
+            yield return WaitForApplied(casework.OpenMailboxAsync(), "WT open exterior mailbox");
+            yield return WaitForApplied(casework.TakeMailboxPackageAsync(equipGateKey: true), "WT atomic mailbox pickup");
+            Require(InventoryService.HasPhysical(State, BackpackCatalog.E10aEnvelope) &&
+                    InventoryService.HasPhysical(State, BackpackCatalog.GateKey) &&
+                    InventoryService.HasPhysical(State, BackpackCatalog.WingCKey) &&
+                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey &&
+                    State.evidence.Count == 1 && State.Has("E10a") && E10aParts.ReadCount(State) == 0,
+                "WT atomic mailbox pickup grants E10a + keys (KEY_GATE equipped) with 0/4 parts read");
+
             // Wrong key (KEY_WING_C) rejected and retained!
-            yield return WaitForApplied(casework.InspectE10aLayerAsync(3, "BAY_SMS", markSmsRead: true), "WT read SMS");
             yield return WaitForApplied(casework.EquipItemAsync(BackpackCatalog.WingCKey), "WT equip KEY_WING_C");
             var wrongKeyRes = WorldUseResolver.Resolve(State, BackpackCatalog.WingCKey, "GATE-CONG");
             Require(wrongKeyRes.Outcome == WorldUseOutcome.WrongKeyForOuterGate &&
                     InventoryService.HasPhysical(State, BackpackCatalog.WingCKey), "WT KEY_WING_C rejected and retained");
+            // KEY_GATE unlocks outer gate IMMEDIATELY even with 0/4 E10a parts read (no SMS hard gate!)
             yield return WaitForApplied(casework.EquipItemAsync(BackpackCatalog.GateKey), "WT equip KEY_GATE");
             Require(WorldUseResolver.Resolve(State, BackpackCatalog.GateKey, "GATE-CONG").Outcome == WorldUseOutcome.UnlockOuterGate,
-                "WT KEY_GATE resolves to UnlockOuterGate after SMS");
-            Apply(casework.OpenGate(player.Feet), "WT open gate");
+                "WT KEY_GATE resolves to UnlockOuterGate directly with 0/4 parts read");
+            Apply(casework.OpenGate(player.Feet), "WT open gate at 0/4 parts");
+            Require(State.Happened("CH01-T02") && E10aParts.ReadCount(State) == 0,
+                "WT CH01-T02 commits cleanly on Adversarial 0/4 route without faking SMS/read flags");
+            // Reading Lan letter tab remembers tab & records only Lan letter (not SMS!)
+            yield return WaitForApplied(casework.InspectE10aLayerAsync(1, "LAN_LETTER", markSmsRead: false), "WT E10a tab 1");
+            Require(State.e10aLastTab == 1 && State.Happened(E10aParts.Letter) && !State.Happened(E10aParts.PostponementSms),
+                "WT E10a remembers tab and marks only Lan letter without auto-reading SMS");
             Require(dreadDirector.TryTriggerB01SignKnock(), "WT B01 demolition sign wind knock fires once");
             yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.B01SignKnock), "WT B01 sign knock persisted");
             Require(!dreadDirector.TryTriggerB01SignKnock(), "WT B01 sign knock does not replay");
@@ -2994,8 +3029,9 @@ namespace CTCC
             if (scene.staffCrossDoor != null) scene.staffCrossDoor.isOpen = false;
             player.Teleport(scene.Pad("AP00"));
 
-            // CH01-Q12: E10a already present even if player skips envelope flap/newspaper/FS04 inspection
-            Require(State.Has("E10a") && !State.Happened("FS04"), "CH01-Q12 E10a seeded without mandatory inspect");
+            // CH01-Q12 (Core v3.6.2): S0 starts with 0 evidence; atomic mailbox pickup grants E10a + keys without requiring any document reads!
+            Require(State.evidence.Count == 0 && !State.Has("E10a") && !State.Happened("FS04"),
+                "CH01-Q12 S0 begins clean before mailbox pickup");
 
             // CH01-Q10: alternate bindings update UseKey & world prompt
             Require(UseKey == "K", "CH01-Q10 UseKey switches to K");
@@ -3008,7 +3044,9 @@ namespace CTCC
             Require(!player.IsTorchOn && player.TorchIntensity == 0f && AudioListener.volume == 0f,
                 "CH01-Q09 depleted battery disables torch while master mute holds 0 volume");
 
-            Apply(casework.ReadLetter(player.Feet), "M2F SMS");
+            Apply(casework.TakeMailboxPackage(player.Feet, equipGateKey: true), "M2F atomic mailbox pickup (0/4 parts)");
+            Require(State.Has("E10a") && E10aParts.ReadCount(State) == 0 && !State.Happened("FS04"),
+                "CH01-Q12 atomic pickup grants E10a with 0/4 reads and no mandatory inspect");
             Apply(casework.OpenGate(player.Feet), "M2F gate");
             player.Teleport(scene.Pad("AP02"));
             Apply(casework.AtHub(player.Feet, out _), "M2F enter B");
