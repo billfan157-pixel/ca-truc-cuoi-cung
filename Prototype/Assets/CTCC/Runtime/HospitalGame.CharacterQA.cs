@@ -127,10 +127,11 @@ namespace CTCC
                 $"Lan: {lan.AnimationAllocationBytes} managed bytes in {lan.MeasuredAnimationFrames} measured animation updates");
 
             int interrupted = 0;
-            voice.Speak("CH01-D03", "Lan", Line("CH01-D03"), scene.LanVoiceAnchor, lan,
+            // Use CH01-D03c (6.92s verified lip-sync clip) so 30 frames + pause/resume never races clip end under low FPS.
+            voice.Speak("CH01-D03c", "Lan", Line("CH01-D03c"), scene.LanVoiceAnchor, lan,
                 onComplete: finished => { if (!finished) interrupted++; });
             for (int i = 0; i < 3; i++) yield return null;
-            Require(lan.ActiveLineId == "CH01-D03", "Lan: audio did not bind to the face");
+            Require(lan.ActiveLineId == "CH01-D03c", "Lan: audio did not bind to the face");
             // Measure live AudioSource.timeSamples lip-sync path for 30 frames (0 B/frame allocation)
             lan.MeasureAnimationAllocations = true;
             for (int i = 0; i < 30; i++) yield return null;
