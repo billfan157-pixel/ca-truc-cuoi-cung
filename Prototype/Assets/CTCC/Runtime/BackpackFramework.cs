@@ -110,6 +110,11 @@ namespace CTCC
 
     public static class WorldAnchors
     {
+        public const string SurfaceAn02Clip = "COMPARE_CLIP_AN02";
+        public const string SurfaceStaffDesk = "COMPARE_DESK_STAFF";
+        public const string SurfaceReceptionDesk = "COMPARE_DESK_RECEPTION";
+        public const string SurfaceWard101Table = "COMPARE_DESK_101";
+
         public const string An02CompareClip = "AN02_CLIP";
         public const string StaffDeskLeft = "STAFF_DESK_L";
         public const string StaffDeskRight = "STAFF_DESK_R";
@@ -127,8 +132,8 @@ namespace CTCC
         public static string Label(string anchorId) => anchorId switch
         {
             An02CompareClip => "Kẹp đối chiếu cạnh F101 (Phòng 101)",
-            StaffDeskLeft => "Bàn điều dưỡng STAFF · Ô trái",
-            StaffDeskRight => "Bàn điều dưỡng STAFF · Ô phải",
+            StaffDeskLeft => "Bàn điều dưỡng · Ô trái",
+            StaffDeskRight => "Bàn điều dưỡng · Ô phải",
             ReceptionDeskLeft => "Quầy tiếp nhận · Ô trái",
             ReceptionDeskRight => "Quầy tiếp nhận · Ô phải",
             Ward101TableLeft => "Bàn đối chiếu Phòng 101 · Ô trái",
@@ -209,18 +214,18 @@ namespace CTCC
                 Flashlight,
                 "Đèn pin cầm tay",
                 "Đèn pin",
-                "Đèn pin cầm tay của Minh. Có thể bật/tắt bằng phím F (hoặc L) và điều chỉnh góc soi lên bảng tên, dấu sàn hay mặt giấy.",
-                "Đồ mang theo · Lớp R",
+                "Đèn pin cầm tay của Minh. Có thể bật/tắt bằng phím F và soi sát mặt giấy hay góc tối.",
+                "Đồ mang theo",
                 ItemKind.EquippableTool,
                 BackpackCompartment.Tools,
                 canEquip: false,
                 canPlace: false),
             new(
                 MinhPhone,
-                "Điện thoại di động của Minh",
+                "Điện thoại di động",
                 "Điện thoại [P]",
-                "Chiếc điện thoại phím bấm mang theo đêm 17/11/2012. Lưu tin nhắn hẹn hôm 16/11 và tin nhắn báo hoãn lúc 22:48 từ chú Bảy; có thể nhấn [P] bất cứ lúc nào để đọc lại hoặc gọi lại chú Bảy.",
-                "Đồ mang theo · Lớp R · 17/11/2012",
+                "Chiếc điện thoại phím bấm của Minh đêm 17/11/2012. Lưu tin nhắn hẹn hôm 16/11 và tin nhắn báo hoãn lúc 22:48 từ chú Bảy.",
+                "Đồ mang theo · 17/11/2012",
                 ItemKind.EquippableTool,
                 BackpackCompartment.Tools,
                 canEquip: false,
@@ -231,8 +236,8 @@ namespace CTCC
                 GateKey,
                 "Chìa cổng phụ An Sinh",
                 "Chìa cổng phụ",
-                "Chìa đồng cũ buộc ngoài bì thư trong hộp thư trụ cổng. Khớp với ổ khóa cổng phụ phía trước chốt bảo vệ.",
-                "Từ hộp thư cổng phụ · Lớp R · LOC01",
+                "Chìa đồng cũ buộc ngoài phong bì trong hộp thư trụ cổng. Khớp với ổ khóa cổng phụ ngoài chốt bảo vệ.",
+                "Hộp thư trụ cổng · 17/11/2012",
                 ItemKind.EquippableTool,
                 BackpackCompartment.Tools,
                 canEquip: true,
@@ -241,18 +246,18 @@ namespace CTCC
                 WingCKey,
                 "Chìa khu C (đã thay khóa)",
                 "Chìa khu C",
-                "Chìa sắt sẫm màu có thẻ giấy ghi «Khu C — đã thay khóa». Thu hồi từ kho thanh lý — không khớp ổ cổng phụ đêm nay.",
-                "Từ hộp thư cổng phụ · Lớp R · LOC01",
+                "Chìa sắt sẫm màu gắn thẻ giấy ghi «Khu C — đã thay khóa (2006)». Thu hồi từ kho lưu trữ — không mở được cổng phụ.",
+                "Hộp thư trụ cổng · 17/11/2012",
                 ItemKind.EquippableTool,
                 BackpackCompartment.Tools,
                 canEquip: true,
                 canPlace: false),
             new(
                 E10aEnvelope,
-                "Gói tài liệu của Bảy (E10a)",
-                "Gói E10a",
-                "Phong bì chống ẩm lấy từ hộp thư sắt trụ cổng Đông gồm giấy nhắn ngoài bì của Bảy, thư cũ năm 2005 của Lan, mẩu báo vụ cháy 18/11/2005 (13 người tử vong) và chìa khu C đã thay khóa.",
-                "Vật chứng lớp R · LOC01 · 17/11/2012",
+                "Phong bì chú Bảy gửi lại",
+                "Phong bì chú Bảy",
+                "Phong bì chống ẩm lấy từ hộp thư sắt trụ cổng bên phải: kẹp giấy nhắn ngoài bì, bên trong có thư cũ năm 2005 của Lan, mẩu báo ngày 19/11/2005 và chiếc chìa khu C đã thay khóa.",
+                "Hộp thư trụ cổng · 17/11/2012",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: false,
@@ -262,10 +267,10 @@ namespace CTCC
                 backTexture: "Doc_LanLetter2005"),
             new(
                 BoardAssignment,
-                "Bảng kẹp bàn giao ca (BOARD)",
+                "Bảng kẹp bàn giao ca trực",
                 "Bảng kẹp ca trực",
-                "Tờ nhiệm vụ bàn giao nhận từ quầy tiếp nhận trong ca trực 17/11/2005, yêu cầu kiểm tra phòng 101 trước khi ký phiếu F101 tại bảng kẹp trong buồng.",
-                "Giấy tạm lớp B · LOC02 · 17/11/2005",
+                "Tờ nhiệm vụ bàn giao nhận từ quầy tiếp nhận trong ca trực 17/11/2005, yêu cầu kiểm tra Phòng 101 trước khi ký phiếu F101.",
+                "Quầy tiếp nhận · 17/11/2005",
                 ItemKind.LayerBoundPaper,
                 BackpackCompartment.Papers,
                 canEquip: false,
@@ -277,8 +282,8 @@ namespace CTCC
                 PaperObs101B,
                 "Thẻ bàn giao giường 4 (AS-05B)",
                 "Thẻ AS-05B",
-                "Thẻ giường tạm ngày 17/11/2005 khoanh tròn 'CHƯA BÀN GIAO', trống ô chữ ký người nhận. Chỉ tồn tại vật lý trong lớp B; có thể đặt lên kẹp F101 hoặc bàn đối chiếu.",
-                "Giấy tạm lớp B · LOC03 · 17/11/2005",
+                "Thẻ giường tạm ngày 17/11/2005 khoanh tròn 'CHƯA BÀN GIAO', trống ô chữ ký người nhận. Có thể kẹp cạnh phiếu F101 hoặc đặt lên bàn đối chiếu.",
+                "Phòng 101 · 17/11/2005",
                 ItemKind.LayerBoundPaper,
                 BackpackCompartment.Papers,
                 canEquip: true,
@@ -291,7 +296,7 @@ namespace CTCC
                 "Phiếu chuyển giường 02",
                 "Phiếu giường 02",
                 "Phiếu chuyển khoa Nội B lúc 19g20 ngày 17/11/2005 có đủ hai chữ ký giao–nhận và dấu đỏ. Dùng để đối chiếu quy trình hoàn tất.",
-                "Giấy tạm lớp B · LOC03 · 17/11/2005",
+                "Phòng 101 · 17/11/2005",
                 ItemKind.LayerBoundPaper,
                 BackpackCompartment.Papers,
                 canEquip: true,
@@ -304,7 +309,7 @@ namespace CTCC
                 "Phiếu phát thuốc giường 03",
                 "Phiếu thuốc giường 03",
                 "Lịch thuốc giường 03 đã khóa lúc 10g15 ngày 17/11/2005 khi bệnh nhân xuất viện. Nói về giường 03, không liên quan trực tiếp đến vị trí thứ tư.",
-                "Giấy tạm lớp B · LOC03 · 17/11/2005",
+                "Phòng 101 · 17/11/2005",
                 ItemKind.LayerBoundPaper,
                 BackpackCompartment.Papers,
                 canEquip: true,
@@ -314,10 +319,10 @@ namespace CTCC
                 backTexture: "Doc_Bed3Meds_Back"),
             new(
                 PaperShiftLog,
-                "Quy chế bàn giao ca đêm AS-05",
-                "Quy chế AS-05",
-                "Trích quy định bàn giao từ ngăn kéo bàn điều dưỡng STAFF. Nhắc kiểm đủ hai chữ ký bàn giao kể cả giường kê tạm trước khi chốt số 0.",
-                "Giấy tạm lớp B · STAFF · 17/11/2005",
+                "Quy chế bàn giao ca đêm",
+                "Quy chế bàn giao",
+                "Trích quy định bàn giao từ ngăn kéo bàn điều dưỡng. Nhắc kiểm đủ hai chữ ký bàn giao kể cả giường kê tạm trước khi chốt số 0.",
+                "Bàn điều dưỡng · 17/11/2005",
                 ItemKind.LayerBoundPaper,
                 BackpackCompartment.Papers,
                 canEquip: true,
@@ -326,13 +331,13 @@ namespace CTCC
                 frontTexture: "Doc_ShiftGuide",
                 backTexture: "Doc_ShiftGuide_Back"),
 
-            // CH02 Persistent Physical Evidence (Kho giường 101 · Layer R)
+            // CH02 Persistent Physical Evidence (Kho giường 101)
             new(
                 Ch02Draw1,
                 "Mảnh tranh 1 (Mái ngói)",
                 "Mảnh tranh 1",
                 "Nét mái ngói vẽ bằng sáp màu dừng ở mép giấy rách, tìm thấy trong tủ khô kho 101. Có thể ghép với 2 mảnh còn lại trên bàn đối chiếu hoặc trong ba lô.",
-                "Vật chứng lớp R · LOC03 (Kho 101)",
+                "Kho giường 101 · 2012",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: true,
@@ -345,7 +350,7 @@ namespace CTCC
                 "Mảnh tranh 2 (Cửa xanh & ổ khóa)",
                 "Mảnh tranh 2",
                 "Nét cánh cửa màu xanh và ổ khóa bằng chì sẫm, tìm thấy trong tủ khô kho 101. Khớp mép rách với hai mảnh tranh còn lại.",
-                "Vật chứng lớp R · LOC03 (Kho 101)",
+                "Kho giường 101 · 2012",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: true,
@@ -358,7 +363,7 @@ namespace CTCC
                 "Mảnh tranh 3 (Mặt trời & ô cửa)",
                 "Mảnh tranh 3",
                 "Ông mặt trời và một nửa ô cửa sổ nhỏ bằng sáp màu, tìm thấy trong tủ khô kho 101.",
-                "Vật chứng lớp R · LOC03 (Kho 101)",
+                "Kho giường 101 · 2012",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: true,
@@ -368,10 +373,10 @@ namespace CTCC
                 frontTexture: "DrawingPiece3"),
             new(
                 Ch02DrawFull,
-                "Bức tranh đã ghép của An (E11)",
-                "Tranh ghép E11",
+                "Bức tranh đã ghép của An",
+                "Tranh của An",
                 "Ba mảnh tranh sáp màu đã ghép khít mép: mái ngói, cánh cửa xanh có ổ khóa và ô cửa sổ nhỏ.",
-                "Vật chứng lớp R · LOC03 · Đã ghép hoàn chỉnh",
+                "Kho giường 101 · Đã ghép hoàn chỉnh",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: true,
@@ -383,7 +388,7 @@ namespace CTCC
                 "Vòng tay bệnh nhi C01",
                 "Vòng tay C01",
                 "Phiến giấy trong vòng nhựa mờ ghi mã C01, giữ trong túi đồ vải ở kho giường 101.",
-                "Vật chứng lớp R · LOC03 (Kho 101)",
+                "Kho giường 101 · 2012",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Tools,
                 canEquip: true,
@@ -395,7 +400,7 @@ namespace CTCC
                 "Phiếu chuyển 101/4 → C01",
                 "Phiếu chuyển 101/4",
                 "17/11/2005 · An (C01) — khám sốt tạm tại giường 4, Phòng 101. Chuyển lại Khu C trong ngày theo lệnh phòng Giám đốc. Phiếu viết tay của Lan, lưu tại kho 101.",
-                "Vật chứng lớp R · LOC03 (Kho 101)",
+                "Kho giường 101 · 2012",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: true,
@@ -406,10 +411,10 @@ namespace CTCC
             // CH03 & CH04 Physical Evidence + MemoryOnly References
             new(
                 Ch03Register,
-                "Sổ bàn giao lưu trữ (E03)",
-                "Sổ lưu trữ E03",
+                "Sổ bàn giao lưu trữ",
+                "Sổ lưu trữ",
                 "Sổ bàn giao trên bàn đọc kho hồ sơ tầng 3 ghi các mã bệnh nhân còn lưu dấu.",
-                "Vật chứng lớp R · LOC07",
+                "Kho hồ sơ tầng 3",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: false,
@@ -420,7 +425,7 @@ namespace CTCC
                 "Ghi chú kẹp sợi len (K-02)",
                 "Ghi chú K-02",
                 "«B/2. Giữ khăn đan dở trong túi có thẻ K-02.»",
-                "Vật chứng lớp R · LOC07",
+                "Kho hồ sơ tầng 3",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: true,
@@ -431,7 +436,7 @@ namespace CTCC
                 "Túi len gắn thẻ K-02 (C02)",
                 "Túi len K-02",
                 "Túi đồ vải giữ chiếc khăn đan dở gắn thẻ K-02 trong kho lưu trữ tầng 3.",
-                "Vật chứng lớp R · LOC07",
+                "Kho hồ sơ tầng 3",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Tools,
                 canEquip: false,
@@ -441,8 +446,8 @@ namespace CTCC
                 Ch03C02Letter,
                 "Thư con gái gửi Bà Lành",
                 "Thư con gái C02",
-                "Lá thư tay tùy chọn xác thực tên thật của C02 là Bà Lành.",
-                "Vật chứng lớp R · LOC07",
+                "Lá thư tay xác thực tên thật của C02 là Bà Lành.",
+                "Kho hồ sơ tầng 3",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: true,
@@ -453,7 +458,7 @@ namespace CTCC
                 "Ghi nhận hộp C/12 (vô danh)",
                 "Hồ sơ C/12",
                 "Xác nhận sự tồn tại của người bệnh C12 theo hộp giữ đồ vô danh — không tự đặt tên.",
-                "Ghi nhận hiện trường · LOC07",
+                "Kho hồ sơ tầng 3",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: false,
@@ -461,10 +466,10 @@ namespace CTCC
                 linkedEvidenceId: EvidenceRegistry.C12UnnamedBox),
             new(
                 Ch04Orders,
-                "Bản lệnh giao ca (E02)",
-                "Lệnh giao ca E02",
-                "Bản lệnh giao ca thu được tại phòng trực tầng 2 (LOC06).",
-                "Vật chứng lớp R · LOC06",
+                "Bản lệnh giao ca",
+                "Lệnh giao ca",
+                "Bản lệnh giao ca thu được tại phòng trực tầng 2.",
+                "Phòng trực tầng 2",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: false,
@@ -472,10 +477,10 @@ namespace CTCC
                 linkedEvidenceId: EvidenceRegistry.DutyOrders),
             new(
                 Ch04Log,
-                "Sổ ca đêm (E09)",
-                "Sổ ca đêm E09",
-                "Sổ ca đêm gốc tại phòng trực tầng 2 (LOC06).",
-                "Vật chứng lớp R · LOC06",
+                "Sổ ca đêm",
+                "Sổ ca đêm",
+                "Sổ ca đêm gốc tại phòng trực tầng 2.",
+                "Phòng trực tầng 2",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: false,
@@ -483,10 +488,10 @@ namespace CTCC
                 linkedEvidenceId: EvidenceRegistry.DutyLog),
             new(
                 Ch04Tape,
-                "Cuộn băng cuộc họp (E06a)",
-                "Băng họp E06a",
-                "Cuộn băng ghi âm cuộc họp phòng trực. Có thể cầm trên tay và đặt vào máy phát tại bàn phòng trực (AN04) khi đã đủ E02 + E09.",
-                "Vật chứng lớp R · LOC06",
+                "Cuộn băng cuộc họp",
+                "Cuộn băng họp",
+                "Cuộn băng ghi âm cuộc họp phòng trực. Có thể cầm trên tay và đặt vào máy phát tại bàn phòng trực.",
+                "Phòng trực tầng 2",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Tools,
                 canEquip: true,
@@ -494,10 +499,10 @@ namespace CTCC
                 linkedEvidenceId: EvidenceRegistry.MeetingTape),
             new(
                 Ch04Morgue,
-                "Hồ sơ tiếp nhận nhà xác (E04)",
-                "Hồ sơ E04",
-                "Hồ sơ tiếp nhận tìm thấy dưới tầng hầm B1 (LOC10).",
-                "Vật chứng lớp R · LOC10",
+                "Hồ sơ tiếp nhận nhà xác",
+                "Hồ sơ nhà xác",
+                "Hồ sơ tiếp nhận tìm thấy dưới nhà xác tầng hầm B1.",
+                "Nhà xác tầng hầm B1",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: false,
@@ -505,10 +510,10 @@ namespace CTCC
                 linkedEvidenceId: EvidenceRegistry.MorgueRegister),
             new(
                 Ch04LanRecovery,
-                "Thẻ & phiếu thu hồi Lan (E07)",
-                "Phiếu E07",
-                "Thẻ nhân viên và phiếu thu hồi L-13 tại nhà xác B1 (LOC10).",
-                "Vật chứng lớp R · LOC10",
+                "Thẻ & phiếu thu hồi của Lan",
+                "Phiếu thu hồi Lan",
+                "Thẻ nhân viên và phiếu thu hồi L-13 tại nhà xác tầng hầm B1.",
+                "Nhà xác tầng hầm B1",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: false,
@@ -516,10 +521,10 @@ namespace CTCC
                 linkedEvidenceId: EvidenceRegistry.LanRecovery),
             new(
                 Ch05PostedMap,
-                "Sơ đồ thoát hiểm niêm yết 2005 (Đối nghịch)",
+                "Sơ đồ thoát hiểm niêm yết 2005",
                 "Sơ đồ 2005",
-                "Bản sơ đồ niêm yết trên bảng trực năm 2005 vẽ cửa thoát hiểm phía Đông Khu C mở ra hào ngoài. Nguồn đối nghịch dùng để chồng đối chiếu với bản hoàn công 2004.",
-                "Tài liệu đối chiếu · Lớp R · LOC09",
+                "Bản sơ đồ niêm yết trên bảng trực năm 2005 vẽ cửa thoát hiểm phía Đông Khu C mở ra hào ngoài.",
+                "Tủ bản vẽ tầng hầm B1",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: false,
@@ -528,10 +533,10 @@ namespace CTCC
                 frontTexture: "Doc_Ch05_PostedMap2005"),
             new(
                 Ch05AsBuiltE05,
-                "Bản vẽ hoàn công cải tạo B1 · 06/2004 (E05)",
-                "Bản hoàn công E05",
-                "Bản vẽ hoàn công cải tạo bán hầm kỹ thuật B1 tháng 06/2004 do Giám đốc Phạm Đức Vĩnh phê duyệt: xây gạch đặc 220 mm bít vĩnh viễn cửa thoát hiểm phía Đông tại tọa độ (34.5, 42) theo yêu cầu cô lập của đơn vị tài trợ.",
-                "Vật chứng lớp R · LOC09 · 06/2004",
+                "Bản vẽ hoàn công cải tạo 06/2004",
+                "Bản hoàn công 2004",
+                "Bản vẽ hoàn công cải tạo tầng hầm kỹ thuật B1 tháng 06/2004 do Giám đốc Phạm Đức Vĩnh phê duyệt: xây gạch đặc 220 mm bít vĩnh viễn cửa thoát hiểm phía Đông theo yêu cầu cô lập.",
+                "Tủ bản vẽ tầng hầm B1 · 06/2004",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: false,
@@ -540,10 +545,10 @@ namespace CTCC
                 frontTexture: "Doc_Ch05_AsBuilt2004_E05"),
             new(
                 Ch05SealedWallE05b,
-                "Ghi nhận hiện trường cửa bít 2004 (E05b)",
-                "Hiện trường E05b",
-                "Quan sát trực tiếp ngoài hố kỹ thuật phía Đông (LOC11): mảng gạch xây bít 220 mm, lớp vữa trát kín hai mặt năm 2004 và khung cửa đã tháo bỏ. Lối thoát phía Đông không thể mở từ bên trong.",
-                "Vật chứng lớp R · LOC11 · 2012",
+                "Ghi nhận mảng tường xây bít 2004",
+                "Tường bít 2004",
+                "Quan sát trực tiếp ngoài hố kỹ thuật phía Đông: mảng gạch xây bít 220 mm, lớp vữa trát kín hai mặt năm 2004 và khung cửa đã tháo bỏ. Lối thoát phía Đông không thể mở từ bên trong.",
+                "Hào kỹ thuật phía Đông · 2012",
                 ItemKind.PersistentPhysical,
                 BackpackCompartment.Papers,
                 canEquip: false,
@@ -552,30 +557,30 @@ namespace CTCC
                 frontTexture: "Doc_Ch05_AsBuilt2004_E05"),
             new(
                 MemVignetteC02,
-                "Ký ức kho hồ sơ · C02 (Lớp M)",
-                "Ký ức C02 (M)",
-                "Ghi nhớ phi vật chất từ lát cắt ký ức lớp M tại AN03. Tuyệt đối không phải vật chứng có thể xuất bản.",
-                "Ký ức lớp M · Không thể xuất chứng cứ",
+                "Ký ức kho hồ sơ · C02",
+                "Ký ức C02",
+                "Ghi nhớ từ lát cắt ký ức tại kho hồ sơ tầng 3. Không phải vật chứng vật lý.",
+                "Ký ức đêm 18/11/2005",
                 ItemKind.MemoryOnly,
                 BackpackCompartment.Papers,
                 canEquip: false,
                 canPlace: false),
             new(
                 MemEvacKhuB,
-                "Ký ức sơ tán Khu B · AN05 (Lớp M)",
-                "Ký ức Khu B (M)",
-                "Ghi nhớ phi vật chất từ ca sơ tán đêm 18/11/2005 tại Khu B (6 bệnh nhân được đưa ra sân qua cầu thang S1). Không phải vật chứng xuất và không thay đổi lịch sử.",
-                "Ký ức lớp M · Không thể xuất chứng cứ",
+                "Ký ức sơ tán Khu B",
+                "Ký ức sơ tán Khu B",
+                "Ghi nhớ từ ca sơ tán đêm 18/11/2005 tại Khu B (6 bệnh nhân được đưa ra sân qua cầu thang S1). Không phải vật chứng vật lý.",
+                "Ký ức đêm 18/11/2005",
                 ItemKind.MemoryOnly,
                 BackpackCompartment.Papers,
                 canEquip: false,
                 canPlace: false),
             new(
                 MemE08Trace,
-                "Dấu ký ức E08 (Lớp M)",
-                "Ký ức E08 (M)",
-                "Vết ký ức phi vật chất thuộc lớp M — không tồn tại vật lý và không nằm trong gói vật chứng xuất.",
-                "Ký ức lớp M · Không thể xuất chứng cứ",
+                "Dấu ký ức đêm cháy",
+                "Ký ức đêm cháy",
+                "Ghi nhớ còn sót lại từ đêm hỏa hoạn — không tồn tại dưới dạng vật chứng vật lý.",
+                "Ký ức đêm 18/11/2005",
                 ItemKind.MemoryOnly,
                 BackpackCompartment.Papers,
                 canEquip: false,
@@ -1363,12 +1368,12 @@ namespace CTCC
                     if (!state.Happened("CH05-T05"))
                         return "Xe bệnh nhân tại Khu B gợi lại đêm sơ tán 18/11/2005 — sáu người ở Khu B được đưa ra sân qua cầu thang S1.";
                     if (!state.Happened("PZ07.Aligned"))
-                        return "Cần xuống khu kỹ thuật B1 (LOC09) kiểm tra tủ bản vẽ, đối chiếu sơ đồ niêm yết 2005 với bản hoàn công tháng 06/2004 (E05).";
+                        return "Cần xuống khu kỹ thuật tầng hầm B1 kiểm tra tủ bản vẽ, đối chiếu sơ đồ niêm yết 2005 với bản hoàn công tháng 06/2004.";
                     if (!state.Has(EvidenceRegistry.SealedWallPhoto))
-                        return "Hai bản vẽ mâu thuẫn tại cửa thoát hiểm phía Đông (34.5, 42). Cần ra hành lang ngoài LOC11 kiểm chứng trực tiếp bức tường năm 2012 (E05b).";
+                        return "Hai bản vẽ mâu thuẫn tại cửa thoát hiểm phía Đông. Cần ra hành lang ngoài tầng hầm kiểm chứng trực tiếp bức tường năm 2012.";
                     if (!GateService.G05(state))
-                        return "Đã có đủ bản hoàn công 2004 (E05) và dấu xây bít thực địa (E05b). Xác minh H03 để mở lối tới Phòng Hành chính (LOC08).";
-                    return "Cửa Phòng Hành chính (LOC08 · G05) trên tầng 3 đã mở. Tiến tới điểm kiểm tra báo cáo.";
+                        return "Đã có đủ bản hoàn công 2004 và dấu xây bít thực địa. Đối chiếu để mở lối tới Phòng Hành chính tầng 3.";
+                    return "Cửa Phòng Hành chính trên tầng 3 đã mở. Tiến tới kiểm tra báo cáo.";
                 }
                 return "Theo dõi các ghi chép thực tế đã kiểm chứng trong sổ hồ sơ.";
             }
@@ -1463,10 +1468,10 @@ namespace CTCC
             {
                 sb.AppendLine();
                 sb.AppendLine("Những gì chính mắt đã kiểm chứng:");
-                if (hasA) sb.AppendLine("• Sau rèm phòng 101 (lớp B) có dấu sử dụng ở vị trí giường thứ tư.");
-                if (hasB) sb.AppendLine("• Thẻ bàn giao AS-05B (lớp B) còn trống ô chữ ký người nhận.");
+                if (hasA) sb.AppendLine("• Sau rèm Phòng 101 có dấu sử dụng ở vị trí giường thứ tư.");
+                if (hasB) sb.AppendLine("• Thẻ bàn giao AS-05B còn trống ô chữ ký người nhận.");
                 if (CorroborationService.IsCorroborated(state))
-                    sb.AppendLine("• Mốc 03:17 lặp lại giữa đồng hồ quầy lớp B và vết hằn sau thẻ AS-05B — chưa rõ nguyên nhân.");
+                    sb.AppendLine("• Mốc 03:17 lặp lại giữa đồng hồ quầy và vết hằn sau thẻ AS-05B — chưa rõ nguyên nhân.");
                 if (state.Happened("CH01-T08") && hasB)
                     sb.AppendLine("• Tờ thẻ cầm ở ca 2005 không còn bản vật lý trong năm 2012, chỉ còn ghi nhớ nguồn.");
             }

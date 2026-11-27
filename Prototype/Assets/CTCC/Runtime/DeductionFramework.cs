@@ -332,7 +332,7 @@ namespace CTCC
                 F101Sheet, "F101", "Phiếu bàn giao ca đêm F101",
                 "Bảng in liệt kê giường 01, 02, 03 đều đã chốt hồ sơ; ô tổng hợp ghi tay số 0 bệnh nhân chưa bàn giao.",
                 "Tuyên bố cần kiểm chứng: phiếu không hề có dòng giường 04; mặt sau có ghi chú bút chì nhắc kiểm hốc giường tạm cuối phòng.",
-                "Lớp B · Quầy tiếp nhận / Phòng 101",
+                "Ca đêm 18/11/2005 · Quầy tiếp nhận / Phòng 101",
                 ObservationCategory.Claim,
                 new[] { Reality.B },
                 new[] { "LOC02", "LOC03" },
@@ -352,7 +352,7 @@ namespace CTCC
                 Bed4Traces, "OBS101A", "Dấu sử dụng tại vị trí giường 4",
                 "Sau rèm cuối phòng 101 có tấm chăn bông gấp vội và đôi dép cỡ nhỏ để lệch bên mép sàn.",
                 "Những dấu vết này cho thấy chỗ kê giường từng được sử dụng. Chưa rõ ai đã dùng hoặc rời đi lúc nào.",
-                "Lớp B · Hốc giường 4, Phòng 101",
+                "Ca đêm 18/11/2005 · Hốc giường 4, Phòng 101",
                 ObservationCategory.Fact,
                 new[] { Reality.B },
                 new[] { "LOC03" },
@@ -369,7 +369,7 @@ namespace CTCC
                 Bed4Card, "OBS101B", "Thẻ bàn giao giường số 4 (AS-05B)",
                 "Thẻ ghi ngày 17/11/2005, 'Khám sốt tạm', khoanh tròn 'CHƯA BÀN GIAO', trống ô chữ ký người nhận và nhòe dấu mực xanh.",
                 "Thẻ vẫn giữ tình trạng dở dang từ đêm 17–18/11. Ô ký nhận còn trống nên chưa rõ sau đó ca trực đã làm gì.",
-                "Lớp B · Giá treo đầu giường 4, Phòng 101",
+                "Ca đêm 18/11/2005 · Giá treo đầu giường 4, Phòng 101",
                 ObservationCategory.Fact,
                 new[] { Reality.B },
                 new[] { "LOC03" },
@@ -389,7 +389,7 @@ namespace CTCC
                 Bed2Transfer, "OBS101C", "Phiếu chuyển giường 02 (Đã hoàn tất)",
                 "Giường 02 chuyển khoa Nội B lúc 19g20 ngày 17/11/2005: đủ mã hồ sơ, nơi tiếp nhận, chữ ký cả hai phía giao–nhận và dấu đỏ xác nhận.",
                 "Phiếu này cho thấy nơi đến và người nhận được ghi thế nào khi một ca chuyển giường đã hoàn tất.",
-                "Lớp B · Đuôi giường 02, Phòng 101",
+                "Ca đêm 18/11/2005 · Đuôi giường 02, Phòng 101",
                 ObservationCategory.Comparison,
                 new[] { Reality.B },
                 new[] { "LOC03" },
@@ -408,7 +408,7 @@ namespace CTCC
                 Bed3Meds, "OBS101D", "Phiếu phát thuốc giường 03 (Đã xuất viện)",
                 "Lịch cấp phát thuốc của giường 03 đã khóa lúc 10g15 ngày 17/11/2005 khi bệnh nhân xuất viện.",
                 "Giờ khóa phiếu và tình trạng xuất viện có thể đối chiếu với dòng giường 03 trên F101.",
-                "Lớp B · Ngăn tủ đầu giường 03, Phòng 101",
+                "Ca đêm 18/11/2005 · Ngăn tủ đầu giường 03, Phòng 101",
                 ObservationCategory.Comparison,
                 new[] { Reality.B },
                 new[] { "LOC03" },
@@ -424,10 +424,10 @@ namespace CTCC
                     "Dấu khóa phiếu xuất viện lúc 10g15 ngày 17/11."
                 }),
             new(
-                ShiftGuide, "AS-05", "Quy chế bàn giao ca đêm AS-05",
+                ShiftGuide, "QCBG", "Quy chế bàn giao ca đêm",
                 "Quy định nội bộ tại bàn điều dưỡng: chỉ ký xác nhận '0 tồn đọng' khi mọi giường đã sử dụng — kể cả giường kê tạm — đều có đủ hai chữ ký bàn giao; nếu thiếu phải để ngỏ hoặc ghi nhận bất nhất.",
                 "Bối cảnh nghiệp vụ: củng cố chuẩn mực kiểm tra trước khi ký F101, không ép buộc kết luận vượt quá chứng cứ.",
-                "Lớp B · Góc bàn điều dưỡng, Lối nhân viên",
+                "Ca đêm 18/11/2005 · Bàn điều dưỡng, Lối nhân viên",
                 ObservationCategory.Context,
                 new[] { Reality.B },
                 new[] { "STAFF", "LOC03" },
@@ -446,7 +446,7 @@ namespace CTCC
                 WardOverflowNotice, "TB-101", "Thông báo kê thêm giường tạm phòng 101",
                 "Thông báo tháng 11/2005 dán ở lối nhân viên cho phép kê tạm 01 giường vị trí số 4 cuối phòng 101 khi quá tải, dùng thẻ rời AS-05B vì mẫu F101 in sẵn chỉ có 3 dòng.",
                 "Bối cảnh không gian: giải thích lý do giường 4 không xuất hiện sẵn trong bảng in của F101 mà không suy đoán ác ý.",
-                "Lớp B · Bảng tin lối nhân viên",
+                "Ca đêm 18/11/2005 · Bảng tin lối nhân viên",
                 ObservationCategory.Context,
                 new[] { Reality.B },
                 new[] { "STAFF", "HALL", "LOC03" },
@@ -464,7 +464,7 @@ namespace CTCC
                 ReceptionDrawerLog, "ST-1105", "Sổ phân ca trực 17–18/11/2005",
                 "Sổ trực trong ngăn kéo quầy tiếp nhận ghi đêm 17/11 đông bệnh nhân, điều dưỡng Lan vừa trực quầy vừa chạy buồng nên nhiều phiếu kẹp tạm chưa kịp đóng tập.",
                 "Bối cảnh con người: giải thích áp lực ca trực và vì sao hồ sơ có thể bị bỏ dở mà không vội quy kết cố ý làm giả.",
-                "Lớp B/R · Ngăn kéo quầy tiếp nhận",
+                "Ngăn kéo quầy tiếp nhận",
                 ObservationCategory.Context,
                 new[] { Reality.B, Reality.R },
                 new[] { "LOC02" },
@@ -478,10 +478,10 @@ namespace CTCC
                     "Ghi chú ca đêm: thiếu người trực phụ, nhiều thẻ giường tạm chưa chốt cuối ca."
                 }),
             new(
-                StoppedClock0317, "FS01", "Đồng hồ quầy tiếp nhận dừng ở 03:17",
+                StoppedClock0317, "ĐH-0317", "Đồng hồ quầy tiếp nhận dừng ở 03:17",
                 "Chiếc đồng hồ nhựa tròn sau quầy tiếp nhận đứng kim đúng 03:17.",
-                "Chi tiết hiện trường ký ức (FS01): gợi mốc thời gian bất thường của đêm cháy, không phải bằng chứng trực tiếp cho số bệnh nhân trên F101.",
-                "Lớp B/R · Quầy tiếp nhận",
+                "Chi tiết hiện trường gợi mốc thời gian bất thường của đêm cháy, không phải bằng chứng trực tiếp cho số bệnh nhân trên F101.",
+                "Quầy tiếp nhận",
                 ObservationCategory.Context,
                 new[] { Reality.B, Reality.R },
                 new[] { "LOC02" },
@@ -497,7 +497,7 @@ namespace CTCC
             new(
                 Ch02List, "LIST", "Bản kê 3 giường phòng 101 (Hiện thực R)",
                 "Bản kê vật lý cháy xém cạnh giường 3 vẫn chỉ ghi 3 giường cố định trong phòng 101.",
-                "Đối chiếu vật lý cho PZ01: mâu thuẫn với 4 cụm ổ cắm thực tế trên tường.",
+                "Đối chiếu thực tế phòng 101: mâu thuẫn với 4 cụm ổ cắm thực tế trên tường.",
                 "Lớp R · Phòng 101",
                 ObservationCategory.Fact,
                 new[] { Reality.R },
@@ -507,7 +507,7 @@ namespace CTCC
             new(
                 Ch02Sockets, "SOCKETS", "Bốn cụm ổ cắm và đầu gọi y tá (Hiện thực R)",
                 "Tường phòng 101 thực tế có 4 cụm ổ cắm, nhiều hơn bản kê 3 giường đúng một vị trí ở góc bị tủ kho che.",
-                "Đối chiếu vật lý cho PZ01: vị trí giường thứ tư từng được bố trí thực sự.",
+                "Đối chiếu thực tế phòng 101: vị trí giường thứ tư từng được bố trí thực sự.",
                 "Lớp R · Cuối phòng 101",
                 ObservationCategory.Fact,
                 new[] { Reality.R },
@@ -517,7 +517,7 @@ namespace CTCC
             new(
                 Ch02Wheels, "WHEELS", "Vết bánh đẩy ngang sàn tới tủ kho (Hiện thực R)",
                 "Nền gạch lớp R còn vệt bánh nặng dẫn thẳng tới chiếc tủ kho bị đẩy chắn vào hốc cuối phòng.",
-                "Đối chiếu vật lý cho PZ01: sau chiếc tủ kho có khoảng trống từng kê giường 4.",
+                "Đối chiếu thực tế phòng 101: sau chiếc tủ kho có khoảng trống từng kê giường 4.",
                 "Lớp R · Góc tủ kho, Phòng 101",
                 ObservationCategory.Fact,
                 new[] { Reality.R },
@@ -525,10 +525,10 @@ namespace CTCC
                 new[] { "CH02", "CH03", "CH04", "CH05" },
                 selectableForF101: false),
             new(
-                Ch05PostedMap, "SD-2005", "Sơ đồ thoát hiểm niêm yết 2005 (Nguồn đối nghịch)",
+                Ch05PostedMap, "SD-2005", "Sơ đồ thoát hiểm niêm yết 2005",
                 "Bản sơ đồ niêm yết trên bảng trực năm 2005 vẫn vẽ một cửa thoát hiểm phía Đông mở từ Khu C ra hào kỹ thuật ngoài trời.",
-                "Tài liệu đối nghịch: cần chồng lên bản hoàn công cải tạo tháng 06/2004 (E05) theo hai mốc cầu thang S2 và trục cột để kiểm mâu thuẫn.",
-                "Lớp R · Tủ bản vẽ khu kỹ thuật B1 (LOC09)",
+                "Cần chồng lên bản hoàn công cải tạo tháng 06/2004 theo hai mốc cầu thang S2 và trục cột để kiểm mâu thuẫn.",
+                "Tủ bản vẽ tầng hầm B1",
                 ObservationCategory.Claim,
                 new[] { Reality.R },
                 new[] { "LOC09" },
@@ -539,14 +539,14 @@ namespace CTCC
                 frontTexture: "Doc_Ch05_PostedMap2005",
                 detailLabels: new[]
                 {
-                    "Vẽ mũi tên thoát hiểm xuyên tường Đông tại trục tọa độ (34.5, 42).",
+                    "Vẽ mũi tên thoát hiểm xuyên tường Đông khu bán hầm.",
                     "Đóng dấu lưu hành bảng trực Khu C năm 2005 nhưng không phản ánh cải tạo 06/2004."
                 }),
             new(
-                Ch05AsBuiltBlueprint, "E05", "Bản vẽ hoàn công cải tạo B1 · 06/2004 (E05)",
-                "Bản hoàn công tháng 06/2004 có chữ ký phê duyệt của Giám đốc Phạm Đức Vĩnh: xây gạch đặc 220 mm, trát vữa hai mặt bít vĩnh viễn cửa thoát hiểm phía Đông (34.5, 42) và tháo bỏ tay nắm, khung cửa theo yêu cầu cô lập của đơn vị tài trợ Chương trình B1.",
-                "Chỉ riêng bản vẽ chưa đủ kết luận tình trạng hiện trường năm 2012 — cần quan sát thực địa bức tường ngoài tại LOC11 (E05b).",
-                "Lớp R · Tủ bản vẽ khu kỹ thuật B1 (LOC09)",
+                Ch05AsBuiltBlueprint, "HC-2004", "Bản vẽ hoàn công cải tạo B1 · 06/2004",
+                "Bản hoàn công tháng 06/2004 có chữ ký phê duyệt của Giám đốc Phạm Đức Vĩnh: xây gạch đặc 220 mm, trát vữa hai mặt bít vĩnh viễn cửa thoát hiểm phía Đông và tháo bỏ tay nắm, khung cửa theo yêu cầu cô lập của đơn vị tài trợ Chương trình B1.",
+                "Chỉ riêng bản vẽ chưa đủ kết luận tình trạng hiện trường năm 2012 — cần quan sát thực địa bức tường ngoài phía Đông.",
+                "Tủ bản vẽ tầng hầm B1",
                 ObservationCategory.Fact,
                 new[] { Reality.R },
                 new[] { "LOC09" },
@@ -557,14 +557,14 @@ namespace CTCC
                 frontTexture: "Doc_Ch05_AsBuilt2004_E05",
                 detailLabels: new[]
                 {
-                    "Ghi chú thi công: tường gạch đặc 220 mm trát kín hai mặt tại lối thoát Đông (34.5, 42).",
+                    "Ghi chú thi công: tường gạch đặc 220 mm trát kín hai mặt tại lối thoát Đông.",
                     "Phê duyệt: Giám đốc Phạm Đức Vĩnh · Tháng 06/2004 · Yêu cầu cô lập Chương trình B1."
                 }),
             new(
-                Ch05ValveSabotage, "LOC09-VALVE", "Van bồn chứa dung môi AS-05 & tấm chắn gió (Tùy chọn)",
+                Ch05ValveSabotage, "VAN-B1", "Van bồn chứa dung môi & tấm chắn gió",
                 "Ổ khóa đồng thau rỉ sẫm trên van xả bồn dung môi kỹ thuật mang vết cắt/cạy cơ học đã cũ ám muội; ngay phía trên, một chốt thép rỉ chèn mở tấm chắn gió hướng sang Khu C.",
-                "Gợi nghi vấn có cơ sở về nguyên nhân vụ cháy khi đối chiếu với mùi dung môi lạ ghi trong sổ ca đêm E09 — nhưng tự thân dấu vết không đủ kết luận thủ phạm, nguồn phát lửa hay thời điểm can thiệp.",
-                "Lớp R · Khoang kỹ thuật B1 (LOC09)",
+                "Gợi nghi vấn có cơ sở về nguyên nhân vụ cháy khi đối chiếu với mùi dung môi lạ ghi trong sổ ca đêm — nhưng tự thân dấu vết không đủ kết luận thủ phạm, nguồn phát lửa hay thời điểm can thiệp.",
+                "Khoang kỹ thuật tầng hầm B1",
                 ObservationCategory.Context,
                 new[] { Reality.R },
                 new[] { "LOC09" },
@@ -577,10 +577,10 @@ namespace CTCC
                     "Tấm chắn gió bị chèn mở về phía thông gió Khu C."
                 }),
             new(
-                Ch05SealedWall, "E05b", "Mảng tường gạch xây bít cửa Đông 2004 (E05b)",
-                "Quan sát thực địa tại hố quan sát phía Đông (LOC11): khối gạch đặc 220 mm và lớp vữa xi măng năm 2004 bít kín hoàn toàn ô cửa cũ, không còn khung hay tay nắm, bậc cấp bê tông nứt vỡ dẫn cụt vào tường.",
-                "Xác nhận trực tiếp tại hiện trường R rằng lối thoát phía Đông ghi trên sơ đồ 2005 đã bị bít vĩnh viễn từ trước vụ cháy.",
-                "Lớp R · Hào quan sát phía Đông B1 (LOC11)",
+                Ch05SealedWall, "TB-2004", "Mảng tường gạch xây bít cửa Đông 2004",
+                "Quan sát thực địa tại hố quan sát phía Đông: khối gạch đặc 220 mm và lớp vữa xi măng năm 2004 bít kín hoàn toàn ô cửa cũ, không còn khung hay tay nắm, bậc cấp bê tông nứt vỡ dẫn cụt vào tường.",
+                "Xác nhận trực tiếp tại hiện trường 2012 rằng lối thoát phía Đông ghi trên sơ đồ 2005 đã bị bít vĩnh viễn từ trước vụ cháy.",
+                "Hào quan sát phía Đông tầng hầm B1",
                 ObservationCategory.Fact,
                 new[] { Reality.R },
                 new[] { "LOC11" },
@@ -589,7 +589,7 @@ namespace CTCC
                 isDocument: false,
                 detailLabels: new[]
                 {
-                    "Gạch đặc xây bít khít ô cửa cũ tại mốc x = 34.5, z = 42.",
+                    "Gạch đặc xây bít khít ô cửa cũ ngoài hào kỹ thuật phía Đông.",
                     "Không có lối mở hay khe bí mật xuyên tường vào Khu C."
                 })
         };

@@ -17,7 +17,7 @@ namespace CTCC
             string fact, Reality? layer = null, string cue = null, string image = null, string viewModel = null, string prompt = null,
             string backImage = null, string drawer = null)
         {
-            Observation = new ObservationSpec(id, title, title, fact, "", place, ObservationCategory.Context,
+            Observation = new ObservationSpec(id, title, title, fact, "", FormatPlaceLabel(place), ObservationCategory.Context,
                 layer.HasValue ? new[] { layer.Value } : new[] { Reality.R, Reality.B }, new[] { place },
                 new[] { "CH01" }, selectableForF101: false, isDocument: image != null, hasBackSide: backImage != null,
                 frontTexture: image, backTexture: backImage);
@@ -29,6 +29,16 @@ namespace CTCC
             Prompt = prompt ?? "Xem " + title.ToLowerInvariant();
             Drawer = drawer;
         }
+
+        private static string FormatPlaceLabel(string place) => place switch
+        {
+            "LOC01" => "Sân ngoài cổng",
+            "LOC02" => "Quầy tiếp nhận",
+            "LOC03" => "Phòng 101",
+            "HALL" => "Hành lang tầng trệt",
+            "STAFF" => "Bàn điều dưỡng",
+            _ => place
+        };
     }
 
     internal static class Ch01FieldObjects
@@ -43,7 +53,7 @@ namespace CTCC
         {
             new("CH01_MOTORBIKE", "Xe máy của Minh", "LOC01", "LOC01", new(1.73f, .83f, -22.16f), new(.32f, .46f, .56f),
                 "Vệt nước còn chảy từ yên xuống chắn bùn. Hai vết lốp nối từ đường vào đúng chỗ chống xe."),
-            new("CH01_GATE_PLAQUE", "Biển men An Sinh", "LOC01", "LOC01", new(2.58f, 1.50f, -20.23f), new(.58f, .32f, .10f),
+            new("CH01_GATE_PLAQUE", "Biển cổng An Sinh", "LOC01", "LOC01", new(2.57f, 1.56f, -20.27f), new(.46f, .28f, .12f),
                 "Mặt men sáng ở những chỗ tay người từng chạm. Mép biển đã sứt, để lộ gỉ quanh con vít."),
             new("CH01_DEMOLITION", "Thông báo tháo dỡ", "LOC01", "LOC01", new(6.76f, 1.22f, -20.22f), new(1.16f, .74f, .18f),
                 "Ca trông coi cuối trước khi bàn giao mặt bằng. Tờ thông báo thành văn bản duy nhất còn mới ở cổng.",

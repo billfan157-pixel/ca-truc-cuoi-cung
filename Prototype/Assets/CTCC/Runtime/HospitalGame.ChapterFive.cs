@@ -367,29 +367,29 @@ namespace CTCC
             body.AppendLine("2. Bản vẽ hoàn công cải tạo B1 tháng 06/2004 — E05 (ký duyệt Giám đốc Phạm Đức Vĩnh): xây gạch đặc 220 mm, trát vữa hai mặt bít vĩnh viễn cửa Đông, tháo khung và tay nắm theo yêu cầu cô lập của đơn vị tài trợ Chương trình B1.");
             body.AppendLine();
             body.AppendLine($"• Trạng thái căn chồng PZ07: {(aligned ? "✓ ĐÃ CĂN KHỚP HAI MỐC KIẾN TRÚC" : "Chưa căn khớp (cần chồng theo mốc cầu thang S2 & trục cột Đông)")}");
-            body.AppendLine($"• Quan sát hiện trường thực địa E05b (LOC11): {(hasE05b ? "✓ ĐÃ XÁC NHẬN TƯỜNG XÂY BÍT NĂM 2004" : "Chưa kiểm chứng tại hiện trường R")}");
+            body.AppendLine($"• Quan sát thực địa mảng tường xây bít 2004: {(hasE05b ? "✓ ĐÃ XÁC NHẬN TƯỜNG XÂY BÍT NĂM 2004" : "Chưa kiểm chứng trực tiếp ngoài hào kỹ thuật")}");
             if (aligned && !hasE05b)
-                body.AppendLine("\nLƯU Ý (CH05-Q03): Chỉ căn chồng hai bản vẽ trên giấy CHƯA ĐỦ xác minh H03 hay mở cửa G05. Hãy qua cửa Đông LOC09 → tiền sảnh LOC11 → cửa Bắc ra hành lang kỹ thuật ngoài để soi trực tiếp tường gạch E05b.");
+                body.AppendLine("\nLƯU Ý: Chỉ căn chồng hai bản vẽ trên giấy chưa đủ để kết luận tình trạng hiện trường năm 2012. Hãy theo lối Đông tầng hầm ra hành lang kỹ thuật ngoài để kiểm chứng trực tiếp mảng tường gạch.");
             else if (g05)
-                body.AppendLine("\n✓ H03 đã xác minh đủ hai nguồn (E05 + E05b). Cửa Phòng Hành chính LOC08 (G05) trên tầng 3 đã mở.");
+                body.AppendLine("\n✓ Đã đối chiếu đủ bản hoàn công 2004 và dấu tường xây bít thực địa. Cửa Phòng Hành chính trên tầng 3 đã mở.");
 
             var choices = new List<ActionChoice>
             {
-                new("Xem Sơ đồ niêm yết 2005 (3D / Chữ lớn)", () =>
-                    InspectCh05Document("Doc_Ch05_PostedMap2005", "SƠ ĐỒ NIÊM YẾT 2005 (ĐỐI NGHỊCH)",
-                        "Bản sơ đồ lưu hành năm 2005 vẫn vẽ cửa thoát hiểm phía Đông Khu C tại (34.5, 42) dẫn ra sân trũng -1,90 m.\nHai mốc chuẩn: Mốc 1 (Trục cầu thang S2) và Mốc 2 (Trục cột Đông X=34,5).",
+                new("Xem Sơ đồ niêm yết 2005", () =>
+                    InspectCh05Document("Doc_Ch05_PostedMap2005", "SƠ ĐỒ NIÊM YẾT 2005",
+                        "Bản sơ đồ lưu hành năm 2005 vẫn vẽ cửa thoát hiểm phía Đông Khu C dẫn ra sân trũng -1,90 m.\nHai mốc chuẩn: Mốc 1 (Trục cầu thang S2) và Mốc 2 (Trục cột Đông).",
                         ShowCh05BlueprintCabinetModal)),
-                new("Xem Bản vẽ hoàn công 06/2004 · E05 (3D / Chữ lớn)", () =>
-                    InspectCh05Document("Doc_Ch05_AsBuilt2004_E05", "BẢN HOÀN CÔNG 06/2004 · E05",
-                        "Hồ sơ hoàn công ngày 14/06/2004 do Giám đốc Phạm Đức Vĩnh phê duyệt:\n• Xây gạch đặc 220 mm, trát vữa hai mặt bít vĩnh viễn lối thoát Đông (34.5, 42), tháo bỏ tay nắm và khung.\n• Lý do ghi trong khung tên: Theo yêu cầu của đơn vị tài trợ Chương trình B1 — đảm bảo cô lập tuyệt đối, ngăn đối tượng điều trị rời khỏi buồng thực nghiệm trong trạng thái mất định hướng.",
+                new("Xem Bản vẽ hoàn công 06/2004", () =>
+                    InspectCh05Document("Doc_Ch05_AsBuilt2004_E05", "BẢN HOÀN CÔNG 06/2004",
+                        "Hồ sơ hoàn công ngày 14/06/2004 do Giám đốc Phạm Đức Vĩnh phê duyệt:\n• Xây gạch đặc 220 mm, trát vữa hai mặt bít vĩnh viễn lối thoát Đông, tháo bỏ tay nắm và khung.\n• Lý do ghi trong khung tên: Theo yêu cầu của đơn vị tài trợ Chương trình B1 — đảm bảo cô lập tuyệt đối, ngăn đối tượng điều trị rời khỏi buồng thực nghiệm trong trạng thái mất định hướng.",
                         ShowCh05BlueprintCabinetModal)),
-                new(aligned ? "Xem lại bàn căn chồng bản vẽ (PZ07 ✓)" : "Căn chồng hai bản vẽ theo 2 mốc kiến trúc (PZ07)", OpenCh05Pz07Overlay)
+                new(aligned ? "Xem lại bàn căn chồng bản vẽ ✓" : "Căn chồng hai bản vẽ theo 2 mốc kiến trúc", OpenCh05Pz07Overlay)
             };
             if (ChapterFive.CanVerifyH03(State) && !g05)
-                choices.Add(new ActionChoice("★ Xác minh H03 (E05 + E05b) & mở khóa LOC08 (G05)", Ch05ConfirmH03AndG05));
+                choices.Add(new ActionChoice("★ Xác nhận mâu thuẫn & mở khóa Phòng Hành chính", Ch05ConfirmH03AndG05));
             choices.Add(new ActionChoice("Rời tủ bản vẽ", CloseModal));
 
-            ui.Show("KHU KỸ THUẬT B1 · LOC09 (PZ07 / E05)", "Tủ bản vẽ hoàn công & Sơ đồ 2005",
+            ui.Show("TỦ BẢN VẼ TẦNG HẦM B1", "Bản vẽ hoàn công & Sơ đồ 2005",
                 body.ToString().TrimEnd(), choices.ToArray(), CloseModal, Image("Doc_Ch05_AsBuilt2004_E05"));
         }
 
@@ -397,24 +397,28 @@ namespace CTCC
         {
             var tex = Image(imageId);
             scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.55f);
+            void ShowLargeDoc()
+            {
+                inspector?.Close();
+                ui.Show("BẢN VẼ KỸ THUẬT B1 · CHỮ LỚN", title, copy,
+                    new[] { new ActionChoice("Quay lại tủ bản vẽ", onBack) }, onBack, tex, largePrint: true);
+            }
             if (tex != null && inspector != null && qaFolder == null)
             {
-                inspector.Open(null, tex, (float)tex.width / Mathf.Max(1, tex.height), ActiveVolume(), observationId: imageId);
-                ui.ShowInspectSidebar("BẢN VẼ KỸ THUẬT B1 · LỚP R", title, copy,
-                    new[]
+                inspector.Open(null, tex, (float)tex.width / Mathf.Max(1, tex.height), ActiveVolume(), observationId: imageId, standaloneCenter: true);
+                ui.ShowStandaloneOverlay(
+                    "Kéo xoay · Cuộn thu phóng · L chữ lớn · Esc quay lại",
+                    () => { inspector.Close(); onBack(); },
+                    onClose: () => inspector.Close(),
+                    microChips: new[]
                     {
-                        new ActionChoice("Mở bản chữ lớn", () =>
-                        {
-                            inspector.Close();
-                            ui.Show("BẢN VẼ KỸ THUẬT B1 · CHỮ LỚN", title, copy,
-                                new[] { new ActionChoice("Quay lại tủ bản vẽ", onBack) }, onBack, tex, largePrint: true);
-                        }),
-                        new ActionChoice("Quay lại tủ bản vẽ", () => { inspector.Close(); onBack(); })
-                    }, () => { inspector.Close(); onBack(); }, () => inspector.Close());
+                        new ActionChoice("Chữ lớn [L]", ShowLargeDoc),
+                        new ActionChoice("Quay lại [Esc]", () => { inspector.Close(); onBack(); })
+                    },
+                    onLargePrintKey: ShowLargeDoc);
                 return;
             }
-            ui.Show("BẢN VẼ KỸ THUẬT B1 · LỚP R", title, copy,
-                new[] { new ActionChoice("Quay lại tủ bản vẽ", onBack) }, onBack, tex, largePrint: true);
+            ShowLargeDoc();
         }
 
         private void OpenCh05Pz07Overlay()

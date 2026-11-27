@@ -12,10 +12,23 @@ namespace CTCC
         private BackpackCompartment backpackCompartment = BackpackCompartment.Tools;
         private string backpackSelection;
         private bool showingBag08EchoThisOpen;
+        private bool pocketNoteOpen;
         private const string PlacedLocateKey = "__PLACED_LOCATE__";
 
+        internal bool IsPocketNoteOpen => pocketNoteOpen && ui != null && ui.IsModal;
+
+        /// <summary>
+        /// Opens Inventory 2.0 (Đồ vật | Giấy tờ) with interactive 360-degree 3D preview.
+        /// Note: BackpackCompartment.PocketNote routes cleanly to the decoupled Sổ tay nhỏ presentation!
+        /// </summary>
         private void OpenBackpack(BackpackCompartment? compartment = null)
         {
+            if (compartment == BackpackCompartment.PocketNote)
+            {
+                OpenPocketNote();
+                return;
+            }
+            pocketNoteOpen = false;
             bool openingFresh = !ui.IsModal;
             if (openingFresh)
             {
@@ -27,15 +40,74 @@ namespace CTCC
             else if (openingFresh)
                 backpackCompartment = DefaultBackpackCompartment();
 
+            if (backpackCompartment == BackpackCompartment.PocketNote)
+                backpackCompartment = BackpackCompartment.Papers;
+
             DrawBackpack(openingFresh);
+        }
+
+        /// <summary>
+        /// Phase 2.5 decoupled Sổ tay nhỏ (Pocket Note) — completely separated from Inventory 2.0 presentation.
+        /// Read-only concise recall in CH01 (0 Journal tabs); gateway to full 5-tab Journal in CH02+.
+        /// </summary>
+        internal void OpenPocketNote(bool showPlacedRecovery = false)
+        {
+            if (State == null || busy) return;
+            backpackStage?.Close();
+            inspector?.Close();
+            pocketNoteOpen = true;
+
+            var placed = InventoryService.GetAllPlaced(State);
+            var actions = new List<ActionChoice>();
+            string title;
+            string body;
+
+            if (showPlacedRecovery && placed.Count > 0)
+            {
+                BuildPlacedLocateDetail(placed, out title, out body, actions);
+                actions.Add(new ActionChoice("Quay lại ghi nhớ", () => OpenPocketNote(false)));
+            }
+            else
+            {
+                title = "Sổ tay nhỏ của Minh";
+                body = BuildPocketNoteWithCutToJournalEntries(State);
+                if (placed.Count > 0)
+                    actions.Add(new ActionChoice($"Đồ đang đặt ngoài hiện trường ({placed.Count})", () => OpenPocketNote(true)));
+                if (voice != null && voice.Transcript.Count > 0)
+                    actions.Add(new ActionChoice("Xem lại lời thoại đã nghe", () => { pocketNoteOpen = false; TranscriptPage(); }));
+                if (IsJournalAllowedInBackpack)
+                {
+                    actions.Add(new ActionChoice("Mở sổ trực đầy đủ", () =>
+                    {
+                        pocketNoteOpen = false;
+                        journalReturn = () => OpenPocketNote(false);
+                        DrawJournal(JournalTab.Field, pageTurn: !Options.reduceMotion);
+                    }));
+                    if (State.f101.revision > 0)
+                        actions.Add(new ActionChoice("Lịch sử phiếu F101", () =>
+                        {
+                            pocketNoteOpen = false;
+                            journalReturn = () => OpenPocketNote(false);
+                            DrawJournal(JournalTab.Decisions, pageTurn: !Options.reduceMotion);
+                        }));
+                }
+                actions.Add(new ActionChoice("Mở ba lô [Tab]", () => { pocketNoteOpen = false; OpenBackpack(); }));
+            }
+            actions.Add(new ActionChoice("Đóng sổ tay", ClosePocketNote));
+
+            ui.Show("GHI NHỚ CÁ NHÂN", title, body, actions.ToArray(), ClosePocketNote);
+        }
+
+        private void ClosePocketNote()
+        {
+            pocketNoteOpen = false;
+            CloseModal();
         }
 
         private BackpackCompartment DefaultBackpackCompartment()
         {
             if (State.chapter == "CH01" && !State.Happened("CH01-T02"))
                 return BackpackCompartment.Tools;
-            if (State.chapter == "CH01" && State.Happened("CH01-T08"))
-                return BackpackCompartment.PocketNote;
             return BackpackCompartment.Papers;
         }
 
@@ -82,7 +154,7 @@ namespace CTCC
                     : string.IsNullOrEmpty(nextId) ? "bagZip" : "paper";
                 scene.atmosphere?.From(sfx, player.Eye.transform.position + player.Eye.transform.forward * 0.3f, 0.42f);
                 if (Options.captions && def != null)
-                    ui.Caption(alreadyEquipped ? $"Đã cất {def.ShortLabel} về ba lô." : $"Đang cầm {def.ShortLabel} trên tay.", 2.2f);
+                    ui.Caption(alreadyEquipped ? $"Đã cất {def.ShortLabel}." : $"Đang cầm {def.ShortLabel}.", 2.0f);
             });
         }
 
@@ -122,92 +194,120 @@ namespace CTCC
             if (def.Kind == ItemKind.LayerBoundPaper && State.layer != Reality.B)
                 return;
             int slotNum = QuickSlotNumber(def.Id);
-            string label = slotNum > 0 ? $"Gỡ khỏi ô nhanh [{slotNum}]" : "Ghim vào ô nhanh (1–4)";
+            string label = slotNum > 0 ? $"Gỡ ô nhanh [{slotNum}]" : "Ghim ô nhanh";
             actions.Add(new ActionChoice(label, () =>
                 SaveCheckpoint(() => casework.ToggleQuickSlotAsync(def.Id), () => DrawBackpack())));
         }
 
         private void BuildPlacedLocateDetail(List<BackpackEntry> placed, out string title, out string body, List<ActionChoice> actions)
         {
-            title = $"Tìm đồ đã đặt ({placed.Count})";
+            title = $"Đồ đang đặt ngoài hiện trường ({placed.Count})";
             var sb = new StringBuilder();
-            sb.AppendLine("Danh sách vật phẩm hoặc giấy tờ Minh đang đặt trên bàn hoặc kẹp trong hiện trường:");
-            sb.AppendLine();
             for (int i = 0; i < placed.Count; i++)
             {
                 var p = placed[i];
                 var def = BackpackCatalog.Get(p.itemDefId);
                 string anchorLabel = WorldAnchors.Label(p.placedAnchorId);
                 sb.Append("• ").Append(def?.Title ?? p.itemDefId)
-                  .Append("\n   Vị trí: ").AppendLine(anchorLabel);
+                  .Append(" — ").AppendLine(anchorLabel);
                 string anchorId = p.placedAnchorId;
                 string shortLabel = def?.ShortLabel ?? p.itemDefId;
-                actions.Add(new ActionChoice($"Thu lại {shortLabel} về ba lô", () =>
+                actions.Add(new ActionChoice($"Thu lại {shortLabel}", () =>
                     SaveCheckpoint(() => casework.RetrieveItemFromAnchorAsync(anchorId), () =>
                     {
                         scene.atmosphere?.From("paper", player.Eye.transform.position + player.Eye.transform.forward * 0.3f, 0.48f);
                         handPresenter?.SyncState(State, scene, hideViewModel: true);
-                        ui.Caption($"Đã thu {shortLabel} từ {anchorLabel} về lại ba lô.", 3.4f, aboveModal: true);
-                        if (InventoryService.GetAllPlaced(State).Count == 0) backpackSelection = null;
-                        DrawBackpack();
+                        ui.Caption($"Đã thu {shortLabel} về ba lô.", 2.8f, aboveModal: true);
+                        if (pocketNoteOpen) OpenPocketNote(InventoryService.GetAllPlaced(State).Count > 0);
+                        else DrawBackpack();
                     })));
             }
-            sb.AppendLine();
-            sb.Append("Không vật phẩm điều tra nào có thể bị thất lạc vĩnh viễn: có thể thu lại từ xa ngay tại đây hoặc đến trực tiếp bàn/kẹp tương ứng.");
-            body = sb.ToString();
+            body = sb.ToString().TrimEnd();
         }
 
         private void DrawBackpack(bool animate = false)
         {
             InventoryService.EnsureDefaultTools(State);
-            var entries = new List<NotebookEntry>();
-            var placedItems = InventoryService.GetAllPlaced(State);
-            string emptyCopy;
-            string title;
-            string body;
-            Texture image = null;
-            var actions = new List<ActionChoice>();
             bool triggerEcho = false;
+            int filterIdx = backpackCompartment == BackpackCompartment.Papers ? 1 : 0;
 
-            if (backpackCompartment == BackpackCompartment.Tools)
+            if (filterIdx == 1 && !showingBag08EchoThisOpen && ShouldTriggerBag08Echo())
             {
-                emptyCopy = "Chưa có dụng cụ nào khác.";
-                foreach (var item in State.backpackItems)
-                {
-                    var def = BackpackCatalog.Get(item.itemDefId);
-                    if (def == null || def.Compartment != BackpackCompartment.Tools) continue;
-                    string badge = item.status switch
-                    {
-                        BackpackItemStatus.Equipped => " [Đang cầm]",
-                        BackpackItemStatus.Placed => " [Đang đặt]",
-                        _ => ""
-                    };
-                    if (def.Id == BackpackCatalog.Flashlight)
-                        badge = player != null && player.IsTorchOn ? " [Đang bật]" : " [Đang tắt]";
-                    int qs = QuickSlotNumber(def.Id);
-                    if (qs > 0) badge += $" · #{qs}";
-                    string id = item.itemDefId;
-                    entries.Add(new NotebookEntry(def.ShortLabel + badge, () =>
-                    {
-                        backpackSelection = id;
-                        DrawBackpack();
-                    }));
-                }
+                showingBag08EchoThisOpen = true;
+                triggerEcho = true;
+                SaveCheckpoint(() => casework.RecordDreadEventAsync(DreadCatalog.Bag08Echo));
+            }
 
-                var selectedEntry = InventoryService.FindByDef(State, backpackSelection);
-                var selectedDef = selectedEntry != null ? BackpackCatalog.Get(selectedEntry.itemDefId) : null;
-                if (selectedDef == null || selectedDef.Compartment != BackpackCompartment.Tools)
-                {
-                    selectedDef = BackpackCatalog.Get(BackpackCatalog.Flashlight);
-                    selectedEntry = InventoryService.FindByDef(State, BackpackCatalog.Flashlight);
-                    backpackSelection = BackpackCatalog.Flashlight;
-                }
+            // Collect items for active filter (0 = Tools, 1 = Papers)
+            var matching = new List<(BackpackEntry entry, BackpackItemDef def)>();
+            foreach (var item in State.backpackItems)
+            {
+                var def = BackpackCatalog.Get(item.itemDefId);
+                if (def == null) continue;
+                bool wantPapers = filterIdx == 1;
+                if ((def.Compartment == BackpackCompartment.Papers) != wantPapers) continue;
+                matching.Add((item, def));
+            }
 
-                title = selectedDef.Title;
-                var sb = new StringBuilder(selectedDef.ProvenanceLabel).Append("\n\n").Append(selectedDef.Description);
+            // Ensure valid selection
+            BackpackEntry selectedEntry = null;
+            BackpackItemDef selectedDef = null;
+            for (int i = 0; i < matching.Count; i++)
+            {
+                if (matching[i].def.Id == backpackSelection)
+                {
+                    selectedEntry = matching[i].entry;
+                    selectedDef = matching[i].def;
+                    break;
+                }
+            }
+            if (selectedDef == null && matching.Count > 0)
+            {
+                selectedEntry = matching[0].entry;
+                selectedDef = matching[0].def;
+                backpackSelection = selectedDef.Id;
+            }
+
+            // Build visual tiles
+            var tiles = new List<InventoryTileData>(matching.Count);
+            for (int i = 0; i < matching.Count; i++)
+            {
+                var (entry, def) = matching[i];
+                string badge = "";
+                if (def.Id == BackpackCatalog.Flashlight)
+                    badge = player != null && player.IsTorchOn ? "Bật" : "Tắt";
+                else if (def.Kind == ItemKind.MemoryOnly || entry.status == BackpackItemStatus.MemoryRef)
+                    badge = "Ký ức";
+                else if (entry.status == BackpackItemStatus.Equipped)
+                    badge = "Cầm";
+                else if (entry.status == BackpackItemStatus.Placed)
+                    badge = "Đặt";
+                int qs = QuickSlotNumber(def.Id);
+                if (qs > 0) badge = string.IsNullOrEmpty(badge) ? $"#{qs}" : $"{badge} · #{qs}";
+
+                Texture thumb = !string.IsNullOrEmpty(def.FrontTexture) ? Image(def.FrontTexture) : null;
+                string id = def.Id;
+                tiles.Add(new InventoryTileData(id, def.ShortLabel, badge, thumb, id == backpackSelection, () =>
+                {
+                    backpackSelection = id;
+                    DrawBackpack();
+                }));
+            }
+
+            string emptyCopy = filterIdx == 0 ? "Không có vật dụng nào." : "Chưa có giấy tờ nào trong ba lô.";
+            string selTitle = selectedDef?.Title ?? (filterIdx == 0 ? "Đồ vật" : "Giấy tờ");
+            string selBrief = "";
+            var actions = new List<ActionChoice>();
+
+            if (selectedDef != null && selectedEntry != null)
+            {
+                bool isMemoryOnly = selectedDef.Kind == ItemKind.MemoryOnly;
+                bool isMemory = isMemoryOnly || selectedEntry.status == BackpackItemStatus.MemoryRef;
+
                 if (selectedDef.Id == BackpackCatalog.Flashlight)
                 {
-                    sb.Append("\n\nPin còn lại: ").Append(Mathf.RoundToInt(Mathf.Clamp01(player.BatterySeconds / 360f) * 100f)).Append("%.");
+                    int pct = Mathf.RoundToInt(Mathf.Clamp01(player.BatterySeconds / 360f) * 100f);
+                    selBrief = $"Pin còn khoảng {pct}%.";
                     actions.Add(new ActionChoice(player.IsTorchOn ? "Tắt đèn pin" : "Bật đèn pin", () =>
                     {
                         player.SetTorchEnabled(!player.IsTorchOn);
@@ -217,397 +317,201 @@ namespace CTCC
                 }
                 else if (selectedDef.Id == BackpackCatalog.MinhPhone)
                 {
-                    sb.Append(State.Happened(E10aParts.PostponementSms)
-                        ? "\n\n✓ Đã đọc tin nhắn báo hoãn (22:48) của chú Bảy."
-                        : "\n\n• Có 2 tin nhắn từ chú Bảy chưa mở đọc (16/11 và 22:48).");
-                    if (State.Happened(E10aParts.PhoneCalledBay))
-                        sb.Append("\n✓ Đã thử gọi chú Bảy (không bắt máy).");
-                    actions.Add(new ActionChoice("Mở điện thoại (SMS & Gọi chú Bảy)", () =>
+                    selBrief = State.Happened(E10aParts.PostponementSms)
+                        ? "Điện thoại cá nhân của Minh."
+                        : "Có tin nhắn chưa đọc.";
+                    actions.Add(new ActionChoice("Mở điện thoại", () =>
                     {
                         backpackStage?.Close();
                         OpenPhone(0, returnToBackpack: true);
                     }));
-                    actions.Add(new ActionChoice("Xem SMS hẹn hôm 16/11", () =>
+                }
+                else if (selectedDef.Id == BackpackCatalog.E10aEnvelope)
+                {
+                    selBrief = "Phong bì chống ẩm chú Bảy gửi lại ngoài hộp thư trụ cổng.";
+                    actions.Add(new ActionChoice("Cầm & mở phong bì", () =>
                     {
                         backpackStage?.Close();
-                        OpenPhone(1, returnToBackpack: true);
+                        OpenPhysicalEnvelope3D(returnToBackpack: true);
                     }));
                 }
                 else
                 {
-                    if (selectedEntry != null && selectedEntry.status == BackpackItemStatus.Placed)
+                    selBrief = isMemory
+                        ? "Chỉ còn lại trong trí nhớ sau khi trở về năm 2012."
+                        : selectedEntry.status == BackpackItemStatus.Placed
+                            ? $"Đang đặt tại {WorldAnchors.Label(selectedEntry.placedAnchorId)}."
+                            : selectedDef.ProvenanceLabel;
+
+                    // 1. Inspect action (full-screen 0-sidebar Physical Inspector 2.0!)
+                    if (!isMemoryOnly && selectedDef.LinkedObservationId != null &&
+                        ObservationRegistry.Get(selectedDef.LinkedObservationId) is ObservationSpec obsSpec)
                     {
-                        sb.Append("\n\nĐang đặt tại: ").Append(WorldAnchors.Label(selectedEntry.placedAnchorId)).Append('.');
-                        string anchorId = selectedEntry.placedAnchorId;
-                        actions.Add(new ActionChoice("Thu lại về ba lô", () =>
-                            SaveCheckpoint(() => casework.RetrieveItemFromAnchorAsync(anchorId), () =>
+                        actions.Add(new ActionChoice("Kiểm tra", () =>
+                        {
+                            backpackStage?.Close();
+                            OpenObservationInspector(obsSpec, () => OpenBackpack(BackpackCompartment.Papers));
+                        }));
+                    }
+                    else if (!isMemoryOnly)
+                    {
+                        var tmpl = ResolveInventory3DTemplate(selectedDef);
+                        Texture paperTex = !string.IsNullOrEmpty(selectedDef.FrontTexture) ? Image(selectedDef.FrontTexture) : null;
+                        if (tmpl != null && inspector != null && qaFolder == null)
+                            actions.Add(new ActionChoice("Kiểm tra", () => InspectBackpackTool3D(selectedDef, tmpl)));
+                        else if (paperTex != null && inspector != null && qaFolder == null)
+                            actions.Add(new ActionChoice("Kiểm tra", () => InspectBackpackPaper3D(selectedDef, paperTex)));
+                    }
+
+                    // 2. Combine CH02 drawing if ready
+                    if (selectedDef.CanCombine && InventoryService.CanAssembleCh02Drawing(State))
+                    {
+                        actions.Add(new ActionChoice("Ghép 3 mảnh tranh", () =>
+                            SaveEvidence(EvidenceRegistry.Drawing, () =>
                             {
-                                scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.48f);
+                                scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.60f);
+                                backpackSelection = BackpackCatalog.Ch02DrawFull;
+                                ui.Caption("Ba mảnh tranh khớp mép thành hình cánh cửa có ổ khóa.", 4.6f, aboveModal: true);
+                                DrawBackpack();
+                            })));
+                    }
+
+                    // 3. Retrieve if placed
+                    if (selectedEntry.status == BackpackItemStatus.Placed)
+                    {
+                        string placedAnchor = selectedEntry.placedAnchorId;
+                        actions.Add(new ActionChoice("Thu về ba lô", () =>
+                            SaveCheckpoint(() => casework.RetrieveItemFromAnchorAsync(placedAnchor), () =>
+                            {
+                                scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.50f);
                                 handPresenter?.SyncState(State, scene, hideViewModel: true);
                                 DrawBackpack();
                             })));
                     }
-                    bool equipped = selectedEntry != null && selectedEntry.status == BackpackItemStatus.Equipped;
-                    if (selectedDef.CanEquip)
+
+                    // 4. Equip / Stow + Quick Slot
+                    bool canHoldNow = selectedDef.CanEquip && !isMemory &&
+                                      (selectedDef.Kind != ItemKind.LayerBoundPaper || State.layer == Reality.B);
+                    if (canHoldNow)
                     {
-                        actions.Add(new ActionChoice(equipped ? "Cất lại vào ba lô" : "Cầm ra tay", () =>
-                        {
-                            string nextEquip = equipped ? "" : selectedDef.Id;
-                            SaveCheckpoint(() => casework.EquipItemAsync(nextEquip), () =>
+                        bool eq = selectedEntry.status == BackpackItemStatus.Equipped;
+                        actions.Add(new ActionChoice(eq ? "Cất khỏi tay" : "Cầm ra tay", () =>
+                            SaveCheckpoint(() => casework.EquipItemAsync(eq ? "" : selectedDef.Id), () =>
                             {
                                 handPresenter?.SyncState(State, scene, hideViewModel: false);
-                                if (!string.IsNullOrEmpty(nextEquip)) CloseModal();
+                                if (!eq) CloseModal();
                                 else DrawBackpack();
-                            });
-                        }));
+                            })));
                         AddQuickSlotAction(actions, selectedDef, selectedEntry);
                     }
-                    var tmpl = (!string.IsNullOrEmpty(selectedDef.InspectModelId) ? scene.InspectTemplate(selectedDef.InspectModelId) : null)
-                               ?? handPresenter?.GetInspectTemplate(selectedDef.Id);
-                    if (tmpl != null && inspector != null && qaFolder == null)
+
+                    // 5. Place beside F101 if near clipboard in Layer B
+                    if (!isMemory && selectedEntry.status != BackpackItemStatus.Placed && selectedDef.CanPlace && State.layer == Reality.B)
                     {
-                        actions.Add(new ActionChoice("Soi 3D", () => InspectBackpackTool3D(selectedDef, tmpl)));
-                    }
-                }
-                body = sb.ToString();
-            }
-            else if (backpackCompartment == BackpackCompartment.Papers)
-            {
-                if (!showingBag08EchoThisOpen && ShouldTriggerBag08Echo())
-                {
-                    showingBag08EchoThisOpen = true;
-                    triggerEcho = true;
-                    SaveCheckpoint(() => casework.RecordDreadEventAsync(DreadCatalog.Bag08Echo));
-                }
-
-                emptyCopy = "Chưa cất tờ giấy hoặc vật chứng nào trong ba lô.";
-                foreach (var item in State.backpackItems)
-                {
-                    var def = BackpackCatalog.Get(item.itemDefId);
-                    if (def == null || def.Compartment != BackpackCompartment.Papers) continue;
-                    string tag = def.Kind == ItemKind.MemoryOnly
-                        ? " [Ký ức lớp M · Không xuất]"
-                        : item.status switch
+                        bool nearAn02 = transaction.AtRequiredPlace(player.Feet, RealityTransaction.WardClipboard) ||
+                                        AmbientDreadDirector.ClassifyZone(player.Feet) == "LOC03";
+                        if (nearAn02)
                         {
-                            BackpackItemStatus.MemoryRef => " [Ký ức · Nguồn B]",
-                            BackpackItemStatus.Placed => " [Đang đặt]",
-                            BackpackItemStatus.Equipped => " [Đang cầm]",
-                            _ => def.Kind == ItemKind.PersistentPhysical ? " [Vật chứng R]" : " [Giấy lớp B]"
-                        };
-                    int qs = QuickSlotNumber(def.Id);
-                    if (qs > 0) tag += $" · #{qs}";
-                    string id = item.itemDefId;
-                    entries.Add(new NotebookEntry(def.ShortLabel + tag, () =>
-                    {
-                        backpackSelection = id;
-                        DrawBackpack();
-                    }));
-                }
-
-                if (placedItems.Count > 0)
-                {
-                    entries.Add(new NotebookEntry($"Tìm đồ đã đặt ({placedItems.Count})", () =>
-                    {
-                        backpackSelection = PlacedLocateKey;
-                        DrawBackpack();
-                    }));
-                }
-
-                if (backpackSelection == PlacedLocateKey && placedItems.Count > 0)
-                {
-                    BuildPlacedLocateDetail(placedItems, out title, out body, actions);
-                }
-                else
-                {
-                    var selectedEntry = InventoryService.FindByDef(State, backpackSelection);
-                    var selectedDef = selectedEntry != null ? BackpackCatalog.Get(selectedEntry.itemDefId) : null;
-                    if (selectedDef == null || selectedDef.Compartment != BackpackCompartment.Papers)
-                    {
-                        selectedEntry = State.backpackItems.Find(e => BackpackCatalog.Get(e.itemDefId)?.Compartment == BackpackCompartment.Papers);
-                        selectedDef = selectedEntry != null ? BackpackCatalog.Get(selectedEntry.itemDefId) : null;
-                        backpackSelection = selectedDef?.Id;
-                    }
-
-                    if (selectedDef == null)
-                    {
-                        title = "Ngăn giấy tờ & vật chứng";
-                        body = "Những tài liệu Minh tự nhặt hoặc tạm cất sẽ nằm ở đây.\n\n" +
-                               "• Vật chứng thực thể lớp R được lưu bền vững (Chương 1 chỉ có E10a).\n" +
-                               "• Giấy tờ nhặt trong lớp B chỉ tồn tại vật lý trong ca trực 2005; khi trở về hiện thực R sẽ chuyển thành ghi nhớ nguồn đã kiểm.";
-                    }
-                    else
-                    {
-                        title = selectedDef.Title;
-                        image = Image(selectedDef.FrontTexture);
-                        bool isMemoryOnly = selectedDef.Kind == ItemKind.MemoryOnly;
-                        bool isMemory = isMemoryOnly || selectedEntry.status == BackpackItemStatus.MemoryRef;
-                        var sb = new StringBuilder();
-                        sb.Append(isMemoryOnly
-                            ? selectedDef.ProvenanceLabel
-                            : isMemory
-                                ? $"Ký ức đã kiểm · {selectedEntry.originLoc} / Lớp B / 17-11-2005"
-                                : selectedDef.ProvenanceLabel);
-                        sb.Append("\n\n").Append(selectedDef.Description);
-
-                        if (isMemoryOnly)
-                        {
-                            sb.Append("\n\nBản chất lớp M: đây là vết ký ức phi vật chất — không có bản giấy để cầm ra tay, đặt lên bàn hay xuất vào gói vật chứng.");
-                        }
-                        else if (isMemory)
-                        {
-                            sb.Append("\n\nTờ giấy này chỉ tồn tại trong lớp B (2005). Trong hiện thực năm 2012 không có bản vật lý để cầm hay xuất làm vật chứng — chỉ còn ghi nhớ về những gì Minh đã tận mắt đọc.");
-                        }
-                        else if (selectedEntry.status == BackpackItemStatus.Placed)
-                        {
-                            sb.Append("\n\nĐang đặt tại: ").Append(WorldAnchors.Label(selectedEntry.placedAnchorId)).Append('.');
-                        }
-
-                        if (selectedDef.Id == BackpackCatalog.E10aEnvelope)
-                        {
-                            int partsRead = E10aParts.ReadCount(State);
-                            string apptStatus = State.Happened(E10aParts.SignedAppointment)
-                                ? "\n✓ Lời hẹn chú Bảy (giấy nhắn ngoài bì + SMS 16/11)"
-                                : State.Happened(E10aParts.MailboxNoteViewed)
-                                    ? "\n◐ Lời hẹn chú Bảy (1/2: đã đọc giấy nhắn · chưa xem SMS hẹn 16/11)"
-                                    : State.Happened(E10aParts.SmsAppointmentViewed)
-                                        ? "\n◐ Lời hẹn chú Bảy (1/2: đã xem SMS hẹn 16/11 · chưa đọc giấy nhắn)"
-                                        : "\n• Chưa đọc lời hẹn (giấy nhắn ngoài bì + SMS 16/11)";
-                            sb.Append($"\n\nTiến độ đọc tài liệu trong gói: {partsRead}/4 mục")
-                              .Append(apptStatus)
-                              .Append(State.Happened(E10aParts.Letter) ? "\n✓ Thư cũ của Lan (2005)" : "\n• Chưa đọc thư cũ của Lan")
-                              .Append(State.Happened(E10aParts.PublicReportSummary) ? "\n✓ Mẩu báo vụ cháy 18/11/2005" : "\n• Chưa đọc mẩu báo 18/11/2005")
-                              .Append(State.Happened(E10aParts.PostponementSms) ? "\n✓ Tin nhắn SMS hoãn 22:48 (trên điện thoại)" : "\n• Tin nhắn SMS hoãn 22:48 (xem trên điện thoại [P])");
-                            actions.Add(new ActionChoice("Mở gói tài liệu E10a", () =>
-                            {
-                                backpackStage?.Close();
-                                Letter(null, returnToBackpack: true);
-                            }));
-                        }
-                        else if (!isMemoryOnly && selectedDef.LinkedObservationId != null && ObservationRegistry.Get(selectedDef.LinkedObservationId) is ObservationSpec obsSpec)
-                        {
-                            var rec = State.FindObservation(obsSpec.Id);
-                            if (rec != null)
-                                sb.Append("\n\nTrạng thái kiểm tra: ").Append(ObservationRegistry.StageLabel(rec.stage)).Append('.');
-
-                            if (isMemory)
-                            {
-                                actions.Add(new ActionChoice("Xem lại ghi nhớ đã đọc", () =>
+                            actions.Add(new ActionChoice("Kẹp cạnh phiếu F101", () =>
+                                SaveCheckpoint(() => casework.PlaceItemAtAnchorAsync(selectedDef.Id, WorldAnchors.An02CompareClip), () =>
                                 {
-                                    backpackStage?.Close();
-                                    OpenObservationInspector(obsSpec, () => OpenBackpack(BackpackCompartment.Papers));
-                                }));
-                            }
-                            else
-                            {
-                                actions.Add(new ActionChoice("Soi 3D hai mặt", () =>
-                                {
-                                    backpackStage?.Close();
-                                    OpenObservationInspector(obsSpec, () => OpenBackpack(BackpackCompartment.Papers));
-                                }));
-                                if (selectedDef.CanEquip && State.layer == Reality.B)
-                                {
-                                    bool eq = selectedEntry.status == BackpackItemStatus.Equipped;
-                                    actions.Add(new ActionChoice(eq ? "Cất lại vào ngăn giấy" : "Cầm ra tay", () =>
-                                        SaveCheckpoint(() => casework.EquipItemAsync(eq ? "" : selectedDef.Id), () =>
-                                        {
-                                            handPresenter?.SyncState(State, scene, hideViewModel: false);
-                                            if (!eq) CloseModal();
-                                            else DrawBackpack();
-                                        })));
-                                    AddQuickSlotAction(actions, selectedDef, selectedEntry);
-                                }
-                                if (selectedEntry.status == BackpackItemStatus.Placed)
-                                {
-                                    string placedAnchor = selectedEntry.placedAnchorId;
-                                    actions.Add(new ActionChoice($"Thu lại từ {WorldAnchors.Label(placedAnchor)}", () =>
-                                        SaveCheckpoint(() => casework.RetrieveItemFromAnchorAsync(placedAnchor), () =>
-                                        {
-                                            scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.55f);
-                                            handPresenter?.SyncState(State, scene, hideViewModel: true);
-                                            DrawBackpack();
-                                        })));
-                                }
-                                else if (selectedDef.CanPlace && State.layer == Reality.B)
-                                {
-                                    bool nearAn02 = transaction.AtRequiredPlace(player.Feet, RealityTransaction.WardClipboard) ||
-                                                    AmbientDreadDirector.ClassifyZone(player.Feet) == "LOC03";
-                                    if (nearAn02)
-                                    {
-                                        actions.Add(new ActionChoice("Đặt làm nguồn đối chiếu cạnh F101", () =>
-                                            SaveCheckpoint(() => casework.PlaceItemAtAnchorAsync(selectedDef.Id, WorldAnchors.An02CompareClip), () =>
-                                            {
-                                                scene.atmosphere?.From("clipSnap", new Vector3(5.74f, 1.36f, 5.79f), 0.72f);
-                                                handPresenter?.SyncState(State, scene, hideViewModel: true);
-                                                ui.Caption($"Đã kẹp {selectedDef.ShortLabel} cạnh phiếu F101 để tự đối chiếu.", 3.6f, aboveModal: true);
-                                                DrawBackpack();
-                                            })));
-                                    }
-                                }
-                            }
+                                    scene.atmosphere?.From("clipSnap", new Vector3(5.74f, 1.36f, 5.79f), 0.72f);
+                                    handPresenter?.SyncState(State, scene, hideViewModel: true);
+                                    ui.Caption($"Đã kẹp {selectedDef.ShortLabel} cạnh phiếu F101.", 3.0f, aboveModal: true);
+                                    DrawBackpack();
+                                })));
                         }
-                        else if (!isMemoryOnly)
-                        {
-                            // CH02/CH03/CH04 Persistent Physical papers (drawings, transfer note, registers, letters)
-                            if (selectedDef.CanCombine && InventoryService.CanAssembleCh02Drawing(State))
-                            {
-                                actions.Add(new ActionChoice("Ghép 3 mảnh tranh thành bản E11", () =>
-                                    SaveEvidence(EvidenceRegistry.Drawing, () =>
-                                    {
-                                        scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.60f);
-                                        backpackSelection = BackpackCatalog.Ch02DrawFull;
-                                        ui.Toast("ĐÃ GHÉP TRANH CỦA AN (E11)", "Ba mảnh tranh khớp mép thành hình cánh cửa có ổ khóa. Quay về bảng kẹp 101 để đối chiếu hồ sơ.", 5.2f);
-                                        DrawBackpack();
-                                    })));
-                            }
-                            if (image != null && inspector != null && qaFolder == null)
-                            {
-                                actions.Add(new ActionChoice("Soi 3D", () => InspectBackpackPaper3D(selectedDef, image)));
-                            }
-                            if (selectedEntry.status == BackpackItemStatus.Placed)
-                            {
-                                string placedAnchor = selectedEntry.placedAnchorId;
-                                actions.Add(new ActionChoice("Thu lại về ba lô", () =>
-                                    SaveCheckpoint(() => casework.RetrieveItemFromAnchorAsync(placedAnchor), () =>
-                                    {
-                                        scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.50f);
-                                        handPresenter?.SyncState(State, scene, hideViewModel: true);
-                                        DrawBackpack();
-                                    })));
-                            }
-                            if (selectedDef.CanEquip)
-                            {
-                                bool eq = selectedEntry.status == BackpackItemStatus.Equipped;
-                                actions.Add(new ActionChoice(eq ? "Cất lại vào ngăn giấy" : "Cầm ra tay", () =>
-                                    SaveCheckpoint(() => casework.EquipItemAsync(eq ? "" : selectedDef.Id), () =>
-                                    {
-                                        handPresenter?.SyncState(State, scene, hideViewModel: false);
-                                        if (!eq) CloseModal();
-                                        else DrawBackpack();
-                                    })));
-                                AddQuickSlotAction(actions, selectedDef, selectedEntry);
-                            }
-                        }
-                        body = sb.ToString();
-                    }
-                }
-
-                if (IsJournalAllowedInBackpack)
-                {
-                    actions.Add(new ActionChoice("Mở sổ ghi chép đầy đủ", () =>
-                    {
-                        backpackStage?.Close();
-                        journalReturn = () => OpenBackpack(BackpackCompartment.Papers);
-                        DrawJournal(JournalTab.Documents, pageTurn: !Options.reduceMotion);
-                    }));
-                }
-            }
-            else
-            {
-                emptyCopy = "";
-                entries.Add(new NotebookEntry("Ghi chú ngắn (Pocket Note)", () => { backpackSelection = "POCKET_MAIN"; DrawBackpack(); }));
-                if (placedItems.Count > 0)
-                {
-                    entries.Add(new NotebookEntry($"Tìm đồ đã đặt ({placedItems.Count})", () =>
-                    {
-                        backpackSelection = PlacedLocateKey;
-                        DrawBackpack();
-                    }));
-                }
-                if (IsJournalAllowedInBackpack)
-                {
-                    entries.Add(new NotebookEntry("Mở sổ trực đầy đủ (5 mục)", () =>
-                    {
-                        backpackStage?.Close();
-                        journalReturn = () => OpenBackpack(BackpackCompartment.PocketNote);
-                        DrawJournal(JournalTab.Field, pageTurn: !Options.reduceMotion);
-                    }));
-                }
-                if (voice != null && voice.Transcript.Count > 0)
-                    entries.Add(new NotebookEntry("Bản ghi hội thoại", () => { backpackStage?.Close(); TranscriptPage(); }));
-
-                if (backpackSelection == PlacedLocateKey && placedItems.Count > 0)
-                {
-                    BuildPlacedLocateDetail(placedItems, out title, out body, actions);
-                }
-                else
-                {
-                    title = "Pocket Note · Ghi nhớ của Minh";
-                    body = BuildPocketNoteWithCutToJournalEntries(State);
-                    if (voice != null && voice.Transcript.Count > 0)
-                    {
-                        actions.Add(new ActionChoice("Xem bản ghi hội thoại & ghi nhớ", () =>
-                        {
-                            backpackStage?.Close();
-                            TranscriptPage();
-                        }));
-                    }
-                    if (IsJournalAllowedInBackpack)
-                    {
-                        actions.Add(new ActionChoice("Mở sổ ghi chép & đối chiếu", () =>
-                        {
-                            backpackStage?.Close();
-                            journalReturn = () => OpenBackpack(BackpackCompartment.PocketNote);
-                            DrawJournal(JournalTab.Field, pageTurn: !Options.reduceMotion);
-                        }));
-                        if (State.f101.revision > 0)
-                            actions.Add(new ActionChoice("Xem lịch sử quyết định F101", () =>
-                            {
-                                backpackStage?.Close();
-                                journalReturn = () => OpenBackpack(BackpackCompartment.PocketNote);
-                                DrawJournal(JournalTab.Decisions, pageTurn: !Options.reduceMotion);
-                            }));
                     }
                 }
             }
 
-            bool show3DStage = qaFolder == null && backpackStage != null;
+            bool show3DStage = backpackStage != null && SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null;
             if (show3DStage)
-                backpackStage.Open(State, backpackCompartment, backpackSelection, triggerEcho);
+                backpackStage.Open(State, backpackCompartment, backpackSelection, triggerEcho, ActiveVolume());
 
-            ui.ShowBackpack(
-                (int)backpackCompartment,
+            Action openJournal = IsJournalAllowedInBackpack
+                ? () =>
+                {
+                    backpackStage?.Close();
+                    journalReturn = () => OpenBackpack(backpackCompartment);
+                    DrawJournal(JournalTab.Documents, pageTurn: !Options.reduceMotion);
+                }
+                : null;
+
+            ui.ShowInventory2(
+                filterIdx,
                 idx =>
                 {
-                    backpackCompartment = (BackpackCompartment)idx;
+                    backpackCompartment = idx == 1 ? BackpackCompartment.Papers : BackpackCompartment.Tools;
                     backpackSelection = null;
-                    DrawBackpack(animate: !Options.reduceMotion);
+                    DrawBackpack();
                 },
-                CloseModal,
-                Options.alternateBindings,
-                animate && !Options.reduceMotion,
-                entries,
+                tiles,
                 emptyCopy,
-                title,
-                body,
-                image,
+                selTitle,
+                selBrief,
                 actions.ToArray(),
-                showBag08Echo: triggerEcho,
-                onEchoDissolve: null,
-                show3DStageOnLeft: show3DStage,
-                onCloseBag: () => backpackStage?.Close());
+                openPocketNote: () => OpenPocketNote(false),
+                openFullJournalIfAllowed: openJournal,
+                close: CloseModal,
+                onCloseBag: () => backpackStage?.Close(),
+                show3DStageOnLeft: show3DStage);
+        }
+
+        private GameObject ResolveInventory3DTemplate(BackpackItemDef def)
+        {
+            if (def == null) return null;
+            if (def.Id == BackpackCatalog.GateKey)
+                return scene.InspectTemplate("GATE_KEY") ?? handPresenter?.GetInspectTemplate(def.Id);
+            if (def.Id == BackpackCatalog.WingCKey)
+                return scene.InspectTemplate("WINGC_KEY") ?? handPresenter?.GetInspectTemplate(def.Id);
+            if (!string.IsNullOrEmpty(def.InspectModelId))
+            {
+                var t = scene.InspectTemplate(def.InspectModelId);
+                if (t != null) return t;
+            }
+            return handPresenter?.GetInspectTemplate(def.Id);
         }
 
         private void InspectBackpackTool3D(BackpackItemDef def, GameObject template)
         {
             backpackStage?.Close();
             scene.atmosphere?.From("keyJingle", player.Eye.transform.position + player.Eye.transform.forward * 0.35f, 0.36f);
-            inspector.Open(template, null, 1f, ActiveVolume(), observationId: def.Id);
+            Texture tagTex = def.Id == BackpackCatalog.WingCKey ? Image("Doc_KeyCTag") : null;
+            inspector.Open(template, null, 1f, ActiveVolume(), observationId: def.Id, standaloneCenter: true);
             void BackToBag()
             {
                 inspector.Close();
                 OpenBackpack(BackpackCompartment.Tools);
             }
-            var choices = new List<ActionChoice>();
+            var chips = new List<ActionChoice>();
+            if (tagTex != null)
+            {
+                chips.Add(new ActionChoice("Đọc thẻ giấy", () =>
+                {
+                    inspector.Open(null, tagTex, (float)tagTex.width / Mathf.Max(1, tagTex.height),
+                        ActiveVolume(), observationId: def.Id + "_TAG", standaloneCenter: true);
+                }));
+            }
             if (def.CanEquip)
-                choices.Add(new ActionChoice("Cầm trên tay", () =>
+            {
+                chips.Add(new ActionChoice("Cầm ra tay [G]", () =>
                     SaveCheckpoint(() => casework.EquipItemAsync(def.Id), () =>
                     {
                         inspector.Close();
                         CloseModal();
                         handPresenter?.SyncState(State, scene, hideViewModel: false);
                     })));
-            choices.Add(new ActionChoice("Trả lại ba lô", BackToBag));
-            ui.ShowInspectSidebar(def.ProvenanceLabel, def.Title, def.Description, choices.ToArray(), BackToBag, () => inspector.Close());
+            }
+            chips.Add(new ActionChoice("Đóng [Esc]", BackToBag));
+            ui.ShowStandaloneOverlay("Kéo xoay 360° · Cuộn thu phóng · Esc quay lại ba lô", BackToBag,
+                onClose: () => inspector.Close(), microChips: chips.ToArray(),
+                onSecondaryKey: def.CanEquip ? () => SaveCheckpoint(() => casework.EquipItemAsync(def.Id), () =>
+                {
+                    inspector.Close();
+                    CloseModal();
+                    handPresenter?.SyncState(State, scene, hideViewModel: false);
+                }) : null);
         }
 
         private void InspectBackpackPaper3D(BackpackItemDef def, Texture frontTex)
@@ -615,258 +519,189 @@ namespace CTCC
             backpackStage?.Close();
             scene.atmosphere?.From("paper", player.Eye.transform.position + player.Eye.transform.forward * 0.35f, 0.45f);
             float aspect = frontTex != null ? (float)frontTex.width / Mathf.Max(1, frontTex.height) : 0.75f;
-            inspector.Open(null, frontTex, aspect, ActiveVolume(), observationId: def.Id);
+            Texture backTex = !string.IsNullOrEmpty(def.BackTexture) ? Image(def.BackTexture) : null;
+            inspector.Open(null, frontTex, aspect, ActiveVolume(), backTexture: backTex, observationId: def.Id, standaloneCenter: true);
             void BackToBag()
             {
                 inspector.Close();
                 OpenBackpack(BackpackCompartment.Papers);
             }
-            var choices = new List<ActionChoice>();
-            if (def.CanCombine && InventoryService.CanAssembleCh02Drawing(State))
+            void ShowLarge()
             {
-                choices.Add(new ActionChoice("Ghép 3 mảnh tranh (E11)", () =>
-                    SaveEvidence(EvidenceRegistry.Drawing, () =>
-                    {
-                        inspector.Close();
-                        backpackSelection = BackpackCatalog.Ch02DrawFull;
-                        OpenBackpack(BackpackCompartment.Papers);
-                    })));
+                inspector.Close();
+                ui.Show(def.Title, def.Title, def.Description, new[]
+                {
+                    new ActionChoice("Quay lại xem 3D", () => InspectBackpackPaper3D(def, frontTex)),
+                    new ActionChoice("Quay lại ba lô", BackToBag)
+                }, BackToBag, frontTex, largePrint: true);
             }
-            if (def.CanEquip)
-                choices.Add(new ActionChoice("Cầm trên tay", () =>
-                    SaveCheckpoint(() => casework.EquipItemAsync(def.Id), () =>
-                    {
-                        inspector.Close();
-                        CloseModal();
-                        handPresenter?.SyncState(State, scene, hideViewModel: false);
-                    })));
-            choices.Add(new ActionChoice("Trả lại ba lô", BackToBag));
-            ui.ShowInspectSidebar(def.ProvenanceLabel, def.Title, def.Description, choices.ToArray(), BackToBag, () => inspector.Close());
+            var chips = new List<ActionChoice>
+            {
+                new("Chữ lớn [L]", ShowLarge),
+                new("Đóng [Esc]", BackToBag)
+            };
+            ui.ShowStandaloneOverlay(
+                backTex != null ? "Kéo xoay · Cuộn thu phóng · Chuột phải / Space lật · L chữ lớn · Esc đóng"
+                                : "Kéo xoay · Cuộn thu phóng · L chữ lớn · Esc đóng",
+                BackToBag, onClose: () => inspector.Close(), microChips: chips.ToArray(), onLargePrintKey: ShowLarge);
         }
 
-        private static string SurfaceSectionTitle(string surfaceTargetId) => surfaceTargetId switch
+        private static string SurfaceHeading(string surfaceId) => surfaceId switch
         {
-            "COMPARE_CLIP_AN02" => "KẸP ĐỐI CHIẾU CẠNH F101 · AN02",
-            "COMPARE_DESK_STAFF" => "BÀN ĐỐI CHIẾU ĐIỀU DƯỠNG · STAFF",
-            "COMPARE_DESK_RECEPTION" => "MẶT QUẦY TIẾP NHẬN · ĐỐI CHIẾU",
-            "COMPARE_DESK_101" => "BÀN ĐỐI CHIẾU & GHÉP HỒ SƠ · PHÒNG 101",
-            _ => "BÀN ĐỐI CHIẾU VẬT LÝ"
+            WorldAnchors.SurfaceAn02Clip => "Kẹp đối chiếu cạnh F101",
+            WorldAnchors.SurfaceStaffDesk => "Bàn điều dưỡng",
+            WorldAnchors.SurfaceReceptionDesk => "Quầy tiếp nhận",
+            WorldAnchors.SurfaceWard101Table => "Bàn Phòng 101",
+            _ => "Mặt bàn đối chiếu"
         };
 
-        private static Vector3 SurfaceSoundOrigin(string surfaceTargetId) => surfaceTargetId switch
+        private static string SurfaceShortNote(string surfaceId) => surfaceId switch
         {
-            "COMPARE_CLIP_AN02" => new Vector3(5.74f, 1.36f, 5.79f),
-            "COMPARE_DESK_STAFF" => new Vector3(0.88f, 0.96f, 3.70f),
-            "COMPARE_DESK_RECEPTION" => new Vector3(1.86f, 1.15f, -1.96f),
-            "COMPARE_DESK_101" => new Vector3(7.08f, 0.82f, 2.26f),
-            _ => Vector3.zero
+            WorldAnchors.SurfaceAn02Clip => "Đặt tờ giấy kẹp ngay bên cạnh phiếu F101 để tự đối chiếu.",
+            WorldAnchors.SurfaceStaffDesk => "Đặt tài liệu cạnh nhau trên mặt bàn để đối chiếu.",
+            WorldAnchors.SurfaceReceptionDesk => "Đặt tài liệu lên mặt quầy tiếp nhận.",
+            WorldAnchors.SurfaceWard101Table => "Đặt tài liệu hoặc mảnh tranh lên mặt bàn Phòng 101.",
+            _ => "Đặt tài liệu để đối chiếu."
         };
 
-        private void InteractComparisonSurface(string surfaceTargetId)
+        private void InteractComparisonSurface(string surfaceId)
         {
-            string[] slots = WorldAnchors.SlotsForSurface(surfaceTargetId);
-            if (slots.Length == 0 || !WorldAnchors.AllowedInLayer(slots[0], State.layer))
-                return;
+            if (State == null || busy) return;
+            string[] slots = WorldAnchors.SlotsForSurface(surfaceId);
+            if (slots.Length == 0) return;
 
-            Vector3 sfxOrigin = SurfaceSoundOrigin(surfaceTargetId);
-            string placeSfx = surfaceTargetId == "COMPARE_CLIP_AN02" ? "clipSnap" : "paper";
-
-            // Fast physical path: holding a valid placeable item immediately places it onto the first free slot!
             var equipped = InventoryService.GetEquipped(State);
-            if (equipped != null)
+            if (equipped != null && WorldUseResolver.Resolve(State, equipped.itemDefId, surfaceId).Outcome == WorldUseOutcome.PlacePaperOnAnchor)
             {
-                var res = WorldUseResolver.Resolve(State, equipped.itemDefId, surfaceTargetId);
-                if (res.Outcome == WorldUseOutcome.PlacePaperOnAnchor)
+                string targetSlot = null;
+                for (int i = 0; i < slots.Length; i++)
                 {
-                    string targetSlot = slots[0];
-                    for (int i = 0; i < slots.Length; i++)
-                    {
-                        if (InventoryService.GetPlacedAt(State, slots[i]) == null)
-                        {
-                            targetSlot = slots[i];
-                            break;
-                        }
-                    }
-                    SaveCheckpoint(() => casework.PlaceItemAtAnchorAsync(equipped.itemDefId, targetSlot), () =>
-                    {
-                        handPresenter?.TriggerUseAnimation();
-                        scene.atmosphere?.From(placeSfx, sfxOrigin, 0.78f);
-                        var def = BackpackCatalog.Get(equipped.itemDefId);
-                        ui.Caption($"Đã đặt {def?.ShortLabel ?? "tài liệu"} lên {WorldAnchors.Label(targetSlot)}.", 3.5f);
-                        handPresenter?.SyncState(State, scene, hideViewModel: false);
-                    });
-                    return;
+                    if (InventoryService.GetPlacedAt(State, slots[i]) == null) { targetSlot = slots[i]; break; }
                 }
-                if (res.Outcome == WorldUseOutcome.NotApplicableFeedback)
+                targetSlot ??= slots[0];
+                var def = BackpackCatalog.Get(equipped.itemDefId);
+                string sfx = surfaceId == WorldAnchors.SurfaceAn02Clip ? "clipSnap" : "paper";
+                SaveCheckpoint(() => casework.PlaceItemAtAnchorAsync(equipped.itemDefId, targetSlot), () =>
                 {
-                    ui.Caption(res.Feedback, 3.2f, true);
-                    return;
-                }
+                    scene.atmosphere?.From(sfx, player.Feet + Vector3.up, 0.72f);
+                    handPresenter?.SyncState(State, scene, hideViewModel: false);
+                    ui.Caption($"Đã đặt {def?.ShortLabel ?? "tài liệu"} lên {SurfaceHeading(surfaceId).ToLowerInvariant()}.", 3.2f);
+                });
+                return;
             }
 
-            // Inspect / arrange / compare modal for 1-slot clip or 2-slot physical work surfaces
-            var placedEntries = new BackpackEntry[slots.Length];
-            var placedObs = new List<ObservationSpec>();
-            int occupiedCount = 0;
-            var body = new StringBuilder();
-            for (int i = 0; i < slots.Length; i++)
+            if (surfaceId == WorldAnchors.SurfaceWard101Table && InventoryService.CanAssembleCh02Drawing(State))
             {
-                placedEntries[i] = InventoryService.GetPlacedAt(State, slots[i]);
-                if (placedEntries[i] != null)
+                SaveEvidence(EvidenceRegistry.Drawing, () =>
                 {
-                    occupiedCount++;
-                    var def = BackpackCatalog.Get(placedEntries[i].itemDefId);
-                    body.Append(slots.Length == 1 ? "• Đang kẹp: " : $"• Ô {i + 1}: ")
-                        .AppendLine(def?.Title ?? placedEntries[i].itemDefId);
-                    if (def?.LinkedObservationId != null && ObservationRegistry.Get(def.LinkedObservationId) is ObservationSpec os)
-                        placedObs.Add(os);
-                }
-                else
-                {
-                    body.AppendLine(slots.Length == 1 ? "• Kẹp đang trống." : $"• Ô {i + 1}: Trống.");
-                }
+                    scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.65f);
+                    ui.Caption("Ba mảnh tranh khớp mép trên mặt bàn thành hình cánh cửa có ổ khóa.", 4.6f);
+                });
+                return;
             }
-            body.AppendLine();
-            body.Append(surfaceTargetId == "COMPARE_DESK_101" && State.chapter == "CH02" && State.layer == Reality.R
-                ? "Có thể trải các mảnh tranh, phiếu chuyển và vòng tay lên mặt bàn để đối chiếu hoặc ghép 3 mảnh tranh tại đây."
-                : "Đặt hai tài liệu cạnh nhau trên mặt bàn giúp tự đối chiếu mốc giờ, quy chế và chữ ký. Việc đặt giấy không tự động đánh dấu hay hoàn tất suy luận.");
 
             var choices = new List<ActionChoice>();
+            var sb = new StringBuilder();
+            sb.AppendLine(SurfaceShortNote(surfaceId));
+            sb.AppendLine();
 
-            // Authored CH02 physical table assembly of the 3 drawing fragments into E11.drawing!
-            if (surfaceTargetId == "COMPARE_DESK_101" && InventoryService.CanAssembleCh02Drawing(State))
-            {
-                choices.Add(new ActionChoice("Ghép 3 mảnh tranh trên mặt bàn (E11)", () =>
-                    SaveEvidence(EvidenceRegistry.Drawing, () =>
-                    {
-                        scene.atmosphere?.From("paper", sfxOrigin, 0.72f);
-                        string freeTableSlot = InventoryService.GetPlacedAt(State, WorldAnchors.Ward101TableLeft) == null
-                            ? WorldAnchors.Ward101TableLeft
-                            : InventoryService.GetPlacedAt(State, WorldAnchors.Ward101TableRight) == null
-                                ? WorldAnchors.Ward101TableRight
-                                : WorldAnchors.Ward101TableLeft;
-                        SaveCheckpoint(() => casework.PlaceItemAtAnchorAsync(BackpackCatalog.Ch02DrawFull, freeTableSlot), () =>
-                        {
-                            handPresenter?.SyncState(State, scene, hideViewModel: false);
-                            ui.Toast("ĐÃ GHÉP TRANH CỦA AN (E11)", "Ba mảnh tranh đã ghép khít trên bàn Phòng 101. Quay lại bảng kẹp để đối chiếu hồ sơ C01.", 5.5f);
-                            CloseModal();
-                        });
-                    })));
-            }
-
-            // Side-by-side 2-document Journal comparison shortcut (CH02+ only — CH01 stays 100% World-first zero-Journal!)
-            if (IsJournalAllowedInBackpack && surfaceTargetId == "COMPARE_CLIP_AN02" && placedObs.Count == 1)
-            {
-                var obs = placedObs[0];
-                choices.Add(new ActionChoice("Soi song song với phiếu F101", () =>
-                {
-                    comparison[0] = new PaperPlacement(ObservationRegistry.F101Sheet);
-                    comparison[1] = new PaperPlacement(obs.Id);
-                    comparingDocuments = true;
-                    journalReturn = CloseModal;
-                    DrawJournal(JournalTab.Documents, pageTurn: !Options.reduceMotion);
-                }));
-            }
-            else if (IsJournalAllowedInBackpack && placedObs.Count >= 2)
-            {
-                var leftObs = placedObs[0];
-                var rightObs = placedObs[1];
-                choices.Add(new ActionChoice($"Soi song song: {leftObs.ShortCode} ↔ {rightObs.ShortCode}", () =>
-                {
-                    comparison[0] = new PaperPlacement(leftObs.Id);
-                    comparison[1] = new PaperPlacement(rightObs.Id);
-                    comparingDocuments = true;
-                    journalReturn = CloseModal;
-                    DrawJournal(JournalTab.Documents, pageTurn: !Options.reduceMotion);
-                }));
-            }
-
-            // Inspect & Retrieve actions for each occupied slot
+            int occupiedCount = 0;
             for (int i = 0; i < slots.Length; i++)
             {
-                var placed = placedEntries[i];
+                string slotId = slots[i];
+                var placed = InventoryService.GetPlacedAt(State, slotId);
                 if (placed == null) continue;
+                occupiedCount++;
                 var def = BackpackCatalog.Get(placed.itemDefId);
-                string anchorId = slots[i];
-                string slotPrefix = slots.Length == 1 ? "" : $"[Ô {i + 1}] ";
-                if (def?.LinkedObservationId != null && ObservationRegistry.Get(def.LinkedObservationId) is ObservationSpec obs)
+                string title = def?.Title ?? placed.itemDefId;
+                sb.Append("• ").AppendLine(title);
+
+                if (def != null && !string.IsNullOrEmpty(def.LinkedObservationId) &&
+                    ObservationRegistry.Get(def.LinkedObservationId) is ObservationSpec obsSpec)
                 {
-                    choices.Add(new ActionChoice($"{slotPrefix}Soi & đánh dấu {def.ShortLabel}", () =>
-                        OpenObservationInspector(obs, () => InteractComparisonSurface(surfaceTargetId))));
+                    choices.Add(new ActionChoice($"Xem {def.ShortLabel}", () =>
+                        OpenObservationInspector(obsSpec, () => InteractComparisonSurface(surfaceId))));
                 }
-                else if (def != null && !string.IsNullOrEmpty(def.FrontTexture) && Image(def.FrontTexture) is Texture tex && inspector != null && qaFolder == null)
+                else if (def != null && !string.IsNullOrEmpty(def.FrontTexture))
                 {
-                    choices.Add(new ActionChoice($"{slotPrefix}Soi 3D {def.ShortLabel}", () => InspectBackpackPaper3D(def, tex)));
+                    var tex = Image(def.FrontTexture);
+                    if (tex != null)
+                        choices.Add(new ActionChoice($"Xem {def.ShortLabel}", () => InspectBackpackPaper3D(def, tex)));
                 }
-                choices.Add(new ActionChoice($"{slotPrefix}Rút {def?.ShortLabel ?? "tài liệu"} về ba lô", () =>
-                    SaveCheckpoint(() => casework.RetrieveItemFromAnchorAsync(anchorId), () =>
+
+                choices.Add(new ActionChoice($"Rút {def?.ShortLabel ?? "tài liệu"} về ba lô", () =>
+                    SaveCheckpoint(() => casework.RetrieveItemFromAnchorAsync(slotId), () =>
                     {
-                        scene.atmosphere?.From("paper", sfxOrigin, 0.58f);
+                        scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.52f);
                         handPresenter?.SyncState(State, scene, hideViewModel: false);
-                        InteractComparisonSurface(surfaceTargetId);
+                        CloseModal();
                     })));
             }
 
-            // Place eligible items from Backpack into the first free slot (full keyboard/accessibility parity!)
+            if (occupiedCount == 0)
+                sb.AppendLine("Hiện đang trống.");
+
+            var placeables = new List<BackpackItemDef>();
+            foreach (var item in State.backpackItems)
+            {
+                if (item.status == BackpackItemStatus.Placed || item.status == BackpackItemStatus.MemoryRef) continue;
+                var def = BackpackCatalog.Get(item.itemDefId);
+                if (def == null) continue;
+                if (WorldUseResolver.Resolve(State, def.Id, surfaceId).Outcome == WorldUseOutcome.PlacePaperOnAnchor)
+                    placeables.Add(def);
+            }
+
             string freeSlot = null;
             for (int i = 0; i < slots.Length; i++)
-                if (placedEntries[i] == null) { freeSlot = slots[i]; break; }
+                if (InventoryService.GetPlacedAt(State, slots[i]) == null) { freeSlot = slots[i]; break; }
 
-            if (freeSlot != null)
+            if (freeSlot != null && placeables.Count > 0)
             {
-                foreach (var entry in State.backpackItems)
+                string verb = surfaceId == WorldAnchors.SurfaceAn02Clip ? "Kẹp" : "Đặt";
+                for (int i = 0; i < placeables.Count && i < 4; i++)
                 {
-                    if (entry.status == BackpackItemStatus.MemoryRef || entry.status == BackpackItemStatus.Placed)
-                        continue;
-                    var def = BackpackCatalog.Get(entry.itemDefId);
-                    if (def == null || !def.CanPlace) continue;
-                    if (def.Kind == ItemKind.LayerBoundPaper && State.layer != Reality.B) continue;
-                    string itemId = def.Id;
-                    string slotTarget = freeSlot;
-                    string verb = surfaceTargetId == "COMPARE_CLIP_AN02" ? "Kẹp" : "Đặt";
-                    choices.Add(new ActionChoice($"{verb} {def.ShortLabel} vào đây", () =>
-                        SaveCheckpoint(() => casework.PlaceItemAtAnchorAsync(itemId, slotTarget), () =>
+                    var def = placeables[i];
+                    string sfx = surfaceId == WorldAnchors.SurfaceAn02Clip ? "clipSnap" : "paper";
+                    choices.Add(new ActionChoice($"{verb} {def.ShortLabel}", () =>
+                        SaveCheckpoint(() => casework.PlaceItemAtAnchorAsync(def.Id, freeSlot), () =>
                         {
-                            scene.atmosphere?.From(placeSfx, sfxOrigin, 0.76f);
+                            scene.atmosphere?.From(sfx, player.Feet + Vector3.up, 0.72f);
                             handPresenter?.SyncState(State, scene, hideViewModel: false);
-                            ui.Caption($"Đã đặt {def.ShortLabel} lên {WorldAnchors.Label(slotTarget)}.", 3.4f, aboveModal: slots.Length > 1);
-                            if (slots.Length == 1) CloseModal();
-                            else InteractComparisonSurface(surfaceTargetId);
+                            CloseModal();
                         })));
                 }
             }
 
-            if (occupiedCount == 0 && choices.Count == 0)
+            if (occupiedCount >= 2 && IsJournalAllowedInBackpack)
             {
-                ui.Caption(surfaceTargetId == "COMPARE_CLIP_AN02"
-                    ? "Kẹp đối chiếu cạnh F101 đang trống. Có thể cất tạm thẻ AS-05B hoặc phiếu khác trong lớp B rồi kẹp vào đây."
-                    : "Mặt bàn đối chiếu đang trống. Nhặt hoặc cất tạm giấy tờ/vật chứng vào ba lô rồi đặt lên đây để tự đối chiếu.", 4.2f, true);
-                return;
+                choices.Add(new ActionChoice("Soi song song hai tài liệu", () =>
+                {
+                    journalReturn = CloseModal;
+                    DrawJournal(JournalTab.Documents, pageTurn: !Options.reduceMotion);
+                }));
             }
 
             choices.Add(new ActionChoice("Đóng", CloseModal));
-            string heading = occupiedCount == 0 ? "Đặt tài liệu đối chiếu"
-                : slots.Length == 1 ? (BackpackCatalog.Get(placedEntries[0].itemDefId)?.Title ?? "Tài liệu đang kẹp")
-                : $"Mặt bàn đối chiếu ({occupiedCount}/2 ô)";
-            ui.Show(SurfaceSectionTitle(surfaceTargetId), heading, body.ToString().TrimEnd(), choices.ToArray(), CloseModal);
+            ui.Show(SurfaceHeading(surfaceId).ToUpperInvariant(), SurfaceHeading(surfaceId), sb.ToString().TrimEnd(), choices.ToArray(), CloseModal);
         }
 
         private bool TryUseHeldTapeOnAn04()
         {
-            if (State == null || State.chapter != "CH04") return false;
-            var eq = InventoryService.GetEquipped(State);
-            if (eq == null || eq.itemDefId != BackpackCatalog.Ch04Tape) return false;
-            var res = WorldUseResolver.Resolve(State, eq.itemDefId, "AN04");
+            if (State == null || busy || State.chapter != "CH04") return false;
+            var equipped = InventoryService.GetEquipped(State);
+            if (equipped == null || equipped.itemDefId != BackpackCatalog.Ch04Tape) return false;
+            var res = WorldUseResolver.Resolve(State, BackpackCatalog.Ch04Tape, "AN04");
             if (res.Outcome == WorldUseOutcome.NotApplicableFeedback)
             {
-                ui.Caption(res.Feedback, 4.2f, true);
+                scene.atmosphere?.From("doorLatch", player.Feet + Vector3.up, 0.50f);
+                ui.Caption(res.Feedback, 4.4f, true);
                 return true;
             }
             if (res.Outcome == WorldUseOutcome.PlayTapeAtDutyDesk)
             {
                 handPresenter?.TriggerUseAnimation();
-                scene.atmosphere?.From("latchClick", player.Eye.transform.position + player.Eye.transform.forward * 0.45f, 0.72f);
-                Ch04Meeting();
+                scene.atmosphere?.From("tapeClick", player.Eye.transform.position + player.Eye.transform.forward * 0.4f, 0.78f);
+                Ch04DutyRoom();
                 return true;
             }
             return false;
