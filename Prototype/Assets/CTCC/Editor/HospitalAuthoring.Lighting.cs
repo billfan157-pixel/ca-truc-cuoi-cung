@@ -84,10 +84,10 @@ namespace CTCC.Editor
             Lamp("Emergency glass return", LightType.Point, new Vector3(6.20f, 2.65f, 19.48f), 1.48f, 9.8f, coolNight, permanent);
             Lamp("Wayfinding on staff corridor", LightType.Point, new Vector3(0.2f, 2.66f, 8.3f), 0.72f, 11.0f, coolNight, permanent);
 
-            // Calibrated horror bounce fills in R (deep atmospheric shadows without crushing clues or architectural depth!)
-            Lamp("Room 101 floor bounce R", LightType.Point, new Vector3(9.32f, 1.76f, 5.46f), 1.92f, 8.7f, subtleBounce, real);
-            Lamp("Back wall warm dust bounce R", LightType.Point, new Vector3(12.15f, 2.50f, 4.02f), .93f, 6.4f, new Color(0.80f, 0.74f, 0.60f), real);
-            Lamp("Dry store readable spill R", LightType.Point, new Vector3(15.6f, 2.45f, 3.65f), 1.66f, 6.2f, new Color(0.86f, 0.78f, 0.62f), real);
+            // Calibrated horror bounce fills in R (tight Forward+ cluster ranges so zero light bleeds into Store Room or Corridor!)
+            Lamp("Room 101 floor bounce R", LightType.Point, new Vector3(9.32f, 1.76f, 5.46f), 1.62f, 6.8f, subtleBounce, real);
+            Lamp("Back wall warm dust bounce R", LightType.Point, new Vector3(12.15f, 2.50f, 4.02f), .95f, 5.0f, new Color(0.80f, 0.74f, 0.60f), real);
+            Lamp("Dry store readable spill R", LightType.Point, new Vector3(15.6f, 2.45f, 3.65f), 1.72f, 4.6f, new Color(0.86f, 0.78f, 0.62f), real);
             var corrSpill = Lamp("Corridor doorway spill R", LightType.Spot, new Vector3(6.6f, 2.45f, 4.75f), 3.2f, 9.2f, coolNight, real, shadow: art);
             corrSpill.transform.LookAt(new Vector3(3.1f, 0.35f, 4.75f));
             corrSpill.spotAngle = 82f;
@@ -121,13 +121,14 @@ namespace CTCC.Editor
             Tube(new Vector3(4.00f, 3.59f, 10.60f), 0f, cleanTube, 2.3f, castShadow: false);
             Tube(new Vector3(1.28f, 3.59f, -3.21f), 0f, cleanTube, 2.35f, castShadow: art);
             Tube(new Vector3(6.32f, 3.59f, -4.58f), 0f, cleanTube, 2.75f, castShadow: false);
-            Tube(new Vector3(7.80f, 3.59f, 5.00f), 90f, cleanTube, 3.4f, castShadow: art);
-            var bed4Tube = Tube(new Vector3(11.55f, 3.59f, 5.20f), 90f, cleanTube, 3.1f, castShadow: art);
+            // Room 101 T8 fluorescent fixtures offset cleanly clear of ceiling fan sweep circles (West N bay & East S Bed-4 bay!)
+            Tube(new Vector3(7.70f, 3.59f, 6.55f), 90f, cleanTube, 3.4f, castShadow: art);
+            var bed4Tube = Tube(new Vector3(11.65f, 3.59f, 3.45f), 90f, cleanTube, 3.1f, castShadow: art);
             Tube(new Vector3(0.05f, 3.59f, 3.85f), 0f, cleanTube, 2.1f, castShadow: false);
             if (multiScene && bed4Tube != null) zones["LOC03"].region.bed4TubeLight = bed4Tube;
             else if (bed4Tube != null) world.bed4TubeLight = bed4Tube;
 
-            Lamp("Room 101 GI bounce B", LightType.Point, new Vector3(9.65f, 0.85f, 5.0f), 0.82f, 8.8f, new Color(0.76f, 0.82f, 0.72f), report);
+            Lamp("Room 101 GI bounce B", LightType.Point, new Vector3(9.65f, 0.92f, 5.0f), 0.88f, 7.2f, new Color(0.76f, 0.82f, 0.72f), report);
             Lamp("Corridor GI bounce B", LightType.Point, new Vector3(4.0f, 0.95f, 5.5f), 0.65f, 8.8f, new Color(0.74f, 0.80f, 0.72f), report);
             Lamp("Reception GI bounce B", LightType.Point, new Vector3(3.35f, 1.10f, -3.5f), .83f, 7.4f, new Color(.86f, .87f, .81f), report);
 
@@ -145,7 +146,7 @@ namespace CTCC.Editor
             {
                 var from = new Vector3(w.x, 2.55f, 10.45f);
                 var to = new Vector3(w.x + 0.35f, 0.15f, 4.35f);
-                var beam = Lamp("Window key moonlight", LightType.Spot, from, w.intensity, 12.8f, new Color(0.58f, 0.78f, 0.94f), real, shadow: w.shadow);
+                var beam = Lamp("Window key moonlight", LightType.Spot, from, w.intensity, 9.2f, new Color(0.58f, 0.78f, 0.94f), real, shadow: w.shadow);
                 beam.transform.LookAt(to);
                 beam.spotAngle = 62f;
                 beam.innerSpotAngle = 32f;
@@ -154,6 +155,14 @@ namespace CTCC.Editor
                     beam.shadowStrength = 0.90f;
                     beam.shadowBias = 0.025f;
                     beam.shadowNormalBias = 0.22f;
+                    var urpLight = beam.GetUniversalAdditionalLightData();
+                    if (urpLight != null)
+                    {
+                        var so = new SerializedObject(urpLight);
+                        var tierProp = so.FindProperty("m_AdditionalLightsShadowResolutionTier");
+                        if (tierProp != null) tierProp.intValue = UniversalAdditionalLightData.AdditionalLightsShadowResolutionTierMedium;
+                        so.ApplyModifiedPropertiesWithoutUndo();
+                    }
                 }
                 if (w.shadow) LightShaft(new Vector3(w.x, 1.92f, 7.98f), to, .71f, .72f, real);
             }
@@ -173,9 +182,9 @@ namespace CTCC.Editor
                 world.corridorReflection = rpHall;
             }
 
-            // --- Blender 3-Blade Enamel Ceiling Fans ---
-            Fan(new Vector3(7.55f, 3.58f, 5.05f));
-            Fan(new Vector3(11.35f, 3.58f, 5.05f));
+            // --- Hero Cycles-Baked 3-Blade Enamel Ceiling Fans (centered in structural bays, 1.5m+ clear of T8 tubes & curtain tracks!) ---
+            Fan(new Vector3(7.70f, 3.58f, 4.95f), "CTCC_LOC02_CeilingFan");
+            Fan(new Vector3(11.65f, 3.58f, 5.12f), "CTCC_LOC02_CeilingFan");
             Fan(new Vector3(4.30f, 3.58f, -3.94f), "CTCC_LOC02_CeilingFan");
 
             // --- Weather & Atmosphere: Monsoon Rain, Exterior Courtyard Mist, Dust Motes & Volumetric Cones (Upgrade #7) ---
@@ -253,7 +262,7 @@ namespace CTCC.Editor
             AddGrid(3.0f, 5.0f, 2, 0.8f, 15.2f, 6, interiorHeights);
             AddGrid(-0.5f, 0.8f, 2, 1.0f, 15.0f, 4, new[] { 0.7f, 1.8f });
             // LOC03 Room 101 + Store Room (Kho giường)
-            AddGrid(6.2f, 13.2f, 4, 2.5f, 7.5f, 3, interiorHeights);
+            AddGrid(6.2f, 13.2f, 5, 2.5f, 7.5f, 4, interiorHeights);
             AddGrid(14.3f, 16.6f, 2, 2.5f, 5.0f, 2, new[] { 0.75f, 1.85f });
             // LOC04 Emergency Bay
             AddGrid(0.2f, 8.2f, 4, 16.8f, 21.4f, 3, interiorHeights);

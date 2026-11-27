@@ -297,7 +297,7 @@ namespace CTCC.Editor
 
             // Hero Physical Payoff inside Store Room (Kho giường 101): Dismantled 4th Bed Frame + Folded Blankets!
             // Positioned cleanly along Store north wall (x=15.55, z=5.02) — completely clear of E11 dry shelf (z=2.61) and walkway (z=3.62)!
-            var dismantled = PlaceBlenderModel("CTCC_PROP_DismantledBedFrame", realRoot, new Vector3(15.55f, 0f, 5.02f), 180f, pairRB: false);
+            var dismantled = PlaceBlenderModel("CTCC_PROP_DismantledBedFrame", realRoot, new Vector3(15.55f, 0f, 5.02f), 180f, pairRB: false, forceAged: true);
             Box("Dismantled bed col", new Vector3(15.55f, 0.45f, 5.02f), new Vector3(1.95f, 0.90f, 0.72f),
                 Mat("MetalOld"), realRoot, solid: true).GetComponent<Renderer>().enabled = false;
             Decal("DismantledBedAO", "BedContact", new Vector3(15.55f, 0.01f, 5.02f), Vector3.up, 2.2f, 1.0f, 0.25f, realRoot, 0.85f);

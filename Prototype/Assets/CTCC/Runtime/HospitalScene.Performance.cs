@@ -69,6 +69,9 @@ namespace CTCC
         private RenderBudgetBucket activeRenderBucket = RenderBudgetBucket.None;
         private bool performanceBudgetSubscribed;
         private bool shadowsAblated;
+        private Light cachedDirectionalMoon;
+        private LightShadows directionalMoonOrigShadows = LightShadows.Soft;
+        private FirstPerson cachedPlayer;
         private UniversalRenderPipelineAsset cachedPipeline;
         private float originalPipelineShadowDistance = -1f;
         private int originalPipelineCascadeCount = -1;
@@ -237,8 +240,8 @@ namespace CTCC
             string n = light.name;
             if (n.IndexOf("Inner Light Court", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                // Inner Light Court spans x=[6..14], z=[8..14]; 10.5m lights the court & window frames without flooding Room 101 clusters.
-                if (light.range > 10.5f) light.range = 10.5f;
+                // Inner Light Court spans x=[6..14], z=[8..14]; 8.8m lights courtyard trees cleanly without spilling into Room 101 south wall!
+                if (light.range > 8.8f) light.range = 8.8f;
             }
             else if (n.IndexOf("Upper Facade Moon Wash", StringComparison.OrdinalIgnoreCase) >= 0 ||
                      n.IndexOf("Upper Facade Night Glow", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -306,8 +309,19 @@ namespace CTCC
             if (pos.y >= 2.9f) return RenderBudgetBucket.UpperFloor;
             if (pos.x < -2.0f || pos.x > 18.0f || pos.z < -7.6f) return RenderBudgetBucket.Exterior;
             if (pos.z <= 0.6f) return RenderBudgetBucket.Reception;
-            if (pos.z < 15.2f) return pos.x >= 7.2f ? RenderBudgetBucket.WardRoom : RenderBudgetBucket.Corridor;
+            if (pos.z < 15.2f)
+                return (pos.x >= 5.65f && pos.z >= 1.85f && pos.z <= 8.25f)
+                    ? RenderBudgetBucket.WardRoom
+                    : RenderBudgetBucket.Corridor;
             return RenderBudgetBucket.Emergency;
+        }
+
+        internal static bool IsEnclosedIndoorBudget(Vector3 pos)
+        {
+            var bucket = ResolveRenderBudgetBucket(pos);
+            return bucket is RenderBudgetBucket.WardRoom or RenderBudgetBucket.Corridor
+                or RenderBudgetBucket.Reception or RenderBudgetBucket.Emergency
+                or RenderBudgetBucket.Basement;
         }
 
         private void UpdateRenderBudgetForPosition(Vector3 camPos)
@@ -315,6 +329,34 @@ namespace CTCC
             var bucket = ResolveRenderBudgetBucket(camPos);
             if (bucket == activeRenderBucket) return;
             activeRenderBucket = bucket;
+
+            if (cachedDirectionalMoon == null)
+            {
+                foreach (var l in GetComponentsInChildren<Light>(true))
+                {
+                    if (l != null && l.type == LightType.Directional)
+                    {
+                        cachedDirectionalMoon = l;
+                        directionalMoonOrigShadows = l.shadows;
+                        break;
+                    }
+                }
+            }
+            if (cachedPlayer == null)
+                cachedPlayer = FindFirstObjectByType<FirstPerson>();
+
+            bool isIndoorTight = bucket is RenderBudgetBucket.WardRoom or RenderBudgetBucket.Corridor or RenderBudgetBucket.Reception or RenderBudgetBucket.Emergency or RenderBudgetBucket.Basement;
+            cachedPlayer?.SetIndoorBudget(isIndoorTight);
+
+            // Inside enclosed WardRoom/Corridor/Basement, local SpotLights cast all window moonlight & doorway shadows;
+            // gating exterior Directional moonlight shadow pass avoids rendering an invisible 2048² shadow pass every frame!
+            if (cachedDirectionalMoon != null && !shadowsAblated)
+            {
+                bool allowDirShadow = bucket is RenderBudgetBucket.Exterior or RenderBudgetBucket.Reception or RenderBudgetBucket.Emergency or RenderBudgetBucket.UpperFloor;
+                var wantDir = allowDirShadow ? directionalMoonOrigShadows : LightShadows.None;
+                if (cachedDirectionalMoon.shadows != wantDir)
+                    cachedDirectionalMoon.shadows = wantDir;
+            }
 
             CampusLightMask mask = bucket switch
             {
@@ -353,6 +395,7 @@ namespace CTCC
 
             if (!shadowsAblated)
             {
+                bool medOrLow = QualitySettings.GetQualityLevel() <= 1;
                 for (int i = 0; i < trackedShadowLights.Count; i++)
                 {
                     var entry = trackedShadowLights[i];
@@ -363,6 +406,12 @@ namespace CTCC
                         (entry.IsCorridorSpill && bucket is RenderBudgetBucket.Corridor or RenderBudgetBucket.Reception);
                     var mode = wantShadow ? entry.OriginalShadows : LightShadows.None;
                     if (entry.Light.shadows != mode) entry.Light.shadows = mode;
+                    if (wantShadow && entry.IsWardWindow)
+                    {
+                        var urp = entry.Light.GetUniversalAdditionalLightData();
+                        if (urp != null)
+                            urp.softShadowQuality = medOrLow ? SoftShadowQuality.Low : SoftShadowQuality.Medium;
+                    }
                 }
             }
 
