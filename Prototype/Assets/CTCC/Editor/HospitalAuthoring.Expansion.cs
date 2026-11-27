@@ -16,11 +16,16 @@ namespace CTCC.Editor
             if (multiScene)
             {
                 var grade = zones["LOC04"];
-                zones["LOC02"].region.upperConnectors = new[]
+                Transform s1Group = Group("S1 · Khu B", zones["LOC02"].permanent, new Vector3(-1.07f, 0f, -4f));
+                var s1Col = Box("S1 · Khu B collider", new Vector3(0f, 1.2f, 0f), new Vector3(.12f, 2.4f, 2.65f),
+                    Mat("WoodDoorR"), s1Group, solid: true);
+                if (art)
                 {
-                    Box("S1 · Khu B", new(-1.07f, 1.2f, -4), new(.12f, 2.4f, 2.65f),
-                        Mat("WoodDoorR"), zones["LOC02"].permanent, solid: true)
-                };
+                    s1Col.GetComponent<Renderer>().enabled = false;
+                    // Unit-scale parent ensures sculpted 1987 double-leaf louvered timber door never inherits collider scale!
+                    PlaceBlenderModel("CTCC_LOC02_S1Door", s1Group, new Vector3(0.03f, 0f, 0f), 0f, pairRB: true, castShadows: true);
+                }
+                zones["LOC02"].region.upperConnectors = new[] { s1Group.gameObject };
                 grade.region.upperConnectors = new[]
                 {
                     Box("S3 · Khu B", new(4, 1.2f, 22.02f), new(2.65f, 2.4f, .12f),

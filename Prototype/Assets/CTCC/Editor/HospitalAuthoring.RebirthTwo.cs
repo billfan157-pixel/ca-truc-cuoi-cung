@@ -46,17 +46,17 @@ namespace CTCC.Editor
             if (facing != Vector3.zero) target.handhold.rotation = Quaternion.LookRotation(facing);
         }
 
-        private static Transform WorkingProp(ZoneRegion region, string oldName, string newName, bool pair)
+        private static Transform WorkingProp(ZoneRegion region, string oldName, string newName, bool pair, bool castShadows = false)
         {
             var holder = Named(region.transform, oldName);
             var existing = holder.Find(newName);
             if (existing != null) return existing;
             region.finishes.RemoveAll(f => f.renderer != null && f.renderer.transform.IsChildOf(holder));
             while (holder.childCount != 0) Object.DestroyImmediate(holder.GetChild(0).gameObject);
-            return AddWorkingModel(region, holder, newName, pair);
+            return AddWorkingModel(region, holder, newName, pair, castShadows);
         }
 
-        private static Transform AddWorkingModel(ZoneRegion region, Transform parent, string asset, bool pair)
+        private static Transform AddWorkingModel(ZoneRegion region, Transform parent, string asset, bool pair, bool castShadows = false)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(Models + asset + ".fbx");
             if (prefab == null) throw new InvalidOperationException("Missing prop asset " + asset);
@@ -64,7 +64,7 @@ namespace CTCC.Editor
             PrefabUtility.UnpackPrefabInstance(instance, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
             foreach (var surface in instance.GetComponentsInChildren<MeshRenderer>(true))
             {
-                surface.shadowCastingMode = ShadowCastingMode.Off;
+                surface.shadowCastingMode = castShadows ? ShadowCastingMode.On : ShadowCastingMode.Off;
                 Material[] reportMaterials = surface.sharedMaterials.Select(m => ReferenceMaterial(ReportKey(CleanMatName(m.name)))).ToArray();
                 Material[] realMaterials = pair
                     ? surface.sharedMaterials.Select(m => ReferenceMaterial(AgedKey(ReportKey(CleanMatName(m.name))))).ToArray()
@@ -124,7 +124,7 @@ namespace CTCC.Editor
 
         private static void DressRebirthReception(ZoneRegion region)
         {
-            var prop = WorkingProp(region, "CTCC_PROP_ReceptionProps", "CTCC_PROP_ReceptionWorking", true);
+            var prop = WorkingProp(region, "CTCC_PROP_ReceptionProps", "CTCC_PROP_ReceptionWorking", true, castShadows: true);
             region.receptionHandset = Named(prop, "Handset");
             Bounds ledger = Named(prop, "DutyLedger").GetComponent<Renderer>().bounds;
             Contact(Target(region, "AN01"), new Vector3(ledger.max.x - .035f, ledger.max.y + .02f, ledger.center.z));
@@ -134,12 +134,16 @@ namespace CTCC.Editor
             PutInDrawer(region, region.drawerDesk, "DrawerPencil", new Vector3(-.144f, -.020f, .072f), 71f);
             DrawerPaper(region, region.drawerDesk, "OBS_RECEPTION_DRAWER", "ReceptionRosterSheet");
 
-            var countertop = Named(region.transform, "Wide counter top").GetComponent<Renderer>();
-            var glaze = RebirthMaterial("CH01_CounterCeramic", ReferenceMaterial("Ceramic"));
-            glaze.SetFloat("_Smoothness", .49f);
-            glaze.SetColor("_BaseColor", new Color(.94f, .92f, .87f));
-            EditorUtility.SetDirty(glaze);
-            countertop.sharedMaterial = glaze;
+            // Keep legacy ceramic glaze fallback ONLY when hero Blender counter is absent!
+            if (region.transform.GetComponentsInChildren<Transform>(true).All(t => t.name != "CTCC_LOC02_ReceptionCounter"))
+            {
+                var countertop = Named(region.transform, "Wide counter top").GetComponent<Renderer>();
+                var glaze = RebirthMaterial("CH01_CounterCeramic", ReferenceMaterial("Ceramic"));
+                glaze.SetFloat("_Smoothness", .49f);
+                glaze.SetColor("_BaseColor", new Color(.94f, .92f, .87f));
+                EditorUtility.SetDirty(glaze);
+                countertop.sharedMaterial = glaze;
+            }
             LightNamed(region, "Reception glass silhouette backlight").intensity = 1.49f;
             region.lanVoiceAnchor.minDistance = 1.35f;
             region.lanVoiceAnchor.maxDistance = 11f;

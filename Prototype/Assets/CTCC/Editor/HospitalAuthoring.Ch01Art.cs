@@ -61,8 +61,8 @@ namespace CTCC.Editor
             var oldGlass = ReferenceMaterial("Glass");
             var glazing = Shader.Find("CTCC/ReceptionGlazing");
             if (glazing == null) throw new InvalidOperationException("Missing reception glass shader.");
-            var clearGlass = Glaze("CH01_ReceptionGlass", new Color(.33f, .41f, .38f, .038f), .13f, .10f);
-            var agedGlass = Glaze("CH01_ReceptionGlassR", new Color(.31f, .38f, .38f, .080f), .37f, .12f);
+            var clearGlass = Glaze("CH01_ReceptionGlass", new Color(.24f, .36f, .32f, .042f), .14f, .22f, .72f, .22f);
+            var agedGlass = Glaze("CH01_ReceptionGlassR", new Color(.20f, .27f, .26f, .092f), .56f, .18f, .48f, .62f);
             foreach (var surface in partition.GetComponentsInChildren<Renderer>(true))
             {
                 Material[] original = surface.sharedMaterials;
@@ -78,13 +78,15 @@ namespace CTCC.Editor
                 surface.sharedMaterials = finish.realMaterials;
             }
 
-            Material Glaze(string name, Color tint, float residue, float highlight)
+            Material Glaze(string name, Color tint, float residue, float highlight, float refl, float dustRough)
             {
                 var material = RebirthMaterial(name, oldGlass);
                 material.shader = glazing;
                 material.SetColor("_Tint", tint);
                 material.SetFloat("_EdgeSoil", residue);
                 material.SetFloat("_BroadGlint", highlight);
+                material.SetFloat("_ReflectionStrength", refl);
+                material.SetFloat("_DustRoughness", dustRough);
                 material.renderQueue = (int)RenderQueue.Transparent + 2;
                 EditorUtility.SetDirty(material);
                 return material;
@@ -119,12 +121,12 @@ namespace CTCC.Editor
 
         private void DressLanWorkstation(Transform common, Transform deskMark)
         {
-            // The foot of the seated rig is on the floor. Knees fit west of the fixed counter apron.
+            // Native-height ergonomic counter stool-chair (seat 0.60m, zero Y-stretch!) + knees fit inside recessed kneehole!
             var chair = PlaceBlenderModel("CTCC_PROP_CH01DutyChair", common,
-                deskMark.position - deskMark.forward * .07f, -88, scale: new Vector3(1f, 1.30f, 1f), castShadows: false);
+                deskMark.position - deskMark.forward * .07f, -88, castShadows: true);
             staticArchitecture.Add(chair);
             var shelf = PlaceBlenderModel("CTCC_PROP_CH01FileRack", common,
-                new Vector3(-.93f, 1.39f, -1.92f), -90);
+                new Vector3(-.985f, 1.38f, -1.92f), -90, castShadows: true);
             staticArchitecture.Add(shelf);
             // Open active duty book belongs to 2005 operational B shift (cleared in 2012 abandoned R!)
             var bookParent = multiScene ? zones["LOC02"].report : report;

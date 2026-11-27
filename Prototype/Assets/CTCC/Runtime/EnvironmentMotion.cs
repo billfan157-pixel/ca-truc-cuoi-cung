@@ -114,7 +114,7 @@ namespace CTCC
                 var blade = dynamicBlades[i];
                 if (blade == null) { dynamicBlades.RemoveAt(i); continue; }
                 if (reportLayer && blade.gameObject.activeInHierarchy && !reducedMotion && fanSpeed > 0.01f)
-                    blade.Rotate(0, Time.unscaledDeltaTime * (119 + i * 11) * fanSpeed, 0, Space.Self);
+                    blade.Rotate(Vector3.up, Time.unscaledDeltaTime * (119 + i * 11) * fanSpeed, Space.World);
             }
 
             bool blackout = Time.unscaledTime < tubeBlackoutUntil;

@@ -217,13 +217,25 @@ namespace CTCC.Editor
             Box("AbandonedCounterSlipA_R", new Vector3(1.56f, 1.132f, -4.42f), new Vector3(0.20f, 0.004f, 0.27f), Mat("KraftPaper"), realRoot).transform.localRotation = Quaternion.Euler(0, 17f, 0);
             Box("AbandonedFloorSlipB_R", new Vector3(6.62f, 0.004f, -4.85f), new Vector3(0.21f, 0.004f, 0.28f), Mat("Paper"), realRoot).transform.localRotation = Quaternion.Euler(0, -34f, 0);
 
-            // Spare Flashlight Battery resting visibly on lower accessible reception counter wing (CH01-Q09!)
+            // Spare Flashlight Battery resting flush on lower accessible reception counter wing (CH01-Q09!)
             var battRoot = Group("Spare flashlight battery", perm, new Vector3(1.75f, 0.835f, -5.50f));
-            Box("Battery cell A", new Vector3(-0.024f, 0f, 0f), new Vector3(0.036f, 0.036f, 0.068f), Mat("EnamelBlue"), battRoot);
-            Box("Battery cell B", new Vector3(0.024f, 0f, 0.008f), new Vector3(0.036f, 0.036f, 0.068f), Mat("EnamelBlue"), battRoot);
-            Box("Battery cap A", new Vector3(-0.024f, 0f, 0.038f), new Vector3(0.018f, 0.018f, 0.008f), Mat("Brass"), battRoot);
-            Box("Battery cap B", new Vector3(0.024f, 0f, 0.046f), new Vector3(0.018f, 0.018f, 0.008f), Mat("Brass"), battRoot);
+            PlaceBlenderModel("CTCC_LOC02_SpareBattery", battRoot, new Vector3(0f, -0.020f, 0f), 0f, pairRB: false, castShadows: true);
             CapsuleTarget("BATTERY", "Pin đèn pin dự phòng", Vector3.zero, new Vector3(0.32f, 0.28f, 0.32f), battRoot);
+
+            // LOC02 1987 Architectural Ceiling Beams, Perimeter Cornice & Structural Pilasters
+            var ceilingArch = PlaceBlenderModel("CTCC_LOC02_CeilingBeams", perm, new Vector3(4.0f, 0f, -4.0f), 0f, pairRB: true, castShadows: true);
+            staticArchitecture.Add(ceilingArch);
+
+            // LOC02 Wall Fittings: Framed Vietnamese Duty Roster Board (south-west wall) & 1987 Fan Regulator / Switchboard!
+            var rosterHost = PlaceBlenderModel("CTCC_LOC02_WallFittings", perm, new Vector3(-0.99f, 1.66f, -6.82f), 0f, pairRB: true, castShadows: true);
+            var swOnRoster = FindDescendant(rosterHost.transform, "SwitchBoard");
+            if (swOnRoster != null) swOnRoster.gameObject.SetActive(false);
+            staticArchitecture.Add(rosterHost);
+
+            var switchHost = PlaceBlenderModel("CTCC_LOC02_WallFittings", perm, new Vector3(-0.99f, 1.32f, -0.82f), 0f, pairRB: true, castShadows: true);
+            var rbOnSwitch = FindDescendant(switchHost.transform, "RosterBoard");
+            if (rbOnSwitch != null) rbOnSwitch.gameObject.SetActive(false);
+            staticArchitecture.Add(switchHost);
 
             // Closed Khu B Stairwell Barrier in east reception bay (x = 7.95, z = -1.15) — CH01-Q11 authentic world boundary!
             var barrier = PlaceBlenderModel("CTCC_ENV_StairwellBarrier", perm, new Vector3(7.55f, 0f, -0.95f), 0f, pairRB: false);
@@ -259,9 +271,9 @@ namespace CTCC.Editor
             var lanVoice = CreateVoiceAnchor("LanVoiceAnchor", lanActor.transform, new Vector3(0f, 1.35f, .04f), 14f);
             var phoneVoice = CreateVoiceAnchor("PhoneAnchor", perm, new Vector3(1.65f, 1.25f, -3.55f), 12f);
 
-            // Reception Reflection Probe
-            var recProbe = CreateReflectionProbe("Local reflection · LOC02", new Vector3(4.0f, 1.85f, -4.0f), new Vector3(10.0f, 3.65f, 8.0f), perm);
-            recProbe.intensity = .60f;
+            // Reception Reflection Probe (calibrated for glazed partition, terrazzo counter & perforated stainless bench)
+            var recProbe = CreateReflectionProbe("Local reflection · LOC02", new Vector3(3.2f, 1.80f, -3.6f), new Vector3(10.0f, 3.65f, 8.0f), perm);
+            recProbe.intensity = .85f;
 
             if (loc02 != null)
             {

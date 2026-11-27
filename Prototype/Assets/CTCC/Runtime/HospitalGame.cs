@@ -217,7 +217,7 @@ namespace CTCC
                 revealConditions.Add(condition.id, condition);
             ValidateDialogueRuntimeContract(throwOnError: false);
 
-            qaFolder = Argument("-ctcc-qa");
+            qaFolder = Argument("-ctcc-qa") ?? Argument("-ctcc-loc02-shots");
             if (Argument("-ctcc-benchmark") != null) benchmarkAwakeQpc = PerformanceCounter();
         }
 
@@ -349,6 +349,12 @@ namespace CTCC
             {
                 benchmarkReadyQpc = PerformanceCounter();
                 StartCoroutine(BenchmarkVisit(Path.GetFullPath(benchmark)));
+                yield break;
+            }
+            string loc02Shots = Argument("-ctcc-loc02-shots");
+            if (loc02Shots != null)
+            {
+                StartCoroutine(Loc02ShotRun(Path.GetFullPath(loc02Shots)));
                 yield break;
             }
             if (qaFolder != null)
