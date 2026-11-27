@@ -129,6 +129,10 @@ namespace CTCC
         private Action onRakingRevealed;
         private EnvironmentalAudio audioBus;
         private Shader rakingPaperShader;
+        private Material paperTemplate;
+        private float savedNearClip = 0.1f;
+        private bool nearClipAdjusted;
+        private float currentClearanceScale = 1f;
         private string currentObservationId = "";
         private bool hasRakingIndent;
         private float rakingRevealFactor;
@@ -157,11 +161,12 @@ namespace CTCC
         public event Action<string> InspectOpened;
         public event Action<string> InspectClosed;
 
-        public void Initialize(Camera camera, EnvironmentalAudio audio = null, Shader rakingShader = null)
+        public void Initialize(Camera camera, EnvironmentalAudio audio = null, Shader rakingShader = null, Material inspectPaperLit = null)
         {
             eye = camera;
             audioBus = audio;
             rakingPaperShader = rakingShader;
+            paperTemplate = inspectPaperLit;
             paperFiberNormal = Resources.Load<Texture2D>("CTCC/PaperFiber_Normal");
             stage = new GameObject("Physical Inspector Stage").transform;
             stage.SetParent(eye.transform, false);
@@ -209,7 +214,11 @@ namespace CTCC
             if (stage != null)
                 stage.localPosition = new Vector3(standaloneCentered ? 0f : -0.095f, -0.008f, zoom);
             if (holder != null)
+            {
+                holder.localScale = Vector3.one;
                 holder.localRotation = Quaternion.Euler(rotX, rotY + flipAngle, 0f);
+            }
+            UpdateTransform();
         }
 
         public void Open(
@@ -327,6 +336,15 @@ namespace CTCC
             // Acquire Phase 2.5 Visual Clarity Guard: native 1.0x renderScale + far-only Gaussian DoF (>1.30m, 0 near blur!)
             InspectionSharpnessGuard.Acquire(activeGrade, allowBackgroundSoften: cameraAssist && !reducedMotion);
             sharpnessAcquired = true;
+
+            if (eye != null && !nearClipAdjusted)
+            {
+                savedNearClip = eye.nearClipPlane;
+                eye.nearClipPlane = Mathf.Min(savedNearClip, 0.025f);
+                nearClipAdjusted = true;
+            }
+            currentClearanceScale = 1f;
+            if (holder != null) holder.localScale = Vector3.one;
 
             stage.localPosition = new Vector3(baseX, 0.005f, zoom);
             stage.gameObject.SetActive(true);
@@ -580,6 +598,13 @@ namespace CTCC
                 InspectionSharpnessGuard.Release();
                 sharpnessAcquired = false;
             }
+            if (nearClipAdjusted && eye != null)
+            {
+                eye.nearClipPlane = savedNearClip;
+                nearClipAdjusted = false;
+            }
+            currentClearanceScale = 1f;
+            if (holder != null) holder.localScale = Vector3.one;
             active = false;
             lmbPressedInInspect = false;
             lmbDragging = false;
@@ -819,7 +844,31 @@ namespace CTCC
             float ease = 1f - Mathf.Pow(1f - openBlend, 3f);
             float baseX = standaloneCentered ? 0f : -0.095f;
             float baseY = standaloneCentered ? 0.005f : 0.01f;
-            stage.localPosition = Vector3.Lerp(openFrom, new Vector3(baseX + panOffset.x, baseY + panOffset.y, zoom), ease);
+            Vector3 desiredLocal = Vector3.Lerp(openFrom, new Vector3(baseX + panOffset.x, baseY + panOffset.y, zoom), ease);
+
+            // Perspective-invariant wall/counter clearance pull-in: if standing close to a desk, reception glass partition,
+            // or wall, pull stage cleanly in front of the obstacle and scale proportionally so on-screen framing stays
+            // 100% pixel-identical with ZERO geometry clipping!
+            float scale = 1f;
+            if (eye != null && desiredLocal.z > 0.14f)
+            {
+                Vector3 origin = eye.transform.position;
+                Vector3 fwd = eye.transform.forward;
+                float probeDist = desiredLocal.z + 0.10f;
+                if (Physics.SphereCast(origin, 0.045f, fwd, out var hit, probeDist, HospitalScene.SolidMask, QueryTriggerInteraction.Ignore))
+                {
+                    float safeZ = Mathf.Clamp(hit.distance - 0.10f, 0.125f, desiredLocal.z);
+                    scale = safeZ / desiredLocal.z;
+                }
+            }
+            currentClearanceScale = scale;
+            stage.localPosition = desiredLocal * scale;
+            holder.localScale = Vector3.one * scale;
+            if (keyLight != null)
+                keyLight.transform.localPosition = new Vector3(0.24f, 0.24f, 0.08f) * scale;
+            if (rimLight != null)
+                rimLight.transform.localPosition = new Vector3(-0.26f, -0.08f, 0.34f) * scale;
+
             float idleSway = reducedMotion || !cameraAssist ? 0f : Mathf.Sin(Time.unscaledTime * 1.05f) * 0.9f;
             holder.localRotation = Quaternion.Euler(rotX + idleSway * 0.35f, rotY + flipAngle + idleSway, 0f);
             if (currentModel != null && paperWidth > 0.001f)
@@ -1039,9 +1088,13 @@ namespace CTCC
             return mat;
         }
 
-        private static Material MakePaperMaterial(string name, Texture tex, bool doubleSided)
+        private Material MakePaperMaterial(string name, Texture tex, bool doubleSided)
         {
-            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = name };
+            // Clone serialized InspectPaperLit template when available so Unity standalone builds ALWAYS retain the
+            // {_NORMALMAP} URP/Lit shader variant; without a serialized reference, Unity strips it and turns paper invisible!
+            Material mat = paperTemplate != null
+                ? new Material(paperTemplate) { name = name }
+                : new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = name };
             mat.SetTexture("_BaseMap", tex);
             mat.SetColor("_BaseColor", new Color(0.86f, 0.85f, 0.82f, 1f));
             mat.SetFloat("_Smoothness", 0.05f);
@@ -1052,7 +1105,8 @@ namespace CTCC
 
         private void SetPaperFiber(Material material)
         {
-            if (paperFiberNormal == null) return;
+            // Only enable _NORMALMAP when backed by serialized paperTemplate (guaranteeing the standalone shader variant exists).
+            if (paperFiberNormal == null || paperTemplate == null) return;
             material.SetTexture("_BumpMap", paperFiberNormal);
             material.SetFloat("_BumpScale", .16f);
             material.EnableKeyword("_NORMALMAP");

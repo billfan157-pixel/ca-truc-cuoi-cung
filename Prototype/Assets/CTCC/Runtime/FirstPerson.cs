@@ -292,12 +292,14 @@ namespace CTCC
                     y += Mathf.Sin(Time.unscaledTime * 1.45f) * 0.004f;
                 }
             }
-            eye.transform.localPosition = new Vector3(bobX, y, 0f);
+            Vector3 targetEyePos = new Vector3(bobX, y, 0f);
+            eye.transform.localPosition = Vector3.Lerp(eye.transform.localPosition, targetEyePos,
+                1f - Mathf.Exp(-16f * dt));
 
             // Subtle natural handheld flashlight lag & low-battery flicker warning
             if (k[alternate ? Key.L : Key.F].wasPressedThisFrame)
             {
-                torchOn = !torchOn;
+                SetTorchEnabled(!torchOn);
                 audioBus?.From("doorLatch", eye.transform.position);
             }
             if (torchOn && !torchSuppressed && battery > 0f) battery = Mathf.Max(0f, battery - dt);
@@ -306,16 +308,13 @@ namespace CTCC
             float flicker = (!settings.reduceMotion && battery < 45f)
                 ? 0.72f + 0.28f * Mathf.PerlinNoise(Time.unscaledTime * 14f, 2.3f)
                 : 1.0f;
-            torch.intensity = (34.0f + settings.visibility * 8.0f) * flicker;
+            torch.intensity = (38.0f + settings.visibility * 8.5f) * flicker;
             if (torchFlood != null)
-            {
-                torchFlood.enabled = activeTorch;
-                torchFlood.intensity = (8.5f + settings.visibility * 2.5f) * flicker;
-            }
+                torchFlood.enabled = false;
             if (torchSpill != null)
             {
                 torchSpill.enabled = activeTorch;
-                torchSpill.intensity = (2.4f + settings.visibility * 0.7f) * flicker;
+                torchSpill.intensity = (2.6f + settings.visibility * 0.7f) * flicker;
             }
 
             if (!settings.reduceMotion)

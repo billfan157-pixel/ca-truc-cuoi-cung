@@ -236,7 +236,7 @@ namespace CTCC
             player.Teleport(scene.Pad("AP00"));
 
             inspector = gameObject.AddComponent<PhysicalInspector>();
-            inspector.Initialize(player.Eye, scene.atmosphere, scene.rakingPaperShader);
+            inspector.Initialize(player.Eye, scene.atmosphere, scene.rakingPaperShader, scene.inspectPaperTemplate);
             inspector.InspectOpened += id =>
             {
                 dreadDirector?.NotifyInspectorOpened(id);

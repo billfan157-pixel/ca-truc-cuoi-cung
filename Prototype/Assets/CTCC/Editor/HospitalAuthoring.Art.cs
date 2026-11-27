@@ -511,6 +511,26 @@ namespace CTCC.Editor
                     rakingRef.SetFloat("_RakingReveal", 0f);
                     EditorUtility.SetDirty(rakingRef);
                 }
+
+                // Retain URP/Lit {_NORMALMAP}-without-{_METALLICSPECGLOSSMAP} variant in standalone builds for PhysicalInspector sheets!
+                var litShader = Shader.Find("Universal Render Pipeline/Lit");
+                if (litShader != null)
+                {
+                    var inspectLit = MaterialAsset("InspectPaperLit", litShader);
+                    inspectLit.SetColor("_BaseColor", new Color(0.86f, 0.85f, 0.82f, 1f));
+                    inspectLit.SetFloat("_Smoothness", 0.05f);
+                    inspectLit.SetFloat("_Metallic", 0f);
+                    inspectLit.SetFloat("_Cull", 2f);
+                    var fiber = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/Art/Resources/CTCC/PaperFiber_Normal.png");
+                    if (fiber != null)
+                    {
+                        inspectLit.SetTexture("_BumpMap", fiber);
+                        inspectLit.SetFloat("_BumpScale", 0.16f);
+                        inspectLit.EnableKeyword("_NORMALMAP");
+                    }
+                    EditorUtility.SetDirty(inspectLit);
+                    world.inspectPaperTemplate = inspectLit;
+                }
             }
         }
 
