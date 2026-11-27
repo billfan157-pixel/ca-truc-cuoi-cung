@@ -19,6 +19,12 @@ namespace CTCC
         private void Form()
         {
             if (!casework.CanRevise) { CloseModal(); return; }
+            // Core v3.6.2 (Phase 2): CH01 routes 100% of F101 interactions through the 3D AN02 clipboard (zero 2-column Journal modal!).
+            if (State.chapter == "CH01")
+            {
+                OpenAn02Clipboard3D();
+                return;
+            }
             inspector?.Close();
             ui.ShowNotebook(-1, null, BackFromForm, Options.alternateBindings, false, clipboard: true, putDown: PutDownForm);
             DrawFormSources();
@@ -182,12 +188,12 @@ namespace CTCC
             try
             {
                 while (savingDialogue) yield return null;
-                var task = casework.SetF101LinkAsync(first, second);
+                var task = casework.SetF101LinkFromUiAsync(first, second);
                 while (!task.IsCompleted) yield return null;
                 if (task.IsFaulted || task.Result == CommitResult.SaveUnavailable)
                     formFeedback = "Chưa lưu được liên kết. Mình có thể thử lại.";
                 else if (task.Result != CommitResult.Applied)
-                    formFeedback = "Chưa nối được: cần đánh dấu chi tiết trên giấy (mở Đối chiếu hoặc Soi 3D) trước khi nối hai nguồn.";
+                    formFeedback = "Chưa nối được: cần đánh dấu chi tiết trên giấy trước khi nối hai nguồn.";
             }
             finally
             {
@@ -200,6 +206,7 @@ namespace CTCC
 
         private void CompareFromForm()
         {
+            if (!IsJournalAllowedInBackpack) return;
             pickingLink = false;
             linkStart = null;
             journalReturn = Form;
@@ -209,7 +216,7 @@ namespace CTCC
 
         private void ReviewF101()
         {
-            var evaluation = HypothesisService.EvaluateF101(State, reportDraft.Decision, reportDraft.Submission(State.f101Annotations));
+            var evaluation = HypothesisService.EvaluateF101LiveCommit(State, reportDraft.Decision, reportDraft.Submission(State.f101Annotations));
             formFeedback = evaluation.Accepted ? null : evaluation.Message;
             if (evaluation.Accepted)
             {

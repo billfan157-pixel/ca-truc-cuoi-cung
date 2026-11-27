@@ -1073,6 +1073,8 @@ namespace CTCC
             if (state == null) return;
             state.events ??= new();
             state.evidence ??= new();
+            if (state.settings != null && state.settings.thoughtReadDurationScale <= 0f)
+                state.settings.thoughtReadDurationScale = 1f;
             EnsureDefaultTools(state);
 
             var env = FindByDef(state, BackpackCatalog.E10aEnvelope);
@@ -1095,7 +1097,8 @@ namespace CTCC
                 state.Remember("E10a.SMSRead");
             }
             if ((env != null && env.HasViewed("SIGNED_APPT")) || state.Happened("E10a.Page.SIGNED_APPT"))
-                state.Remember(E10aParts.SignedAppointment);
+                state.Remember(E10aParts.MailboxNoteViewed);
+            E10aParts.TryCompleteSignedAppointment(state);
 
             // Already a Rebirth III post-pickup save or already reconciled to completed pickup: idempotent exit.
             if (state.Happened(E10aParts.MailboxPickedUp))
@@ -1259,6 +1262,12 @@ namespace CTCC
 
     public static class WorldUseResolver
     {
+        /// <summary>
+        /// Harness-only fault-injection hook for automated probe <c>v36-t02-wrong-key</c> (4.1).
+        /// Never enabled in gameplay code; toggled exclusively inside try/finally by Phase 1 QA.
+        /// </summary>
+        internal static bool QaInjectAllowWingKeyForTesting;
+
         public static WorldUseResolution Resolve(Investigation state, string equippedItemDefId, string targetId)
         {
             if (state == null || string.IsNullOrEmpty(targetId))
@@ -1268,6 +1277,8 @@ namespace CTCC
             {
                 if (equippedItemDefId == BackpackCatalog.WingCKey)
                 {
+                    if (QaInjectAllowWingKeyForTesting)
+                        return new WorldUseResolution(WorldUseOutcome.UnlockOuterGate);
                     bool hasGateKey = InventoryService.HasPhysical(state, BackpackCatalog.GateKey);
                     return new WorldUseResolution(
                         WorldUseOutcome.WrongKeyForOuterGate,
@@ -1277,8 +1288,8 @@ namespace CTCC
                         hasGateKey ? BackpackCatalog.GateKey : null);
                 }
 
-                if (equippedItemDefId == BackpackCatalog.GateKey ||
-                    (string.IsNullOrEmpty(equippedItemDefId) && InventoryService.HasPhysical(state, BackpackCatalog.GateKey)))
+                if ((equippedItemDefId == BackpackCatalog.GateKey || string.IsNullOrEmpty(equippedItemDefId)) &&
+                    InventoryService.HasPhysical(state, BackpackCatalog.GateKey))
                 {
                     // Core v3.6.2 (DEC-V361-CH01-01): T02 strictly requires S0 + correct acquired KEY_GATE; zero SMSRead/E10a read gate!
                     return new WorldUseResolution(WorldUseOutcome.UnlockOuterGate);

@@ -39,6 +39,13 @@ namespace CTCC
 
         private void DrawJournal(JournalTab tab, bool pageTurn = false)
         {
+            // Core v3.6.2 Ch01JournalPolicy (Phase 2 100% lock): 5-tab Journal is completely disabled in CH01.
+            // CH02-CH08 retain full 5-tab Journal unchanged.
+            if (State != null && State.chapter == "CH01")
+            {
+                OpenBackpack(BackpackCompartment.PocketNote);
+                return;
+            }
             if (pageTurn) scene.atmosphere?.From("paperFlip", player.Eye.transform.position + player.Eye.transform.forward * 0.35f, 0.44f);
             journalTab = tab;
             ui.ShowNotebook((int)tab, index =>
@@ -311,8 +318,7 @@ namespace CTCC
             string facts = spec.FactSummary;
             if (spec.Id == ObservationRegistry.Bed4Traces && record != null)
             {
-                var found = new List<string>(3);
-                if (record.HasDetail(WheelTrace)) found.Add(TraceDescription(WheelTrace));
+                var found = new List<string>(2);
                 if (record.HasDetail(BlanketTrace)) found.Add(TraceDescription(BlanketTrace));
                 if (record.HasDetail(SlipperTrace)) found.Add(TraceDescription(SlipperTrace));
                 if (found.Count > 0) facts = string.Join("\n", found);

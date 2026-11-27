@@ -202,12 +202,36 @@ def make_phone_ring_no_answer() -> np.ndarray:
     return sig
 
 
+def make_clock_0317_eeg_hum() -> np.ndarray:
+    """Core v3.6.2 FS22: Ultra-subtle Layer B 03:17 wall-clock EEG monitor undertone (<= -24 dBFS, restrained)."""
+    sec = 2.40
+    t = t_arr(sec)
+    # Soft 50 Hz mains + harmonic medical CRT hum + two distant slow ECG/EEG pulse blips (no harsh beeps)
+    env = np.minimum(1.0, t / 0.18) * np.minimum(1.0, (sec - t) / 0.35)
+    hum = (
+        0.40 * np.sin(2 * np.pi * 100.0 * t)
+        + 0.22 * np.sin(2 * np.pi * 200.0 * t)
+        + 0.14 * np.sin(2 * np.pi * 432.0 * t)
+        + 0.10 * band_noise(sec, 180.0, 1400.0)
+    ) * env * 0.45
+    blips = np.zeros_like(t)
+    for t0 in (0.48, 1.44):
+        dt = np.maximum(0.0, t - t0)
+        m = (t >= t0) & (t < t0 + 0.18)
+        blips[m] += (
+            0.52 * np.sin(2 * np.pi * 880.0 * dt[m])
+            + 0.14 * np.sin(2 * np.pi * 1760.0 * dt[m])
+        ) * np.exp(-dt[m] * 26.0) * (1.0 - np.exp(-dt[m] * 240.0))
+    return hum + blips * 0.42
+
+
 def main() -> None:
     write_master(OUT_DIR / "CH01_MailboxLatch.wav", make_mailbox_latch(), target_rms_db=-20.0)
     write_master(OUT_DIR / "CH01_MailboxLidCreak.wav", make_mailbox_lid_creak(), target_rms_db=-21.0)
     write_master(OUT_DIR / "CH01_MailboxPackagePickup.wav", make_mailbox_package_pickup(), target_rms_db=-19.5)
     write_master(OUT_DIR / "CH01_PhoneSmsChime.wav", make_phone_sms_chime(), target_rms_db=-22.0)
     write_master(OUT_DIR / "CH01_PhoneRingNoAnswer.wav", make_phone_ring_no_answer(), target_rms_db=-21.5)
+    write_master(OUT_DIR / "CH01_Clock0317_EEGHum.wav", make_clock_0317_eeg_hum(), target_rms_db=-24.5)
 
 
 if __name__ == "__main__":

@@ -184,14 +184,13 @@ namespace CTCC.Editor
             var trace = WorkingProp(region, "CTCC_PROP_Bed4BlanketTrace", "CTCC_PROP_Bed4TracesWorking", false);
             TraceTarget("OBS101A_BLANKET", "Chăn gấp ở hốc giường", "Bed4CottonTrace");
             TraceTarget("OBS101A_SLIPPERS", "Đôi dép cao su nhỏ", "Bed4RubberTrace");
-            var wheelMarks = Target(region, "OBS101A");
-            wheelMarks.title = "Dấu bánh giường";
-            wheelMarks.focusPriority = -1;
-            var track = Named(region.transform, "FourthBedReportTrace_B");
-            track.position = new Vector3(11.28f, .014f, 3.58f);
-            wheelMarks.transform.position = track.position + Vector3.up * .10f;
-            wheelMarks.GetComponent<BoxCollider>().size = new Vector3(.52f, .16f, .56f);
-            Contact(wheelMarks, wheelMarks.transform.position);
+            // Core v3.6.2 (DEC-V361-CH01-01): OBS101A in Layer B is strictly blanket + slippers (zero wheel tracks in B!).
+            var bed4Trace = Target(region, "OBS101A");
+            bed4Trace.title = "Dấu sử dụng tại vị trí giường 4";
+            bed4Trace.focusPriority = -1;
+            bed4Trace.transform.position = trace.position + Vector3.up * .16f;
+            bed4Trace.GetComponent<BoxCollider>().size = new Vector3(.88f, .34f, .88f);
+            Contact(bed4Trace, bed4Trace.transform.position);
 
             var cloth = region.curtainCloth;
             var occluder = cloth.Find("Curtain sight surface");
@@ -214,7 +213,6 @@ namespace CTCC.Editor
             TuneDecal(region, "WindowWaterRun_2", .49f, 12f);
             TuneDecal(region, "WindowFloorDamp_1", .78f, 12f);
             TuneDecal(region, "WindowFloorDamp_2", .74f, 12f);
-            TuneDecal(region, "FourthBedReportTrace_B", .90f, 10f);
             TuneDecal(region, "RefutedBed4DampWall", .78f, 10f);
             var drips = region.roomLoops.Single(loop => loop.source.name == "Loop · Drips");
             drips.source.transform.position = new Vector3(9.05f, .30f, 7.70f);

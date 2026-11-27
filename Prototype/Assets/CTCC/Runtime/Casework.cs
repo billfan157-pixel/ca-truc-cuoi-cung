@@ -97,10 +97,30 @@ namespace CTCC
 
         public Task<CommitResult> RecordSmsAppointmentViewedAsync()
         {
-            if (State.Happened(E10aParts.SmsAppointmentViewed))
+            bool already = State.Happened(E10aParts.SmsAppointmentViewed) &&
+                           (!State.Happened(E10aParts.MailboxNoteViewed) || State.Happened(E10aParts.SignedAppointment));
+            if (already)
                 return Task.FromResult(CommitResult.Applied);
             var next = State.Copy();
             next.Remember(E10aParts.SmsAppointmentViewed);
+            E10aParts.TryCompleteSignedAppointment(next);
+            return reality.CommitEvidenceAsync(next, publishGameplay: false);
+        }
+
+        public Task<CommitResult> RecordMailboxNoteViewedAsync()
+        {
+            var env = InventoryService.FindByDef(State, BackpackCatalog.E10aEnvelope);
+            bool alreadyNote = State.Happened(E10aParts.MailboxNoteViewed);
+            bool alreadyPair = !State.Happened(E10aParts.SmsAppointmentViewed) || State.Happened(E10aParts.SignedAppointment);
+            bool alreadyFlag = env == null || env.HasViewed("SIGNED_APPT");
+            if (alreadyNote && alreadyPair && alreadyFlag)
+                return Task.FromResult(CommitResult.Applied);
+
+            var next = State.Copy();
+            next.Remember(E10aParts.MailboxNoteViewed);
+            var nextEnv = InventoryService.FindByDef(next, BackpackCatalog.E10aEnvelope);
+            nextEnv?.MarkViewed("SIGNED_APPT");
+            E10aParts.TryCompleteSignedAppointment(next);
             return reality.CommitEvidenceAsync(next, publishGameplay: false);
         }
 
@@ -113,64 +133,29 @@ namespace CTCC
             return reality.CommitEvidenceAsync(next, publishGameplay: false);
         }
 
-        public CommitResult ReadLetter(Vector3 feet)
+        /// <summary>
+        /// Read-only epistemic inspection of an already-acquired E10a document layer.
+        /// Core v3.6.2 (4.2): Reading documents can NEVER grant E10a, envelope, keys, or MailboxPickedUp.
+        /// </summary>
+        public Task<CommitResult> InspectE10aLayerAsync(int tabIndex, string pageKey, bool markSmsRead = false)
         {
-            var next = PrepareReadLetter(extractKeys: true);
-            return next == null ? CommitResult.Applied : reality.Commit(next, feet);
-        }
+            if (!InventoryService.HasPhysical(State, BackpackCatalog.E10aEnvelope))
+                return Task.FromResult(CommitResult.PadRequired);
 
-        public Task<CommitResult> ReadLetterAsync(Vector3 feet, bool extractKeys = true)
-        {
-            var next = PrepareReadLetter(extractKeys);
-            return next == null ? Task.FromResult(CommitResult.Applied) : reality.CommitEvidenceAsync(next);
-        }
-
-        private Investigation PrepareReadLetter(bool extractKeys)
-        {
-            bool smsAlready = State.Happened("E10a.SMSRead") && State.Happened(E10aParts.PostponementSms);
-            bool envAlready = InventoryService.HasPhysical(State, BackpackCatalog.E10aEnvelope) && State.Has("E10a");
-            bool keysAlready = !extractKeys ||
-                (InventoryService.HasPhysical(State, BackpackCatalog.GateKey) && InventoryService.HasPhysical(State, BackpackCatalog.WingCKey));
-            if (smsAlready && envAlready && keysAlready && State.Happened(E10aParts.MailboxPickedUp)) return null;
-
-            var next = State.Copy();
-            next.Remember("E10a.SMSRead");
-            next.Remember(E10aParts.PostponementSms);
-            if (extractKeys)
-            {
-                next.Remember(E10aParts.MailboxOpened);
-                next.Remember(E10aParts.MailboxPickedUp);
-                if (!next.Has("E10a")) EvidenceRegistry.Grant(next, "E10a", Reality.R, "LOC01");
-            }
-            if (InventoryService.TryAcquire(next, BackpackCatalog.E10aEnvelope, Reality.R, "LOC01", out var env))
-            {
-                env.MarkViewed("BAY_SMS");
-                if (extractKeys) env.MarkViewed("KEYS_EXTRACTED");
-            }
-            if (extractKeys)
-            {
-                InventoryService.TryAcquire(next, BackpackCatalog.GateKey, Reality.R, "LOC01", out _);
-                InventoryService.TryAcquire(next, BackpackCatalog.WingCKey, Reality.R, "LOC01", out _);
-            }
-            return next;
-        }
-
-        public Task<CommitResult> InspectE10aLayerAsync(int tabIndex, string pageKey, bool markSmsRead = false, bool extractKeys = false)
-        {
             var next = State.Copy();
             bool changed = false;
-            int clamped = Mathf.Clamp(tabIndex, 0, 4);
+            int clamped = Mathf.Clamp(tabIndex, 0, 3);
             if (next.e10aLastTab != clamped) { next.e10aLastTab = clamped; changed = true; }
 
             var env = InventoryService.FindByDef(next, BackpackCatalog.E10aEnvelope);
             if (env != null && !string.IsNullOrEmpty(pageKey) && env.MarkViewed(pageKey))
                 changed = true;
 
-            // Map explicit physical document inspection to its single corresponding epistemic E10a part (zero cross-part auto-read!).
-            if (pageKey == "SIGNED_APPT" && !next.Happened(E10aParts.SignedAppointment))
+            // Map explicit physical document inspection to its single corresponding epistemic source (zero cross-part auto-read!).
+            if (pageKey == "SIGNED_APPT")
             {
-                next.Remember(E10aParts.SignedAppointment);
-                changed = true;
+                if (!next.Happened(E10aParts.MailboxNoteViewed)) { next.Remember(E10aParts.MailboxNoteViewed); changed = true; }
+                if (E10aParts.TryCompleteSignedAppointment(next)) changed = true;
             }
             else if (pageKey == "LAN_LETTER" && !next.Happened(E10aParts.Letter))
             {
@@ -189,26 +174,16 @@ namespace CTCC
                 if (!next.Happened(E10aParts.PostponementSms)) { next.Remember(E10aParts.PostponementSms); changed = true; }
                 if (env != null && env.MarkViewed("BAY_SMS")) changed = true;
             }
-            if (extractKeys)
-            {
-                if (!next.Has("E10a")) { EvidenceRegistry.Grant(next, "E10a", Reality.R, "LOC01"); changed = true; }
-                if (!next.Happened(E10aParts.MailboxOpened)) { next.Remember(E10aParts.MailboxOpened); changed = true; }
-                if (!next.Happened(E10aParts.MailboxPickedUp)) { next.Remember(E10aParts.MailboxPickedUp); changed = true; }
-                bool hadEnv = InventoryService.HasPhysical(next, BackpackCatalog.E10aEnvelope);
-                bool hadGate = InventoryService.HasPhysical(next, BackpackCatalog.GateKey);
-                bool hadWing = InventoryService.HasPhysical(next, BackpackCatalog.WingCKey);
-                InventoryService.TryAcquire(next, BackpackCatalog.E10aEnvelope, Reality.R, "LOC01", out env);
-                InventoryService.TryAcquire(next, BackpackCatalog.GateKey, Reality.R, "LOC01", out _);
-                InventoryService.TryAcquire(next, BackpackCatalog.WingCKey, Reality.R, "LOC01", out _);
-                if (env != null && env.MarkViewed("KEYS_EXTRACTED")) changed = true;
-                if (!hadEnv || !hadGate || !hadWing) changed = true;
-            }
             return changed ? reality.CommitEvidenceAsync(next) : Task.FromResult(CommitResult.Applied);
         }
 
         public Task<CommitResult> AcquireItemAsync(string itemDefId, string location)
         {
             if (string.IsNullOrEmpty(itemDefId)) return Task.FromResult(CommitResult.PadRequired);
+            // Core v3.6.2 (4.2): In CH01, the E10a package & outer keys can ONLY enter inventory atomically via TakeMailboxPackage.
+            if (State.chapter == "CH01" &&
+                itemDefId is (BackpackCatalog.E10aEnvelope or BackpackCatalog.GateKey or BackpackCatalog.WingCKey))
+                return Task.FromResult(CommitResult.PadRequired);
             var existing = InventoryService.FindByDef(State, itemDefId);
             if (existing != null && existing.status != BackpackItemStatus.MemoryRef)
                 return Task.FromResult(CommitResult.Applied);
@@ -284,18 +259,31 @@ namespace CTCC
             return reality.CommitEvidenceAsync(next);
         }
 
-        public CommitResult OpenGate(Vector3 feet)
+        private bool ValidateOuterGateUse(string presentedItemId)
         {
-            // Core v3.6.2 (DEC-V361-CH01-01): T02 requires S0 (CH01/R) + acquired physical GateKey; NO SMSRead/E10a read gate!
-            if (State.chapter != "CH01" || State.layer != Reality.R || !InventoryService.HasPhysical(State, BackpackCatalog.GateKey))
+            if (State.chapter != "CH01" || State.layer != Reality.R)
+                return false;
+            if (!InventoryService.HasPhysical(State, BackpackCatalog.GateKey))
+                return false;
+            // Core v3.6.2 (4.3): Validate the ACTUAL presented/equipped item through WorldUseResolver at the service boundary,
+            // rejecting KEY_WING_C or any unrelated item even when KEY_GATE sits in the bag!
+            string effectiveItem = presentedItemId ?? InventoryService.GetEquipped(State)?.itemDefId ?? "";
+            return WorldUseResolver.Resolve(State, effectiveItem, "GATE-CONG").Outcome == WorldUseOutcome.UnlockOuterGate;
+        }
+
+        public CommitResult OpenGate(Vector3 feet, string presentedItemId = null)
+        {
+            if (State.Happened("CH01-T02")) return CommitResult.Applied;
+            if (!ValidateOuterGateUse(presentedItemId))
                 return CommitResult.PadRequired;
             var next = PrepareOpenGate();
             return next == null ? CommitResult.Applied : reality.Commit(next, feet, geometryChanges: true);
         }
 
-        public Task<CommitResult> OpenGateAsync(Vector3 feet)
+        public Task<CommitResult> OpenGateAsync(Vector3 feet, string presentedItemId = null)
         {
-            if (State.chapter != "CH01" || State.layer != Reality.R || !InventoryService.HasPhysical(State, BackpackCatalog.GateKey))
+            if (State.Happened("CH01-T02")) return Task.FromResult(CommitResult.Applied);
+            if (!ValidateOuterGateUse(presentedItemId))
                 return Task.FromResult(CommitResult.PadRequired);
             var next = PrepareOpenGate();
             return next == null ? Task.FromResult(CommitResult.Applied) : reality.CommitAsync(next, feet, geometryChanges: true);
@@ -477,6 +465,8 @@ namespace CTCC
             var next = State.Copy();
             if (!next.MarkObservationDetail(id, detailId, flippedBack))
                 return Task.FromResult(CommitResult.Applied);
+            if (CorroborationService.QaInjectEx01AutoSolveForTesting && CorroborationService.CanCorroborate0317(next))
+                next.Remember(CorroborationService.Exception0317Event);
             return reality.CommitEvidenceAsync(next);
         }
 
@@ -537,14 +527,20 @@ namespace CTCC
             next.RecordObservation(id, State.layer, loc, stage);
             if (id == ObservationRegistry.StoppedClock0317)
                 next.Remember("FS01");
+            if (CorroborationService.QaInjectEx01AutoSolveForTesting && CorroborationService.CanCorroborate0317(next))
+                next.Remember(CorroborationService.Exception0317Event);
             return CommitResult.Applied;
         }
 
-        internal Task<CommitResult> ToggleF101MarkAsync(string id, string hotspot)
+        public static bool IsNearBed4Alcove(Vector3 feet) =>
+            feet.x >= 8.2f && feet.x <= 13.7f && feet.z >= 1.8f && feet.z <= 6.2f && Mathf.Abs(feet.y) < 1.2f;
+
+        private bool PrepareToggleF101Mark(string id, string hotspot, out Investigation next)
         {
+            next = null;
             if (!CanRevise || !F101Annotations.IsHotspot(id, hotspot) || !HypothesisService.HasExaminedInLayerB(State, id))
-                return Task.FromResult(CommitResult.PadRequired);
-            var next = State.Copy();
+                return false;
+            next = State.Copy();
             var notes = next.f101Annotations;
             bool removing = notes.MarkedHotspot(id) == hotspot;
             notes.marks.RemoveAll(mark => mark.observationId == id);
@@ -553,13 +549,84 @@ namespace CTCC
             {
                 notes.linkFrom = default;
                 notes.linkTo = default;
+                next.events.Remove(F101Annotations.SpatialLinkEvent);
+                next.events.Remove(F101Annotations.LegacyUiLinkEvent);
             }
+            return true;
+        }
+
+        internal CommitResult ToggleF101Mark(string id, string hotspot, Vector3 feet) =>
+            PrepareToggleF101Mark(id, hotspot, out var next)
+                ? reality.Commit(next, feet)
+                : CommitResult.PadRequired;
+
+        internal Task<CommitResult> ToggleF101MarkAsync(string id, string hotspot) =>
+            PrepareToggleF101Mark(id, hotspot, out var next)
+                ? reality.CommitEvidenceAsync(next, publishGameplay: false)
+                : Task.FromResult(CommitResult.PadRequired);
+
+        private bool PrepareSpatialF101Link(EvidenceAnnotation first, EvidenceAnnotation second, Vector3 playerFeet, out Investigation next)
+        {
+            next = null;
+            if (!CanRevise || State.layer != Reality.B || !IsNearBed4Alcove(playerFeet))
+                return false;
+            if (first.observationId == ObservationRegistry.Bed4Traces)
+                (first, second) = (second, first);
+            if (first.observationId != ObservationRegistry.Bed4Card || first.hotspotId != F101Annotations.Receiver ||
+                second.observationId != ObservationRegistry.Bed4Traces || second.hotspotId != F101Annotations.TraceGroup)
+                return false;
+            if (!HypothesisService.HasExaminedInLayerB(State, ObservationRegistry.Bed4Traces) ||
+                !HypothesisService.HasExaminedInLayerB(State, ObservationRegistry.Bed4Card))
+                return false;
+            if (State.f101Annotations.MarkedHotspot(ObservationRegistry.Bed4Card) != F101Annotations.Receiver)
+                return false;
+            bool carriesCard = InventoryService.HasPhysical(State, BackpackCatalog.PaperObs101B);
+            bool besideHolder = Vector2.Distance(new Vector2(playerFeet.x, playerFeet.z), new Vector2(11.35f, 4.48f)) <= 2.85f;
+            if (!carriesCard && !besideHolder)
+                return false;
+
+            var candidate = State.Copy();
+            var notes = candidate.f101Annotations;
+            notes.linkFrom = first;
+            notes.linkTo = second;
+            if (!notes.ValidFor(candidate))
+                return false;
+            candidate.Remember(F101Annotations.SpatialLinkEvent);
+            candidate.events.Remove(F101Annotations.LegacyUiLinkEvent);
+            next = candidate;
+            return true;
+        }
+
+        internal CommitResult SetF101LinkSpatial(EvidenceAnnotation first, EvidenceAnnotation second, Vector3 playerFeet) =>
+            PrepareSpatialF101Link(first, second, playerFeet, out var next)
+                ? reality.Commit(next, playerFeet)
+                : CommitResult.PadRequired;
+
+        internal Task<CommitResult> SetF101LinkSpatialAsync(EvidenceAnnotation first, EvidenceAnnotation second, Vector3 playerFeet) =>
+            PrepareSpatialF101Link(first, second, playerFeet, out var next)
+                ? reality.CommitEvidenceAsync(next, publishGameplay: false)
+                : Task.FromResult(CommitResult.PadRequired);
+
+        internal Task<CommitResult> ClearF101LinkAsync()
+        {
+            if (!CanRevise) return Task.FromResult(CommitResult.PadRequired);
+            var next = State.Copy();
+            next.f101Annotations.linkFrom = default;
+            next.f101Annotations.linkTo = default;
+            next.events.Remove(F101Annotations.SpatialLinkEvent);
+            next.events.Remove(F101Annotations.LegacyUiLinkEvent);
             return reality.CommitEvidenceAsync(next, publishGameplay: false);
         }
 
-        internal Task<CommitResult> SetF101LinkAsync(EvidenceAnnotation first, EvidenceAnnotation second)
+        internal Task<CommitResult> SetF101LinkFromUiAsync(EvidenceAnnotation first, EvidenceAnnotation second)
         {
             if (!CanRevise) return Task.FromResult(CommitResult.PadRequired);
+            if (string.IsNullOrEmpty(first.observationId) && string.IsNullOrEmpty(second.observationId))
+                return ClearF101LinkAsync();
+            // Core v3.6.2 (Plan 4.5 / GAP-R3-06): In CH01, UI-only linking is strictly rejected at the backend.
+            // Only CH02 F101 revision permits UI linking after Layer B was collapsed and revisited.
+            if (string.Equals(State.chapter, "CH01", StringComparison.Ordinal))
+                return Task.FromResult(CommitResult.PadRequired);
             if (first.observationId == ObservationRegistry.Bed4Traces)
                 (first, second) = (second, first);
             var next = State.Copy();
@@ -567,8 +634,12 @@ namespace CTCC
             notes.linkFrom = first;
             notes.linkTo = second;
             if (!notes.ValidFor(next)) return Task.FromResult(CommitResult.PadRequired);
+            next.Remember(F101Annotations.LegacyUiLinkEvent);
             return reality.CommitEvidenceAsync(next, publishGameplay: false);
         }
+
+        internal Task<CommitResult> SetF101LinkAsync(EvidenceAnnotation first, EvidenceAnnotation second) =>
+            SetF101LinkFromUiAsync(first, second);
 
         public CommitResult SubmitF101(FormStatus decision, DeductionSubmission submission, Vector3 feet, out HypothesisEvaluation evaluation)
         {
@@ -665,6 +736,24 @@ namespace CTCC
             if (!next.MarkDreadEvent(dreadId))
                 return CommitResult.Applied;
             return reality.Commit(next, feet);
+        }
+
+        public CommitResult SubmitEx01Timecode(Vector3 feet, string hhmm, string preferredContextId = null)
+        {
+            if (CorroborationService.IsCorroborated(State))
+                return CommitResult.Applied;
+            if (!CorroborationService.IsValidEx01Submission(State, hhmm, out var link, preferredContextId))
+                return CommitResult.PadRequired;
+            return CrossCheck0317Exception(feet, link);
+        }
+
+        public Task<CommitResult> SubmitEx01TimecodeAsync(string hhmm, string preferredContextId = null)
+        {
+            if (CorroborationService.IsCorroborated(State))
+                return Task.FromResult(CommitResult.Applied);
+            if (!CorroborationService.IsValidEx01Submission(State, hhmm, out var link, preferredContextId))
+                return Task.FromResult(CommitResult.PadRequired);
+            return CrossCheck0317ExceptionAsync(link);
         }
 
         public CommitResult CrossCheck0317Exception(Vector3 feet, TimelineConnection link)

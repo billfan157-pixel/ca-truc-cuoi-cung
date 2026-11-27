@@ -547,16 +547,18 @@ namespace CTCC
                 return;
             }
 
-            // 7. B05/B06: Single crisp tick from the stopped 03:17 Reception wall clock — STRICTLY LAYER B ONLY!
+            // 7. B05/B06: Single crisp tick + subtle FS22 EEG undertone from the stopped 03:17 Reception wall clock — STRICTLY LAYER B ONLY!
+            Vector3 clockAnchor = new(-0.99f, 2.74f, -3.26f);
             if (layerB && !collapsedToR && tookBoard && zone == "LOC02" &&
                 (BacktrackCount >= 1 || g01Done) &&
-                GazeAlignment(new Vector3(1.2f, 2.0f, -5.8f)) > 0.20f &&
+                GazeAlignment(clockAnchor) > 0.20f &&
                 CanFire(state, DreadCatalog.B06ClockTick))
             {
                 Fire(state, DreadCatalog.B06ClockTick, persistent: true, () =>
                 {
-                    audioBus?.From("clockTick", new Vector3(1.2f, 2.0f, -5.8f), 0.72f);
-                    onCaption?.Invoke("[Một tiếng tích khô khốc phát ra từ chiếc đồng hồ đứng kim ở 03:17.]");
+                    audioBus?.From("clockTick", clockAnchor, 0.72f);
+                    audioBus?.From("clockEegHum", clockAnchor, 0.58f);
+                    onCaption?.Invoke("[Một tiếng tích khô khốc kèm tiếng ù máy đo rất khẽ từ chiếc đồng hồ đứng kim ở 03:17.]");
                 });
                 return;
             }

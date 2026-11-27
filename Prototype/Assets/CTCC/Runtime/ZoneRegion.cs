@@ -32,6 +32,7 @@ namespace CTCC
         public GameObject pendingBay;
         public GameObject deniedBay;
         public GameObject refutedBay;
+        public GameObject bed4ChartHolder;
         public GameObject statusA;
         public GameObject statusB;
         public GameObject statusC;

@@ -55,6 +55,7 @@ namespace CTCC
             yield return VerifyCh01RAdversarialSuite();
             yield return VerifyCh01WalkthroughSuite();
             yield return VerifyCh01Rebirth3Phase1Suite();
+            yield return VerifyCh01Rebirth3Phase2Suite();
             yield return VerifyM2FinalPhaseCDERegression();
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
             yield return VerifyScalableM3AndCh03();
@@ -406,9 +407,9 @@ namespace CTCC
             scene.interactables?.ResetSessionProps();
             if (scene.staffCrossDoor != null) scene.staffCrossDoor.isOpen = false;
             player.Teleport(scene.Pad("AP00"));
-            Require(casework.OpenGate(player.Feet)!=CommitResult.Applied,"gate before SMS");
-            Apply(casework.ReadLetter(player.Feet),"SMS");
-            Apply(casework.OpenGate(player.Feet),"gate");
+            Require(casework.OpenGate(player.Feet)!=CommitResult.Applied,"gate before mailbox package");
+            Apply(casework.TakeMailboxPackage(player.Feet, equipGateKey: true),"mailbox package");
+            Apply(casework.OpenGate(player.Feet, BackpackCatalog.GateKey),"gate");
             var realWardBefore = ActiveWardColliders();
             Walk(new Vector3(4,0,-17.9f));
             Walk(new Vector3(4,0,-3.3f));
@@ -423,16 +424,18 @@ namespace CTCC
             var validRefutation = new DeductionSubmission
             {
                 formId = "F101",
-                selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
+                selectedEvidenceIds = new List<string> { ObservationRegistry.F101Sheet, ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
                 claimId = HypothesisService.ClaimUnreliableZero
             };
             if(route==FormStatus.Refuted)
             {
+                Apply(casework.Observe(ObservationRegistry.F101Sheet,player.Feet,"LOC03"),"F101 observed");
                 Apply(casework.Observe("OBS101A",player.Feet,"LOC03"),"A observed");
                 Require(casework.SubmitF101(route,validRefutation,player.Feet,out var eval1)!=CommitResult.Applied && !eval1.Accepted,"one observation denies C");
                 Apply(casework.Observe("OBS101B",player.Feet,"LOC03"),"B observed");
                 var partialSub = new DeductionSubmission { formId = "F101", selectedEvidenceIds = new List<string> { "OBS101A" }, claimId = HypothesisService.ClaimUnreliableZero };
                 Require(casework.SubmitF101(route,partialSub,player.Feet,out var eval2)!=CommitResult.Applied && eval2.Outcome==HypothesisOutcome.InsufficientEvidence,"C without selected pair");
+                validRefutation = PrepareSpatialCh01RefutationSubmission();
             }
             Apply(casework.SubmitF101(route,route==FormStatus.Refuted?validRefutation:null,player.Feet,out var routeEval),"F101 confirmation");
             Require(routeEval.Accepted,"F101 route evaluation accepted");
@@ -480,7 +483,7 @@ namespace CTCC
             {
                 Apply(casework.SubmitF101(FormStatus.Unverified,null,player.Feet,out _),"revision A→B");
                 Apply(casework.SwitchIn101(player.Feet),"back to B for observations");
-                foreach(var id in new[]{"OBS101A","OBS101B"}) Apply(casework.Observe(id,player.Feet,"LOC03"),id);
+                validRefutation = PrepareSpatialCh01RefutationSubmission();
                 Apply(casework.SubmitF101(FormStatus.Refuted,validRefutation,player.Feet,out var revEval),"revision B→C");
                 Require(revEval.Accepted,"revision B→C accepted");
                 for(int i=0;i<10;i++) Apply(casework.SubmitF101(FormStatus.Refuted,validRefutation,player.Feet,out _),"duplicate F101");
@@ -1765,10 +1768,10 @@ namespace CTCC
             string payload = JsonUtility.ToJson(seed);
             payload = payload.Replace(",\"journalNotes\":[]", "").Replace(",\"sceneProps\":[]", "")
                 .Replace(",\"backpackItems\":[]", "").Replace(",\"equippedInstanceId\":\"\"", "").Replace(",\"e10aLastTab\":0", "");
-            if (schema == 4)
+            if (schema <= 4)
             {
                 string draftField = ",\"f101Annotations\":" + JsonUtility.ToJson(seed.f101Annotations);
-                Require(payload.Contains(draftField), "V4 fixture has a draft field to strip");
+                Require(payload.Contains(draftField), $"V{schema} fixture has a draft field to strip");
                 payload = payload.Replace(draftField, "");
             }
             string checksum;
@@ -1777,11 +1780,12 @@ namespace CTCC
             Directory.CreateDirectory(Path.GetDirectoryName(isolated.SlotPath(SaveSlot.Auto)));
             File.WriteAllText(isolated.SlotPath(SaveSlot.Auto),
                 $"{{\"schemaVersion\":{schema},\"payload\":{JsonEscape(payload)},\"checksum\":\"{checksum}\"}}");
+            int expectedAnnotationMarks = schema <= 4 ? 0 : seed.f101Annotations.marks.Count;
             Require(isolated.Read(SaveSlot.Auto, out var upgraded) == SaveRead.Valid &&
                 upgraded.schemaVersion == Investigation.Schema && upgraded.PatientIdentityVerified("C01") &&
                 upgraded.f101History.Count == upgraded.f101.revision &&
                 upgraded.f101.current == seed.f101.current && upgraded.f101.firstDecision == seed.f101.firstDecision &&
-                upgraded.f101Annotations.marks.Count == 0 &&
+                upgraded.f101Annotations.marks.Count == expectedAnnotationMarks &&
                 upgraded.sceneProps.Count == 0 && upgraded.journalNotes.Count == 0 &&
                 upgraded.backpackItems.Count >= 1 &&
                 upgraded.observationRecords.Count >= upgraded.observed.Count,
@@ -1802,8 +1806,8 @@ namespace CTCC
             scene.interactables?.ResetSessionProps();
             if (scene.staffCrossDoor != null) scene.staffCrossDoor.isOpen = false;
             player.Teleport(scene.Pad("AP00"));
-            Apply(casework.ReadLetter(player.Feet), "CH01-R SMS");
-            Apply(casework.OpenGate(player.Feet), "CH01-R gate");
+            Apply(casework.TakeMailboxPackage(player.Feet, equipGateKey: true), "CH01-R mailbox package");
+            Apply(casework.OpenGate(player.Feet, BackpackCatalog.GateKey), "CH01-R gate");
             player.Teleport(scene.Pad("AP02"));
             Apply(casework.AtHub(player.Feet, out _), "CH01-R enter B");
             player.Teleport(scene.Pad("AP02"));
@@ -2087,20 +2091,9 @@ namespace CTCC
                 Require(scene.deniedBay.activeInHierarchy && !scene.refutedBay.activeInHierarchy, "Affirmed activates solid deniedBay");
                 yield return CaptureHospitalFrame("ch01r-f101-affirmed-B", bed4ShotPose, 0f);
 
-                // Valid Refuted with core pair + authentic comparison & context docs (OBS101A + OBS101B + OBS101C + OBS_SHIFT_LOG)
+                // Valid Refuted with core pair + authentic comparison & context docs (F101 + OBS101A + OBS101B + OBS101C + OBS_SHIFT_LOG)
                 player.Teleport(scene.Pad("AP04"));
-                var richRefutation = new DeductionSubmission
-                {
-                    formId = "F101",
-                    selectedEvidenceIds = new List<string>
-                    {
-                        ObservationRegistry.Bed4Traces,
-                        ObservationRegistry.Bed4Card,
-                        ObservationRegistry.Bed2Transfer,
-                        ObservationRegistry.ShiftGuide
-                    },
-                    claimId = HypothesisService.ClaimUnreliableZero
-                };
+                var richRefutation = PrepareSpatialCh01RefutationSubmission(new[] { ObservationRegistry.Bed2Transfer, ObservationRegistry.ShiftGuide });
                 Apply(casework.SubmitF101(FormStatus.Refuted, richRefutation, player.Feet, out var richEval), "Revision A->C rich evidence");
                 Require(richEval.Accepted && scene.refutedBay.activeInHierarchy && !scene.deniedBay.activeInHierarchy &&
                         State.FindObservation(ObservationRegistry.Bed4Traces).stage == ObservationStage.Corroborated &&
@@ -2400,12 +2393,8 @@ namespace CTCC
                     "WT BackpackStage3D 50 cycles preserve player camera position with zero teleport");
             }
 
-            Apply(casework.SubmitF101(FormStatus.Refuted, new DeductionSubmission
-            {
-                formId = "F101",
-                selectedEvidenceIds = new List<string> { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
-                claimId = HypothesisService.ClaimUnreliableZero
-            }, player.Feet, out var wtC), "WT F101 Refuted");
+            var wtRefutation = PrepareSpatialCh01RefutationSubmission();
+            Apply(casework.SubmitF101(FormStatus.Refuted, wtRefutation, player.Feet, out var wtC), "WT F101 Refuted");
             Require(wtC.Accepted && GateService.G01(State), "WT F101 C accepted");
 
             // 5) B06: Atomic B->R reconciliation (Placed AS-05B + STAFF/RECEPTION/WARD101 desks + BOARD -> MemoryRef) AND rollback on save fail!
@@ -2597,7 +2586,7 @@ namespace CTCC
             string slipText = visible switch
             {
                 FormStatus.Affirmed => "ĐÃ BÀN GIAO · 0",
-                FormStatus.Unverified => "CHỜ XÁC NHẬN",
+                FormStatus.Unverified => "CHỜ KIỂM TRA",
                 FormStatus.Refuted => "KIỂM TRA LẠI",
                 _ => null
             };
@@ -2606,17 +2595,46 @@ namespace CTCC
                 "F101 corridor slip follows the committed report and stays out of R");
         }
 
+        private DeductionSubmission PrepareSpatialCh01RefutationSubmission(IEnumerable<string> extraSources = null)
+        {
+            Apply(casework.Observe(ObservationRegistry.F101Sheet, player.Feet, "LOC03"), "QA ensure F101 examined");
+            Apply(casework.Observe(ObservationRegistry.Bed4Traces, player.Feet, "LOC03"), "QA ensure OBS101A examined");
+            Apply(casework.Observe(ObservationRegistry.Bed4Card, player.Feet, "LOC03"), "QA ensure OBS101B examined");
+            if (State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet) != F101Annotations.Zero)
+                Apply(casework.ToggleF101Mark(ObservationRegistry.F101Sheet, F101Annotations.Zero, player.Feet), "QA mark F101_ZERO");
+            if (State.f101Annotations.MarkedHotspot(ObservationRegistry.Bed4Card) != F101Annotations.Receiver)
+                Apply(casework.ToggleF101Mark(ObservationRegistry.Bed4Card, F101Annotations.Receiver, player.Feet), "QA mark OBS101B_SIGN");
+            if (!State.f101Annotations.HasLink || F101Annotations.ResolveLinkProvenance(State) != F101LinkProvenance.SpatialFieldVerified)
+            {
+                var from = new EvidenceAnnotation(ObservationRegistry.Bed4Card, F101Annotations.Receiver);
+                var to = new EvidenceAnnotation(ObservationRegistry.Bed4Traces, F101Annotations.TraceGroup);
+                Apply(casework.SetF101LinkSpatial(from, to, new Vector3(11.10f, 0.015f, 3.60f)), "QA spatial Bed-4 link");
+            }
+            var sources = new List<string>
+            {
+                ObservationRegistry.F101Sheet,
+                ObservationRegistry.Bed4Traces,
+                ObservationRegistry.Bed4Card
+            };
+            if (extraSources != null)
+                foreach (string s in extraSources)
+                    if (!string.IsNullOrEmpty(s) && !sources.Contains(s)) sources.Add(s);
+            return new DeductionSubmission
+            {
+                formId = "F101",
+                selectedEvidenceIds = sources,
+                claimId = HypothesisService.ClaimUnreliableZero,
+                annotationVersion = F101Annotations.Version,
+                annotations = State.f101Annotations.Clone()
+            };
+        }
+
         private IEnumerator VerifyF101Revisions()
         {
             player.Teleport(scene.Pad("AP04"));
             if (State.f101.current != FormStatus.Refuted)
             {
-                var submission = new DeductionSubmission
-                {
-                    formId = "F101",
-                    selectedEvidenceIds = new() { ObservationRegistry.Bed4Traces, ObservationRegistry.Bed4Card },
-                    claimId = HypothesisService.ClaimUnreliableZero
-                };
+                var submission = PrepareSpatialCh01RefutationSubmission();
                 yield return WaitForApplied(casework.SubmitF101Async(FormStatus.Refuted, submission, player.Feet), "F101 start revision check");
             }
             FormStatus first = State.f101.firstDecision;

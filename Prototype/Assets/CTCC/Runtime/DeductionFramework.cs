@@ -68,6 +68,18 @@ namespace CTCC
         }
     }
 
+    /// <summary>
+    /// Core v3.6.2 (GAP-R3-06 / Plan 4.5) 4-state backend provenance for F101 Bed-4 link verification.
+    /// Prevents CH01 UI/save/annotationVersion==0 bypass while preserving legacy committed saves and CH02 revisions.
+    /// </summary>
+    public enum F101LinkProvenance
+    {
+        Unverified = 0,
+        SpatialFieldVerified = 1,
+        LegacyUi = 2,
+        LegacyCommittedSave = 3
+    }
+
     [Serializable]
     public sealed class F101Annotations
     {
@@ -77,6 +89,8 @@ namespace CTCC
         public const string CardStatus = "OBS101B_STATUS";
         public const string Receiver = "OBS101B_SIGN";
         public const string TraceGroup = "OBS101A_TRACES";
+        public const string SpatialLinkEvent = "CH01-F101-LINK-SPATIAL";
+        public const string LegacyUiLinkEvent = "CH02-F101-LINK-UI";
 
         public List<EvidenceAnnotation> marks = new();
         public EvidenceAnnotation linkFrom;
@@ -84,6 +98,19 @@ namespace CTCC
 
         public bool HasLink => !string.IsNullOrEmpty(linkFrom.observationId);
         public string MarkedHotspot(string id) => marks?.Find(mark => mark.observationId == id).hotspotId;
+
+        public static F101LinkProvenance ResolveLinkProvenance(Investigation state, DeductionSubmission submission = null)
+        {
+            if (state == null) return F101LinkProvenance.Unverified;
+            bool hasLink = submission?.annotations?.HasLink == true || state.f101Annotations?.HasLink == true;
+            if (!hasLink) return F101LinkProvenance.Unverified;
+            if (state.Happened(SpatialLinkEvent)) return F101LinkProvenance.SpatialFieldVerified;
+            if (state.Happened(LegacyUiLinkEvent)) return F101LinkProvenance.LegacyUi;
+            if (state.f101 != null && state.f101.revision > 0 &&
+                state.f101History != null && state.f101History.Exists(h => h != null && h.decision == FormStatus.Refuted))
+                return F101LinkProvenance.LegacyCommittedSave;
+            return F101LinkProvenance.Unverified;
+        }
 
         public static bool IsHotspot(string id, string hotspot) => id switch
         {
@@ -323,7 +350,7 @@ namespace CTCC
                 }),
             new(
                 Bed4Traces, "OBS101A", "Dấu sử dụng tại vị trí giường 4",
-                "Sau rèm cuối phòng 101 có vết kéo bánh giường in ngang nền, tấm chăn bông gấp vội và đôi dép nhỏ để lệch.",
+                "Sau rèm cuối phòng 101 có tấm chăn bông gấp vội và đôi dép cỡ nhỏ để lệch bên mép sàn.",
                 "Những dấu vết này cho thấy chỗ kê giường từng được sử dụng. Chưa rõ ai đã dùng hoặc rời đi lúc nào.",
                 "Lớp B · Hốc giường 4, Phòng 101",
                 ObservationCategory.Fact,
@@ -335,8 +362,8 @@ namespace CTCC
                 hasBackSide: false,
                 detailLabels: new[]
                 {
-                    "Vết bánh giường kéo ngang nền gạch về phía góc tường.",
-                    "Tấm chăn bông gấp vội và đôi dép cỡ nhỏ để lệch bên mép sàn."
+                    "Tấm chăn bông gấp vội đặt lệch ở góc khuất sau rèm.",
+                    "Đôi dép cỡ nhỏ để lệch hướng bên mép sàn gần chân giường tạm."
                 }),
             new(
                 Bed4Card, "OBS101B", "Thẻ bàn giao giường số 4 (AS-05B)",
@@ -691,10 +718,27 @@ namespace CTCC
                    ObservationRegistry.ValidProvenance(id, rec.layer, rec.location, rec.chapter);
         }
 
+        /// <summary>
+        /// Harness-only fault-injection hook for automated probe <c>v36-f101-unverified-link</c> (Phase 2).
+        /// Never enabled in gameplay code; toggled exclusively inside try/finally by Phase 2 QA.
+        /// </summary>
+        internal static bool QaInjectBypassLinkProvenanceForTesting;
+
+        public static HypothesisEvaluation EvaluateF101LiveCommit(
+            Investigation state,
+            FormStatus decision,
+            DeductionSubmission submission) => EvaluateF101Core(state, decision, submission, liveCommit: true);
+
         public static HypothesisEvaluation EvaluateF101(
             Investigation state,
             FormStatus decision,
-            DeductionSubmission submission)
+            DeductionSubmission submission) => EvaluateF101Core(state, decision, submission, liveCommit: false);
+
+        private static HypothesisEvaluation EvaluateF101Core(
+            Investigation state,
+            FormStatus decision,
+            DeductionSubmission submission,
+            bool liveCommit)
         {
             if (state == null || !Enum.IsDefined(typeof(FormStatus), decision) || decision == FormStatus.Pending)
             {
@@ -823,7 +867,7 @@ namespace CTCC
                     ? "Mấy tờ quy chế chỉ cho mình thấy cách ghi sổ đúng. Mình vẫn cần dấu vết thật ở chỗ giường 4 và tờ thẻ bàn giao đi kèm."
                     : !hasA
                         ? "Chỉ mỗi tấm thẻ trống chữ ký thì ai cũng có thể bảo là giấy thừa bỏ quên. Có gì sau tấm rèm chứng minh chỗ giường đó từng được dùng không?"
-                        : "Vết bánh giường với đôi dép cho thấy góc phòng từng được dùng… nhưng trên giấy tờ ca trực có phiếu nào ghi nhận tình trạng bàn giao ở đó không?";
+                        : "Tấm chăn gấp vội với đôi dép nhỏ cho thấy góc phòng từng được dùng… nhưng trên giấy tờ ca trực có phiếu nào ghi nhận tình trạng bàn giao ở đó không?";
                 return HypothesisEvaluation.Reject(
                     HypothesisOutcome.InsufficientEvidence,
                     "Vẫn còn hụt một nửa câu chuyện",
@@ -831,24 +875,6 @@ namespace CTCC
                     !hasA
                         ? "Kéo rèm góc cuối phòng 101 xem dưới nền còn dấu vết thật nào không."
                         : "Kiểm lại giá treo đầu giường 4 xem có thẻ theo dõi nào còn trống chữ ký người nhận không.");
-            }
-
-            if (submission.annotationVersion != 0 &&
-                (submission.annotationVersion != F101Annotations.Version ||
-                 submission.annotations?.SupportsRefutation(state) != true ||
-                 !unique.Contains(ObservationRegistry.F101Sheet)))
-            {
-                string detailMessage = !unique.Contains(ObservationRegistry.F101Sheet)
-                    ? "Cần kẹp cả tờ phiếu F101 vào nhóm nguồn phản bác để chỉ rõ con số đang đối chiếu."
-                    : submission.annotations == null || string.IsNullOrEmpty(submission.annotations.MarkedHotspot(ObservationRegistry.F101Sheet))
-                        ? "Chưa đánh dấu dòng cần đối chiếu trên tờ F101 (chọn trực tiếp trên phiếu hoặc ở trang Đối chiếu)."
-                        : !submission.annotations.HasLink
-                            ? "Mình đã có nguồn, nhưng chưa nối liên kết giữa tài liệu và dấu vết hiện trường (dùng nút Nối hai nguồn ở trang trái)."
-                            : "Mình đã có nguồn, nhưng chưa chỉ rõ những dòng và dấu vết nào đang vênh nhau. Cần xem lại các nét đánh dấu và liên kết đã kẹp vào phiếu.";
-                return HypothesisEvaluation.Reject(
-                    HypothesisOutcome.InsufficientEvidence,
-                    "Mình chưa nối đúng chỗ vênh giữa giấy và phòng",
-                    detailMessage);
             }
 
             var claim = GetClaim(submission.claimId);
@@ -869,6 +895,41 @@ namespace CTCC
                         : "Mình đang suy diễn vượt quá giấy tờ",
                     claim.FailureDiagnostic,
                     "Bỏ nỗi sợ sang một bên — nhìn lại đúng những gì trên giấy và dưới nền gạch chứng minh được thôi.");
+            }
+
+            bool strictCh01Commit = liveCommit && string.Equals(state.chapter, "CH01", StringComparison.Ordinal) &&
+                                    !QaInjectBypassLinkProvenanceForTesting;
+
+            if (strictCh01Commit || submission.annotationVersion != 0)
+            {
+                if (submission.annotationVersion != F101Annotations.Version ||
+                    submission.annotations?.SupportsRefutation(state) != true ||
+                    !unique.Contains(ObservationRegistry.F101Sheet))
+                {
+                    string detailMessage = !unique.Contains(ObservationRegistry.F101Sheet)
+                        ? "Cần kẹp cả tờ phiếu F101 vào nhóm nguồn phản bác để chỉ rõ con số đang đối chiếu."
+                        : submission.annotations == null || string.IsNullOrEmpty(submission.annotations.MarkedHotspot(ObservationRegistry.F101Sheet))
+                            ? "Chưa đánh dấu dòng số 0 trên tờ F101 tại bảng kẹp AN02."
+                            : !submission.annotations.HasLink
+                                ? "Chưa đối chứng trực tiếp thẻ AS-05B đã đánh dấu với dấu sử dụng tại hốc giường 4."
+                                : "Mình đã có nguồn, nhưng chưa chỉ rõ đúng dòng số 0 trên F101 và ô chữ ký người nhận trên thẻ AS-05B.";
+                    return HypothesisEvaluation.Reject(
+                        HypothesisOutcome.InsufficientEvidence,
+                        "Mình chưa nối đúng chỗ vênh giữa giấy và phòng",
+                        detailMessage);
+                }
+
+                if (strictCh01Commit)
+                {
+                    var provenance = F101Annotations.ResolveLinkProvenance(state, submission);
+                    if (provenance != F101LinkProvenance.SpatialFieldVerified)
+                    {
+                        return HypothesisEvaluation.Reject(
+                            HypothesisOutcome.InvalidProvenance,
+                            "Chưa đối chứng trực tiếp tại hốc giường 4",
+                            "Liên kết giấy tờ chưa được xác thực tại hiện trường. Hãy mang thẻ AS-05B đã đánh dấu ô người nhận tới sau rèm giường 4 để đối chiếu với dấu dép và chăn.");
+                    }
+                }
             }
 
             return HypothesisEvaluation.Pass(
@@ -930,6 +991,14 @@ namespace CTCC
         public const string Exception0317Event = "CH01-EX01";
         public const string Exception0317Dialogue = "CH01-D19";
         public const string RakingDetailId = "RAKING_INDENT";
+        public const string TargetTimecode = "03:17";
+
+        /// <summary>
+        /// Harness-only fault-injection hook for automated probe <c>v36-ex01-autosolve</c> (Phase 2).
+        /// Never enabled in gameplay code; toggled exclusively inside try/finally by Phase 2 QA.
+        /// </summary>
+        internal static bool QaInjectEx01AutoSolveForTesting;
+
         public static bool IsShiftContext(string id) =>
             id is ObservationRegistry.ReceptionDrawerLog or ObservationRegistry.ShiftGuide or ObservationRegistry.WardOverflowNotice;
 
@@ -940,10 +1009,59 @@ namespace CTCC
             state != null && HypothesisService.HasExaminedInLayerB(state, ObservationRegistry.Bed4Card) &&
             state.FindObservation(ObservationRegistry.Bed4Card)?.HasDetail(RakingDetailId) == true;
 
+        public static bool TryResolveShiftContext(Investigation state, out string contextId, string preferredContextId = null)
+        {
+            contextId = null;
+            if (state?.observationRecords == null) return false;
+            if (!string.IsNullOrEmpty(preferredContextId) && IsShiftContext(preferredContextId) &&
+                state.observationRecords.Exists(r => r.id == preferredContextId && r.stage >= ObservationStage.Examined))
+            {
+                contextId = preferredContextId;
+                return true;
+            }
+            string[] order = { ObservationRegistry.ShiftGuide, ObservationRegistry.WardOverflowNotice, ObservationRegistry.ReceptionDrawerLog };
+            for (int i = 0; i < order.Length; i++)
+            {
+                if (state.observationRecords.Exists(r => r.id == order[i] && r.stage >= ObservationStage.Examined))
+                {
+                    contextId = order[i];
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public static bool CanCorroborate0317(Investigation state) =>
             state != null && state.chapter == "CH01" && state.layer == Reality.B &&
             !state.Happened("CH01-T08") && HasClock(state) && HasCardTimestamp(state) &&
-            state.observationRecords.Exists(r => IsShiftContext(r.id) && r.stage >= ObservationStage.Examined);
+            TryResolveShiftContext(state, out _);
+
+        public static string NormalizeTimecode(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "";
+            string trimmed = raw.Trim().Replace('g', ':').Replace('G', ':').Replace('h', ':').Replace('H', ':');
+            string[] parts = trimmed.Split(':');
+            if (parts.Length != 2) return "";
+            if (!int.TryParse(parts[0], out int hh) || !int.TryParse(parts[1], out int mm)) return "";
+            if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return "";
+            return $"{hh:00}:{mm:00}";
+        }
+
+        public static bool IsValidEx01Submission(Investigation state, string rawTimecode, out TimelineConnection resolvedLink,
+            string preferredContextId = null)
+        {
+            resolvedLink = default;
+            if (!CanCorroborate0317(state)) return false;
+            if (!string.Equals(NormalizeTimecode(rawTimecode), TargetTimecode, StringComparison.Ordinal)) return false;
+            if (!TryResolveShiftContext(state, out string ctx, preferredContextId)) return false;
+            resolvedLink = new TimelineConnection
+            {
+                left = ObservationRegistry.StoppedClock0317,
+                right = ObservationRegistry.Bed4Card,
+                context = ctx
+            };
+            return true;
+        }
 
         internal static bool Supported0317(Investigation state, TimelineConnection link) =>
             ((link.left == ObservationRegistry.StoppedClock0317 && link.right == ObservationRegistry.Bed4Card) ||

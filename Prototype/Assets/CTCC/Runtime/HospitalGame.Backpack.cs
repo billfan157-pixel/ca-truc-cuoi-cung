@@ -365,8 +365,15 @@ namespace CTCC
                         if (selectedDef.Id == BackpackCatalog.E10aEnvelope)
                         {
                             int partsRead = E10aParts.ReadCount(State);
+                            string apptStatus = State.Happened(E10aParts.SignedAppointment)
+                                ? "\n✓ Lời hẹn chú Bảy (giấy nhắn ngoài bì + SMS 16/11)"
+                                : State.Happened(E10aParts.MailboxNoteViewed)
+                                    ? "\n◐ Lời hẹn chú Bảy (1/2: đã đọc giấy nhắn · chưa xem SMS hẹn 16/11)"
+                                    : State.Happened(E10aParts.SmsAppointmentViewed)
+                                        ? "\n◐ Lời hẹn chú Bảy (1/2: đã xem SMS hẹn 16/11 · chưa đọc giấy nhắn)"
+                                        : "\n• Chưa đọc lời hẹn (giấy nhắn ngoài bì + SMS 16/11)";
                             sb.Append($"\n\nTiến độ đọc tài liệu trong gói: {partsRead}/4 mục")
-                              .Append(State.Happened(E10aParts.SignedAppointment) ? "\n✓ Giấy nhắn ngoài bì (Bảy)" : "\n• Chưa đọc giấy nhắn ngoài bì")
+                              .Append(apptStatus)
                               .Append(State.Happened(E10aParts.Letter) ? "\n✓ Thư cũ của Lan (2005)" : "\n• Chưa đọc thư cũ của Lan")
                               .Append(State.Happened(E10aParts.PublicReportSummary) ? "\n✓ Mẩu báo vụ cháy 18/11/2005" : "\n• Chưa đọc mẩu báo 18/11/2005")
                               .Append(State.Happened(E10aParts.PostponementSms) ? "\n✓ Tin nhắn SMS hoãn 22:48 (trên điện thoại)" : "\n• Tin nhắn SMS hoãn 22:48 (xem trên điện thoại [P])");
@@ -747,8 +754,8 @@ namespace CTCC
                     })));
             }
 
-            // Side-by-side 2-document comparison shortcut
-            if (surfaceTargetId == "COMPARE_CLIP_AN02" && placedObs.Count == 1)
+            // Side-by-side 2-document Journal comparison shortcut (CH02+ only — CH01 stays 100% World-first zero-Journal!)
+            if (IsJournalAllowedInBackpack && surfaceTargetId == "COMPARE_CLIP_AN02" && placedObs.Count == 1)
             {
                 var obs = placedObs[0];
                 choices.Add(new ActionChoice("Soi song song với phiếu F101", () =>
@@ -760,7 +767,7 @@ namespace CTCC
                     DrawJournal(JournalTab.Documents, pageTurn: !Options.reduceMotion);
                 }));
             }
-            else if (placedObs.Count >= 2)
+            else if (IsJournalAllowedInBackpack && placedObs.Count >= 2)
             {
                 var leftObs = placedObs[0];
                 var rightObs = placedObs[1];

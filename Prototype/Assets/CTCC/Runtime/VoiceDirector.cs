@@ -73,6 +73,11 @@ namespace CTCC
         public bool IsSpeaking => activeRoutine != null;
         internal bool IsPaused => paused;
         internal int NonVoAudioPlayCount { get; private set; }
+        /// <summary>
+        /// Harness-only fault-injection hook for automated probe <c>v36-vo-leak</c> (4.1).
+        /// Never enabled in gameplay code; toggled exclusively inside try/finally by Phase 1 QA.
+        /// </summary>
+        internal bool QaInjectVoLeakForTesting { get; set; }
         internal IReadOnlyCollection<string> LoadedClipIds => clipMap.Keys;
         internal bool HasLoadedClipRaw(string lineId) => !string.IsNullOrEmpty(lineId) && clipMap.ContainsKey(lineId);
 
@@ -245,7 +250,7 @@ namespace CTCC
                 return;
             }
 
-            if (mode == DialoguePresentationMode.INNER_SUB_SILENT)
+            if (mode == DialoguePresentationMode.INNER_SUB_SILENT && !QaInjectVoLeakForTesting)
             {
                 // Silent thought is text-only and never blocks player control or touches AudioBus.
                 RecordTranscriptOnly(lineId, string.IsNullOrEmpty(speakerLabel) ? "Minh (suy nghĩ)" : speakerLabel, text, beat);
@@ -280,10 +285,15 @@ namespace CTCC
 
             AudioClip clip = clipMap.TryGetValue(lineId, out var found) ? found : null;
             // DEC-VO-01: only VO_DIALOGUE / VO_REACTION_SFX may reach the AudioBus.
+            // Defensive guard: if any non-VO mode ever reaches SpeakInternal (including v36-vo-leak probe),
+            // increment NonVoAudioPlayCount so automated VO-SILENT-Q01 fails immediately, while stripping AudioClip.
             if (mode == DialoguePresentationMode.INNER_SUB_SILENT ||
                 mode == DialoguePresentationMode.CUT_TO_JOURNAL ||
                 mode == DialoguePresentationMode.UI_NON_VO)
+            {
+                NonVoAudioPlayCount++;
                 clip = null;
+            }
             float duration = clip != null ? Mathf.Max(clip.length + 0.45f, 2.6f) : Mathf.Clamp(2.2f + text.Length * 0.045f, 3.2f, 7.5f);
             ui?.CaptionStyled(caption, duration, essential, false,
                 mode == DialoguePresentationMode.VO_REACTION_SFX ? SubtitleStyle.Reaction : SubtitleStyle.Standard);

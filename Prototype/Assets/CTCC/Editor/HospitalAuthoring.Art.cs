@@ -1135,19 +1135,23 @@ namespace CTCC.Editor
                 }
 
                 // Period Vietnamese surface-mounted double wall outlet & rocker switch + conduit stub + bed number plaque (1-4)
+                // Core v3.6.2 (DEC-V361-CH01-01 / D5): Beds 1-3 physical outlets stay on permanent; Bed 4 outlet & numbered plaques
+                // Socket1..Socket4 belong exclusively to Layer R (real) for CH02 PZ01 so CH01 Layer B never leaks CH02 outlet clues!
                 float back = bed.yaw == 0 ? 7.99f : 2.01f;
                 float height = bed.yaw == 0 ? 0.92f : 1.31f;
                 var direction = bed.yaw == 0 ? Vector3.back : Vector3.forward;
                 if (art)
                 {
-                    var outlet = PlaceBlenderModel("CTCC_ENV_WallOutlet", permanent, new Vector3(bed.x, height, back), bed.yaw == 0 ? 0f : 180f, pairRB: true, castShadows: false);
-                    staticArchitecture.Add(outlet);
-                    Sign("Bed outlet number", "Socket" + bed.id, new Vector3(bed.x + 0.16f, height + 0.10f, back + direction.z * 0.015f),
-                        direction, new Vector2(0.135f, 0.119f), permanent, metalBacking: false);
+                    bool isBed4 = bed.id == "4";
+                    var outletParent = isBed4 ? real : permanent;
+                    var outlet = PlaceBlenderModel("CTCC_ENV_WallOutlet", outletParent, new Vector3(bed.x, height, back), bed.yaw == 0 ? 0f : 180f, pairRB: !isBed4, castShadows: false);
+                    if (!isBed4) staticArchitecture.Add(outlet);
+                    Sign("Socket" + bed.id, "Socket" + bed.id, new Vector3(bed.x + 0.16f, height + 0.10f, back + direction.z * 0.015f),
+                        direction, new Vector2(0.135f, 0.119f), real, metalBacking: false);
                 }
                 else
                 {
-                    Box("Outlet " + bed.id, new Vector3(bed.x, height, back), new Vector3(0.16f, 0.12f, 0.038f), Mat("Paper"));
+                    Box("Outlet " + bed.id, new Vector3(bed.x, height, back), new Vector3(0.16f, 0.12f, 0.038f), Mat("Paper"), bed.id == "4" ? real : null);
                 }
             }
 
@@ -1237,12 +1241,11 @@ namespace CTCC.Editor
                 RegisterCurtainMotion(bCurtain, wireInteractive: true);
                 CapsuleTarget("CURTAIN-101", "Rèm che giường 4", new Vector3(12.25f, 1.50f, 4.27f), new Vector3(0.95f, 1.50f, 0.22f), pendingObj.transform);
 
-                // Refuted (C) Layer B consequence: wide-parted curtain + spreading damp wall + peeling plaster + crisp drag tracks + CH01-PR01 crayon corner!
+                // Refuted (C) Layer B consequence (DEC-V361-CH01-01): wide-parted curtain + spreading damp wall + peeling plaster + CH01-PR01 crayon corner (ZERO wheel tracks in B!)
                 var cCurtain = PlaceBlenderModel("CTCC_ENV_CurtainAssembly", refutedObj.transform, new Vector3(10.48f, 2.74f, 4.27f), 0f, pairRB: false, scale: new Vector3(0.18f, 1f, 1.22f));
                 RegisterCurtainMotion(cCurtain, wireInteractive: false);
                 Decal("RefutedBed4DampWall", "WaterRun", new Vector3(12.15f, 1.18f, 2.02f), Vector3.forward, 2.05f, 1.68f, 0.25f, refutedObj.transform, 0.92f);
                 Decal("RefutedBed4PeelWall", "PaintLoss", new Vector3(11.95f, 1.52f, 2.02f), Vector3.forward, 1.48f, 1.05f, 0.25f, refutedObj.transform, 0.85f);
-                Decal("RefutedBed4SharpWheels", "WheelMarks", new Vector3(11.40f, 0.014f, 3.35f), Vector3.up, 1.32f, 2.25f, 0.25f, refutedObj.transform, 0.98f);
                 Flat("CH01_PR01_CornerTrace", "CH01_PR01_Corner", new Vector3(12.62f, 0.015f, 3.18f), Vector3.up, new Vector2(0.30f, 0.30f), refutedObj.transform);
                 Lamp("Refuted alcove cold highlight", LightType.Point, new Vector3(11.65f, 1.45f, 3.35f), 0.72f, 3.9f, new Color(0.60f, 0.80f, 0.88f), refutedObj.transform);
 
@@ -1420,9 +1423,8 @@ namespace CTCC.Editor
             Decal("RustWindow_2", "RustRun", new Vector3(11.28f, 0.82f, 8.00f), Vector3.back, 0.32f, 0.68f, 0.25f, real, 0.90f);
             Decal("RustRoomSign", "RustRun", new Vector3(5.50f, 2.86f, 4.46f), Vector3.left, 0.22f, 0.42f, 0.25f, real, 0.82f);
 
-            // 6. Core Gameplay Clue: Crisp rubber caster indentation & drag trails from Bed 4 leading straight to MedicalCabinet!
+            // 6. Core Gameplay Clue (CH02 Layer R PZ01 ONLY — DEC-V361-CH01-01 removes wheel marks from CH01 Layer B!):
             Decal("FourthBedWheelMarks_R", "WheelMarks", new Vector3(11.66f, 0.01f, 3.25f), Vector3.up, 1.32f, 2.48f, 0.25f, real, 0.95f);
-            Decal("FourthBedReportTrace_B", "WheelMarks", new Vector3(10.87f, 0.01f, 4.44f), Vector3.up, 0.82f, 0.42f, 0.25f, report, 0.85f);
 
             // 7. Upgrade #7 Dedicated Organic Weathering Decal Pass (BOTH Layer R 2012 & lived-in Layer B 1987-2005!)
             // 7a. Ceiling T8 fluorescent ballast heat halos around all 7 fixtures
@@ -1627,9 +1629,11 @@ namespace CTCC.Editor
                 Vector3.up, new Vector2(0.25f, 0.349f));
             if (multiScene) zones["LOC02"].region.receptionBoard = receptionBoard;
 
-            // CH01-R Grounded Bed 4 Chart Holder (replaces floating quad!), Bed 4 Blanket/Slippers trace, & Bed 2 Transfer Comparison Chart!
+            // CH01-R Grounded Bed 4 Chart Holder (hidden cleanly behind deniedBay on F101 Affirmed per D5!), Bed 4 Blanket/Slippers trace, & Bed 2 Transfer Comparison Chart!
             var loc03RepRoot = ResolveParent(report, new Vector3(11.35f, 0f, 4.48f));
-            PlaceBlenderModel("CTCC_PROP_Bed4ChartHolder", loc03RepRoot, new Vector3(11.35f, 0f, 4.48f), 145f, pairRB: false);
+            var bed4Holder = PlaceBlenderModel("CTCC_PROP_Bed4ChartHolder", loc03RepRoot, new Vector3(11.35f, 0f, 4.48f), 145f, pairRB: false);
+            if (multiScene) zones["LOC03"].region.bed4ChartHolder = bed4Holder;
+            else world.bed4ChartHolder = bed4Holder;
             PlaceBlenderModel("CTCC_PROP_Bed4BlanketTrace", loc03RepRoot, new Vector3(11.08f, 0f, 3.16f), -22f, pairRB: false, castShadows: false);
             Flat("OBS101C_Bed2Chart", "Doc_Bed2Transfer", new Vector3(10.25f, 0.92f, 5.91f), Vector3.back, new Vector2(0.21f, 0.28f), loc03RepRoot);
 

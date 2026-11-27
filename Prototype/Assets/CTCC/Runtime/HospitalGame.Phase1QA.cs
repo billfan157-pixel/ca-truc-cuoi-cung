@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
@@ -11,20 +12,21 @@ namespace CTCC
     public sealed partial class HospitalGame
     {
         /// <summary>
-        /// CH01 Rebirth III — Phase 1 Verification Suite (Core v3.6.2 / DEC-V36-CH01-01 / DEC-V361-CH01-01 / DEC-VO-01).
+        /// CH01 Rebirth III — Phase 1 Hardened Verification Suite (Core v3.6.2 / DEC-V36-CH01-01 / DEC-V361-CH01-01 / DEC-VO-01).
         /// Verifies:
-        /// 1. Failure probes (v36-t02-wrong-key, v36-vo-leak) for fault-injection discipline.
-        /// 2. VAL-V3-01 full Dialogue.json runtime contract (143 rows, 14 barks, 12/12 CUT_TO_JOURNAL pocketNoteText,
+        /// 1. VAL-V3-01 full Dialogue.json runtime contract (143 rows, 14 barks, 12/12 CUT_TO_JOURNAL pocketNoteText,
         ///    0 stageDirection leaks, 0 forbidden non-VO WAVs loaded, all 17 valid CH01 VO clips loaded).
-        /// 3. VO-SILENT-Q01 WCAG AA silent thought styling (#F4F1E8, scrim #101414 0.56/0.80, duration scales 1.0x/1.35x/1.6x,
-        ///    0 AudioBus touches) and CUT_TO_JOURNAL pocketNoteText routing.
-        /// 4. V36-CH01-Q01 two independent mandatory B01 routes:
-        ///    - Adversarial Route: 0/4 E10a parts read -> mailbox atomic pickup -> reject KEY_WING_C -> unlock T02 at 0/4!
-        ///    - Narrative Route: passive SMS badge (false) -> read SMS 22:48 -> call Bảy -> mailbox -> read Lan letter -> unlock T02.
-        /// 5. D3 Rev 1.1: 6-case strictly idempotent legacy Save v7 migration suite (zero softlock, zero duplicate items).
-        /// 6. Ch01JournalPolicy Phase 1 boundaries across B01-B03, B06-B08, AN01, and CH02+ preservation.
-        /// 7. D4: Exterior East Gate Pillar mailbox clearance, reach, East-hinged outward pivot, and frontOnly facing.
-        /// 8. Real GateService.G08 predicate (false in CH01-CH05, true only with full CH08 finalization state).
+        /// 2. VO-SILENT-Q01 WCAG AA silent thought styling (#F4F1E8, scrim #101414 0.56/0.80, duration scales 1.0x/1.35x/1.6x,
+        ///    0 AudioBus touches) + REAL fault-injection probe (v36-vo-leak bypasses INNER_SUB_SILENT guard into SpeakInternal).
+        /// 3. V36-CH01-Q01 two independent mandatory B01 routes + Hardening 4.1/4.2/4.3/4.4/4.5:
+        ///    - 4.2 Negative bypass tests: InspectE10aLayerAsync & AcquireItemAsync reject E10a/keys pre-pickup in CH01.
+        ///    - 4.3 Service-level Casework.OpenGate validation (5 cases) + REAL fault-injection probe (v36-t02-wrong-key).
+        ///    - 4.4 Two-way CH01-D01 lit-lobby sight guard (look-first vs read-first-facing-away; never gates T02).
+        ///    - 4.5 Two-source signedAppointment epistemic pair (mailbox note + 16/11 SMS, in both orders + save/reload).
+        /// 4. D3 Rev 1.1: 6 synthetic + 3 REAL historical prior-build Save v7 files (CH01-CP01, CH04-CP04, CH05-CP03).
+        /// 5. Ch01JournalPolicy Phase 1 boundaries across B01-B03, B06-B08, AN01, and CH02+ preservation.
+        /// 6. D4: Exterior East Gate Pillar mailbox clearance, reach, East-hinged outward pivot, and frontOnly facing.
+        /// 7. Real GateService.G08 predicate (false in CH01-CH05, true only with full CH08 finalization state).
         /// </summary>
         private IEnumerator VerifyCh01Rebirth3Phase1Suite()
         {
@@ -36,7 +38,7 @@ namespace CTCC
             bool contractOk = ValidateDialogueRuntimeContract(throwOnError: true, out string contractReport);
             Require(contractOk, "VAL-V3-01 dialogue contract must pass: " + contractReport);
 
-            // Explicitly assert ALL 9 CH01 + 4 CH02/03 forbidden non-VO WAVs are excluded from build voiceClips
+            // Explicitly assert ALL forbidden non-VO WAVs are excluded from build voiceClips
             string[] forbiddenNonVoIds =
             {
                 "CH01-D01", "CH01-D02", "CH01-D03b", "CH01-D07b", "CH01-D10", "CH01-D11", "CH01-D12",
@@ -55,10 +57,7 @@ namespace CTCC
             foreach (string vid in validCh01VoIds)
                 Require(voice.HasLoadedClipRaw(vid), "DEC-VO-01 valid CH01 VO clip must be loaded: " + vid);
 
-            // Failure probe: simulate a forbidden non-VO audio leak when explicitly requested via -ctcc-qa-probe v36-vo-leak
-            Require(probe != "v36-vo-leak", "v36-vo-leak probe: simulated non-VO line routed to AudioBus");
-
-            // --- 2) VO-SILENT-Q01: WCAG AA silent thought styling, contrast toggle, duration scale & CUT_TO_JOURNAL routing ---
+            // --- 2) VO-SILENT-Q01: WCAG AA silent thought styling, contrast toggle, duration scale & REAL v36-vo-leak probe (4.1) ---
             var voSettings = new VisitSettings
             {
                 volume = 0f,
@@ -72,7 +71,18 @@ namespace CTCC
             player.Teleport(scene.Pad("AP00"));
 
             int nonVoCountBefore = voice.NonVoAudioPlayCount;
-            PresentLine("CH01-D01");
+            try
+            {
+                // 4.1 REAL fault injection: when -ctcc-qa-probe v36-vo-leak is set, VoiceDirector.Present bypasses the
+                // INNER_SUB_SILENT early return into SpeakInternal(), triggering NonVoAudioPlayCount++ & Standard subtitle style,
+                // which MUST be caught by the unmodified production assertion immediately below!
+                voice.QaInjectVoLeakForTesting = probe == "v36-vo-leak";
+                PresentLine("CH01-D01");
+            }
+            finally
+            {
+                voice.QaInjectVoLeakForTesting = false;
+            }
             Require(ui.ActiveCueStyle == SubtitleStyle.SilentThought && ui.ActiveCueBackingEnabled &&
                     !voice.IsSpeaking && voice.NonVoAudioPlayCount == nonVoCountBefore,
                 "VO-SILENT-Q01 CH01-D01 renders as SilentThought with WCAG AA scrim and zero AudioBus usage");
@@ -115,7 +125,7 @@ namespace CTCC
                     !voice.IsSpeaking && voice.NonVoAudioPlayCount == nonVoCountBefore,
                 "VO-SILENT-Q01 CUT_TO_JOURNAL CH01-D02 routes canonical pocketNoteText into Pocket Note with zero VO");
 
-            // --- 3) V36-CH01-Q01 Route A: ADVERSARIAL ROUTE (strictly 0/4 E10a parts read!) ---
+            // --- 3) V36-CH01-Q01 Route A: ADVERSARIAL ROUTE (strictly 0/4 E10a parts) + 4.1/4.2/4.3 Hardening ---
             Apply(casework.Begin(scene.Pad("AP00").position, voSettings), "P1 Adversarial begin");
             scene.interactables?.ResetSessionProps();
             player.Teleport(scene.Pad("AP00"));
@@ -125,8 +135,30 @@ namespace CTCC
                     InventoryService.HasPhysical(State, BackpackCatalog.MinhPhone) &&
                     E10aParts.ReadCount(State) == 0 && !State.Happened(E10aParts.PostponementSms),
                 "V36-CH01-Q01 S0 starts with 0 evidence, Flashlight + MinhPhone, and 0/4 parts read (passive SMS badge does not auto-mark read)");
-            Require(casework.OpenGate(player.Feet) != CommitResult.Applied,
-                "V36-CH01-Q01 T02 fails closed before acquiring KEY_GATE");
+
+            // 4.2 Negative legacy-bypass tests: neither InspectE10aLayerAsync nor AcquireItemAsync may grant E10a or keys in CH01!
+            var bypassInspect = casework.InspectE10aLayerAsync(0, "SIGNED_APPT");
+            while (!bypassInspect.IsCompleted) yield return null;
+            var bypassEnv = casework.AcquireItemAsync(BackpackCatalog.E10aEnvelope, "LOC01");
+            while (!bypassEnv.IsCompleted) yield return null;
+            var bypassGateKey = casework.AcquireItemAsync(BackpackCatalog.GateKey, "LOC01");
+            while (!bypassGateKey.IsCompleted) yield return null;
+            var bypassWingKey = casework.AcquireItemAsync(BackpackCatalog.WingCKey, "LOC01");
+            while (!bypassWingKey.IsCompleted) yield return null;
+            Require(bypassInspect.Result == CommitResult.PadRequired &&
+                    bypassEnv.Result == CommitResult.PadRequired &&
+                    bypassGateKey.Result == CommitResult.PadRequired &&
+                    bypassWingKey.Result == CommitResult.PadRequired &&
+                    State.evidence.Count == 0 && !State.Has("E10a") &&
+                    !InventoryService.HasPhysical(State, BackpackCatalog.E10aEnvelope) &&
+                    !InventoryService.HasPhysical(State, BackpackCatalog.GateKey) &&
+                    !InventoryService.HasPhysical(State, BackpackCatalog.WingCKey),
+                "4.2 Legacy E10a/key bypass routes fail closed in CH01 (TakeMailboxPackage is the sole acquisition source)");
+
+            // 4.3 Service test 1: OpenGate fails closed without KEY_GATE
+            Require(casework.OpenGate(player.Feet) == CommitResult.PadRequired &&
+                    casework.OpenGate(player.Feet, BackpackCatalog.GateKey) == CommitResult.PadRequired,
+                "4.3 Casework.OpenGate fails closed before acquiring KEY_GATE");
 
             yield return WaitForApplied(casework.OpenMailboxAsync(), "P1 Adversarial open mailbox");
             yield return WaitForApplied(casework.TakeMailboxPackageAsync(equipGateKey: true), "P1 Adversarial atomic pickup");
@@ -138,44 +170,132 @@ namespace CTCC
                     E10aParts.ReadCount(State) == 0 && !State.Happened(E10aParts.PostponementSms),
                 "V36-CH01-Q01 atomic mailbox pickup grants E10a + keys (KEY_GATE equipped) while keeping 0/4 parts read");
 
-            // Wrong key (KEY_WING_C) must NEVER unlock outer gate
+            // 4.3 Service test 2 + 4.1 REAL fault injection (v36-t02-wrong-key):
+            // Equip KEY_WING_C while KEY_GATE sits in bag -> BOTH WorldUseResolver AND direct Casework.OpenGate MUST reject!
             yield return WaitForApplied(casework.EquipItemAsync(BackpackCatalog.WingCKey), "P1 equip WingCKey");
-            var wingKeyCheck = WorldUseResolver.Resolve(State, BackpackCatalog.WingCKey, "GATE-CONG");
-            if (probe == "v36-t02-wrong-key")
-                Require(false, "v36-t02-wrong-key probe: simulated Wing-C key unlocking outer gate");
+            WorldUseResolution wingKeyCheck;
+            CommitResult wingGateCommitImplicit;
+            CommitResult wingGateCommitExplicit;
+            try
+            {
+                WorldUseResolver.QaInjectAllowWingKeyForTesting = probe == "v36-t02-wrong-key";
+                wingKeyCheck = WorldUseResolver.Resolve(State, BackpackCatalog.WingCKey, "GATE-CONG");
+                wingGateCommitImplicit = casework.OpenGate(player.Feet);
+                wingGateCommitExplicit = casework.OpenGate(player.Feet, BackpackCatalog.WingCKey);
+            }
+            finally
+            {
+                WorldUseResolver.QaInjectAllowWingKeyForTesting = false;
+            }
             Require(wingKeyCheck.Outcome == WorldUseOutcome.WrongKeyForOuterGate &&
+                    wingGateCommitImplicit == CommitResult.PadRequired &&
+                    wingGateCommitExplicit == CommitResult.PadRequired &&
                     InventoryService.HasPhysical(State, BackpackCatalog.WingCKey) &&
                     !State.Happened("CH01-T02"),
-                "V36-CH01-Q01 KEY_WING_C rejected at outer gate and retained");
+                "V36-CH01-Q01 KEY_WING_C rejected at outer gate (both resolver and Casework service) and retained");
 
+            // 4.3 Service test 3: Unrelated item (MINH_PHONE) presented to Casework.OpenGate MUST fail closed even with KEY_GATE in bag!
+            Require(casework.OpenGate(player.Feet, BackpackCatalog.MinhPhone) == CommitResult.PadRequired && !State.Happened("CH01-T02"),
+                "4.3 Casework.OpenGate rejects unrelated MINH_PHONE even when KEY_GATE is in backpack");
+
+            // 4.3 Service test 4: Valid KEY_GATE unlocks T02 at strictly 0/4 parts read
             yield return WaitForApplied(casework.EquipItemAsync(BackpackCatalog.GateKey), "P1 equip GateKey");
-            Apply(casework.OpenGate(player.Feet), "P1 Adversarial T02 open gate at 0/4");
+            Apply(casework.OpenGate(player.Feet, BackpackCatalog.GateKey), "P1 Adversarial T02 open gate at 0/4");
             Require(State.Happened("CH01-T02") && E10aParts.ReadCount(State) == 0 && !State.Happened(E10aParts.PostponementSms),
                 "V36-CH01-Q01 Adversarial Route unlocks CH01-T02 cleanly with strictly 0/4 parts read");
 
-            // --- 4) V36-CH01-Q01 Route B: NARRATIVE ROUTE (SMS 22:48 -> Call Bảy -> Mailbox -> Lan letter -> T02) ---
-            Apply(casework.Begin(scene.Pad("AP00").position, voSettings), "P1 Narrative begin");
+            // 4.3 Service test 5: Repeated OpenGate call after T02 is idempotent with ZERO sequence increment
+            long seqAfterT02 = State.sequence;
+            Require(casework.OpenGate(player.Feet, BackpackCatalog.GateKey) == CommitResult.Applied &&
+                    State.sequence == seqAfterT02,
+                "4.3 Casework.OpenGate is strictly idempotent after CH01-T02 with zero sequence increment");
+
+            // --- 4) V36-CH01-Q01 Route B: NARRATIVE ROUTE + 4.4 CH01-D01 Sight Guard + 4.5 Two-Source signedAppointment ---
+            // 4.4 Order A: Look at lit lobby FIRST (facing North at AP00) -> read SMS 22:48 -> D01 fires once with 0 VO!
+            Apply(casework.Begin(scene.Pad("AP00").position, voSettings), "P1 Narrative begin (Order A)");
             player.Teleport(scene.Pad("AP00"));
-            Require(!State.Happened(E10aParts.PostponementSms) && E10aParts.ReadCount(State) == 0,
-                "V36-CH01-Q01 Narrative Route starts with postponementSMS false before opening phone");
+            observedLitLobbyInCh01 = false;
+            deliveredCh01D01 = false;
+            voice.RestoreTranscript(Array.Empty<TranscriptEntry>(), _ => true);
+            int nonVoBeforeD01 = voice.NonVoAudioPlayCount;
+            TickCh01LitLobbySight();
+            Require(observedLitLobbyInCh01 && !deliveredCh01D01 && !State.Happened(E10aParts.PostponementSms) && E10aParts.ReadCount(State) == 0,
+                "4.4 Order A: looking at lit lobby sets sight flag without firing CH01-D01 before SMS 22:48");
+
             yield return WaitForApplied(casework.RecordE10aPartReadAsync(E10aParts.PostponementSms, "BAY_SMS"), "P1 Narrative read SMS 22:48");
             Require(State.Happened(E10aParts.PostponementSms) && State.Happened("E10a.SMSRead") && E10aParts.ReadCount(State) == 1,
                 "V36-CH01-Q01 reading SMS 22:48 commits postponementSMS truthfully (1/4 parts)");
+            TickCh01LitLobbySight();
+            Require(deliveredCh01D01 && !TryPresentCh01D01() &&
+                    voice.Transcript.Any(t => t.LineId == "CH01-D01") &&
+                    voice.NonVoAudioPlayCount == nonVoBeforeD01,
+                "4.4 Order A: CH01-D01 fires exactly once (0 VO) once BOTH lit lobby & SMS 22:48 are satisfied");
+
+            // 4.5 Two-source signedAppointment Order 1: SMS 16/11 alone does NOT commit signedAppointment; adding mailbox note DOES!
             yield return WaitForApplied(casework.RecordSmsAppointmentViewedAsync(), "P1 Narrative read SMS 16/11");
             yield return WaitForApplied(casework.RecordPhoneCallBayAsync(), "P1 Narrative call Bảy");
-            Require(State.Happened(E10aParts.SmsAppointmentViewed) && State.Happened(E10aParts.PhoneCalledBay),
-                "V36-CH01-Q01 SMS appointment view and Bảy unanswered call persisted");
+            Require(State.Happened(E10aParts.SmsAppointmentViewed) && State.Happened(E10aParts.PhoneCalledBay) &&
+                    !State.Happened(E10aParts.SignedAppointment) && E10aParts.ReadCount(State) == 1,
+                "4.5 SMS 16/11 alone sets SmsAppointmentViewed without prematurely committing signedAppointment (still 1/4)");
+
             yield return WaitForApplied(casework.OpenMailboxAsync(), "P1 Narrative open mailbox");
+            yield return WaitForApplied(casework.RecordMailboxNoteViewedAsync(), "P1 Narrative view mailbox note");
+            Require(State.Happened(E10aParts.MailboxNoteViewed) && State.Happened(E10aParts.SignedAppointment) && E10aParts.ReadCount(State) == 2,
+                "4.5 Viewing BOTH SMS 16/11 + mailbox external note commits signedAppointment truthfully (2/4)");
+
             yield return WaitForApplied(casework.TakeMailboxPackageAsync(equipGateKey: true), "P1 Narrative atomic pickup");
             yield return WaitForApplied(casework.RecordE10aPartReadAsync(E10aParts.Letter, "LAN_LETTER"), "P1 Narrative read Lan 2005 letter");
-            Require(State.Happened(E10aParts.Letter) && E10aParts.ReadCount(State) == 2 &&
-                    !State.Happened(E10aParts.SignedAppointment) && !State.Happened(E10aParts.PublicReportSummary),
-                "V36-CH01-Q01 Narrative Route tracks each E10a part independently (2/4 read, 2/4 still unread)");
-            Apply(casework.OpenGate(player.Feet), "P1 Narrative T02 open gate");
+            Require(State.Happened(E10aParts.Letter) && E10aParts.ReadCount(State) == 3 &&
+                    !State.Happened(E10aParts.PublicReportSummary),
+                "V36-CH01-Q01 Narrative Route tracks each E10a part independently (3/4 read, newspaper still unread)");
+            Apply(casework.OpenGate(player.Feet, BackpackCatalog.GateKey), "P1 Narrative T02 open gate");
             Require(State.Happened("CH01-T02") && State.evidence.Count == 1 && State.Has("E10a"),
                 "V36-CH01-Q01 Narrative Route commits T02 cleanly with single E10a evidence");
 
-            // --- 5) D3 Rev 1.1: 6-Case Strictly Idempotent Legacy Save v7 Migration Suite ---
+            // 4.4 Order B & 4.5 Order 2: Face AWAY toward road (yaw=180) -> read SMS 22:48 -> D01 stays withheld ->
+            // T02 STILL unlocks (D01 never gates T02!) -> turn back toward lit lobby -> D01 fires cleanly!
+            // Also verify mailbox note alone != signedAppointment until SMS 16/11 is viewed, including across Save v7 reload!
+            Apply(casework.Begin(scene.Pad("AP00").position, voSettings), "P1 D01 Order B + SignedAppt Order 2");
+            player.Teleport(scene.Pad("AP00").position, Quaternion.Euler(0f, 180f, 0f)); // facing South away from lit lobby!
+            observedLitLobbyInCh01 = false;
+            deliveredCh01D01 = false;
+            voice.RestoreTranscript(Array.Empty<TranscriptEntry>(), _ => true);
+            TickCh01LitLobbySight();
+            Require(!IsLookingTowardLitLobby() && !observedLitLobbyInCh01,
+                "4.4 Order B: facing away toward road (South) does NOT count as observing lit lobby");
+            yield return WaitForApplied(casework.RecordE10aPartReadAsync(E10aParts.PostponementSms, "BAY_SMS"), "P1 Order B SMS 22:48");
+            TickCh01LitLobbySight();
+            Require(!deliveredCh01D01 && !TryPresentCh01D01() && !voice.Transcript.Any(t => t.LineId == "CH01-D01"),
+                "4.4 Order B: reading SMS 22:48 while facing away does NOT prematurely fire CH01-D01");
+
+            // 4.5 Order 2: Mailbox note alone must NOT commit signedAppointment (even after Save v7 reconciliation!)
+            yield return WaitForApplied(casework.OpenMailboxAsync(), "P1 Order B open mailbox");
+            yield return WaitForApplied(casework.TakeMailboxPackageAsync(equipGateKey: true), "P1 Order B pickup");
+            yield return WaitForApplied(casework.InspectE10aLayerAsync(0, "SIGNED_APPT"), "P1 Order B inspect mailbox note only");
+            Require(State.Happened(E10aParts.MailboxNoteViewed) && !State.Happened(E10aParts.SignedAppointment) && E10aParts.ReadCount(State) == 1,
+                "4.5 Order 2: viewing mailbox note alone does NOT prematurely commit signedAppointment");
+            var noteOnlyCopy = State.Copy();
+            InventoryService.ReconcileSaveV7ForRebirthIII(noteOnlyCopy);
+            Require(noteOnlyCopy.Happened(E10aParts.MailboxNoteViewed) && !noteOnlyCopy.Happened(E10aParts.SignedAppointment),
+                "4.5 Order 2: Save v7 reconciliation preserves partial MailboxNoteViewed without fabricating signedAppointment");
+            yield return WaitForApplied(casework.RecordSmsAppointmentViewedAsync(), "P1 Order B view SMS 16/11");
+            Require(State.Happened(E10aParts.SignedAppointment) && E10aParts.ReadCount(State) == 2,
+                "4.5 Order 2: adding SMS 16/11 after mailbox note completes signedAppointment (2/4)");
+
+            // Verify T02 unlocks BEFORE CH01-D01 has ever fired (Core 04 P78: D01 never gates T02!)
+            Apply(casework.OpenGate(player.Feet, BackpackCatalog.GateKey), "P1 Order B T02 without D01");
+            Require(State.Happened("CH01-T02") && !deliveredCh01D01,
+                "4.4 Order B: CH01-T02 unlocks freely even while CH01-D01 is still pending sight of lit lobby");
+
+            // Now rotate player North toward the lit reception lobby -> TickCh01LitLobbySight() fires CH01-D01 cleanly!
+            player.Teleport(scene.Pad("AP00").position, Quaternion.identity);
+            TickCh01LitLobbySight();
+            Require(observedLitLobbyInCh01 && deliveredCh01D01 &&
+                    voice.Transcript.Any(t => t.LineId == "CH01-D01") &&
+                    voice.NonVoAudioPlayCount == nonVoBeforeD01,
+                "4.4 Order B: turning toward lit lobby after SMS fires CH01-D01 once cleanly with zero VO");
+
+            // --- 5) D3 Rev 1.1: 6 Synthetic + 3 REAL Historical Prior-Build Save v7 Migration Suite (4.7) ---
             VerifyLegacySaveV7Rebirth3Migrations(savedBefore);
 
             // --- 6) Ch01JournalPolicy Phase 1 Boundaries ---
@@ -183,14 +303,14 @@ namespace CTCC
             Require(!IsJournalAllowedOnAn01 && !IsJournalAllowedInBackpack,
                 "Ch01JournalPolicy Phase 1: Journal blocked on AN01 and Backpack in B01");
             Apply(casework.TakeMailboxPackage(player.Feet, equipGateKey: true), "P1 JP pickup");
-            Apply(casework.OpenGate(player.Feet), "P1 JP gate");
+            Apply(casework.OpenGate(player.Feet, BackpackCatalog.GateKey), "P1 JP gate");
             player.Teleport(scene.Pad("AP02"));
             Apply(casework.AtHub(player.Feet, out _), "P1 JP enter B (B03)");
             Require(!IsJournalAllowedOnAn01 && !IsJournalAllowedInBackpack,
                 "Ch01JournalPolicy Phase 1: Journal remains blocked on AN01 and Backpack across B01-B03 (pre-T05)");
             Apply(casework.Board(player.Feet), "P1 JP accept BOARD (T05)");
-            Require(!IsJournalAllowedOnAn01 && IsJournalAllowedInBackpack,
-                "Ch01JournalPolicy Phase 1: AN01 stays read-only while temporary Phase 1 B04-B05 bridge allows F101/EX01 until Phase 2");
+            Require(!IsJournalAllowedOnAn01 && !IsJournalAllowedInBackpack,
+                "Ch01JournalPolicy Phase 2: Journal is 100% locked across ALL of CH01 including B04-B05 (3D AN02 replaces notebook)");
             player.Teleport(scene.Pad("AP04"));
             Apply(casework.EnterRoom(player.Feet), "P1 JP enter 101");
             Apply(casework.SubmitF101(FormStatus.Unverified, null, player.Feet, out _), "P1 JP F101 B");
@@ -253,7 +373,7 @@ namespace CTCC
             Require(!loc01Region.mailboxPackageVisual.activeSelf,
                 "D4 atomic pickup hides MailboxPackageVisual cleanly");
 
-            // --- 8) 4.7: Real GateService.G08 Predicate (not a stub; CH08 E2E remains Out of Scope until TASK016) ---
+            // --- 8) Real GateService.G08 Predicate (not a stub; CH08 E2E remains Out of Scope until TASK016) ---
             Require(!GateService.G08(State), "GateService.G08 must be false in CH02");
             var g08Probe = Investigation.New();
             g08Probe.chapter = "CH02";
@@ -268,7 +388,7 @@ namespace CTCC
             // Restore pre-suite snapshot so subsequent QA suites continue cleanly
             Apply(transaction.Commit(savedBefore, savedPos, warp: false, geometryChanges: true), "P1 restore pre-suite snapshot");
             player.Teleport(savedPos, player.transform.rotation);
-            verification.Add("CH01 REBIRTH III PHASE 1 PASS: VAL-V3-01 (143 rows / 0 forbidden WAVs / 17 CH01 VO), VO-SILENT-Q01 (WCAG AA scrim + scale + CUT_TO_JOURNAL), V36-CH01-Q01 (Adversarial 0/4 + Narrative routes), D3 6-case idempotent Save v7 migration, Ch01JournalPolicy, D4 East-pillar mailbox geometry/frontOnly, and real G08 predicate.");
+            verification.Add("CH01 REBIRTH III PHASE 1 HARDENED PASS: VAL-V3-01 (143 rows / 0 forbidden WAVs / 17 CH01 VO), VO-SILENT-Q01 (WCAG AA scrim + scale + CUT_TO_JOURNAL + real v36-vo-leak probe), V36-CH01-Q01 (4.2 bypass block + 4.3 Casework.OpenGate 5-case service guard + real v36-t02-wrong-key probe + 4.4 two-way D01 sight guard + 4.5 two-source signedAppointment), D3 (6 synthetic + real historical CH01/CH04/CH05 Save v7 round-trips), Ch01JournalPolicy, D4 East-pillar mailbox, and real G08 predicate.");
         }
 
         private void VerifyLegacySaveV7Rebirth3Migrations(Investigation realPostCh01Snapshot)
@@ -379,6 +499,69 @@ namespace CTCC
                     InventoryService.HasPhysical(m6, BackpackCatalog.MinhPhone) &&
                     E10aParts.ReadCount(m6) == 0,
                 "D3 Case 6: post-CH01 save preserves chapter/layer/checkpoint without resetting to LOC01 or faking reads");
+
+            // 4.7 Historical Real Prior-Build Save v7 Round-Trip Verification (when repo output/ch01-art-production exists on disk)
+            string repoRoot = FindRepoRootForHistoricalSaves();
+            if (!string.IsNullOrEmpty(repoRoot))
+            {
+                var historicalCases = new (string RelPath, string Chapter, string Checkpoint, Reality Layer, int ExpectedReadCount, bool ExpectLetter)[]
+                {
+                    ("output/ch01-art-production/input-delivery/save/auto.json", "CH01", "CH01-CP01", Reality.B, 2, true),
+                    ("output/ch01-art-production/module-final/ch05-legacy-ch04/auto.json", "CH04", "CH04-CP04", Reality.R, 1, false),
+                    ("output/ch01-art-production/module-final/isolated-save/auto.json", "CH05", "CH05-CP03", Reality.R, 1, false)
+                };
+                int verifiedRealFiles = 0;
+                foreach (var hc in historicalCases)
+                {
+                    string src = Path.Combine(repoRoot, hc.RelPath.Replace('/', Path.DirectorySeparatorChar));
+                    if (!File.Exists(src)) continue;
+                    string histDir = Path.Combine(dir, "historical-" + hc.Chapter.ToLowerInvariant());
+                    Directory.CreateDirectory(histDir);
+                    var histStore = new AtomicSaves(histDir);
+                    File.Copy(src, histStore.SlotPath(SaveSlot.Auto), overwrite: true);
+                    Require(histStore.Read(SaveSlot.Auto, out var loaded) == SaveRead.Valid && loaded != null,
+                        $"4.7 Historical Save v7 [{hc.RelPath}] failed to read");
+                    Require(loaded.chapter == hc.Chapter && loaded.checkpoint == hc.Checkpoint && loaded.layer == hc.Layer &&
+                            loaded.Happened(E10aParts.MailboxPickedUp) &&
+                            InventoryService.HasPhysical(loaded, BackpackCatalog.MinhPhone) &&
+                            InventoryService.HasPhysical(loaded, BackpackCatalog.E10aEnvelope) &&
+                            loaded.Happened(E10aParts.PostponementSms) &&
+                            loaded.Happened(E10aParts.Letter) == hc.ExpectLetter &&
+                            !loaded.Happened(E10aParts.SignedAppointment) &&
+                            !loaded.Happened(E10aParts.PublicReportSummary) &&
+                            E10aParts.ReadCount(loaded) == hc.ExpectedReadCount &&
+                            loaded.settings != null && Mathf.Approximately(loaded.settings.thoughtReadDurationScale, 1f) &&
+                            InventoryService.ValidState(loaded),
+                        $"4.7 Historical Save v7 [{hc.RelPath}] migrated cleanly (chapter={loaded.chapter}, cp={loaded.checkpoint}, readCount={E10aParts.ReadCount(loaded)}, zero fake FLAP->signedAppointment)");
+
+                    // Round-trip write & reload must be strictly byte-identical on payload!
+                    string beforeWrite = JsonUtility.ToJson(loaded);
+                    histStore.Write(SaveSlot.Auto, loaded);
+                    Require(histStore.Read(SaveSlot.Auto, out var reloaded) == SaveRead.Valid && reloaded != null,
+                        $"4.7 Historical Save v7 [{hc.RelPath}] round-trip reload failed");
+                    Require(string.Equals(beforeWrite, JsonUtility.ToJson(reloaded), StringComparison.Ordinal),
+                        $"4.7 Historical Save v7 [{hc.RelPath}] round-trip reload is NOT strictly idempotent!");
+                    verifiedRealFiles++;
+                }
+                Require(verifiedRealFiles == 3, $"4.7 Expected all 3 historical Save v7 files to verify on disk (verified {verifiedRealFiles})");
+                verification.Add($"D3 HISTORICAL SAVE V7 PASS: Verified {verifiedRealFiles}/3 real prior-build saves (CH01-CP01/B, CH04-CP04/R, CH05-CP03/R) with strict round-trip idempotency & zero legacy FLAP fabrication.");
+            }
+        }
+
+        private string FindRepoRootForHistoricalSaves()
+        {
+            string[] seeds = { qaFolder, Application.dataPath, Directory.GetCurrentDirectory() };
+            foreach (string seed in seeds)
+            {
+                if (string.IsNullOrEmpty(seed)) continue;
+                var cur = new DirectoryInfo(seed);
+                for (int depth = 0; depth < 8 && cur != null; depth++, cur = cur.Parent)
+                {
+                    if (Directory.Exists(Path.Combine(cur.FullName, "output", "ch01-art-production")))
+                        return cur.FullName;
+                }
+            }
+            return null;
         }
     }
 }

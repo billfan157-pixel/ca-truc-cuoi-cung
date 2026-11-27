@@ -67,6 +67,7 @@ namespace CTCC
         public const string MailboxPickedUp = "CH01-MAILBOX-PICKUP";
         public const string PhoneCalledBay = "E10a.PhoneCalledBay";
         public const string SmsAppointmentViewed = "E10a.SmsAppointmentViewed";
+        public const string MailboxNoteViewed = "E10a.MailboxNoteViewed";
         public const string Letter = "E10a.Part.letter";
         public const string SignedAppointment = "E10a.Part.signedAppointment";
         public const string PostponementSms = "E10a.Part.postponementSMS";
@@ -79,6 +80,18 @@ namespace CTCC
             PostponementSms,
             PublicReportSummary
         };
+
+        /// <summary>
+        /// Core 04/07: signedAppointment represents the combined appointment pair (giấy nhắn ngoài bì + SMS hẹn 16/11).
+        /// Commits SignedAppointment only once BOTH sub-sources have been actively viewed.
+        /// </summary>
+        public static bool TryCompleteSignedAppointment(Investigation state)
+        {
+            if (state == null || state.Happened(SignedAppointment)) return false;
+            if (!state.Happened(MailboxNoteViewed) || !state.Happened(SmsAppointmentViewed)) return false;
+            state.Remember(SignedAppointment);
+            return true;
+        }
 
         public static bool HasRead(Investigation state, string partEvent) =>
             state != null && !string.IsNullOrEmpty(partEvent) && state.Happened(partEvent);
@@ -358,7 +371,7 @@ namespace CTCC
             DeductionSubmission submission,
             out HypothesisEvaluation evaluation)
         {
-            evaluation = HypothesisService.EvaluateF101(candidate, decision, submission);
+            evaluation = HypothesisService.EvaluateF101LiveCommit(candidate, decision, submission);
             if (!evaluation.Accepted)
                 return false;
 

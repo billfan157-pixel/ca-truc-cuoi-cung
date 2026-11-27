@@ -11,11 +11,12 @@ namespace CTCC
         private bool b07GateAttemptRunning;
         private float departureCueUntil;
         private const float DepartureThresholdZ = -19.92f;
-        private const string WheelTrace = "BED4_WHEELS", BlanketTrace = "BED4_BLANKET", SlipperTrace = "BED4_SLIPPERS";
+        private const string BlanketTrace = "BED4_BLANKET", SlipperTrace = "BED4_SLIPPERS";
 
         private bool CanSpatialLinkBed4() =>
             State.layer == Reality.B &&
             casework.CanRevise &&
+            Casework.IsNearBed4Alcove(player.Feet) &&
             State.f101Annotations.MarkedHotspot(ObservationRegistry.Bed4Card) == F101Annotations.Receiver &&
             HypothesisService.HasExaminedInLayerB(State, ObservationRegistry.Bed4Traces) &&
             !State.f101Annotations.HasLink;
@@ -30,10 +31,10 @@ namespace CTCC
                               InventoryService.HasPhysical(State, BackpackCatalog.GateKey) &&
                               InventoryService.HasPhysical(State, BackpackCatalog.E10aEnvelope);
                 if (picked)
-                    return "[" + UseKey + "]  Kiểm tra hộp thư sắt (đã lấy gói)";
+                    return "[" + UseKey + "]  Kiểm tra hộp thư sắt (trống)";
                 return State.Happened(E10aParts.MailboxOpened)
-                    ? "★ [" + UseKey + "]  Nhận gói chìa cổng & phong bì E10a trong hộp thư"
-                    : "★ [" + UseKey + "]  Mở hộp thư sắt ngoài trụ cổng";
+                    ? "★ [" + UseKey + "]  Lấy gói (chìa cổng cầm tay · bì E10a vào ba lô)   ·   [Q] Đọc giấy nhắn ngoài bì"
+                    : "★ [" + UseKey + "]  Mở nắp hộp thư sắt ngoài trụ cổng";
             }
 
             if (target.id == "GATE-CONG")
@@ -285,11 +286,11 @@ namespace CTCC
             if (!CanSpatialLinkBed4()) return;
             var from = new EvidenceAnnotation(ObservationRegistry.Bed4Card, F101Annotations.Receiver);
             var to = new EvidenceAnnotation(ObservationRegistry.Bed4Traces, F101Annotations.TraceGroup);
-            SaveCheckpoint(() => casework.SetF101LinkAsync(from, to), () =>
+            SaveCheckpoint(() => casework.SetF101LinkSpatialAsync(from, to, player.Feet), () =>
             {
                 scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.52f);
-                ui.Toast("ĐÃ LIÊN HỆ NGUỒN TẠI HIỆN TRƯỜNG",
-                    "Ô chữ ký trống trên thẻ AS-05B ↔ dấu sử dụng quanh hốc Giường 4. Có thể quay lại bảng kẹp F101 để lập luận.", 5.8f);
+                ui.Toast("ĐÃ ĐỐI CHỨNG TẠI HIỆN TRƯỜNG GIƯỜNG 4",
+                    "Ô chữ ký trống trên thẻ AS-05B ↔ dấu chăn và dép quanh hốc Giường 4. Có thể quay lại bảng kẹp AN02 để ghi phiếu F101.", 5.8f);
             });
         }
 
@@ -302,7 +303,7 @@ namespace CTCC
             switch (res.Outcome)
             {
                 case WorldUseOutcome.UnlockOuterGate:
-                    SaveCheckpoint(() => casework.OpenGateAsync(player.Feet), () =>
+                    SaveCheckpoint(() => casework.OpenGateAsync(player.Feet, eqId), () =>
                     {
                         handPresenter?.TriggerUseAnimation();
                         scene.atmosphere?.From("keyTurn", new Vector3(4f, 1.24f, -20.0f), 0.85f);
@@ -396,6 +397,11 @@ namespace CTCC
                 ui.Caption("Lại gần mặt bảng kẹp trong phòng.", 2.7f, true);
                 return;
             }
+            if (State.chapter == "CH01")
+            {
+                OpenAn02Clipboard3D();
+                return;
+            }
             InspectRegisteredObservation(ObservationRegistry.F101Sheet, "LOC03", source: source, afterRead: Form);
         }
 
@@ -485,15 +491,14 @@ namespace CTCC
 
         private static string TraceDescription(string detail) => detail switch
         {
-            WheelTrace => "Hai vệt bánh đứt quãng nằm ngang nền gạch.",
-            BlanketTrace => "Một góc chăn gập vào trong, còn lộ nếp gấp lệch.",
-            SlipperTrace => "Hai chiếc dép nhỏ nằm khác hướng bên mép sàn.",
-            _ => ""
+            BlanketTrace => "Tấm chăn bông gấp vội cạnh góc rèm cùng đôi dép cỡ nhỏ đặt lệch bên mép sàn — chỗ giường này từng được sử dụng.",
+            SlipperTrace => "Hai chiếc dép cao su cỡ nhỏ nằm lệch hướng bên mép sàn, cạnh góc chăn gấp vội.",
+            _ => "Dấu chăn gấp vội và đôi dép nhỏ sau rèm cho thấy vị trí giường thứ tư từng được dùng."
         };
 
         private void ObserveBed4Trace(string detail, string label) =>
             SaveCheckpoint(() => casework.ObserveAsync(ObservationRegistry.Bed4Traces, "LOC03", detail: detail),
-                () => ui.Toast(label, TraceDescription(detail), 4.6f));
+                () => ui.Toast(label, TraceDescription(detail), 4.8f));
 
         private bool TryRecordWardChange()
         {
@@ -514,7 +519,7 @@ namespace CTCC
                 {
                     FormStatus.Affirmed => "Vách che đã khép, hàng giường trước mặt thẳng tắp.",
                     FormStatus.Unverified => "Rèm vẫn còn đó. Phía sau còn một khoảng trống.",
-                    _ => "Từ đây thấy rõ hơn vết bánh trên nền."
+                    _ => "Rèm dạt hẳn sang bên — thấy rõ mảng tường ẩm và góc giấy vẽ bên hốc giường 4."
                 }, 4f));
             return true;
         }

@@ -383,6 +383,7 @@ namespace CTCC
 
         private void Update()
         {
+            if (bootReady) TickAn02Clipboard3D();
             if (bootReady && (staffReactionCaption != null || staffReactions.Count > 0))
             {
                 if (staffReactionCaption != null && !ui.IsShowingCaption(staffReactionCaption))
@@ -483,6 +484,9 @@ namespace CTCC
             bool use = keys[Options.alternateBindings ? Key.K : Key.E].wasPressedThisFrame;
             bool anchorPressed = keys.qKey.wasPressedThisFrame;
 
+            // Core 04 [P78] / 4.4: Track whether Minh has visually observed the lit An Sinh reception lobby (for CH01-D01 two-way guard).
+            TickCh01LitLobbySight();
+
             // CH01 B02: Spotting Lan's warm backlit silhouette behind reception glass pulls Minh voluntarily inside!
             if (!heardLobbySilhouette && State.chapter == "CH01" && State.Happened("CH01-T02") && !State.Happened("CH01-T03") &&
                 feet.z > -10.5f && feet.z < -6.2f)
@@ -499,7 +503,9 @@ namespace CTCC
                 feet.x < 5.5f && feet.z < 6.0f && feet.z > -0.5f)
             {
                 playedCh01Ex01Monologue = true;
-                scene.atmosphere?.From("clockTick", new Vector3(1.2f, 2.0f, -5.8f), 0.70f);
+                var clockAnchor = new Vector3(-0.99f, 2.74f, -3.26f);
+                scene.atmosphere?.From("clockTick", clockAnchor, 0.70f);
+                scene.atmosphere?.From("clockEegHum", clockAnchor, 0.50f);
                 PresentLine("CH01-D19", 1, "B05");
             }
 
@@ -575,6 +581,12 @@ namespace CTCC
             }
             var target = player.Focus(availableTarget);
             var mouse = Mouse.current;
+            if (target?.id == "MAILBOX" && anchorPressed && State.Happened(E10aParts.MailboxOpened) &&
+                !State.Happened(E10aParts.MailboxPickedUp))
+            {
+                InspectMailboxExternalNote(target.transform);
+                return;
+            }
             if (target?.id == "CURTAIN-101" && anchorPressed && scene.interactables?.IsDragging != true)
             {
                 float before = scene.interactables.IntendedOpenness(target.id);
@@ -832,9 +844,9 @@ namespace CTCC
             "BATTERY" => !State.Happened("CH01-BATTERY") && State.Happened("CH01-T02"),
             "F101" => casework.CanRevise && !F101SignaturePlaying && gatekeeperCameo?.IsActive != true,
             "AN02" => false,
-            "OBS101A" or "OBS101A_BLANKET" or "OBS101A_SLIPPERS" =>
+            "OBS101A" or "OBS101A_BLANKET" or "OBS101A_SLIPPERS" or "OBS101B" =>
                 State.layer == Reality.B && State.chapter is ("CH01" or "CH02") && State.f101.current != FormStatus.Affirmed,
-            "OBS101B" or "OBS101C" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02"),
+            "OBS101C" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02"),
             "OBS101D" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02") && (scene.interactables == null || scene.interactables.IsDrawerOpen("DRAWER-BED3")),
             "OBS_SHIFT_LOG" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02") && (scene.interactables == null || scene.interactables.IsDrawerOpen("DRAWER-NURSE")),
             "OBS_CORRIDOR_NOTICE" => State.layer == Reality.B && State.chapter is ("CH01" or "CH02"),
@@ -929,13 +941,22 @@ namespace CTCC
                     else Anchor();
                     break;
                 case "OBS101A":
-                    ObserveBed4Trace(WheelTrace, "Vệt bánh trên nền gạch");
+                    if (InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.PaperObs101B && CanSpatialLinkBed4())
+                        TriggerSpatialBed4Link();
+                    else
+                        ObserveBed4Trace(BlanketTrace, "Dấu sử dụng tại vị trí giường 4");
                     break;
                 case "OBS101A_BLANKET":
-                    ObserveBed4Trace(BlanketTrace, "Chăn bông gấp vội");
+                    if (InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.PaperObs101B && CanSpatialLinkBed4())
+                        TriggerSpatialBed4Link();
+                    else
+                        ObserveBed4Trace(BlanketTrace, "Chăn bông gấp vội");
                     break;
                 case "OBS101A_SLIPPERS":
-                    ObserveBed4Trace(SlipperTrace, "Đôi dép lệch");
+                    if (InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.PaperObs101B && CanSpatialLinkBed4())
+                        TriggerSpatialBed4Link();
+                    else
+                        ObserveBed4Trace(SlipperTrace, "Đôi dép lệch");
                     break;
                 case "OBS101B":
                     InspectRegisteredObservation(ObservationRegistry.Bed4Card, "LOC03", source: source);
@@ -958,8 +979,13 @@ namespace CTCC
                 case "OBS_CLOCK_0317":
                     if (State.layer == Reality.B)
                         DiegeticObservation(ObservationRegistry.StoppedClock0317, "Đồng hồ dừng ở 03:17",
-                            "Kim đồng hồ treo sau quầy đứng yên ở 03:17.",
-                            "LOC02", () => scene.atmosphere?.From("clockTick", new Vector3(-.92f, 2.42f, -3.26f), .45f));
+                            "Kim đồng hồ treo sau quầy đứng yên ở 03:17. Kèm một nhịp ù rất khẽ của thiết bị đo như vọng từ xa.",
+                            "LOC02", () =>
+                            {
+                                var clockPos = new Vector3(-0.99f, 2.74f, -3.26f);
+                                scene.atmosphere?.From("clockTick", clockPos, .45f);
+                                scene.atmosphere?.From("clockEegHum", clockPos, .58f);
+                            });
                     else ui.Caption("Kim đồng hồ ngoài quầy chỉ 11:52.", 3f, true);
                     break;
                 case "LIST":

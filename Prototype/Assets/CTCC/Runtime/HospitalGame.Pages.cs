@@ -51,8 +51,10 @@ namespace CTCC
             playedHe04CorridorCut = false;
             playedCh01Ex01Monologue = false;
             pendingCh01D01AfterLetter = false;
-            pendingCh01D01AfterPhone = false;
+            observedLitLobbyInCh01 = false;
+            deliveredCh01D01 = false;
             phoneActiveTab = 0;
+            ResetAn02ClipboardState();
             b01SignKnockAt = 0f;
             ch01StartUnscaledTime = Time.unscaledTime;
             scene.atmosphere?.SetReturnWalkRainScale(1f);
@@ -122,9 +124,11 @@ namespace CTCC
             scene.atmosphere?.SetPenWriting(false, Vector3.zero);
             scene.atmosphere?.SetReturnWalkRainScale(1f);
             pendingCh01D01AfterLetter = false;
-            pendingCh01D01AfterPhone = false;
             phoneActiveTab = 0;
+            ResetAn02ClipboardState();
             b01SignKnockAt = 0f;
+            deliveredCh01D01 = State != null && (State.Happened("CH01-T03") || State.transcript.Exists(t => t.LineId == "CH01-D01"));
+            observedLitLobbyInCh01 = deliveredCh01D01 || (State != null && State.Happened("CH01-T02"));
             heardLobbySilhouette = State != null && (State.Happened("CH01-T03") || State.transcript.Exists(t => t.LineId == "CH01-D02"));
             playedHe04CorridorCut = State != null && (State.Happened("CH01-T08") || State.transcript.Exists(t => t.LineId == "CH01-PA04"));
             playedCh01Ex01Monologue = State != null && State.transcript.Exists(t => t.LineId == "CH01-D19");
@@ -252,7 +256,7 @@ namespace CTCC
                 if (returnToBackpack) OpenBackpack(BackpackCompartment.Papers);
                 else CloseModal();
                 if (speakIntro)
-                    PresentLine("CH01-D01");
+                    TryPresentCh01D01();
             }
 
             string TabPageKey(int tab) => tab switch
@@ -291,7 +295,9 @@ namespace CTCC
                 string noteCopy = !string.IsNullOrWhiteSpace(ch01WorldFirst?.mailboxNotePropCopy)
                     ? ch01WorldFirst.mailboxNotePropCopy
                     : "Nếu chưa thấy tôi, vào quầy trực chờ. — Bảy";
-                bool readNote = State.Happened(E10aParts.SignedAppointment);
+                bool readNote = State.Happened(E10aParts.MailboxNoteViewed) || State.Happened(E10aParts.SignedAppointment);
+                bool readApptSms = State.Happened(E10aParts.SmsAppointmentViewed);
+                bool fullAppt = State.Happened(E10aParts.SignedAppointment);
                 bool readLan = State.Happened(E10aParts.Letter);
                 bool readNews = State.Happened(E10aParts.PublicReportSummary);
                 bool readSms = State.Happened(E10aParts.PostponementSms);
@@ -299,7 +305,10 @@ namespace CTCC
                 {
                     0 => $"Giấy nhắn tay kẹp bên ngoài phong bì chống ẩm:\n«{noteCopy}»\n\n" +
                          "«23 giờ, 17/11/2012 · Chốt cổng phụ. Chìa cổng phụ buộc sẵn ngoài bì; chìa khu C đã thay khóa từ 2006.»\n\n" +
-                         (readNote ? "✓ Đã ghi nhận đọc giấy nhắn hẹn của chú Bảy." : "• Đang kiểm tra giấy nhắn ngoài bì.") +
+                         (fullAppt ? "✓ Đã đối chiếu đủ cặp lời hẹn (giấy nhắn ngoài bì + SMS 16/11)."
+                             : readNote ? "✓ Đã đọc giấy nhắn ngoài bì · Xem thêm SMS hẹn 16/11 trên điện thoại [P] để hoàn tất mục lời hẹn."
+                             : "• Đang kiểm tra giấy nhắn ngoài bì.") +
+                         (readApptSms && !fullAppt ? "\n✓ Đã xem SMS hẹn 16/11 trên điện thoại." : "") +
                          (readSms ? "\n✓ Đã đọc SMS báo hoãn 22:48 trên điện thoại." : "\n• Tin nhắn SMS báo hoãn (22:48) nằm trên điện thoại [P]."),
                     1 => "Thư cũ viết bằng bút bi xanh trên giấy kẻ ngang năm 2005 (gấp tư, mép ố vàng):\n\n" +
                          "«Anh Minh, em cần nói với anh một chuyện ở bệnh viện. Mấy hôm nay sổ sách ở tầng trệt và khu sau cứ bị sửa lại mỗi lần giao ca. Em không muốn để chuyện này qua thêm một ngày nữa. — Lan»\n\n" +
@@ -361,7 +370,7 @@ namespace CTCC
                     }
                 }
 
-                bool readNote = State.Happened(E10aParts.SignedAppointment);
+                bool readNote = State.Happened(E10aParts.MailboxNoteViewed) || State.Happened(E10aParts.SignedAppointment);
                 bool readLan = State.Happened(E10aParts.Letter);
                 bool readNews = State.Happened(E10aParts.PublicReportSummary);
                 bool readSms = State.Happened(E10aParts.PostponementSms);
@@ -524,7 +533,7 @@ namespace CTCC
         }
 
         private void OpenObservationInspector(ObservationSpec spec, Action onReturn = null, bool staffDiscovery = false,
-            Vector3? origin = null, Action afterRead = null)
+            Vector3? origin = null, Action afterRead = null, string returnLabel = null)
         {
             // Presentation-only signed F101 overprint in Layer B after signing (source scan & ObservationRecord untouched!)
             string frontKey = spec.FrontTexture;
@@ -543,7 +552,7 @@ namespace CTCC
             var details = BuildDetailTargetsFor(spec.Id);
             bool physicalView = frontTex != null && inspector != null && qaFolder == null;
             string description = ObservationDescription(spec.Id);
-            string closeLabel = onReturn != null ? "Quay lại sổ trực" : "Đặt xuống & tiếp tục";
+            string closeLabel = !string.IsNullOrEmpty(returnLabel) ? returnLabel : (onReturn != null ? "Quay lại sổ trực" : "Đặt xuống & tiếp tục");
             // The one-sided notice is read in its entirety in the ordinary viewer.
             bool examined = spec.Id == ObservationRegistry.WardOverflowNotice;
             const string signLabel = "Đặt giấy lên bảng kẹp";

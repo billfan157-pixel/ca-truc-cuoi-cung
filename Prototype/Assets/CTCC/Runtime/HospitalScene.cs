@@ -84,7 +84,7 @@ namespace CTCC
         public DoorPose s1DischargeDoor;
         public GameObject s1DischargeSalvage;
         public GameObject seamBlocker;
-        public GameObject realProps, reportProps, memoryProps, pendingBay, deniedBay, refutedBay;
+        public GameObject realProps, reportProps, memoryProps, pendingBay, deniedBay, refutedBay, bed4ChartHolder;
         public GameObject statusA, statusB, statusC, paperAfter, storeClues;
         public Renderer f101WallRenderer;
         public Material f101MatPending, f101MatA, f101MatB, f101MatC;
@@ -542,6 +542,7 @@ namespace CTCC
             if (region.pendingBay != null) pendingBay = region.pendingBay;
             if (region.deniedBay != null) deniedBay = region.deniedBay;
             if (region.refutedBay != null) refutedBay = region.refutedBay;
+            if (region.bed4ChartHolder != null) bed4ChartHolder = region.bed4ChartHolder;
             if (region.statusA != null) statusA = region.statusA;
             if (region.statusB != null) statusB = region.statusB;
             if (region.statusC != null) statusC = region.statusC;
@@ -865,8 +866,8 @@ namespace CTCC
                 return renderer != null && fabric.gameObject.activeInHierarchy && See(renderer.bounds.center, fabric);
             }
             if (decision != FormStatus.Refuted || refutedBay == null || !refutedBay.activeInHierarchy) return false;
-            var track = refutedBay.transform.Find("RefutedBed4SharpWheels");
-            return track != null && See(track.position + Vector3.up * .045f, track);
+            var corner = refutedBay.transform.Find("CH01_PR01_CornerTrace") ?? refutedBay.transform.Find("RefutedBed4DampWall");
+            return corner != null && See(corner.position + Vector3.up * .045f, corner);
 
             bool SeePanel(Transform panel)
             {
@@ -1096,6 +1097,8 @@ namespace CTCC
             // Refuted has its own parted curtain. The interactive cloth belongs to the pending/unverified bay.
             Toggle(pendingBay, layerB && form is (FormStatus.Pending or FormStatus.Unverified));
             Toggle(refutedBay, form == FormStatus.Refuted);
+            // Core v3.6.2 (D5): Hide Bed 4 chart holder when Branch A seals the alcove behind deniedBay; restore cleanly on A->B.
+            Toggle(bed4ChartHolder, layerB && form != FormStatus.Affirmed);
             Toggle(statusA, form == FormStatus.Affirmed);
             Toggle(statusB, form == FormStatus.Unverified);
             Toggle(statusC, form == FormStatus.Refuted);
@@ -1187,7 +1190,7 @@ namespace CTCC
             f101CorridorSlip.text = "PHÒNG 101\n" + (form switch
             {
                 FormStatus.Affirmed => "ĐÃ BÀN GIAO · 0",
-                FormStatus.Unverified => "CHỜ XÁC NHẬN",
+                FormStatus.Unverified => "CHỜ KIỂM TRA",
                 FormStatus.Refuted => "KIỂM TRA LẠI",
                 _ => ""
             });

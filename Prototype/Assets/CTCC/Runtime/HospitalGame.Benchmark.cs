@@ -273,8 +273,8 @@ namespace CTCC
                 inspector.Open(scene.InspectTemplate("E10a"), null, 1f, ActiveVolume());
                 return CommitResult.Applied;
             }, 1.1f);
-            yield return new("read-letter", () => { inspector.Close(); return casework.ReadLetterAsync(player.Feet); });
-            yield return new("open-gate", () => casework.OpenGateAsync(player.Feet));
+            yield return new("read-letter", () => { inspector.Close(); return casework.TakeMailboxPackageAsync(equipGateKey: true); });
+            yield return new("open-gate", () => casework.OpenGateAsync(player.Feet, BackpackCatalog.GateKey));
             yield return new("gate-R", 4, -17.9f);
             yield return new("approach-R", 4, -3.3f);
             yield return new("swap-R-B", async () => { var r = await casework.AtHubAsync(player.Feet); player.Teleport(scene.Pad("AP02")); return r; });

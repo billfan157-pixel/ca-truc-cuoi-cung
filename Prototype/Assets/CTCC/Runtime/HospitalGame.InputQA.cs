@@ -71,14 +71,16 @@ namespace CTCC
 
             if (branch == FormStatus.Affirmed)
             {
-                // ADVERSARIAL ROUTE (Core v3.6.2 / 4.2): Skip phone & all documents -> open mailbox -> take atomic package ->
+                // ADVERSARIAL ROUTE (Core v3.6.2 / 4.2 / 4.6 Zero-Modal World-First Mailbox):
+                // Skip phone & all documents -> [E] #1 opens 3D lid (zero modal) -> [E] #2 takes atomic package directly in-world ->
                 // reject KEY_WING_C -> test Quick-Slot [1]/[H] -> unlock GATE-CONG while strictly keeping 0/4 parts read!
                 yield return AimAndUseHere("MAILBOX");
-                yield return Until(() => !busy && ui.IsModal, "Adversarial route opens gate mailbox");
-                yield return Choose("Nhận gói");
+                yield return Until(() => !busy && State.Happened(E10aParts.MailboxOpened) && !ui.IsModal,
+                    "Adversarial 1st [E] swings 3D mailbox lid open with zero 2D modal");
+                yield return AimAndUseHere("MAILBOX");
                 yield return Until(() => !busy && !ui.IsModal && State.Happened(E10aParts.MailboxPickedUp) &&
                     InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey,
-                    "Adversarial atomic mailbox pickup grants E10a + keys (KEY_GATE equipped)");
+                    "Adversarial 2nd [E] takes atomic mailbox package directly in-world with zero 2D modal (KEY_GATE equipped)");
                 Require(State.evidence.Count == 1 && State.Has("E10a") && E10aParts.ReadCount(State) == 0 && !State.Happened(E10aParts.PostponementSms),
                     "Adversarial pickup keeps strictly 0/4 E10a parts read");
 
@@ -122,8 +124,11 @@ namespace CTCC
             }
             else
             {
-                // NARRATIVE ROUTE (Core v3.6.2 / 4.2): [P] Phone -> read 22:48 SMS (commits postponementSMS) -> call Bảy ->
-                // close phone (CH01-D01 silent thought, zero VO) -> open mailbox -> take atomic package -> inspect Lan letter -> unlock GATE-CONG!
+                // NARRATIVE ROUTE (Core v3.6.2 / 4.2 / 4.4 / 4.6):
+                // Look at lit lobby from AP00 -> [P] Phone -> read 22:48 SMS (commits postponementSMS) -> call Bảy ->
+                // close phone (CH01-D01 silent thought fires only after BOTH lit lobby + SMS, zero VO) ->
+                // zero-modal 3D mailbox [E] #1 open lid -> [E] #2 take atomic package -> inspect Lan letter -> unlock GATE-CONG!
+                yield return null; // allow TickCh01LitLobbySight() to observe lit lobby from AP00
                 int nonVoBeforePhone = voice.NonVoAudioPlayCount;
                 yield return Tap(Key.P);
                 yield return Until(() => !busy && ui.IsModal && inspector.IsInspecting && State.Happened(E10aParts.PostponementSms),
@@ -149,7 +154,7 @@ namespace CTCC
                 yield return Choose("Cất điện thoại");
                 yield return Until(() => !busy && !ui.IsModal && !inspector.IsInspecting, "Phone closed cleanly");
                 Require(voice.Transcript.Any(t => t.LineId == "CH01-D01") && !voice.IsSpeaking && voice.NonVoAudioPlayCount == nonVoBeforePhone,
-                    "DEC-VO-01 CH01-D01 renders as silent thought after phone with zero VO playback");
+                    "DEC-VO-01 CH01-D01 renders as silent thought after phone + lit lobby sight with zero VO playback");
 
                 if (branch == FormStatus.Refuted)
                 {
@@ -157,15 +162,20 @@ namespace CTCC
                     yield return null;
                 }
                 yield return AimAndUseHere("MAILBOX");
-                yield return Until(() => !busy && ui.IsModal, "Narrative route opens gate mailbox");
-                yield return Choose("Nhận gói");
-                yield return Until(() => !busy && !ui.IsModal && State.Happened(E10aParts.MailboxPickedUp) &&
-                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey,
-                    "Narrative atomic mailbox pickup equips KEY_GATE");
+                yield return Until(() => !busy && State.Happened(E10aParts.MailboxOpened) && !ui.IsModal,
+                    "Narrative 1st [E] swings 3D gate mailbox lid open with zero 2D modal");
                 if (branch == FormStatus.Refuted)
                 {
+                    yield return new WaitForSecondsRealtime(0.20f);
                     CaptureInvestigation("walkthrough-b01-mailbox-open");
                     yield return null;
+                }
+                yield return AimAndUseHere("MAILBOX");
+                yield return Until(() => !busy && !ui.IsModal && State.Happened(E10aParts.MailboxPickedUp) &&
+                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.GateKey,
+                    "Narrative 2nd [E] takes atomic mailbox package directly in-world with zero 2D modal (KEY_GATE equipped)");
+                if (branch == FormStatus.Refuted)
+                {
                     // Open separated 2-sided Lan 2005 letter from Backpack -> Papers -> E10a
                     yield return Tap(Key.Tab);
                     yield return Until(() => ui.IsModal, "Backpack opens for E10a reading");
@@ -266,7 +276,7 @@ namespace CTCC
                         !(b.GetComponentInChildren<Text>()?.text ?? "").Contains("Mở sổ trực đầy đủ")),
                         "Ch01JournalPolicy keeps 5-tab Journal hidden in B03 Pocket Note");
                     yield return Choose("Bản ghi hội thoại");
-                    Require(ActivePageContains("Lan — " + Line("CH01-D04c")) &&
+                    Require(ActivePageContains("Lan") && ActivePageContains(Line("CH01-D04c")) &&
                             !ActivePageContains("không thấy bóng em"),
                         "Lan transcript keeps the clock line and omits the retired reflection beat");
                     yield return Choose("Quay lại ba lô (Pocket Note)");
@@ -401,6 +411,10 @@ namespace CTCC
                     yield return Choose("Đọc vết hằn mặt sau");
                     yield return Until(() => !busy && CorroborationService.HasCardTimestamp(State) &&
                         ActivePageContains("03g17") && !ActivePageContains("C01"), "accessible reading finds a canon-safe card time");
+                    // Core v3.6.2 (Phase 2): Mark AS-05B receiver box directly in Large Print before carrying to Bed 4!
+                    yield return Choose("Ô chữ ký người nhận");
+                    yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.Bed4Card) == F101Annotations.Receiver,
+                        "AS-05B blank receiver box marked directly on card");
                     yield return Choose("Cất tạm vào ba lô (Lớp B)");
                     yield return Until(() => !busy && InventoryService.HasPhysical(State, BackpackCatalog.PaperObs101B),
                         "AS-05B temporarily stowed in Backpack (Layer B)");
@@ -409,6 +423,14 @@ namespace CTCC
                     yield return WalkWithInput(new Vector3(10.75f, 0f, 4.35f));
                     yield return AimAndUseHere("OBS101A");
                     yield return Until(() => !busy && State.Observed("OBS101A"), "OBS101A Bed-4 trace observed");
+                    // Core v3.6.2 (Phase 2): Perform real spatial Bed-4 alcove cross-check via [Q] while aiming at OBS101A!
+                    Require(CanSpatialLinkBed4(), "Spatial Bed-4 cross-check eligible once OBS101A & marked AS-05B are verified in alcove");
+                    player.CanPlay = false;
+                    yield return Tap(Key.Q);
+                    RefreshControls();
+                    yield return Until(() => !busy && State.f101Annotations.HasLink &&
+                        F101Annotations.ResolveLinkProvenance(State) == F101LinkProvenance.SpatialFieldVerified,
+                        "Spatial Bed-4 cross-check commits SpatialFieldVerified provenance in-world");
 
                     // Clip stowed AS-05B physically onto COMPARE_CLIP_AN02 beside F101 (standing clear of midCurtain)!
                     yield return WalkWithInput(new Vector3(6.42f, 0f, 4.92f));
@@ -436,157 +458,117 @@ namespace CTCC
                     yield return new WaitForSecondsRealtime(0.16f);
                     CaptureInvestigation("walkthrough-backpack-papers");
                     yield return null;
-                    yield return Choose("Mở sổ ghi chép đầy đủ");
-                    yield return Choose("Dòng thời gian");
-                    yield return Choose("Phiếu chuyển giường 02");
-                    yield return Choose("Ghim mốc trái");
-                    yield return Choose("Vết hằn trên AS-05B");
-                    yield return Choose("Ghim mốc phải");
-                    yield return Choose("Nối hai mốc");
-                    Require(!CorroborationService.IsCorroborated(State) && ActivePageContains("ca trực"),
-                        "two pins never commit without a selected context");
-                    yield return Choose("Quy chế AS-05");
-                    yield return Choose("Kẹp ghi chú ca trực");
-                    yield return Choose("Nối hai mốc");
-                    Require(!CorroborationService.IsCorroborated(State) && ActivePageContains("chưa đủ để ghi cùng"),
-                        "the wrong pair leaves the timeline open and the save unsigned");
-                    var clockCard = ButtonMatching("Đồng hồ ở quầy");
-                    var timelinePin = ui.GetComponentsInChildren<RectTransform>().Single(rect => rect.name == "Timeline left pin");
-                    Canvas.ForceUpdateCanvases();
-                    SendPaperDrag(clockCard.gameObject, RectTransformUtility.WorldToScreenPoint(null, clockCard.transform.position),
-                        RectTransformUtility.WorldToScreenPoint(null, timelinePin.TransformPoint(timelinePin.rect.center)));
-                    Require(timelineDraft.left == ObservationRegistry.StoppedClock0317,
-                        "dragging the clock card replaces the left pin without changing its context");
-                    CaptureInvestigation("timeline-0317-pins");
-                    yield return Choose("Nối hai mốc");
-                    yield return Until(() => !busy && CorroborationService.IsCorroborated(State), "explicit observed pair and context record CH01-EX01");
-                    Require(State.exception0317Link.context == ObservationRegistry.ShiftGuide &&
-                        ActivePageContains("chưa xác định sự kiện"), "timeline records source IDs and limits the result");
-                    CaptureInvestigation("timeline-0317-saved");
-                    yield return VerifyNotebookInput();
-                    if (ui.IsModal) yield return Tap(Key.Escape);
-                    yield return NotebookLifetimeStress();
+                    // Phase 2 Ch01JournalPolicy: 100% ZERO 5-tab Journal entry in CH01 Backpack!
+                    Require(ui.GetComponentsInChildren<Button>(false).All(b =>
+                        !(b.GetComponentInChildren<Text>()?.text ?? "").Contains("Mở sổ ghi chép") &&
+                        !(b.GetComponentInChildren<Text>()?.text ?? "").Contains("Mở sổ trực đầy đủ")),
+                        "Ch01JournalPolicy Phase 2 locks 100% of 5-tab Journal buttons in CH01 B04-B05");
+                    yield return Tap(Key.Escape);
+                    yield return Until(() => !ui.IsModal, "Backpack closed cleanly");
 
-                    // Mark the report and card in different reading modes, then link the field observation.
+                    // Core v3.6.2 (Phase 2): World-First 3D AN02 Clipboard + Free HH:MM EX01 + Spatial Provenance C Refutation!
                     yield return WalkWithInput(new Vector3(7.36f, 0f, 4.98f));
                     yield return AimAndUseHere("F101");
-                    yield return Until(() => !busy && inspector.IsInspecting, "F101 is lifted from the clipboard");
+                    yield return Until(() => !busy && IsAn02Clipboard3DActive && ui.IsModal, "3D AN02 clipboard opens directly without 2-column Journal modal");
                     Require(!transaction.OnPad(player.Feet, "AP04"), "F101 is reachable from a free stance outside AP04");
-                    Require(scene.f101WallRenderer != null && !scene.f101WallRenderer.enabled,
-                        "the sheet disappears from the board while held");
-                    Require(ActivePageContains("Một phiếu in sẵn") && !ActivePageContains("[3] Soi"), "F101 opens neutral");
+                    yield return new WaitForSecondsRealtime(0.24f);
+                    CaptureInvestigation("an02-3d-clipboard-100");
+                    yield return null;
+
+                    // Solve EX01 on the physical AN02 margin via free keyboard HH:MM entry (ZERO timeline distractors, ZERO auto-solve!)
+                    Require(CorroborationService.CanCorroborate0317(State) && !CorroborationService.IsCorroborated(State),
+                        "EX01 stays unsolved until player explicitly enters 03:17 on AN02");
+                    yield return Choose("Mép ghi chú ngoại lệ");
+                    Require(ActivePageContains("--:--"), "EX01 free HH:MM entry starts neutral at --:--");
+                    yield return Tap(Key.Digit0);
+                    yield return Tap(Key.Digit3);
+                    yield return Tap(Key.Digit1);
+                    yield return Tap(Key.Digit6);
+                    yield return Choose("Ghi nhận mốc giờ [03:16]");
+                    Require(!CorroborationService.IsCorroborated(State) && ActivePageContains("chưa khớp"),
+                        "EX01 rejects wrong player-entered time 03:16");
+                    yield return Choose("Đặt lại (--:--)");
+                    yield return Tap(Key.Digit0);
+                    yield return Tap(Key.Digit3);
+                    yield return Tap(Key.Digit1);
+                    yield return Tap(Key.Digit7);
+                    yield return null;
+                    CaptureInvestigation("an02-3d-ex01-hhmm");
+                    yield return null;
+                    yield return Choose("Ghi nhận mốc giờ [03:17]");
+                    yield return Until(() => !busy && CorroborationService.IsCorroborated(State),
+                        "EX01 commits CH01-EX01 cleanly on player-entered 03:17");
+                    Require(State.exception0317Link.context == ObservationRegistry.ShiftGuide &&
+                        ActivePageContains("chưa xác định sự kiện"), "EX01 records shift context and respects CAN05");
+                    yield return Choose("Quay lại mặt phiếu F101");
+
+                    // Lift F101 sheet in 3D from AN02 to inspect reverse side (F101_BACK) and return seamlessly to AN02!
+                    yield return Choose("Nhấc tờ F101 soi 3D hai mặt");
+                    yield return Until(() => !busy && inspector.IsInspecting, "F101 lifted from AN02 into 3D inspector");
                     yield return Choose("Lật sang mặt sau");
                     yield return Tap(Key.Digit3);
                     yield return Until(() => !busy && ActivePageContains("Chưa thấy phiếu chốt"), "F101 back detail unlocks after explicit flip");
-                    yield return Choose("Lật về mặt trước");
-                    yield return Tap(Key.Digit2);
-                    yield return Tap(Key.M);
-                    yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet) == F101Annotations.Zero,
-                        "mark the actual 3D sheet using the keyboard");
-                    yield return Choose("Đặt giấy lên bảng kẹp");
-                    Require(ui.IsModal && !inspector.IsInspecting && scene.f101WallRenderer.enabled,
-                        "paper returns to the clipboard in the same interaction");
-                    Require(reportDraft.SourceCount == 0 && string.IsNullOrEmpty(reportDraft.ClaimId),
-                        "observations, markings and a journal hypothesis do not prefill the form");
-                    yield return Choose("Ghi nhận sai lệch trong bàn giao");
-                    yield return Choose("Đọc lại trên phiếu");
-                    Require(formPage == FormPage.Draft && !GateService.G01(State), "no attachments cannot reach the signature");
+                    yield return Choose("Quay lại bảng kẹp AN02");
+                    yield return Until(() => !busy && !inspector.IsInspecting && IsAn02Clipboard3DActive, "returned cleanly to 3D AN02 clipboard");
 
-                    ClickUi(ButtonMatching("Số bệnh nhân chưa bàn giao"));
-                    yield return Until(() => !busy && string.IsNullOrEmpty(State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet)),
-                        "pointer on the printed total removes a mark");
-                    ClickUi(ButtonMatching("Số bệnh nhân chưa bàn giao"));
+                    // Mark F101 zero line directly on 3D AN02 clipboard
+                    yield return Choose("Đánh dấu dòng số 0 trên phiếu F101");
                     yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet) == F101Annotations.Zero,
-                        "pointer on the printed total marks the zero");
-                    yield return Choose("Mở trang đối chiếu");
-                    yield return Choose("Suy luận");
-                    yield return Choose("Cần trở lại");
-                    yield return Tap(Key.Tab);
-                    yield return Choose("Kẹp nguồn vào F101");
-                    Require(reportDraft.SourceCount == 1 && reportDraft.Includes(ObservationRegistry.Bed4Card) &&
-                        string.IsNullOrEmpty(reportDraft.ClaimId), "explicit journal handoff attaches only its chosen source");
-                    yield return Choose("Tài liệu");
-                    var clip = ComparisonSlot(0);
-                    if (!comparison[0].LargePrint) yield return Choose("Chữ lớn", clip);
-                    yield return Choose("Tình trạng", clip);
-                    yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.Bed4Card) == F101Annotations.CardStatus,
-                        "large print marks the player's chosen field");
-                    yield return Choose("Về phiếu F101");
-                    var draftSource = ButtonMatching("F101 · Phiếu bàn giao");
-                    var sheet = ui.GetComponentsInChildren<RectTransform>().Single(r => r.name == "Right page");
-                    Canvas.ForceUpdateCanvases();
-                    SendPaperDrag(draftSource.gameObject, RectTransformUtility.WorldToScreenPoint(null, draftSource.transform.position),
-                        RectTransformUtility.WorldToScreenPoint(null, sheet.TransformPoint(sheet.rect.center)));
-                    Require(reportDraft.Includes(ObservationRegistry.F101Sheet), "drag attaches the original sheet to the clipboard");
-                    yield return Choose("Dấu sử dụng giường 4");
-                    yield return LinkFormInputs();
+                        "AN02 marks F101 zero line");
+                    // Test Esc preserves F101Draft!
+                    yield return Choose("B · Chưa đủ thông tin");
+                    yield return Tap(Key.Escape);
+                    yield return Until(() => !IsAn02Clipboard3DActive && !ui.IsModal && reportDraft.Decision == FormStatus.Unverified,
+                        "Esc exits 3D AN02 clipboard while preserving F101Draft");
+                    yield return AimAndUseHere("F101");
+                    yield return Until(() => !busy && IsAn02Clipboard3DActive && ui.IsModal, "3D AN02 clipboard reopens with draft preserved");
+
+                    // Enter Branch C builder: test irrelevant source & overclaim rejected, then valid 3 sources + ClaimUnreliableZero!
+                    yield return Choose("C · Ghi nhận số 0 chưa đủ căn cứ");
+                    yield return Choose("Kẹp nguồn: F101 · Phiếu bàn giao");
+                    yield return Choose("Kẹp nguồn: AS-05B · Thẻ giường 4");
+                    yield return Choose("Kẹp nguồn: Dấu sử dụng giường 4");
+                    yield return Choose("Kẹp nguồn: Phiếu phát thuốc giường 03");
                     yield return Choose("chưa đủ căn cứ xác nhận số 0");
                     yield return Choose("Đọc lại trên phiếu");
-                    Require(formPage == FormPage.Draft && ActivePageContains("nét đánh dấu"), "wrong field has an evidence gap");
-
-                    yield return Choose("Mở trang đối chiếu");
-                    yield return Choose("Mặt giấy", clip);
-                    ClickPaperField(clip, AnnotationFields(ObservationRegistry.Bed4Card)[1].Uv.center);
-                    yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.Bed4Card) == F101Annotations.Receiver,
-                        "mouse raycast marks the signature on the document itself");
-                    Require(!State.f101Annotations.HasLink, "changing the mark clears the previous endpoint");
-                    yield return Choose("Chữ lớn", clip);
-                    CaptureInvestigation("card-mark-100");
-                    yield return Choose("Về phiếu F101");
-                    yield return LinkFormInputs();
-
-                    yield return Choose("Phiếu phát thuốc giường 03");
-                    yield return Choose("Đọc lại trên phiếu");
-                    Require(formPage == FormPage.Draft && ActivePageContains("đang bám nhầm"), "unrelated observed source gives localized reasoning feedback");
-                    yield return Choose("Phiếu phát thuốc giường 03");
+                    Require(an02View == An02View.RefuteBuilder && ActivePageContains("đang bám nhầm"),
+                        "unrelated Bed-3 meds rejected on AN02 C builder");
+                    yield return Choose("Kẹp nguồn: Phiếu phát thuốc giường 03");
                     yield return Choose("vẫn còn trong phòng 101");
                     yield return Choose("Đọc lại trên phiếu");
-                    Require(formPage == FormPage.Draft && ActivePageContains("ở đâu"), "unsupported conclusion is rejected without signing");
+                    Require(an02View == An02View.RefuteBuilder && ActivePageContains("ở đâu"),
+                        "unsupported overclaim rejected on AN02 C builder");
                     yield return Choose("chưa đủ căn cứ xác nhận số 0");
-                    CaptureInvestigation("f101-draft-100");
-                    yield return null;
-                    var larger = new VisitSettings { textScale = 1.3f, captions = Options.captions, alternateBindings = Options.alternateBindings };
-                    ui.Apply(larger);
-                    Form();
-                    Require(ButtonMatching("Ghi nhận sai lệch trong bàn giao").GetComponentInChildren<Text>().fontSize >= 24,
-                        "clipboard decisions inherit 130-percent font sizing");
-                    CaptureInvestigation("f101-draft-130");
-                    yield return null;
-                    ui.Apply(Options);
-                    Form();
 
                     var annotationSaves = new AtomicSaves(Argument("-ctcc-save"));
                     Require(annotationSaves.Read(SaveSlot.Auto, out var annotated) == SaveRead.Valid &&
-                        annotated.f101Annotations.SupportsRefutation(annotated) && annotated.f101History.Count == 0,
-                        "draft marks and link round-trip before the first signature");
-                    yield return Choose("Đọc lại trên phiếu");
-                    Require(formPage == FormPage.Review && ActivePageContains("chưa đủ căn cứ xác nhận số 0"),
-                        "review shows only the chosen claim and attachments");
-                    DragSignature();
-                    yield return Until(() => formPage == FormPage.Seal, "mouse stroke stages the signature");
-                    yield return Tap(Key.Escape);
-                    Require(formPage == FormPage.Draft && State.f101.revision == 0 && !GateService.G01(State),
-                        "cancel after drawing leaves the signed history and gate untouched");
-                    yield return Choose("Đọc lại trên phiếu");
-                    yield return Choose("Kéo bút qua dòng ký");
-                    CaptureInvestigation("f101-pre-seal-100");
-                    yield return null;
+                        annotated.f101Annotations.SupportsRefutation(annotated) &&
+                        F101Annotations.ResolveLinkProvenance(annotated) == F101LinkProvenance.SpatialFieldVerified &&
+                        annotated.f101History.Count == 0,
+                        "draft marks and SpatialFieldVerified link round-trip before the first signature");
 
-                    Button seal = ButtonMatching("Đóng dấu");
-                    ClickUi(seal);
-                    ExecuteEvents.Execute(seal.gameObject, new PointerEventData(EventSystem.current), ExecuteEvents.pointerClickHandler);
-                    yield return Until(() => State.f101.revision == 1, "F101 publishes before stamp animation");
-                    Require(GateService.G01(State) && !ActivePageContains("ĐÃ GHI SỔ"),
-                        "the visible stamp waits for publication");
-                    yield return Until(() => ActivePageContains("ĐÃ GHI SỔ"), "published stamp is shown on the paper");
-                    CaptureInvestigation("f101-signed-100");
-                    yield return Until(() => !busy && !ui.IsModal, "F101 Refuted committed via real UI");
+                    // 2-step Preview -> Sign N. H. Minh -> Confirm -> Esc cancel test -> Commit!
+                    yield return Choose("Đọc lại trên phiếu");
+                    Require(an02View == An02View.Preview && ActivePageContains("Bạn sẽ ký nội dung trên"),
+                        "AN02 Preview shows chosen claim and Core 04 confirm copy");
+                    yield return Choose("Ký tên: N. H. Minh");
+                    Require(an02View == An02View.Confirm && ActivePageContains("N. H. Minh"),
+                        "AN02 Sign step arms N. H. Minh signature before 2nd confirmation");
+                    yield return Tap(Key.Escape);
+                    Require(an02View == An02View.Clipboard && State.f101.revision == 0 && !GateService.G01(State),
+                        "cancel after signing leaves history and G01 untouched");
+                    yield return Choose("Đọc lại trên phiếu");
+                    yield return Choose("Ký tên: N. H. Minh");
+                    yield return Choose("Xác nhận & đóng dấu ca trực");
+                    yield return Until(() => !busy && !ui.IsModal && !IsAn02Clipboard3DActive && State.f101.revision == 1,
+                        "F101 Refuted committed via 3D AN02 clipboard with SpatialFieldVerified provenance");
                     Require(State.f101.firstDecision == FormStatus.Refuted && State.f101.revision == 1 &&
                         State.f101Argument.annotationVersion == F101Annotations.Version &&
                         State.f101Argument.selectedEvidenceIds.Count == 3 &&
                         State.f101History[0].annotations.SupportsRefutation(State) &&
-                        scene.refutedBay != null && scene.refutedBay.activeInHierarchy, "Refuted visual and signed annotations verified");
-                    verification.Add("REBIRTH II F101 PASS: missing sources, wrong hotspot/link, unrelated evidence, overclaim, mouse signature, cancel, double-stamp guard and before/after publication.");
+                        F101Annotations.ResolveLinkProvenance(State) == F101LinkProvenance.SpatialFieldVerified &&
+                        scene.refutedBay != null && scene.refutedBay.activeInHierarchy, "Refuted visual, 3D AN02 & spatial provenance verified");
+                    verification.Add("CH01 REBIRTH III PHASE 2 INPUT PASS: 0 Journal in CH01, 3D AN02 clipboard, free HH:MM EX01 (03:16 rejected -> 03:17 saved), spatial [Q] Bed-4 link, C rejection guards, Esc draft retention, and 2-step N. H. Minh confirmation.");
                     yield return LookForWardConsequence(branch);
                     if (captureExpansion) yield return new WaitForSecondsRealtime(0.75f);
 
@@ -707,9 +689,9 @@ namespace CTCC
 
                 yield return WalkWithInput(new Vector3(7.24f, 0f, 4.93f));
                 yield return OpenFormInput();
-                yield return Choose(branch == FormStatus.Affirmed ? "Xác nhận số 0" : "Để ngỏ, chờ kiểm tra");
+                yield return Choose(branch == FormStatus.Affirmed ? "A · Xác nhận theo bản kê" : "B · Chưa đủ thông tin");
                 yield return Choose("Đọc lại trên phiếu");
-                yield return Choose("Kéo bút qua dòng ký");
+                yield return Choose("Ký tên: N. H. Minh");
                 if (branch == FormStatus.Affirmed)
                 {
                     long sequence = State.sequence;
@@ -718,10 +700,10 @@ namespace CTCC
                     using (var slotLock = new FileStream(autosave + ".lock", FileMode.Open,
                         FileAccess.ReadWrite, FileShare.None))
                     {
-                        yield return Choose("Đóng dấu");
+                        yield return Choose("Xác nhận & đóng dấu ca trực");
                         yield return Until(() => !busy && ActivePageContains("Chưa ghi được bản lưu"), "UI retries a blocked atomic save");
                         Require(State.sequence == sequence && State.f101.revision == 0 && !GateService.G01(State) &&
-                            !ActivePageContains("ĐÃ GHI SỔ") && formPage == FormPage.Seal,
+                            an02View == An02View.Confirm,
                             "failed publication leaves the preview available, without signing or stamping");
                         Require(before.SequenceEqual(File.ReadAllBytes(autosave)) && !File.Exists(autosave + ".tmp"),
                             "the competing slot owner leaves the previous autosave byte-for-byte intact");
@@ -730,8 +712,8 @@ namespace CTCC
                     }
                     verification.Add("REBIRTH II SAVE FAILURE PASS: locked autosave leaves the same draft and revision, with the gate closed.");
                 }
-                yield return Choose("Đóng dấu");
-                yield return Until(() => !busy && GateService.G01(State), $"F101 {branch} confirmation");
+                yield return Choose("Xác nhận & đóng dấu ca trực");
+                yield return Until(() => !busy && !IsAn02Clipboard3DActive && GateService.G01(State), $"F101 {branch} confirmation");
                 Require(State.f101.firstDecision == branch && State.f101.revision == 1 &&
                     FormService.Distortion(State) == (branch == FormStatus.Affirmed ? 1 : 0), $"F101 {branch} state");
                 if (branch == FormStatus.Affirmed)
@@ -752,11 +734,11 @@ namespace CTCC
                     yield return Until(() => !voice.IsSpeaking && !SignatureCuePlaying(), "first signature cue finished");
                     int historyCount = State.f101History.Count;
                     yield return OpenFormInput();
-                    yield return Choose("Để ngỏ, chờ kiểm tra");
+                    yield return Choose("B · Chưa đủ thông tin");
                     yield return Choose("Đọc lại trên phiếu");
-                    yield return Choose("Kéo bút qua dòng ký");
+                    yield return Choose("Ký tên: N. H. Minh");
                     long sequence = State.sequence;
-                    yield return Choose("Đóng dấu");
+                    yield return Choose("Xác nhận & đóng dấu ca trực");
                     yield return Until(() => !busy && !ui.IsModal, "duplicate F101 submission closes");
                     Require(!voice.IsSpeaking && !SignatureCuePlaying() && State.sequence == sequence &&
                         State.f101.revision == 1 && State.f101History.Count == historyCount,
@@ -833,15 +815,21 @@ namespace CTCC
                     "Supported F101 argument and its single committed revision survive CH02 manual load");
                 Require(State.settings.alternateBindings && State.settings.textScale > 1.25f && AudioListener.volume == 0,
                     "accessibility survives manual load");
+                Require(State.FindPropPose("CHAIR-STAFF", Reality.B)?.openness > .9f &&
+                    State.FindPropPose("DRAWER-NURSE", Reality.B)?.openness > .9f &&
+                    State.journalNotes.Count == 0,
+                    "independent physical poses survive handoff and CH01 stays 100% zero-Journal");
+                yield return Tap(Key.J);
+                yield return Until(() => ui.IsModal, "remapped J opens CH02 Backpack");
+                yield return Choose("Pocket Note");
+                yield return Choose("Mở sổ trực đầy đủ");
+                yield return VerifyNotebookInput();
+                if (ui.IsModal) yield return Tap(Key.Escape);
+                yield return NotebookLifetimeStress();
                 Require(State.journalNotes.Count == 2 && State.journalNotes[0].paperMark.placed &&
                     State.journalNotes[1].source == ObservationRegistry.Bed4Card &&
-                    string.IsNullOrEmpty(State.journalNotes[1].related) &&
-                    State.FindPropPose("CHAIR-STAFF", Reality.B)?.openness > .9f &&
-                    State.FindPropPose("DRAWER-NURSE", Reality.B)?.openness > .9f,
-                    "authored notes and independent physical poses survive handoff and manual reload");
-                yield return Tap(Key.J);
-                yield return Until(() => ui.IsModal, "remapped J opens journal");
-                yield return Tap(Key.Escape);
+                    string.IsNullOrEmpty(State.journalNotes[1].related),
+                    "CH02 5-tab Journal authoring & 100-cycle lifetime stress verified post-handoff");
             }
             verification.Add($"INPUT PASS {branch}: Unity Input System, focus/interaction and UI, F101 branch, CH02 handoff, manual save/load.");
             if (branch == FormStatus.Unverified && !Environment.GetCommandLineArgs().Contains("-ctcc-ch01-ch02-only"))
@@ -1285,7 +1273,7 @@ namespace CTCC
                 FormStatus.Affirmed => scene.deniedBay.transform.Find("Denied bay front").GetComponent<Collider>()
                     .ClosestPoint(player.Eye.transform.position),
                 FormStatus.Unverified => scene.interactables.curtainCloth.GetComponent<Renderer>().bounds.center,
-                _ => scene.refutedBay.transform.Find("RefutedBed4SharpWheels").position
+                _ => (scene.refutedBay.transform.Find("CH01_PR01_CornerTrace") ?? scene.refutedBay.transform.Find("RefutedBed4DampWall")).position
             };
             player.SetViewRotation(Quaternion.LookRotation(cue - player.Eye.transform.position));
             yield return Until(() => State.f101History[0].consequenceObserved && !busy, $"{branch} follows the player's renewed sightline");
@@ -1394,7 +1382,10 @@ namespace CTCC
         {
             yield return Until(() => State.Happened("CH01-T06"), "room checkpoint");
             yield return AimAndUseHere("F101");
-            yield return Choose("Đặt giấy lên bảng kẹp");
+            if (State.chapter == "CH01")
+                yield return Until(() => !busy && IsAn02Clipboard3DActive && ui.IsModal, "3D AN02 clipboard ready");
+            else
+                yield return Choose("Đặt giấy lên bảng kẹp");
         }
 
         private IEnumerator AimAndUseHere(string id)
