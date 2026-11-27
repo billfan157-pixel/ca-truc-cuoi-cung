@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace CTCC
 {
@@ -96,12 +98,12 @@ namespace CTCC
 
             torch = torchPivot.gameObject.AddComponent<Light>();
             torch.type = LightType.Spot;
-            torch.spotAngle = 68f;
-            torch.innerSpotAngle = 36f;
+            // Single unified wide-halo flashlight cone (34° bright core + smooth 82° reflector spill) eliminates redundant 2nd full-screen SpotLight pass!
+            torch.spotAngle = 82f;
+            torch.innerSpotAngle = 34f;
             torch.color = new Color(1.0f, 0.96f, 0.88f);
-            torch.range = 32.0f;
-            torch.intensity = 34.0f;
-            // Real soft shadows from the player's flashlight — crisp, powerful beam down dark corridors
+            torch.range = 34.0f;
+            torch.intensity = 38.0f;
             torch.shadows = LightShadows.Soft;
             torch.shadowStrength = 0.86f;
             torch.shadowBias = 0.03f;
@@ -109,7 +111,7 @@ namespace CTCC
             torch.shadowNearPlane = 0.15f;
             torch.enabled = false;
 
-            // Wide reflector flood cone (no shadows) for natural halo around the hotspot
+            // Legacy secondary flood object retained (disabled) to keep zero overhead while preserving rig hierarchy
             var floodGo = new GameObject("Flashlight Wide Flood");
             floodGo.transform.SetParent(torchPivot, false);
             floodGo.transform.localPosition = Vector3.zero;
@@ -118,8 +120,8 @@ namespace CTCC
             torchFlood.spotAngle = 92f;
             torchFlood.innerSpotAngle = 48f;
             torchFlood.color = new Color(1.0f, 0.95f, 0.86f);
-            torchFlood.range = 18.0f;
-            torchFlood.intensity = 8.5f;
+            torchFlood.range = 10.0f;
+            torchFlood.intensity = 0f;
             torchFlood.shadows = LightShadows.None;
             torchFlood.enabled = false;
 
@@ -130,8 +132,8 @@ namespace CTCC
             torchSpill = spillGo.AddComponent<Light>();
             torchSpill.type = LightType.Point;
             torchSpill.color = new Color(1.0f, 0.95f, 0.86f);
-            torchSpill.range = 7.2f;
-            torchSpill.intensity = 2.4f;
+            torchSpill.range = 6.8f;
+            torchSpill.intensity = 2.6f;
             torchSpill.shadows = LightShadows.None;
             torchSpill.enabled = false;
 
@@ -151,25 +153,45 @@ namespace CTCC
         public void RestoreBattery(int charge) => battery = Mathf.Max(120, charge);
         internal void SetBatteryForQa(float seconds) => battery = Mathf.Max(0f, seconds);
 
+        /// <summary>
+        /// Adapts flashlight ranges & shadow atlas tier cleanly for enclosed indoor rooms (Ward 101 / Corridor / Store)
+        /// vs wide exterior courtyard so SpotLight shadows never pull distant exterior campus geometry indoors!
+        /// </summary>
+        internal void SetIndoorBudget(bool indoor)
+        {
+            if (torch != null)
+            {
+                torch.range = indoor ? 15.0f : 34.0f;
+                var urp = torch.GetUniversalAdditionalLightData();
+                if (urp != null)
+                {
+                    // URP 17 native PCF shadow filter quality: 4-tap Low on Medium/Low saves 4x per-pixel shadow bandwidth on iGPU!
+                    urp.softShadowQuality = QualitySettings.GetQualityLevel() <= 1
+                        ? SoftShadowQuality.Low
+                        : SoftShadowQuality.High;
+                }
+            }
+            if (torchFlood != null) torchFlood.enabled = false;
+            if (torchSpill != null) torchSpill.range = indoor ? 4.6f : 6.8f;
+        }
+
         public void SetTorchEnabled(bool on)
         {
+            SetIndoorBudget(HospitalScene.IsEnclosedIndoorBudget(transform.position));
             torchOn = on;
             bool active = on && battery > 0f;
             float vis = settings != null ? settings.visibility : 0f;
             if (torch != null)
             {
                 torch.enabled = active;
-                if (active) torch.intensity = 34.0f + vis * 8.0f;
+                if (active) torch.intensity = 38.0f + vis * 8.5f;
             }
             if (torchFlood != null)
-            {
-                torchFlood.enabled = active;
-                if (active) torchFlood.intensity = 8.5f + vis * 2.5f;
-            }
+                torchFlood.enabled = false;
             if (torchSpill != null)
             {
                 torchSpill.enabled = active;
-                if (active) torchSpill.intensity = 2.4f + vis * 0.7f;
+                if (active) torchSpill.intensity = 2.6f + vis * 0.7f;
             }
         }
 
@@ -187,6 +209,7 @@ namespace CTCC
             verticalSpeed = 0f;
             stamina = Mathf.Max(stamina, 3f);
             Physics.SyncTransforms();
+            SetIndoorBudget(HospitalScene.IsEnclosedIndoorBudget(point));
         }
 
         private void Update()
@@ -269,30 +292,29 @@ namespace CTCC
                     y += Mathf.Sin(Time.unscaledTime * 1.45f) * 0.004f;
                 }
             }
-            eye.transform.localPosition = new Vector3(bobX, y, 0f);
+            Vector3 targetEyePos = new Vector3(bobX, y, 0f);
+            eye.transform.localPosition = Vector3.Lerp(eye.transform.localPosition, targetEyePos,
+                1f - Mathf.Exp(-16f * dt));
 
             // Subtle natural handheld flashlight lag & low-battery flicker warning
             if (k[alternate ? Key.L : Key.F].wasPressedThisFrame)
             {
-                torchOn = !torchOn;
+                SetTorchEnabled(!torchOn);
                 audioBus?.From("doorLatch", eye.transform.position);
             }
-            if (torchOn && battery > 0f) battery = Mathf.Max(0f, battery - dt);
-            bool activeTorch = torchOn && battery > 0f;
+            if (torchOn && !torchSuppressed && battery > 0f) battery = Mathf.Max(0f, battery - dt);
+            bool activeTorch = !torchSuppressed && torchOn && battery > 0f;
             torch.enabled = activeTorch;
             float flicker = (!settings.reduceMotion && battery < 45f)
                 ? 0.72f + 0.28f * Mathf.PerlinNoise(Time.unscaledTime * 14f, 2.3f)
                 : 1.0f;
-            torch.intensity = (34.0f + settings.visibility * 8.0f) * flicker;
+            torch.intensity = (38.0f + settings.visibility * 8.5f) * flicker;
             if (torchFlood != null)
-            {
-                torchFlood.enabled = activeTorch;
-                torchFlood.intensity = (8.5f + settings.visibility * 2.5f) * flicker;
-            }
+                torchFlood.enabled = false;
             if (torchSpill != null)
             {
                 torchSpill.enabled = activeTorch;
-                torchSpill.intensity = (2.4f + settings.visibility * 0.7f) * flicker;
+                torchSpill.intensity = (2.6f + settings.visibility * 0.7f) * flicker;
             }
 
             if (!settings.reduceMotion)
@@ -372,6 +394,26 @@ namespace CTCC
             if (heldWeight > float.NegativeInfinity && heldWeight + 0.025f >= bestWeight)
                 return focusedTarget;
             return focusedTarget = best;
+        }
+
+        private bool torchSuppressed;
+        public bool TorchSuppressed
+        {
+            get => torchSuppressed;
+            set
+            {
+                if (torchSuppressed == value) return;
+                torchSuppressed = value;
+                SyncTorchVisuals();
+            }
+        }
+
+        private void SyncTorchVisuals()
+        {
+            bool activeTorch = !torchSuppressed && torchOn && battery > 0f;
+            if (torch != null) torch.enabled = activeTorch;
+            if (torchFlood != null) torchFlood.enabled = activeTorch;
+            if (torchSpill != null) torchSpill.enabled = activeTorch;
         }
 
         public void ClearFocus()

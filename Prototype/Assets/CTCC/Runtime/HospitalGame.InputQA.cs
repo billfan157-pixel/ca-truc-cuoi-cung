@@ -84,18 +84,22 @@ namespace CTCC
                 Require(State.evidence.Count == 1 && State.Has("E10a") && E10aParts.ReadCount(State) == 0 && !State.Happened(E10aParts.PostponementSms),
                     "Adversarial pickup keeps strictly 0/4 E10a parts read");
 
-                // Phase 1 Ch01JournalPolicy: Verify 5-tab Journal is ABSENT in B01 Backpack!
-                yield return Tap(Key.Tab);
-                yield return Until(() => ui.IsModal, "B01 Backpack opens");
-                yield return Choose("Pocket Note");
+                // Phase 2.5 Ch01JournalPolicy + Decoupled Sổ tay nhỏ ([N]) + Inventory 2.0 ([Tab])!
+                yield return Tap(Key.N);
+                yield return Until(() => IsPocketNoteOpen && ui.IsModal, "B01 [N] opens decoupled Sổ tay nhỏ");
                 Require(ui.GetComponentsInChildren<Button>(false).All(b =>
                     !(b.GetComponentInChildren<Text>()?.text ?? "").Contains("Mở sổ trực đầy đủ")),
-                    "Ch01JournalPolicy hides 5-tab Journal entry in B01 Backpack");
-                yield return Choose("Dụng cụ");
+                    "Ch01JournalPolicy hides 5-tab Journal entry in B01 Sổ tay nhỏ");
+                yield return Tap(Key.Escape);
+                yield return Until(() => !ui.IsModal, "Sổ tay nhỏ closed cleanly");
+
+                yield return Tap(Key.Tab);
+                yield return Until(() => ui.IsInventory2Open && backpackStage.IsOpen, "B01 Inventory 2.0 opens with 3D preview");
+                yield return Choose("Đồ vật");
                 yield return Choose("Chìa khu C");
                 yield return Choose("Cầm ra tay");
                 yield return Until(() => !busy && !ui.IsModal &&
-                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.WingCKey, "Wing-C key equipped from Backpack");
+                    InventoryService.GetEquipped(State)?.itemDefId == BackpackCatalog.WingCKey, "Wing-C key equipped from Inventory 2.0");
 
                 yield return AimAndUseHere("GATE-CONG");
                 yield return new WaitForSecondsRealtime(0.25f);
@@ -124,35 +128,27 @@ namespace CTCC
             }
             else
             {
-                // NARRATIVE ROUTE (Core v3.6.2 / 4.2 / 4.4 / 4.6):
-                // Look at lit lobby from AP00 -> [P] Phone -> read 22:48 SMS (commits postponementSMS) -> call Bảy ->
-                // close phone (CH01-D01 silent thought fires only after BOTH lit lobby + SMS, zero VO) ->
-                // zero-modal 3D mailbox [E] #1 open lid -> [E] #2 take atomic package -> inspect Lan letter -> unlock GATE-CONG!
+                // NARRATIVE ROUTE (Phase 2.5 Real Diegetic Phone 3D + Physical Envelope 3D — 0 Large-Print fallbacks!):
                 yield return null; // allow TickCh01LitLobbySight() to observe lit lobby from AP00
                 int nonVoBeforePhone = voice.NonVoAudioPlayCount;
                 yield return Tap(Key.P);
-                yield return Until(() => !busy && ui.IsModal && inspector.IsInspecting && State.Happened(E10aParts.PostponementSms),
-                    branch + " [P] opens 3D Minh phone and commits postponementSMS");
-                if (branch == FormStatus.Unverified)
-                {
-                    var holder = player.Eye.transform.Find("Physical Inspector Stage/Inspect Holder");
-                    Quaternion before = holder.localRotation;
-                    float zoom = holder.parent.localPosition.z;
-                    yield return Hold(Key.A, 0.18f);
-                    yield return Hold(Key.Q, 0.18f);
-                    Require(Quaternion.Angle(before, holder.localRotation) > 9 && Mathf.Abs(zoom - holder.parent.localPosition.z) > 0.017f,
-                        "physical inspector keyboard rotation and zoom on Minh 2012 phone");
-                }
+                yield return Until(() => !busy && IsDiegeticPhoneActive && ui.IsStandaloneOverlay,
+                    branch + " [P] opens standalone 0-sidebar DiegeticPhone3D");
+                Require(!State.Happened(E10aParts.PostponementSms) && E10aParts.ReadCount(State) == 0,
+                    "DiegeticPhone3D Inbox starts passive with 0 auto-read");
+                yield return Tap(Key.Enter);
+                yield return Until(() => !busy && State.Happened(E10aParts.PostponementSms),
+                    branch + " physical OK/Enter reads 22:48 SMS on live 3D LCD");
                 if (branch == FormStatus.Refuted)
                 {
                     yield return new WaitForSecondsRealtime(0.22f);
                     CaptureInvestigation("walkthrough-b01-phone");
                     yield return null;
                 }
-                yield return Choose("Gọi cho chú Bảy");
-                yield return Until(() => !busy && State.Happened(E10aParts.PhoneCalledBay), "Narrative route calls Bảy (no answer)");
-                yield return Choose("Cất điện thoại");
-                yield return Until(() => !busy && !ui.IsModal && !inspector.IsInspecting, "Phone closed cleanly");
+                yield return Tap(Key.C);
+                yield return Until(() => !busy && State.Happened(E10aParts.PhoneCalledBay), "Narrative route calls Bảy via 3D phone keypad");
+                yield return Tap(Key.Escape);
+                yield return Until(() => !busy && !ui.IsModal && !IsDiegeticPhoneActive, "DiegeticPhone3D closed cleanly");
                 Require(voice.Transcript.Any(t => t.LineId == "CH01-D01") && !voice.IsSpeaking && voice.NonVoAudioPlayCount == nonVoBeforePhone,
                     "DEC-VO-01 CH01-D01 renders as silent thought after phone + lit lobby sight with zero VO playback");
 
@@ -176,24 +172,31 @@ namespace CTCC
                     "Narrative 2nd [E] takes atomic mailbox package directly in-world with zero 2D modal (KEY_GATE equipped)");
                 if (branch == FormStatus.Refuted)
                 {
-                    // Open separated 2-sided Lan 2005 letter from Backpack -> Papers -> E10a
+                    // Open real Physical Envelope 3D from Inventory 2.0 -> Giấy tờ -> Phong bì chú Bảy -> open flap -> pull Lan letter!
                     yield return Tap(Key.Tab);
-                    yield return Until(() => ui.IsModal, "Backpack opens for E10a reading");
-                    yield return Choose("Giấy tờ & vật chứng");
-                    yield return Choose("Mở gói tài liệu E10a");
-                    yield return Until(() => !busy && inspector.IsInspecting, "E10a 3D document inspector opens");
-                    yield return Choose("2. Thư cũ của Lan");
-                    yield return Until(() => !busy && inspector.IsInspecting && inspector.HasBackSide, "E10a Lan letter 2-sided layer");
+                    yield return Until(() => ui.IsInventory2Open, "Inventory 2.0 opens for envelope");
+                    yield return Choose("Giấy tờ");
+                    yield return Choose("Phong bì chú Bảy");
+                    yield return Choose("Cầm & mở phong bì");
+                    yield return Until(() => !busy && IsDiegeticEnvelopeActive && ui.IsStandaloneOverlay, "Physical Envelope 3D opens standalone");
+                    Require(!State.Happened(E10aParts.Letter), "Opening 3D envelope keeps Lan letter unread");
                     yield return Tap(Key.Space);
-                    yield return Until(() => inspector.ShowingBack, "E10a Lan letter flips to back");
+                    yield return Until(() => envelope3D.IsFlapOpen, "Space opens 3D kraft envelope flap");
+                    Require(!State.Happened(E10aParts.Letter), "Opening 3D envelope flap never auto-reads Lan letter");
+                    yield return Tap(Key.Digit2);
+                    yield return Until(() => !busy && inspector.IsInspecting && inspector.HasBackSide, "Lan 2005 letter pulled out in 3D Physical Inspector 2.0");
+                    yield return Tap(Key.Space);
+                    yield return Until(() => inspector.ShowingBack, "Lan 2005 letter flips to back");
                     CaptureInvestigation("walkthrough-e10a-letter");
                     yield return null;
                     Require(State.Happened(E10aParts.Letter) && E10aParts.ReadCount(State) >= 2,
                         "Narrative route commits Lan letter read truthfully alongside SMS");
                     yield return Tap(Key.Escape);
-                    yield return Until(() => !busy && !inspector.IsInspecting, "E10a returns to Backpack");
+                    yield return Until(() => !busy && IsDiegeticEnvelopeActive, "Returning Lan letter returns to open 3D Envelope");
+                    yield return Tap(Key.Escape);
+                    yield return Until(() => !busy && !IsDiegeticEnvelopeActive, "Envelope closes back to Inventory 2.0");
                     if (ui.IsModal) yield return Tap(Key.Escape);
-                    yield return Until(() => !ui.IsModal, "Backpack closed cleanly");
+                    yield return Until(() => !ui.IsModal, "Inventory 2.0 closed cleanly");
                 }
                 Require(State.evidence.Count == 1 && State.Has("E10a") && E10aParts.ReadCount(State) >= 1,
                     "Narrative route preserves single E10a evidence with >= 1 part read");
@@ -268,28 +271,27 @@ namespace CTCC
                     yield return AimAndUseHere("LAN_TALK");
                     Require(!ui.IsModal, "optional words with Lan stay in the room");
                     yield return Until(() => voice.Transcript.Any(t => t.LineId == "CH01-D08"), "optional Lan dialogue recorded");
-                    yield return Tap(Key.Tab);
-                    yield return Until(() => ui.IsModal, "Tab opens Backpack");
-                    yield return Choose("Pocket Note");
-                    // Phase 1 Ch01JournalPolicy: 5-tab Journal is hidden in B03; player reads Lan transcript via Backpack!
+                    yield return Tap(Key.N);
+                    yield return Until(() => IsPocketNoteOpen && ui.IsModal, "[N] opens decoupled Sổ tay nhỏ");
+                    // Phase 2.5 Ch01JournalPolicy: 5-tab Journal is hidden in B03; player reads Lan transcript via Sổ tay nhỏ!
                     Require(ui.GetComponentsInChildren<Button>(false).All(b =>
                         !(b.GetComponentInChildren<Text>()?.text ?? "").Contains("Mở sổ trực đầy đủ")),
-                        "Ch01JournalPolicy keeps 5-tab Journal hidden in B03 Pocket Note");
-                    yield return Choose("Bản ghi hội thoại");
+                        "Ch01JournalPolicy keeps 5-tab Journal hidden in B03 Sổ tay nhỏ");
+                    yield return Choose("Xem lại lời thoại đã nghe");
                     Require(ActivePageContains("Lan") && ActivePageContains(Line("CH01-D04c")) &&
                             !ActivePageContains("không thấy bóng em"),
                         "Lan transcript keeps the clock line and omits the retired reflection beat");
-                    yield return Choose("Quay lại ba lô (Pocket Note)");
-                    yield return Until(() => ui.IsModal, "TranscriptPage returns cleanly to Backpack in CH01");
+                    yield return Choose("Quay lại sổ tay nhỏ");
+                    yield return Until(() => IsPocketNoteOpen && ui.IsModal, "TranscriptPage returns cleanly to Sổ tay nhỏ in CH01");
                     yield return Tap(Key.Escape);
                     if (ui.IsModal) yield return Tap(Key.Escape);
 
-                    // Pha 4: Manual 3D BOARD inspect and pickup -> unlocks DOOR-101 ajar
+                    // Pha 4: Manual 3D BOARD standalone 0-sidebar inspect and pickup via [G] -> unlocks DOOR-101 ajar
                     yield return WalkWithInput(new Vector3(2.95f, 0f, -2.75f));
                     yield return AimAndUseHere("BOARD");
-                    yield return Until(() => !busy && inspector.IsInspecting, "BOARD opens in 3D inspector before accept");
-                    yield return Choose("Nhận bảng kẹp & cất vào ba lô");
-                    yield return Until(() => !busy && !ui.IsModal && State.Happened("CH01-T05"), "board granted after manual inspect");
+                    yield return Until(() => !busy && inspector.IsInspecting && ui.IsStandaloneOverlay, "BOARD opens in standalone 0-sidebar Physical Inspector 2.0");
+                    yield return Tap(Key.G);
+                    yield return Until(() => !busy && !ui.IsModal && State.Happened("CH01-T05"), "board granted after manual standalone inspect");
                     yield return new WaitForSecondsRealtime(0.25f);
                     float doorAjar = scene.interactables.GetDragOpenness01("DOOR-101");
                     Require(doorAjar > 0.06f && doorAjar < 0.30f, $"DOOR-101 unlocks ajar for physical entry (got {doorAjar:F2})");
@@ -305,9 +307,8 @@ namespace CTCC
                     yield return AimAndUseHere("CH01_NURSE_DESK");
                     yield return Until(() => State.Observed("CH01_NURSE_DESK"), "STAFF desk note is optional and has provenance");
                     yield return AimAndUseHere("OBS_CORRIDOR_NOTICE");
-                    yield return Until(() => !busy && inspector.IsInspecting, "STAFF overflow notice inspected");
-                    Require(StaffTranscriptCount("CH01-D17") == 0 && ActivePageContains("Một tờ thông báo") &&
-                            !ActivePageContains("Dữ kiện quan sát"), "notice opens neutrally and without a reaction");
+                    yield return Until(() => !busy && inspector.IsInspecting && ui.IsStandaloneOverlay, "STAFF overflow notice inspected in 0-sidebar 3D");
+                    Require(StaffTranscriptCount("CH01-D17") == 0, "notice opens neutrally and without a reaction");
                     yield return Tap(Key.Escape);
                     yield return Until(() => StaffTranscriptCount("CH01-D17") == 1 && staffReactionCaption != null,
                         "notice reacts after ordinary view and close");
@@ -317,39 +318,39 @@ namespace CTCC
                     yield return Until(() => scene.interactables.IsDrawerOpen("DRAWER-NURSE"), "STAFF nurse drawer slides open");
                     yield return new WaitForSecondsRealtime(0.45f);
                     yield return AimAndUseHere("CH01_DRAWER_CLIP");
-                    yield return Until(() => !busy && inspector.IsInspecting, "a separate mesh inside the open STAFF drawer can be lifted");
+                    yield return Until(() => !busy && inspector.IsInspecting && ui.IsStandaloneOverlay, "a separate mesh inside the open STAFF drawer can be lifted");
                     yield return Tap(Key.Escape);
                     yield return AimAndUseHere("OBS_SHIFT_LOG");
-                    yield return Until(() => !busy && inspector.IsInspecting, "AS-05 shift guide inspected");
+                    yield return Until(() => !busy && inspector.IsInspecting && ui.IsStandaloneOverlay, "Shift guide inspected standalone");
                     yield return Tap(Key.Digit3);
-                    Require(!inspector.ShowingBack && inspector.ActiveDetailIndex == -1 && !ActivePageContains("[3] Soi"),
-                        "AS-05 does not reveal a back detail from the front");
+                    Require(!inspector.ShowingBack && inspector.ActiveDetailIndex == -1,
+                        "Shift guide does not reveal a back detail from the front");
                     yield return Tap(Key.Escape);
                     Require(staffReactions.Count == 0 && StaffTranscriptCount("CH01-D18") == 0,
-                        "AS-05 opening alone does not earn the reaction");
+                        "Shift guide opening alone does not earn the reaction");
                     yield return AimAndUseHere("OBS_SHIFT_LOG");
-                    yield return Until(() => !busy && inspector.IsInspecting, "AS-05 reopened for detail inspection");
+                    yield return Until(() => !busy && inspector.IsInspecting && ui.IsStandaloneOverlay, "Shift guide reopened for detail inspection");
                     yield return Tap(Key.Space); // Test live keyboard flip!
-                    yield return Until(() => inspector.ShowingBack, "AS-05 flipped to back via Space");
+                    yield return Until(() => inspector.ShowingBack, "Shift guide flipped to back via Space");
                     yield return Tap(Key.Digit3);
-                    yield return Until(() => !busy && ActivePageContains("Giấy kẹp của Lan"), "AS-05 side-specific detail readout");
-                    Require(inspector.ActiveDetailIndex == 2 && StaffTranscriptCount("CH01-D18") == 0,
-                        "AS-05 reaction stays quiet while reading the discovered detail");
+                    yield return Until(() => !busy && inspector.ActiveDetailIndex == 2, "Shift guide side-specific detail focused");
+                    Require(StaffTranscriptCount("CH01-D18") == 0,
+                        "Shift guide reaction stays quiet while reading the discovered detail");
                     yield return new WaitForSecondsRealtime(0.35f);
                     ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "task04-05-shift-back.png"));
-                    yield return Choose("Cất tạm vào ba lô (Lớp B)");
+                    yield return Tap(Key.G);
                     yield return Until(() => !busy && InventoryService.HasPhysical(State, BackpackCatalog.PaperShiftLog),
-                        "AS-05 shift guide temporarily stowed in Backpack (Layer B)");
+                        "Shift guide temporarily stowed in Inventory via [G]");
                     yield return Tap(Key.Escape);
                     yield return Until(() => StaffTranscriptCount("CH01-D18") == 1 && staffReactionCaption != null,
-                        "AS-05 reacts after inspection and close");
-                    // Place stowed AS-05 onto 2-slot STAFF physical comparison desk and capture 1080p visual proof!
+                        "Shift guide reacts after inspection and close");
+                    // Place stowed Shift guide onto 2-slot comparison desk and capture 1080p visual proof!
                     yield return WalkWithInput(new Vector3(-0.08f, 0f, 3.70f));
                     yield return AimAndUseHere("COMPARE_DESK_STAFF");
-                    yield return Choose("Đặt Quy chế AS-05 vào đây");
+                    yield return Choose("Đặt Quy chế bàn giao vào đây");
                     yield return Until(() => !busy &&
                         InventoryService.GetPlacedAt(State, WorldAnchors.StaffDeskLeft)?.itemDefId == BackpackCatalog.PaperShiftLog,
-                        "AS-05 placed visibly on 2-slot STAFF comparison desk");
+                        "Shift guide placed visibly on 2-slot comparison desk");
                     yield return Tap(Key.Escape);
                     yield return Until(() => !ui.IsModal, "STAFF comparison modal closed");
                     player.SetViewRotation(Quaternion.LookRotation(new Vector3(0.88f, 0.93f, 3.70f) - player.Eye.transform.position));
@@ -391,15 +392,15 @@ namespace CTCC
                     yield return new WaitForSecondsRealtime(0.55f);
                     yield return WalkWithInput(new Vector3(11.35f, 0f, 5.25f));
                     yield return AimAndUseHere("OBS101B");
-                    yield return Until(() => !busy && inspector.IsInspecting, "OBS101B card inspected");
+                    yield return Until(() => !busy && inspector.IsInspecting && ui.IsStandaloneOverlay, "OBS101B card inspected standalone 0-sidebar");
                     yield return Hold(Key.A, 2.1f);
                     yield return Tap(Key.Digit3);
-                    Require(!inspector.ShowingBack && inspector.ActiveDetailIndex == -1 && !ActivePageContains("[3] Soi") &&
-                            !State.FindObservation(ObservationRegistry.Bed4Card).flippedBack &&
-                            ActivePageContains("Một tấm thẻ giấy"), "unseen Bed-4 back remains hidden after tilt and shortcut");
+                    Require(!inspector.ShowingBack && inspector.ActiveDetailIndex == -1 &&
+                            !State.FindObservation(ObservationRegistry.Bed4Card).flippedBack,
+                        "unseen Bed-4 back remains hidden after tilt and shortcut");
                     ScreenCapture.CaptureScreenshot(Path.Combine(Argument("-ctcc-input-qa"), "task04-05-card-front.png"));
-                    yield return Choose("Mở bản chữ lớn");
-                    yield return Until(() => !busy && !inspector.IsInspecting && ui.IsModal, "Bed-4 Large Print ready after save");
+                    yield return Tap(Key.L);
+                    yield return Until(() => !busy && !inspector.IsInspecting && ui.IsModal && !ui.IsStandaloneOverlay, "Bed-4 opt-in Large Print ready after [L]");
                     Require(ActivePageContains("MẶT SAU") &&
                             ActivePageContains("Phần ghi nơi chuyển bị nhòe") &&
                             State.FindObservation(ObservationRegistry.Bed4Card).HasDetail("LARGE_PRINT") &&
@@ -411,8 +412,7 @@ namespace CTCC
                     yield return Choose("Đọc vết hằn mặt sau");
                     yield return Until(() => !busy && CorroborationService.HasCardTimestamp(State) &&
                         ActivePageContains("03g17") && !ActivePageContains("C01"), "accessible reading finds a canon-safe card time");
-                    // Core v3.6.2 (Phase 2): Mark AS-05B receiver box directly in Large Print before carrying to Bed 4!
-                    yield return Choose("Ô chữ ký người nhận");
+                    yield return Choose("Người nhận bàn giao: ô ký nhận trống");
                     yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.Bed4Card) == F101Annotations.Receiver,
                         "AS-05B blank receiver box marked directly on card");
                     yield return Choose("Cất tạm vào ba lô (Lớp B)");
@@ -423,7 +423,6 @@ namespace CTCC
                     yield return WalkWithInput(new Vector3(10.75f, 0f, 4.35f));
                     yield return AimAndUseHere("OBS101A");
                     yield return Until(() => !busy && State.Observed("OBS101A"), "OBS101A Bed-4 trace observed");
-                    // Core v3.6.2 (Phase 2): Perform real spatial Bed-4 alcove cross-check via [Q] while aiming at OBS101A!
                     Require(CanSpatialLinkBed4(), "Spatial Bed-4 cross-check eligible once OBS101A & marked AS-05B are verified in alcove");
                     player.CanPlay = false;
                     yield return Tap(Key.Q);
@@ -446,48 +445,41 @@ namespace CTCC
                     yield return null;
 
                     yield return Tap(Key.Tab);
-                    yield return Until(() => ui.IsModal && backpackStage != null && backpackStage.IsOpen, "Backpack + 3D canvas stage opened via Tab");
+                    yield return Until(() => ui.IsInventory2Open && backpackStage != null && backpackStage.IsOpen, "Inventory 2.0 + 3D preview opened via Tab");
                     yield return new WaitForSecondsRealtime(0.28f);
                     CaptureInvestigation("proposal-backpack-3d");
                     yield return null;
-                    yield return Choose("Tìm đồ đã đặt");
-                    yield return new WaitForSecondsRealtime(0.16f);
-                    Require(ActivePageContains("Kẹp đối chiếu cạnh F101") && ActivePageContains("Bàn điều dưỡng STAFF"),
-                        "Backpack 'Tìm đồ đã đặt' lists all placed items across zones");
-                    yield return Choose("Thẻ AS-05B [Đang đặt]");
+                    yield return Choose("Giấy tờ");
                     yield return new WaitForSecondsRealtime(0.16f);
                     CaptureInvestigation("walkthrough-backpack-papers");
                     yield return null;
-                    // Phase 2 Ch01JournalPolicy: 100% ZERO 5-tab Journal entry in CH01 Backpack!
                     Require(ui.GetComponentsInChildren<Button>(false).All(b =>
                         !(b.GetComponentInChildren<Text>()?.text ?? "").Contains("Mở sổ ghi chép") &&
                         !(b.GetComponentInChildren<Text>()?.text ?? "").Contains("Mở sổ trực đầy đủ")),
-                        "Ch01JournalPolicy Phase 2 locks 100% of 5-tab Journal buttons in CH01 B04-B05");
+                        "Ch01JournalPolicy locks 100% of 5-tab Journal buttons in CH01 B04-B05 Inventory 2.0");
                     yield return Tap(Key.Escape);
-                    yield return Until(() => !ui.IsModal, "Backpack closed cleanly");
+                    yield return Until(() => !ui.IsModal, "Inventory 2.0 closed cleanly");
 
-                    // Core v3.6.2 (Phase 2): World-First 3D AN02 Clipboard + Free HH:MM EX01 + Spatial Provenance C Refutation!
+                    // Phase 2.5 Diegetic Direct-Surface 3D AN02 Clipboard (0 sidebar default!) + Free HH:MM EX01 + Spatial Provenance C!
                     yield return WalkWithInput(new Vector3(7.36f, 0f, 4.98f));
                     yield return AimAndUseHere("F101");
-                    yield return Until(() => !busy && IsAn02Clipboard3DActive && ui.IsModal, "3D AN02 clipboard opens directly without 2-column Journal modal");
+                    yield return Until(() => !busy && IsAn02DirectSurfaceActive && ui.IsStandaloneOverlay, "Diegetic Direct-Surface AN02 3D opens with 0 sidebar");
                     Require(!transaction.OnPad(player.Feet, "AP04"), "F101 is reachable from a free stance outside AP04");
                     yield return new WaitForSecondsRealtime(0.24f);
                     CaptureInvestigation("an02-3d-clipboard-100");
                     yield return null;
 
-                    // Solve EX01 on the physical AN02 margin via free keyboard HH:MM entry (ZERO timeline distractors, ZERO auto-solve!)
+                    // Solve EX01 directly on the pinned 3D margin slip via keyboard 0-9 (03:16 rejected -> 03:17 committed!)
                     Require(CorroborationService.CanCorroborate0317(State) && !CorroborationService.IsCorroborated(State),
-                        "EX01 stays unsolved until player explicitly enters 03:17 on AN02");
-                    yield return Choose("Mép ghi chú ngoại lệ");
-                    Require(ActivePageContains("--:--"), "EX01 free HH:MM entry starts neutral at --:--");
+                        "EX01 stays unsolved until player explicitly enters 03:17 on 3D margin slip");
                     yield return Tap(Key.Digit0);
                     yield return Tap(Key.Digit3);
                     yield return Tap(Key.Digit1);
                     yield return Tap(Key.Digit6);
-                    yield return Choose("Ghi nhận mốc giờ [03:16]");
-                    Require(!CorroborationService.IsCorroborated(State) && ActivePageContains("chưa khớp"),
-                        "EX01 rejects wrong player-entered time 03:16");
-                    yield return Choose("Đặt lại (--:--)");
+                    Require(an02Surface.TriggerZoneById("EX01_SUBMIT"), "Submit wrong EX01 time 03:16 on 3D slip");
+                    yield return Until(() => !busy, "EX01 03:16 settle");
+                    Require(!CorroborationService.IsCorroborated(State), "EX01 rejects wrong player-entered time 03:16");
+                    Require(an02Surface.TriggerZoneById("EX01_RESET"), "Reset EX01 digits on 3D slip");
                     yield return Tap(Key.Digit0);
                     yield return Tap(Key.Digit3);
                     yield return Tap(Key.Digit1);
@@ -495,50 +487,46 @@ namespace CTCC
                     yield return null;
                     CaptureInvestigation("an02-3d-ex01-hhmm");
                     yield return null;
-                    yield return Choose("Ghi nhận mốc giờ [03:17]");
+                    Require(an02Surface.TriggerZoneById("EX01_SUBMIT"), "Submit 03:17 on 3D slip");
                     yield return Until(() => !busy && CorroborationService.IsCorroborated(State),
-                        "EX01 commits CH01-EX01 cleanly on player-entered 03:17");
-                    Require(State.exception0317Link.context == ObservationRegistry.ShiftGuide &&
-                        ActivePageContains("chưa xác định sự kiện"), "EX01 records shift context and respects CAN05");
-                    yield return Choose("Quay lại mặt phiếu F101");
+                        "EX01 commits CH01-EX01 cleanly on player-entered 03:17 via 3D slip");
+                    Require(State.exception0317Link.context == ObservationRegistry.ShiftGuide, "EX01 records shift context");
 
-                    // Lift F101 sheet in 3D from AN02 to inspect reverse side (F101_BACK) and return seamlessly to AN02!
-                    yield return Choose("Nhấc tờ F101 soi 3D hai mặt");
-                    yield return Until(() => !busy && inspector.IsInspecting, "F101 lifted from AN02 into 3D inspector");
-                    yield return Choose("Lật sang mặt sau");
+                    // Lift F101 sheet in 3D via [F] -> flip -> return seamlessly to AN02!
+                    yield return Tap(Key.F);
+                    yield return Until(() => !busy && inspector.IsInspecting, "F101 lifted from AN02 into 3D inspector via [F]");
+                    yield return Tap(Key.Space);
+                    yield return Until(() => inspector.ShowingBack, "F101 flipped to back");
                     yield return Tap(Key.Digit3);
-                    yield return Until(() => !busy && ActivePageContains("Chưa thấy phiếu chốt"), "F101 back detail unlocks after explicit flip");
-                    yield return Choose("Quay lại bảng kẹp AN02");
-                    yield return Until(() => !busy && !inspector.IsInspecting && IsAn02Clipboard3DActive, "returned cleanly to 3D AN02 clipboard");
+                    yield return Until(() => !busy && inspector.ActiveDetailIndex == 2, "F101 back detail focused after explicit flip");
+                    yield return Tap(Key.Escape);
+                    yield return Until(() => !busy && !inspector.IsInspecting && IsAn02DirectSurfaceActive, "returned cleanly to Diegetic AN02 3D surface");
 
-                    // Mark F101 zero line directly on 3D AN02 clipboard
-                    yield return Choose("Đánh dấu dòng số 0 trên phiếu F101");
+                    // Mark F101 zero line directly on 3D F101 sheet + verify Esc preserves F101Draft!
+                    Require(an02Surface.TriggerZoneById("MARK_ZERO"), "Click F101_ZERO on 3D paper");
                     yield return Until(() => !busy && State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet) == F101Annotations.Zero,
-                        "AN02 marks F101 zero line");
-                    // Test Esc preserves F101Draft!
-                    yield return Choose("B · Chưa đủ thông tin");
+                        "AN02 3D surface marks F101 zero line");
+                    Require(an02Surface.TriggerZoneById("OPT_B"), "Click Option B on 3D paper");
                     yield return Tap(Key.Escape);
                     yield return Until(() => !IsAn02Clipboard3DActive && !ui.IsModal && reportDraft.Decision == FormStatus.Unverified,
-                        "Esc exits 3D AN02 clipboard while preserving F101Draft");
+                        "Esc exits 3D AN02 surface while preserving F101Draft");
                     yield return AimAndUseHere("F101");
-                    yield return Until(() => !busy && IsAn02Clipboard3DActive && ui.IsModal, "3D AN02 clipboard reopens with draft preserved");
+                    yield return Until(() => !busy && IsAn02DirectSurfaceActive && ui.IsStandaloneOverlay, "3D AN02 surface reopens with draft preserved");
 
-                    // Enter Branch C builder: test irrelevant source & overclaim rejected, then valid 3 sources + ClaimUnreliableZero!
-                    yield return Choose("C · Ghi nhận số 0 chưa đủ căn cứ");
-                    yield return Choose("Kẹp nguồn: F101 · Phiếu bàn giao");
-                    yield return Choose("Kẹp nguồn: AS-05B · Thẻ giường 4");
-                    yield return Choose("Kẹp nguồn: Dấu sử dụng giường 4");
-                    yield return Choose("Kẹp nguồn: Phiếu phát thuốc giường 03");
-                    yield return Choose("chưa đủ căn cứ xác nhận số 0");
-                    yield return Choose("Đọc lại trên phiếu");
-                    Require(an02View == An02View.RefuteBuilder && ActivePageContains("đang bám nhầm"),
-                        "unrelated Bed-3 meds rejected on AN02 C builder");
-                    yield return Choose("Kẹp nguồn: Phiếu phát thuốc giường 03");
-                    yield return Choose("vẫn còn trong phòng 101");
-                    yield return Choose("Đọc lại trên phiếu");
-                    Require(an02View == An02View.RefuteBuilder && ActivePageContains("ở đâu"),
-                        "unsupported overclaim rejected on AN02 C builder");
-                    yield return Choose("chưa đủ căn cứ xác nhận số 0");
+                    // Select Branch C directly on 3D paper -> test irrelevant source & overclaim rejected -> commit valid C!
+                    Require(an02Surface.TriggerZoneById("OPT_C"), "Select Branch C on 3D paper");
+                    Require(an02Surface.TriggerZoneById("SRC_" + ObservationRegistry.F101Sheet), "Attach F101 on 3D slip");
+                    Require(an02Surface.TriggerZoneById("SRC_" + ObservationRegistry.Bed4Card), "Attach AS-05B on 3D slip");
+                    Require(an02Surface.TriggerZoneById("SRC_" + ObservationRegistry.Bed4Traces), "Attach Bed4 traces on 3D slip");
+                    Require(an02Surface.TriggerZoneById("SRC_" + ObservationRegistry.Bed3Meds), "Attach irrelevant Bed3 meds on 3D slip");
+                    Require(an02Surface.TriggerZoneById("CLM_" + HypothesisService.ClaimUnreliableZero), "Select ClaimUnreliableZero on 3D slip");
+                    Require(an02Surface.TriggerZoneById("SIGN_PREVIEW"), "Attempt preview with irrelevant Bed3 meds");
+                    Require(an02View == An02View.Clipboard, "unrelated Bed-3 meds rejected on 3D AN02 surface");
+                    Require(an02Surface.TriggerZoneById("SRC_" + ObservationRegistry.Bed3Meds), "Detach Bed3 meds on 3D slip");
+                    Require(an02Surface.TriggerZoneById("CLM_" + HypothesisService.ClaimPatientPresent), "Select overclaim on 3D slip");
+                    Require(an02Surface.TriggerZoneById("SIGN_PREVIEW"), "Attempt preview with overclaim");
+                    Require(an02View == An02View.Clipboard, "unsupported overclaim rejected on 3D AN02 surface");
+                    Require(an02Surface.TriggerZoneById("CLM_" + HypothesisService.ClaimUnreliableZero), "Restore valid claim on 3D slip");
 
                     var annotationSaves = new AtomicSaves(Argument("-ctcc-save"));
                     Require(annotationSaves.Read(SaveSlot.Auto, out var annotated) == SaveRead.Valid &&
@@ -547,28 +535,22 @@ namespace CTCC
                         annotated.f101History.Count == 0,
                         "draft marks and SpatialFieldVerified link round-trip before the first signature");
 
-                    // 2-step Preview -> Sign N. H. Minh -> Confirm -> Esc cancel test -> Commit!
-                    yield return Choose("Đọc lại trên phiếu");
-                    Require(an02View == An02View.Preview && ActivePageContains("Bạn sẽ ký nội dung trên"),
-                        "AN02 Preview shows chosen claim and Core 04 confirm copy");
-                    yield return Choose("Ký tên: N. H. Minh");
-                    Require(an02View == An02View.Confirm && ActivePageContains("N. H. Minh"),
-                        "AN02 Sign step arms N. H. Minh signature before 2nd confirmation");
-                    yield return Tap(Key.Escape);
-                    Require(an02View == An02View.Clipboard && State.f101.revision == 0 && !GateService.G01(State),
+                    // 2-step Preview -> Sign N. H. Minh -> Red Stamp directly on the 3D F101 paper!
+                    Require(an02Surface.TriggerZoneById("SIGN_PREVIEW") && an02View == An02View.Preview, "AN02 3D Preview armed");
+                    Require(an02Surface.TriggerZoneById("SIGN_NAME") && an02View == An02View.Confirm, "AN02 3D Sign N. H. Minh armed");
+                    Require(an02Surface.TriggerZoneById("SIGN_CANCEL") && an02View == An02View.Clipboard && State.f101.revision == 0 && !GateService.G01(State),
                         "cancel after signing leaves history and G01 untouched");
-                    yield return Choose("Đọc lại trên phiếu");
-                    yield return Choose("Ký tên: N. H. Minh");
-                    yield return Choose("Xác nhận & đóng dấu ca trực");
+                    Require(an02Surface.TriggerZoneById("SIGN_PREVIEW") && an02Surface.TriggerZoneById("SIGN_NAME") && an02Surface.TriggerZoneById("SIGN_STAMP"),
+                        "AN02 3D 2-step sign and stamp triggered");
                     yield return Until(() => !busy && !ui.IsModal && !IsAn02Clipboard3DActive && State.f101.revision == 1,
-                        "F101 Refuted committed via 3D AN02 clipboard with SpatialFieldVerified provenance");
+                        "F101 Refuted committed via Diegetic Direct-Surface AN02 3D with SpatialFieldVerified provenance");
                     Require(State.f101.firstDecision == FormStatus.Refuted && State.f101.revision == 1 &&
                         State.f101Argument.annotationVersion == F101Annotations.Version &&
                         State.f101Argument.selectedEvidenceIds.Count == 3 &&
                         State.f101History[0].annotations.SupportsRefutation(State) &&
                         F101Annotations.ResolveLinkProvenance(State) == F101LinkProvenance.SpatialFieldVerified &&
                         scene.refutedBay != null && scene.refutedBay.activeInHierarchy, "Refuted visual, 3D AN02 & spatial provenance verified");
-                    verification.Add("CH01 REBIRTH III PHASE 2 INPUT PASS: 0 Journal in CH01, 3D AN02 clipboard, free HH:MM EX01 (03:16 rejected -> 03:17 saved), spatial [Q] Bed-4 link, C rejection guards, Esc draft retention, and 2-step N. H. Minh confirmation.");
+                    verification.Add("CH01 REBIRTH III PHASE 2.5 INPUT PASS: 0 Journal in CH01, Diegetic Phone 3D, Physical Envelope 3D, Inventory 2.0 + decoupled Sổ tay nhỏ, Standalone Physical Inspector 2.0, Diegetic Direct-Surface AN02 3D with EX01 & 2-step N. H. Minh confirmation.");
                     yield return LookForWardConsequence(branch);
                     if (captureExpansion) yield return new WaitForSecondsRealtime(0.75f);
 
@@ -596,13 +578,17 @@ namespace CTCC
                         "B07 intentional gate pull triggers Peak Horror #2 and continuity seam");
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -3.30f));
-                    yield return Tap(Key.Tab);
-                    yield return Until(() => ui.IsModal, "B08 Backpack opened on Pocket Note");
-                    Require(ActivePageContains("chưa đủ căn cứ xác nhận"), "B08 Pocket Note reflects Refuted choice");
+                    yield return Tap(Key.N);
+                    yield return Until(() => IsPocketNoteOpen && ui.IsModal, "B08 [N] opens decoupled Sổ tay nhỏ");
+                    Require(ActivePageContains("chưa đủ căn cứ xác nhận"), "B08 Sổ tay nhỏ reflects Refuted choice");
                     yield return new WaitForSecondsRealtime(0.24f);
                     CaptureInvestigation("walkthrough-b08-pocket-note");
                     yield return null;
-                    yield return Choose("Giấy tờ & vật chứng");
+                    yield return Tap(Key.Escape);
+                    yield return Until(() => !ui.IsModal, "B08 Sổ tay nhỏ closed");
+                    yield return Tap(Key.Tab);
+                    yield return Until(() => ui.IsInventory2Open, "B08 Inventory 2.0 opens");
+                    yield return Choose("Giấy tờ");
                     yield return Until(() => !busy && State.HasDreadEvent(DreadCatalog.Bag08Echo), "B08 P_BAG08_ECHO triggers once when AS-05B was examined in B");
                     yield return new WaitForSecondsRealtime(0.24f);
                     CaptureInvestigation("walkthrough-b08-echo");
@@ -610,7 +596,7 @@ namespace CTCC
                     yield return Tap(Key.Escape);
                     yield return AimAndUseHere("AN01");
                     yield return Until(() => !busy && State.chapter == "CH02", "CH02 handoff via pure keyboard+mouse CH01 route");
-                    verification.Add("INPUT CH01-R FULL ROUTE PASS: zero teleportation from AP00 through multi-layer E10a, Lan cinematic+skip, BOARD inspect, ajar DOOR-101, STAFF loop, Room 101 stow+AN02 clip, Journal/F101, B->R reconciliation, B07 gate pull+slam, B08 echo+Pocket Note, and CH02 handoff.");
+                    verification.Add("INPUT CH01-R FULL ROUTE PASS: zero teleportation from AP00 through Diegetic Phone 3D, Physical Envelope 3D, Lan cinematic+skip, standalone BOARD inspect, ajar DOOR-101, STAFF loop, Room 101 stow+AN02 clip, Diegetic Direct-Surface AN02, B->R reconciliation, B07 gate pull+slam, B08 echo+Sổ tay nhỏ, and CH02 handoff.");
                 }
                 finally { captureExpansion = false; }
             }
@@ -629,8 +615,8 @@ namespace CTCC
                 yield return Until(() => !busy && !lanDirector.IsCinematicActive && State.Happened("CH01-T04"), "Lan cinematic skipped cleanly");
                 yield return WalkWithInput(new Vector3(2.98f, 0f, -2.76f));
                 yield return AimAndUseHere("BOARD");
-                yield return Until(() => !busy && inspector.IsInspecting, "BOARD inspected");
-                yield return Choose("Nhận bảng kẹp & cất vào ba lô");
+                yield return Until(() => !busy && inspector.IsInspecting && ui.IsStandaloneOverlay, "BOARD inspected standalone");
+                yield return Tap(Key.G);
                 yield return Until(() => !busy && !ui.IsModal && State.Happened("CH01-T05"), "board granted");
 
                 yield return WalkWithInput(new Vector3(4f, 0f, -1f));
@@ -689,9 +675,10 @@ namespace CTCC
 
                 yield return WalkWithInput(new Vector3(7.24f, 0f, 4.93f));
                 yield return OpenFormInput();
-                yield return Choose(branch == FormStatus.Affirmed ? "A · Xác nhận theo bản kê" : "B · Chưa đủ thông tin");
-                yield return Choose("Đọc lại trên phiếu");
-                yield return Choose("Ký tên: N. H. Minh");
+                Require(IsAn02DirectSurfaceActive && ui.IsStandaloneOverlay, $"Diegetic Direct-Surface AN02 opens for {branch}");
+                Require(an02Surface.TriggerZoneById(branch == FormStatus.Affirmed ? "OPT_A" : "OPT_B"), $"Select {branch} on 3D paper");
+                Require(an02Surface.TriggerZoneById("SIGN_PREVIEW") && an02View == An02View.Preview, $"Preview {branch} on 3D paper");
+                Require(an02Surface.TriggerZoneById("SIGN_NAME") && an02View == An02View.Confirm, $"Sign N. H. Minh {branch} on 3D paper");
                 if (branch == FormStatus.Affirmed)
                 {
                     long sequence = State.sequence;
@@ -700,8 +687,8 @@ namespace CTCC
                     using (var slotLock = new FileStream(autosave + ".lock", FileMode.Open,
                         FileAccess.ReadWrite, FileShare.None))
                     {
-                        yield return Choose("Xác nhận & đóng dấu ca trực");
-                        yield return Until(() => !busy && ActivePageContains("Chưa ghi được bản lưu"), "UI retries a blocked atomic save");
+                        Require(an02Surface.TriggerZoneById("SIGN_STAMP"), "Attempt stamp with locked autosave");
+                        yield return Until(() => !busy && !string.IsNullOrEmpty(formFeedback) && formFeedback.Contains("Chưa ghi được bản lưu"), "UI retries a blocked atomic save");
                         Require(State.sequence == sequence && State.f101.revision == 0 && !GateService.G01(State) &&
                             an02View == An02View.Confirm,
                             "failed publication leaves the preview available, without signing or stamping");
@@ -712,7 +699,7 @@ namespace CTCC
                     }
                     verification.Add("REBIRTH II SAVE FAILURE PASS: locked autosave leaves the same draft and revision, with the gate closed.");
                 }
-                yield return Choose("Xác nhận & đóng dấu ca trực");
+                Require(an02Surface.TriggerZoneById("SIGN_STAMP"), $"Stamp {branch} on 3D paper");
                 yield return Until(() => !busy && !IsAn02Clipboard3DActive && GateService.G01(State), $"F101 {branch} confirmation");
                 Require(State.f101.firstDecision == branch && State.f101.revision == 1 &&
                     FormService.Distortion(State) == (branch == FormStatus.Affirmed ? 1 : 0), $"F101 {branch} state");
@@ -734,16 +721,15 @@ namespace CTCC
                     yield return Until(() => !voice.IsSpeaking && !SignatureCuePlaying(), "first signature cue finished");
                     int historyCount = State.f101History.Count;
                     yield return OpenFormInput();
-                    yield return Choose("B · Chưa đủ thông tin");
-                    yield return Choose("Đọc lại trên phiếu");
-                    yield return Choose("Ký tên: N. H. Minh");
+                    Require(an02Surface.TriggerZoneById("OPT_B") && an02Surface.TriggerZoneById("SIGN_PREVIEW") && an02Surface.TriggerZoneById("SIGN_NAME"),
+                        "Duplicate B sign armed on 3D paper");
                     long sequence = State.sequence;
-                    yield return Choose("Xác nhận & đóng dấu ca trực");
+                    Require(an02Surface.TriggerZoneById("SIGN_STAMP"), "Duplicate B stamp");
                     yield return Until(() => !busy && !ui.IsModal, "duplicate F101 submission closes");
                     Require(!voice.IsSpeaking && !SignatureCuePlaying() && State.sequence == sequence &&
                         State.f101.revision == 1 && State.f101History.Count == historyCount,
                         "Unchanged F101 UI submission issues no PA, stamp, transition cue, save or revision");
-                    verification.Add("TASK03 INPUT PASS: unchanged F101 submission through the keyboard UI is silent and preserves the revision.");
+                    verification.Add("TASK03 INPUT PASS: unchanged F101 submission through the 3D surface is silent and preserves the revision.");
                 }
                 yield return LookForWardConsequence(branch);
                 yield return WalkWithInput(new Vector3(4f, 0f, 4.75f));
@@ -757,11 +743,15 @@ namespace CTCC
                 yield return Until(() => !busy && State.Happened("CH01-T09"), "exterior seam via gate pull");
                 yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
                 yield return WalkWithInput(new Vector3(4.00f, 0f, -3.30f));
-                yield return Tap(Key.Tab);
-                yield return Until(() => ui.IsModal, "B08 Backpack Pocket Note");
+                yield return Tap(Key.N);
+                yield return Until(() => IsPocketNoteOpen && ui.IsModal, "B08 [N] Sổ tay nhỏ");
                 Require(ActivePageContains(branch == FormStatus.Affirmed ? "đã ký xác nhận số 0" : "chưa xác minh"),
-                    $"B08 Pocket Note reflects {branch} choice");
-                yield return Choose("Giấy tờ & vật chứng");
+                    $"B08 Sổ tay nhỏ reflects {branch} choice");
+                yield return Tap(Key.Escape);
+                yield return Until(() => !ui.IsModal, "B08 Sổ tay nhỏ closed");
+                yield return Tap(Key.Tab);
+                yield return Until(() => ui.IsInventory2Open, "B08 Inventory 2.0");
+                yield return Choose("Giấy tờ");
                 yield return new WaitForSecondsRealtime(0.20f);
                 Require(!State.HasDreadEvent(DreadCatalog.Bag08Echo),
                     $"P_BAG08_ECHO strictly does NOT fire on {branch} route where AS-05B was never examined");
@@ -820,8 +810,8 @@ namespace CTCC
                     State.journalNotes.Count == 0,
                     "independent physical poses survive handoff and CH01 stays 100% zero-Journal");
                 yield return Tap(Key.J);
-                yield return Until(() => ui.IsModal, "remapped J opens CH02 Backpack");
-                yield return Choose("Pocket Note");
+                yield return Until(() => ui.IsInventory2Open, "remapped J opens CH02 Inventory 2.0");
+                yield return Choose("Sổ tay [N]");
                 yield return Choose("Mở sổ trực đầy đủ");
                 yield return VerifyNotebookInput();
                 if (ui.IsModal) yield return Tap(Key.Escape);

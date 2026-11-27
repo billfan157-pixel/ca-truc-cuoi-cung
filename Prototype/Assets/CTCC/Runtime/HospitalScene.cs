@@ -102,6 +102,7 @@ namespace CTCC
         public EnvironmentalAudio atmosphere;
         public InteractableRig interactables;
         public Shader rakingPaperShader;
+        public Material inspectPaperTemplate;
         public ParticleSystem[] atmosphericParticles = Array.Empty<ParticleSystem>();
         public bool referenceArt;
 
@@ -385,7 +386,8 @@ namespace CTCC
             foreach (var root in sc.GetRootGameObjects())
                 foreach (var region in root.GetComponentsInChildren<ZoneRegion>())
                     if (region.isActiveAndEnabled) RegisterZone(region);
-            themeReady = false;
+            // Keep themeReady intact when already synchronized so background zone streaming does not trigger
+            // a full-hospital material rebind and 6-probe realtime reflection storm mid-walk.
             bool restoreSmooth = smoothPresentation;
             smoothPresentation = false;
             try

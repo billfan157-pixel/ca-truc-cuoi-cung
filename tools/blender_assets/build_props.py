@@ -291,24 +291,26 @@ def build_pedal_bin():
 
 
 def build_exterior_gate():
-    """Detailed wrought-iron Vietnamese hospital side gate leaf (2.36 m wide x 1.82 m tall, pivot at hinge X=0, Z=0)."""
+    """Detailed institutional wrought-iron Vietnamese hospital side gate leaf (2.36 m wide x 2.48 m frame / 2.62 m finials, pivot at hinge X=0, Z=0).
+    Scaled realistically above 1.62 m player eye height & 1.75 m capsule height per Phase 2.5 environment scale overhaul."""
     objs = []
-    w, h = 2.36, 1.82
+    w, h = 2.36, 2.48
     # Heavy outer tubular rectangular frame
-    objs.append(C.make_box("GateHingeStile", (0.025, 0, h * 0.5), (0.050, 0.050, h), "Frame", bevel=0.004))
-    objs.append(C.make_box("GateLatchStile", (w - 0.025, 0, h * 0.5), (0.050, 0.050, h), "Frame", bevel=0.004))
-    for rz in (0.16, 0.88, h - 0.04):
-        objs.append(C.make_box(f"GateRail_{rz:.2f}", (w * 0.5, 0, rz), (w, 0.044, 0.044), "Frame", bevel=0.004))
-    # Lower kick sheet-metal panel (0.16..0.68 m)
-    objs.append(C.make_box("GateSheet", (w * 0.5, 0, 0.42), (w - 0.09, 0.012, 0.50), "MetalOld", bevel=0.002))
-    # 15 Vertical wrought-iron picket bars with pointed finial tips!
+    objs.append(C.make_box("GateHingeStile", (0.028, 0, h * 0.5), (0.056, 0.056, h), "Frame", bevel=0.004))
+    objs.append(C.make_box("GateLatchStile", (w - 0.028, 0, h * 0.5), (0.056, 0.056, h), "Frame", bevel=0.004))
+    for rz in (0.16, 0.88, 1.66, h - 0.045):
+        objs.append(C.make_box(f"GateRail_{rz:.2f}", (w * 0.5, 0, rz), (w, 0.048, 0.048), "Frame", bevel=0.004))
+    # Lower weathered kick sheet-metal panel (0.16..0.86 m) with subtle institutional horizontal rib
+    objs.append(C.make_box("GateSheet", (w * 0.5, 0, 0.51), (w - 0.10, 0.014, 0.68), "MetalOld", bevel=0.002))
+    objs.append(C.make_box("GateSheetRib", (w * 0.5, 0, 0.51), (w - 0.12, 0.024, 0.026), "Frame", bevel=0.002))
+    # 15 Vertical wrought-iron picket bars rising to 2.54 m with pointed spear finials reaching 2.62 m!
     for k in range(1, 16):
         px = k * (w / 16.0)
-        objs.append(C.make_cylinder(f"Picket_{k}", (px, 0, 0.66), (px, 0, h + 0.05), 0.009, "Frame", segments=10))
-        objs.append(C.make_cylinder(f"Finial_{k}", (px, 0, h + 0.05), (px, 0, h + 0.12), 0.011, "Frame", segments=4, r_end=0.001))
-    # Heavy padlock hasp & latch bar
-    objs.append(C.make_box("GateLockPlate", (w - 0.12, 0, 1.02), (0.16, 0.056, 0.12), "MetalOld", bevel=0.003))
-    objs.append(C.make_cylinder("GateHandle", (w - 0.14, -0.055, 1.02), (w - 0.14, 0.055, 1.02), 0.011, "Steel", segments=12))
+        objs.append(C.make_cylinder(f"Picket_{k}", (px, 0, 0.86), (px, 0, h + 0.06), 0.010, "Frame", segments=10))
+        objs.append(C.make_cylinder(f"Finial_{k}", (px, 0, h + 0.06), (px, 0, h + 0.14), 0.013, "Frame", segments=4, r_end=0.001))
+    # Heavy padlock hasp, mortise lock box & ergonomic lever handle at 1.06 m
+    objs.append(C.make_box("GateLockPlate", (w - 0.13, 0, 1.06), (0.18, 0.060, 0.15), "MetalOld", bevel=0.003))
+    objs.append(C.make_cylinder("GateHandle", (w - 0.15, -0.060, 1.06), (w - 0.15, 0.060, 1.06), 0.012, "Steel", segments=12))
     return objs
 
 

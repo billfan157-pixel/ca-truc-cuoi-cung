@@ -16,11 +16,16 @@ namespace CTCC.Editor
             if (multiScene)
             {
                 var grade = zones["LOC04"];
-                zones["LOC02"].region.upperConnectors = new[]
+                Transform s1Group = Group("S1 · Khu B", zones["LOC02"].permanent, new Vector3(-1.07f, 0f, -4f));
+                var s1Col = Box("S1 · Khu B collider", new Vector3(0f, 1.2f, 0f), new Vector3(.12f, 2.4f, 2.65f),
+                    Mat("WoodDoorR"), s1Group, solid: true);
+                if (art)
                 {
-                    Box("S1 · Khu B", new(-1.07f, 1.2f, -4), new(.12f, 2.4f, 2.65f),
-                        Mat("WoodDoorR"), zones["LOC02"].permanent, solid: true)
-                };
+                    s1Col.GetComponent<Renderer>().enabled = false;
+                    // Unit-scale parent ensures sculpted 1987 double-leaf louvered timber door never inherits collider scale!
+                    PlaceBlenderModel("CTCC_LOC02_S1Door", s1Group, new Vector3(0.03f, 0f, 0f), 0f, pairRB: true, castShadows: true);
+                }
+                zones["LOC02"].region.upperConnectors = new[] { s1Group.gameObject };
                 grade.region.upperConnectors = new[]
                 {
                     Box("S3 · Khu B", new(4, 1.2f, 22.02f), new(2.65f, 2.4f, .12f),
@@ -55,7 +60,7 @@ namespace CTCC.Editor
             var loc08GateRoot = Group("LOC08 · Khóa G05", upper);
             Box("LOC08 G05 door panel", new(3.5f, ArchiveLevel + 1.225f, 32.3f),
                 new(.16f, 2.45f, 1.80f), Mat("MetalOld"), loc08GateRoot, solid: true);
-            CapsuleTarget("LOC08_GATE", "Cửa Phòng Hành chính / Giám đốc (Khóa G05)",
+            CapsuleTarget("LOC08_GATE", "Cửa Phòng Hành chính",
                 new(3.32f, ArchiveLevel + 1.25f, 32.3f), new(.36f, .95f, 1.35f), loc08GateRoot);
 
             // LOC08 Administrative Threshold Desk & CH05 -> CH06 Handoff (CP03 / AP11, stops before CH06!)
@@ -66,7 +71,7 @@ namespace CTCC.Editor
             Box("CP03 brass badge", Vector3.zero, new(.28f, .025f, .36f), Mat("Brass"), handoffMarker, solid: false);
             handoffMarker.gameObject.SetActive(false);
             Lamp("LOC08 admin spill R", LightType.Point, new(6.1f, ArchiveLevel + 2.55f, 32.3f), 3.1f, 7.5f, new Color(.84f, .88f, .78f), upper);
-            CapsuleTarget("CH05_HANDOFF", "Hồ sơ Phòng Hành chính · Kiểm tra báo cáo (CH05-CP03)",
+            CapsuleTarget("CH05_HANDOFF", "Hồ sơ Phòng Hành chính",
                 new(6.48f, ArchiveLevel + 1.08f, 32.3f), new(.72f, .68f, .92f), upper);
             if (multiScene)
             {

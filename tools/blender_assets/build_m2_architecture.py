@@ -141,21 +141,22 @@ def build_gatehouse():
 
 
 def build_courtyard_fence_bay():
-    """Modular 4.0m Vietnamese hospital perimeter fence bay: brick plinth (0.90m) + iron spear railings (1.15m) + masonry pier."""
+    """Modular 4.0m Vietnamese hospital perimeter fence bay: brick plinth (0.94m) + iron spear railings (2.28m) + masonry pier (2.46m).
+    Harmonizes naturally below the 2.88m institutional LOC01 gate pillars without dwarfing the side gate."""
     objs = []
     # Masonry pier at X = -2.0 m
-    objs.append(C.make_box("FencePier", (-2.0, 0, 1.12), (0.36, 0.36, 2.24), "ExteriorFacade", bevel=0.015, uv_scale=1.5))
-    objs.append(C.make_box("FencePierCap", (-2.0, 0, 2.28), (0.44, 0.44, 0.10), "BaseTrim", bevel=0.010))
+    objs.append(C.make_box("FencePier", (-2.0, 0, 1.19), (0.38, 0.38, 2.38), "ExteriorFacade", bevel=0.015, uv_scale=1.5))
+    objs.append(C.make_box("FencePierCap", (-2.0, 0, 2.43), (0.46, 0.46, 0.10), "BaseTrim", bevel=0.010))
     # Brick lower wall spanning [-1.84, +2.0]
-    objs.append(C.make_box("FenceBrickWall", (0.08, 0, 0.45), (3.86, 0.24, 0.90), "WeatheredBrick", bevel=0.010, uv_scale=1.2))
-    objs.append(C.make_box("FenceCoping", (0.08, 0, 0.93), (3.90, 0.30, 0.075), "BaseTrim", bevel=0.008))
-    # Horizontal iron fence rails + 24 vertical iron spear pickets
-    for rz in (1.12, 1.88):
+    objs.append(C.make_box("FenceBrickWall", (0.08, 0, 0.47), (3.86, 0.24, 0.94), "WeatheredBrick", bevel=0.010, uv_scale=1.2))
+    objs.append(C.make_box("FenceCoping", (0.08, 0, 0.97), (3.90, 0.30, 0.075), "BaseTrim", bevel=0.008))
+    # Horizontal iron fence rails + 23 vertical iron spear pickets
+    for rz in (1.16, 2.02):
         objs.append(C.make_box(f"IronRail_{rz:.2f}", (0.08, 0, rz), (3.84, 0.038, 0.038), "MetalOld", bevel=0.004))
     for i in range(23):
         px = -1.70 + i * 0.162
-        objs.append(C.make_cylinder(f"Picket_{i}", (px, 0, 0.96), (px, 0, 2.02), 0.011, "MetalOld", segments=8))
-        objs.append(C.make_cylinder(f"SpearTip_{i}", (px, 0, 2.02), (px, 0, 2.13), 0.018, "MetalOld", segments=6, r_end=0.002))
+        objs.append(C.make_cylinder(f"Picket_{i}", (px, 0, 1.00), (px, 0, 2.16), 0.011, "MetalOld", segments=8))
+        objs.append(C.make_cylinder(f"SpearTip_{i}", (px, 0, 2.16), (px, 0, 2.28), 0.018, "MetalOld", segments=6, r_end=0.002))
     return objs
 
 

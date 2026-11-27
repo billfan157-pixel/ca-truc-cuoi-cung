@@ -98,6 +98,21 @@ namespace CTCC
         private bool live, busy, savingDialogue, firstEscape, bootReady;
         private string qaFolder;
 
+        public enum InputContext
+        {
+            Exploration = 0,
+            WorldDrag = 1,
+            PhysicalInspect = 2,
+            DiegeticPhone = 3,
+            DiegeticEnvelope = 4,
+            DiegeticAn02 = 5,
+            Inventory = 6,
+            PocketNote = 7,
+            Modal = 8,
+            Cinematic = 9,
+            Pause = 10
+        }
+
         // Scripted Horror Events (once-per-visit runtime guards) & Progressive Hints (CH01-T11)
         private bool heardLobbySilhouette;
         private bool playedHe04CorridorCut;
@@ -112,6 +127,33 @@ namespace CTCC
         private float objectiveStagnantSeconds;
         private int hintTierShown;
         private FirstPerson.FuncTarget availableTarget;
+
+        // Phase 2.5 Universal Left-Click Interaction & Zero-Bleed Input Guards
+        private bool cursorWasLocked;
+        private bool waitForLmbRelease;
+        private SceneTarget lmbPendingDragTarget;
+        private float lmbHoldStartTime;
+        private float lmbHoldDeltaPx;
+        private const float LmbDragHoldSeconds = 0.16f;
+        private const float LmbDragMovePixels = 10f;
+
+        internal InputContext ActiveInputContext
+        {
+            get
+            {
+                if (!live || busy) return InputContext.Pause;
+                if (lanDirector != null && lanDirector.IsCinematicActive) return InputContext.Cinematic;
+                if (IsDiegeticPhoneActive) return InputContext.DiegeticPhone;
+                if (IsDiegeticEnvelopeActive) return InputContext.DiegeticEnvelope;
+                if (IsAn02Clipboard3DActive) return InputContext.DiegeticAn02;
+                if (inspector != null && inspector.IsInspecting) return InputContext.PhysicalInspect;
+                if (ui != null && ui.IsInventory2Open) return InputContext.Inventory;
+                if (IsPocketNoteOpen) return InputContext.PocketNote;
+                if (ui != null && ui.IsModal) return InputContext.Modal;
+                if (scene?.interactables != null && scene.interactables.IsDragging) return InputContext.WorldDrag;
+                return InputContext.Exploration;
+            }
+        }
 
         private Investigation State => casework.State;
         private VisitSettings Options => State.settings;
@@ -175,7 +217,7 @@ namespace CTCC
                 revealConditions.Add(condition.id, condition);
             ValidateDialogueRuntimeContract(throwOnError: false);
 
-            qaFolder = Argument("-ctcc-qa");
+            qaFolder = Argument("-ctcc-qa") ?? Argument("-ctcc-loc02-shots");
             if (Argument("-ctcc-benchmark") != null) benchmarkAwakeQpc = PerformanceCounter();
         }
 
@@ -190,10 +232,11 @@ namespace CTCC
             var rig = new GameObject("FPS character", typeof(CharacterController), typeof(FirstPerson));
             player = rig.GetComponent<FirstPerson>();
             player.Initialize(Camera.main, scene.atmosphere);
+            ApplyGraphicsTierCameraSettings();
             player.Teleport(scene.Pad("AP00"));
 
             inspector = gameObject.AddComponent<PhysicalInspector>();
-            inspector.Initialize(player.Eye, scene.atmosphere, scene.rakingPaperShader);
+            inspector.Initialize(player.Eye, scene.atmosphere, scene.rakingPaperShader, scene.inspectPaperTemplate);
             inspector.InspectOpened += id =>
             {
                 dreadDirector?.NotifyInspectorOpened(id);
@@ -207,9 +250,19 @@ namespace CTCC
 
             handPresenter = gameObject.AddComponent<HandItemPresenter>();
             handPresenter.Initialize(player.Eye, Image);
+            handPresenter.SetBlenderKeyTemplates(scene.InspectTemplate("GATE_KEY"), scene.InspectTemplate("WINGC_KEY"));
 
             backpackStage = gameObject.AddComponent<BackpackStage3D>();
-            backpackStage.Initialize(player.Eye, Image);
+            backpackStage.Initialize(player.Eye, Image, scene.InspectTemplate);
+
+            envelope3D = gameObject.AddComponent<DiegeticEnvelope3D>();
+            envelope3D.Initialize(player.Eye, scene.atmosphere, Image);
+
+            phone3D = gameObject.AddComponent<DiegeticPhone3D>();
+            phone3D.Initialize(player.Eye, scene.atmosphere);
+
+            an02Surface = gameObject.AddComponent<DiegeticAn02Surface>();
+            an02Surface.Initialize(player.Eye, scene.atmosphere);
 
             ui = gameObject.AddComponent<HospitalUI>();
             ui.Initialize();
@@ -298,6 +351,12 @@ namespace CTCC
                 StartCoroutine(BenchmarkVisit(Path.GetFullPath(benchmark)));
                 yield break;
             }
+            string loc02Shots = Argument("-ctcc-loc02-shots");
+            if (loc02Shots != null)
+            {
+                StartCoroutine(Loc02ShotRun(Path.GetFullPath(loc02Shots)));
+                yield break;
+            }
             if (qaFolder != null)
             {
                 StartCoroutine(AutomatedVisit());
@@ -350,10 +409,13 @@ namespace CTCC
             orderlyAi?.SyncState(current);
 
             bool hideHeld = ui.IsModal || (inspector != null && inspector.IsInspecting) ||
+                            IsDiegeticPhoneActive || IsDiegeticEnvelopeActive || IsAn02Clipboard3DActive ||
                             (lanDirector != null && lanDirector.IsCinematicActive);
             handPresenter?.SetReducedMotion(current.settings.reduceMotion);
             handPresenter?.SyncState(current, scene, hideViewModel: hideHeld);
             backpackStage?.SetReducedMotion(current.settings.reduceMotion);
+            envelope3D?.SetReducedMotion(current.settings.reduceMotion);
+            phone3D?.SetReducedMotion(current.settings.reduceMotion);
             var equippedItem = InventoryService.GetEquipped(current);
             ui.SetHeldItemBadge(equippedItem != null ? BackpackCatalog.Get(equippedItem.itemDefId)?.ShortLabel : null);
             RefreshQuickSlotHud(current);
@@ -364,26 +426,61 @@ namespace CTCC
             RefreshObjective();
         }
 
+        private void OnDestroy()
+        {
+            InspectionSharpnessGuard.ResetAll();
+        }
+
         private void RefreshControls()
         {
             bool cinematic = lanDirector != null && lanDirector.IsCinematicActive;
             bool play = live && !ui.IsModal && !busy && !cinematic && qaFolder == null;
+            bool inspectOrDevice = (inspector != null && inspector.IsInspecting) ||
+                                   IsDiegeticPhoneActive || IsDiegeticEnvelopeActive ||
+                                   IsAn02Clipboard3DActive || (backpackStage != null && backpackStage.IsOpen);
             if (inspector != null) inspector.InputBlocked = busy || ui.ModalInputBlocked;
-            if (!play && scene?.interactables != null && scene.interactables.IsDragging)
-                CancelWorldDrag();
-            if (!play) player.ClearFocus();
+            if (phone3D != null) phone3D.InputBlocked = busy || ui.ModalInputBlocked;
+            if (envelope3D != null) envelope3D.InputBlocked = busy || ui.ModalInputBlocked;
+            if (an02Surface != null) an02Surface.InputBlocked = busy || ui.ModalInputBlocked;
+            if (!play)
+            {
+                lmbPendingDragTarget = null;
+                waitForLmbRelease = true;
+                if (scene?.interactables != null && scene.interactables.IsDragging)
+                    CancelWorldDrag();
+                player.ClearFocus();
+                ui.UpdateWorldMarker(player.Eye, null, null, WorldMarkerKind.None, null);
+            }
             player.LookSuppressed = false;
+            player.TorchSuppressed = inspectOrDevice;
             player.CanPlay = play;
             if (casework != null && State != null)
-                handPresenter?.SyncState(State, scene, hideViewModel: !play || (inspector != null && inspector.IsInspecting));
+                handPresenter?.SyncState(State, scene, hideViewModel: !play || inspectOrDevice);
             if (qaFolder != null) return;
             Cursor.lockState = play ? CursorLockMode.Locked : CursorLockMode.None;
             Cursor.visible = !play;
+            if (!play) cursorWasLocked = false;
+        }
+
+        private void TickPhysicalInspectHotspots()
+        {
+            if (inspector == null || !inspector.IsInspecting || !ui.IsStandaloneOverlay) return;
+            string obsId = inspector.CurrentObservationId;
+            inspector.ProjectHotspots(projectedHotspotsBuf, id =>
+                State != null && !string.IsNullOrEmpty(obsId) &&
+                State.f101Annotations.MarkedHotspot(obsId) == id);
+            ui.Update3DHotspotMarkers(projectedHotspotsBuf);
         }
 
         private void Update()
         {
-            if (bootReady) TickAn02Clipboard3D();
+            if (bootReady)
+            {
+                TickAn02Clipboard3D();
+                TickDiegeticPhone3D();
+                TickDiegeticEnvelope3D();
+                TickPhysicalInspectHotspots();
+            }
             if (bootReady && (staffReactionCaption != null || staffReactions.Count > 0))
             {
                 if (staffReactionCaption != null && !ui.IsShowingCaption(staffReactionCaption))
@@ -399,6 +496,7 @@ namespace CTCC
             if (keys == null) return;
             if (keys.escapeKey.wasPressedThisFrame)
             {
+                lmbPendingDragTarget = null;
                 if (scene.interactables?.IsDragging == true)
                 {
                     draggingSeamGate = false;
@@ -418,6 +516,11 @@ namespace CTCC
             if (keys[Options.alternateBindings ? Key.J : Key.Tab].wasPressedThisFrame)
             {
                 OpenBackpack();
+                return;
+            }
+            if (keys.nKey.wasPressedThisFrame)
+            {
+                OpenPocketNote();
                 return;
             }
             if (keys.pKey.wasPressedThisFrame)
@@ -474,9 +577,9 @@ namespace CTCC
                     SaveCheckpoint(() => ChapterFour.CompletePz04Passage(transaction), () =>
                     {
                         bool viaB = State.Happened("PZ04.ScheduleUpdated");
-                        ui.Toast("ĐÃ VƯỢT TUYẾN XE THUỐC · PZ04",
-                            viaB ? "Tuyến B: đã đi qua hành lang trống sau khi cập nhật đúng phiếu buồng."
-                                 : "Tuyến A: đã vượt qua nhịp 3 điểm của xe thuốc mà không cần sửa hồ sơ.", 4.5f);
+                        ui.Toast("ĐÃ VƯỢT TUYẾN XE THUỐC",
+                            viaB ? "Đã đi qua hành lang trống sau khi cập nhật đúng phiếu buồng."
+                                 : "Đã vượt qua nhịp 3 điểm của xe thuốc mà không cần sửa hồ sơ.", 4.5f);
                     });
                     return;
                 }
@@ -617,10 +720,24 @@ namespace CTCC
                 return;
             }
 
-            // Optional physical hold-and-drag for doors, drawers, privacy curtain, and B07 outer gate pull
-            if (scene.interactables != null && mouse != null && Cursor.lockState == CursorLockMode.Locked)
+            // Phase 2.5 Universal Left-Click Interaction System (Requirement A):
+            // - Zero-bleed guard across cursor lock transitions (ignores held/stale LMB from closing a modal/device)
+            // - Short LMB click = primary interact (full parity with E/K); hold/drag on doors/drawers/curtains/B07 gate = physical drag!
+            bool lmbClickInteract = false;
+            if (mouse != null && Cursor.lockState == CursorLockMode.Locked)
             {
-                if (scene.interactables.IsDragging)
+                if (!cursorWasLocked)
+                {
+                    cursorWasLocked = true;
+                    waitForLmbRelease = true;
+                    lmbPendingDragTarget = null;
+                }
+                if (waitForLmbRelease)
+                {
+                    if (!mouse.leftButton.isPressed)
+                        waitForLmbRelease = false;
+                }
+                else if (scene.interactables != null && scene.interactables.IsDragging)
                 {
                     string dragId = scene.interactables.DraggingId;
                     if (!Application.isFocused &&
@@ -645,12 +762,12 @@ namespace CTCC
                                 ExecuteB07GateAttempt();
                                 return;
                             }
-                            ui.Prompt("Kéo mạnh cánh cổng ra   ·   Thả để buông tay");
+                            ui.UpdateWorldMarker(player.Eye, target, null, WorldMarkerKind.Drag, "Kéo mạnh cánh cổng ra · Thả để buông tay");
                             return;
                         }
                         if (HospitalScene.Occupied(feet) || dragId == "CHAIR-STAFF" && !scene.interactables.StaffChairClear())
                             scene.interactables.RestorePose(dragId, before);
-                        ui.Prompt("Thả để giữ vị trí   ·   Esc để hủy");
+                        ui.UpdateWorldMarker(player.Eye, target, null, WorldMarkerKind.Drag, "Thả để giữ vị trí · Esc để hủy");
                         return;
                     }
                     if (draggingSeamGate)
@@ -658,7 +775,6 @@ namespace CTCC
                         draggingSeamGate = false;
                         scene.interactables.EndDrag(null);
                         player.LookSuppressed = false;
-                        // Released before threshold: smoothly swings shut without consuming CH01-T09!
                         if (scene.outerGate?.pivot != null)
                             scene.interactables.MoveDoor("GATE-CONG", scene.outerGate.pivot, 0f, Options.reduceMotion, scene.atmosphere);
                         return;
@@ -673,38 +789,73 @@ namespace CTCC
                         dreadDirector?.NotifyStaffDrawerForcePull();
                     return;
                 }
-                else if (target != null && mouse.leftButton.wasPressedThisFrame)
+                else if (lmbPendingDragTarget != null)
                 {
-                    if (target.id == "SEAM" && State.chapter == "CH01" && State.Happened("CH01-T08") && !State.Happened("CH01-T09"))
+                    if (!mouse.leftButton.isPressed)
                     {
-                        if (scene.interactables.BeginDrag("GATE-CONG"))
+                        // Released cleanly under threshold -> execute crisp single-click toggle/interact!
+                        SceneTarget clickTarget = lmbPendingDragTarget;
+                        lmbPendingDragTarget = null;
+                        if (target != null && target == clickTarget)
+                            lmbClickInteract = true;
+                    }
+                    else
+                    {
+                        lmbHoldDeltaPx += mouse.delta.ReadValue().magnitude;
+                        bool promoteToDrag = (Time.unscaledTime - lmbHoldStartTime) >= LmbDragHoldSeconds ||
+                                             lmbHoldDeltaPx >= LmbDragMovePixels;
+                        if (promoteToDrag && scene.interactables != null)
                         {
-                            draggingSeamGate = true;
-                            dragStartPose = scene.interactables.GetDragOpenness01("GATE-CONG");
-                            player.LookSuppressed = true;
-                            dreadDirector?.NotifyInteraction(0.28f);
-                            return;
+                            SceneTarget dragTarget = lmbPendingDragTarget;
+                            lmbPendingDragTarget = null;
+                            if (dragTarget.id == "SEAM" && State.chapter == "CH01" && State.Happened("CH01-T08") && !State.Happened("CH01-T09"))
+                            {
+                                if (scene.interactables.BeginDrag("GATE-CONG"))
+                                {
+                                    draggingSeamGate = true;
+                                    dragStartPose = scene.interactables.GetDragOpenness01("GATE-CONG");
+                                    player.LookSuppressed = true;
+                                    dreadDirector?.NotifyInteraction(0.28f);
+                                    return;
+                                }
+                            }
+                            else if (IsDraggablePhysicalRig(dragTarget.id) && scene.interactables.BeginDrag(dragTarget.id))
+                            {
+                                dragStartPose = scene.interactables.GetDragOpenness01(dragTarget.id);
+                                player.LookSuppressed = true;
+                                dreadDirector?.NotifyInteraction(0.28f);
+                                return;
+                            }
                         }
                     }
-                    else if (IsDraggablePhysicalRig(target.id) && scene.interactables.BeginDrag(target.id))
+                }
+                else if (target != null && mouse.leftButton.wasPressedThisFrame)
+                {
+                    bool draggableNow = IsDraggablePhysicalRig(target.id) ||
+                                        (target.id == "SEAM" && State.chapter == "CH01" && State.Happened("CH01-T08") && !State.Happened("CH01-T09"));
+                    if (draggableNow && scene.interactables != null)
                     {
-                        dragStartPose = scene.interactables.GetDragOpenness01(target.id);
-                        player.LookSuppressed = true;
-                        dreadDirector?.NotifyInteraction(0.28f);
-                        return;
+                        lmbPendingDragTarget = target;
+                        lmbHoldStartTime = Time.unscaledTime;
+                        lmbHoldDeltaPx = 0f;
+                    }
+                    else
+                    {
+                        lmbClickInteract = true;
                     }
                 }
             }
-
-            ui.Prompt(target != null
-                ? WorldPrompt(target)
-                : player.BeyondReach != null
-                    ? (!string.IsNullOrEmpty(player.BeyondReach.title)
-                        ? $"Tiến lại gần · {player.BeyondReach.title}"
-                        : "Tiến lại gần hơn")
-                    : null);
-            if (use && target != null)
+            else
             {
+                cursorWasLocked = false;
+                lmbPendingDragTarget = null;
+            }
+
+            UpdateMinimalWorldHud(target, player.BeyondReach);
+
+            if ((use || lmbClickInteract) && target != null)
+            {
+                lmbPendingDragTarget = null;
                 dreadDirector?.NotifyInteraction(0.32f);
                 if (target.fieldObject != null) ExamineFieldObject(target);
                 else Use(target.id, target.transform);
@@ -714,6 +865,106 @@ namespace CTCC
                 (gatekeeperCameo == null || !gatekeeperCameo.IsActive) &&
                 transaction.HasPendingDialogue && Time.unscaledTime >= dialogueSaveAt)
                 StartCoroutine(SaveDialogue());
+        }
+
+        private void UpdateMinimalWorldHud(SceneTarget target, SceneTarget beyondReach)
+        {
+            if (target == null)
+            {
+                // Subtle distant dot ONLY — never reveal clue titles or answers from afar!
+                ui.UpdateWorldMarker(player.Eye, null, beyondReach,
+                    beyondReach != null ? WorldMarkerKind.FarApproach : WorldMarkerKind.None, null);
+                return;
+            }
+
+            WorldMarkerKind kind = ClassifyWorldMarker(target);
+            string whisper = ResolveMinimalBottomWhisper(target);
+            ui.UpdateWorldMarker(player.Eye, target, null, kind, whisper);
+        }
+
+        private WorldMarkerKind ClassifyWorldMarker(SceneTarget target)
+        {
+            if (target == null) return WorldMarkerKind.None;
+            if (IsDraggablePhysicalRig(target.id) ||
+                (target.id == "SEAM" && State.chapter == "CH01" && State.Happened("CH01-T08") && !State.Happened("CH01-T09")))
+                return WorldMarkerKind.Drag;
+            if (target.fieldObject != null) return WorldMarkerKind.Clue;
+            switch (target.id)
+            {
+                case "F101":
+                case "BOARD":
+                case "OBS101A":
+                case "OBS101A_BLANKET":
+                case "OBS101A_SLIPPERS":
+                case "OBS101B":
+                case "OBS101C":
+                case "OBS101D":
+                case "OBS_SHIFT_LOG":
+                case "OBS_CORRIDOR_NOTICE":
+                case "OBS_RECEPTION_DRAWER":
+                case "OBS_CLOCK_0317":
+                case "LIST":
+                case "SOCKETS":
+                case "WHEELS":
+                case "DRAW1":
+                case "DRAW2":
+                case "DRAW3":
+                case "WRIST":
+                case "TRANSFER":
+                case "E03":
+                case "C02_NOTE":
+                case "C02_BAG":
+                case "C02_LETTER":
+                case "C12_BOX":
+                case "FS10_LOCK":
+                case "CH05_BLUEPRINTS":
+                case "E05B_SEALED_DOOR":
+                case "LOC09_VALVE":
+                    return WorldMarkerKind.Clue;
+                default:
+                    return WorldMarkerKind.Interact;
+            }
+        }
+
+        private string ResolveMinimalBottomWhisper(SceneTarget target)
+        {
+            if (target == null) return null;
+            // Secondary [Q] interactions — only show terse contextual whisper when actually available
+            if (target.id == "MAILBOX" && State.Happened(E10aParts.MailboxOpened) && !State.Happened(E10aParts.MailboxPickedUp))
+                return "Lấy chìa & phong bì   ·   [Q] Xem giấy nhắn";
+            if (target.id is ("OBS101A" or "OBS101A_BLANKET" or "OBS101A_SLIPPERS") && CanSpatialLinkBed4())
+                return "[Q] Đối chứng thẻ AS-05B với dấu hiện trường";
+            if (target.id == "DRAWER-NURSE" && scene.interactables?.IntendedOpenness("DRAWER-NURSE") <= 0.5f)
+                return "[Q] Mở êm chốt";
+            if (target.id == "CURTAIN-101")
+                return "[Q] Hé rèm";
+            if (target.id == "F101" && State.chapter == "CH02")
+                return "[Q] Chuyển giữa 2005 và 2012";
+
+            // Contextual item-in-hand feedback when aiming at a compatible world target
+            var eq = InventoryService.GetEquipped(State);
+            if (eq != null)
+            {
+                if (target.id == "GATE-CONG" && eq.itemDefId == BackpackCatalog.GateKey)
+                    return "Dùng chìa cổng phụ";
+                if (target.id == "GATE-CONG" && eq.itemDefId == BackpackCatalog.WingCKey)
+                    return "Thử chìa khóa cũ";
+                if (target.id is ("COMPARE_CLIP_AN02" or "COMPARE_DESK_STAFF" or "COMPARE_DESK_RECEPTION" or "COMPARE_DESK_101"))
+                {
+                    var eqDef = BackpackCatalog.Get(eq.itemDefId);
+                    if (eqDef != null && WorldUseResolver.Resolve(State, eqDef.Id, target.id).Outcome == WorldUseOutcome.PlacePaperOnAnchor)
+                        return target.id == "COMPARE_CLIP_AN02"
+                            ? $"Kẹp {eqDef.ShortLabel} cạnh phiếu F101"
+                            : $"Đặt {eqDef.ShortLabel} lên mặt bàn";
+                }
+                if (target.id == "AN04" && State.chapter == "CH04" && eq.itemDefId == BackpackCatalog.Ch04Tape)
+                    return "Đặt cuộn băng vào máy phát";
+            }
+
+            // Large-Print accessibility users get a clean terse bottom action label without restoring the giant center box
+            if (Options.textScale >= 1.25f)
+                return WorldPrompt(target);
+            return null;
         }
 
         private bool StaffReactionContext() =>
@@ -798,25 +1049,25 @@ namespace CTCC
             if (State.chapter == "CH01")
             {
                 if (!State.Happened(E10aParts.MailboxPickedUp))
-                    return "Mở hộp thư sắt gắn ở trụ cổng bên phải để lấy chìa cổng phụ và gói tài liệu E10a (hoặc nhấn [P] xem SMS của chú Bảy).";
+                    return "Kiểm tra hộp thư sắt gắn ở trụ cổng bên phải để lấy chìa cổng phụ và phong bì chú Bảy gửi lại (hoặc nhấn [P] mở điện thoại).";
                 if (!State.Happened("CH01-T02")) return "Dùng chìa cổng phụ đang cầm trên tay để mở khóa cổng sắt phía trước.";
                 if (!State.Happened("CH01-T03")) return "Qua sân vào sảnh và giở sổ trực trên quầy tiếp nhận.";
-                if (!State.Happened("CH01-T04")) return "Lại gần quầy và nhấn tương tác để nói chuyện với Lan.";
-                if (!State.Happened("CH01-T05")) return "Xem và nhận bảng kẹp phân công phòng 101 đặt trên mặt quầy lễ tân.";
+                if (!State.Happened("CH01-T04")) return "Lại gần quầy và trò chuyện với Lan.";
+                if (!State.Happened("CH01-T05")) return "Xem và nhận bảng kẹp phân công Phòng 101 đặt trên mặt quầy lễ tân.";
                 if (!GateService.G01(State))
-                    return tier == 1 ? "Đi dọc hành lang, mở cửa Phòng 101 bên phải để kiểm tra bảng kẹp F101."
+                    return tier == 1 ? "Đi dọc hành lang, mở cửa Phòng 101 bên phải để kiểm tra phiếu bàn giao F101."
                         : "Kiểm tra các dấu vết quanh buồng trước khi ký trên bảng kẹp.";
                 if (!State.Happened("CH01-T08")) return "Quay lại sổ trực ở quầy tiếp nhận để bàn giao.";
                 if (!State.Happened("CH01-T09")) return "Quay ra cánh cổng sắt ngoài sân và kéo thử để rời khỏi bệnh viện.";
                 return "Trở lại sổ trực ở bàn lễ tân để ghi nhận bất thường và mở bước điều tra hiện trường.";
             }
             if (!State.Has("E12"))
-                return tier == 1 ? "Trong Phòng 101 (lớp R), kiểm tra bản kê 3 giường, 4 ổ cắm trên tường và dấu bánh xe trên sàn."
+                return tier == 1 ? "Trong Phòng 101 (hiện trường 2012), kiểm tra bản kê 3 giường, 4 ổ cắm trên tường và dấu bánh xe trên sàn."
                     : "Sau khi ghi đủ 3 dấu vết vật lý, lại gần tủ sắt kính chắn cửa kho để đối chiếu chỗ kê giường thứ 4.";
             if (!EvidenceRegistry.BundleComplete(State))
                 return "Vào kho giường sau tủ sắt. Tìm mảnh tranh, vòng tay và phiếu chuyển rồi đối chiếu tại bảng kẹp.";
             if (!GateService.G02(State))
-                return "Mở hồ sơ trên bảng kẹp phòng 101 để ghép tranh và đối chiếu.";
+                return "Mở hồ sơ trên bảng kẹp Phòng 101 để ghép tranh và đối chiếu.";
             return "Cửa Cấp cứu ở cuối hành lang chính (hoặc hành lang nhân viên bên trái) đã mở. Tới sổ giao ca Cấp cứu.";
         }
 
@@ -1045,7 +1296,7 @@ namespace CTCC
                 case "FS10_LOCK":
                     SaveCheckpoint(() => casework.RecordAsync("FS10", player.Feet), () =>
                     {
-                        ui.Toast("DẤU NIÊM PHONG · FS10", "Ổ khóa tủ lưu trữ mang vết kìm cắt cũ và nhãn niêm phong nội bộ đêm 18/11/2005.", 5.0f);
+                        ui.Toast("DẤU NIÊM PHONG CŨ", "Ổ khóa tủ lưu trữ mang vết kìm cắt cũ và nhãn niêm phong nội bộ đêm 18/11/2005.", 5.0f);
                     });
                     break;
                 case "RADIO_LOC07":
@@ -1053,7 +1304,7 @@ namespace CTCC
                     break;
                 case "G03":
                     ui.Caption(GateService.G03(State)
-                        ? "Cửa khu lưu trữ (G03) đã mở."
+                        ? "Cửa khu lưu trữ đã mở."
                         : "Cửa phòng trực đang khóa. Đối chiếu sổ tên và túi len tại bàn đọc tầng 3.", 5f, true);
                     break;
                 case "CH03_EXIT":
@@ -1175,7 +1426,7 @@ namespace CTCC
                 {
                     scene.atmosphere?.SetReturnWalkRainScale(1f);
                     WritePlaytestTelemetryIfEnabled();
-                    ui.ShowChapterCard("CHƯƠNG 02  ·  LỚP R / B", "PHÒNG BỆNH TRỐNG", 4.6f);
+                    ui.ShowChapterCard("CHƯƠNG 02  ·  17.11.2012", "PHÒNG BỆNH TRỐNG", 4.6f);
                     scene.atmosphere?.From("phoneBuzz", scene.PhoneAnchor != null ? scene.PhoneAnchor.transform.position : new Vector3(1.8f, 1.2f, -3.2f));
                     PresentLine("CH02-D01");
                 }
@@ -1360,9 +1611,9 @@ namespace CTCC
             if (Report(outcome))
             {
                 if (switchedLayer && reduced)
-                    ui.Caption(State.layer == Reality.M ? "[Chuyển sang M · Ký ức 18/11/2005]"
-                        : State.layer == Reality.B ? "[Chuyển sang B · Bản báo cáo 2005]"
-                        : "[Trở về R · Hiện trường 2012]", 3.5f, true);
+                    ui.Caption(State.layer == Reality.M ? "[Ký ức đêm 18/11/2005]"
+                        : State.layer == Reality.B ? "[Bản bàn giao đêm 18/11/2005]"
+                        : "[Hiện trường đêm 17/11/2012]", 3.5f, true);
                 after?.Invoke();
             }
         }
@@ -1635,17 +1886,17 @@ namespace CTCC
         private void RefreshObjective()
         {
             string task = State.chapter == "CH01"
-                ? !State.Happened(E10aParts.MailboxPickedUp) ? "Lấy chìa cổng và gói E10a trong hộp thư ngoài trụ cổng."
+                ? !State.Happened(E10aParts.MailboxPickedUp) ? "Kiểm tra hộp thư sắt ngoài trụ cổng."
                 : !State.Happened("CH01-T02") ? "Mở cổng phụ."
                 : !State.Happened("CH01-T03") ? "Tới bàn trực phía trong sảnh."
                 : !State.Happened("CH01-T04") ? "Nói chuyện với Lan tại quầy tiếp nhận."
                 : !State.Happened("CH01-T05") ? "Nhận bảng kẹp phân công tại quầy."
-                : !GateService.G01(State) ? "Kiểm tra phòng 101 và xử lý phiếu."
+                : !GateService.G01(State) ? "Kiểm tra Phòng 101 và xử lý phiếu."
                 : !State.Happened("CH01-T08") ? "Mang phiếu về sổ trực."
                 : !State.Happened("CH01-T09") ? "Thử ra cổng phụ."
                 : "Tìm lối ra."
                 : State.chapter == "CH03"
-                ? !State.Has("E03") ? "Đi qua trạm khu B lên kho hồ sơ tầng 3. Tìm sổ trên bàn đọc."
+                ? !State.Has("E03") ? "Đi qua trạm Khu B lên kho hồ sơ tầng 3. Tìm sổ trên bàn đọc."
                 : !GateService.G03(State) ? "Đối chiếu sổ bàn giao, ghi chú và túi len tại bàn đọc."
                 : !State.Happened("FS19") ? "Đọc dòng C/12 và kiểm tra hộp giữ đồ."
                 : "Trở xuống tầng 2, theo hành lang đến phòng trực."
@@ -1655,25 +1906,25 @@ namespace CTCC
                 : !ChapterFour.MorguePower(State.servicePower) && !GateService.H05(State) ? "Qua Cấp cứu xuống B1. Tìm bảng tải ở khu kỹ thuật."
                 : !GateService.H05(State) ? "Đối chiếu hồ sơ tiếp nhận và phiếu thu hồi ở nhà xác."
                 : !State.Happened("CH04-T06") ? "Nói chuyện với Lan ở cạnh tủ hồ sơ."
-                : "Quay lại tầng 2 tới xe bệnh nhân AN05 tại sảnh Khu B."
+                : "Quay lại tầng 2 tới xe bệnh nhân tại sảnh Khu B."
                 : State.chapter == "CH05"
                 ? State.layer == Reality.M
-                    ? !State.Happened(ChapterFive.EvPair1) ? "Ký ức M (0/6) · Mở lối cửa Khu B và đưa Nhóm 1 ra hành lang S1."
-                    : !State.Happened(ChapterFive.EvPair2) ? "Ký ức M (2/6) · Dọc hành lang Tây S1, gọi đồng nghiệp tại điểm hẹn A để đẩy Nhóm 2 qua vật cản."
-                    : !State.Happened(ChapterFive.EvPair3) ? "Ký ức M (4/6) · Xuống cầu thang S1 qua cửa xả sân ngoài đưa Nhóm 3 tới điểm tập kết 6/6."
-                    : "Ký ức M (6/6) · Gặp Giám đốc Vĩnh và trở về hiện trường 2012 tại xe bệnh nhân AN05."
-                : !State.Happened(ChapterFive.EvReturnR) ? "Chạm vào xe bệnh nhân AN05 ở sảnh Khu B để bước vào ký ức sơ tán."
-                : !State.Happened(ChapterFive.FlagOverlayAligned) ? "Xuống khu kỹ thuật B1 (LOC09) mở tủ bản vẽ và căn chồng PZ07 (E05)."
-                : !State.Has(EvidenceRegistry.SealedWallPhoto) ? "Qua cửa Đông LOC09 → LOC11 → hành lang ngoài kiểm chứng tường bít 2004 (E05b)."
-                : !GateService.G05(State) ? "Đã đủ E05 và E05b — xác minh H03 để mở khóa Phòng Hành chính LOC08 (G05)."
-                : !State.Happened(ChapterFive.EvHandoff) ? "Lên tầng 3 (LOC07) qua cửa G05 vào Phòng Hành chính LOC08."
-                : "Đã chốt CH05-CP03 tại ngưỡng LOC08 (CH06–08 khóa theo phạm vi M3.3)."
-                : State.Happened("M1-complete") ? "Hồ sơ 101 đã lưu."
-                : GateService.G02(State) ? "Đến sổ giao ca ở cấp cứu."
-                : State.layer == Reality.B ? "Trở về hiện trường qua bảng kẹp phòng 101."
-                : !State.Has("E12") ? "Đối chiếu bản kê, ổ cắm và dấu bánh phòng 101."
+                    ? !State.Happened(ChapterFive.EvPair1) ? "Sơ tán (0/6) · Mở lối cửa Khu B và đưa nhóm đầu tiên ra hành lang S1."
+                    : !State.Happened(ChapterFive.EvPair2) ? "Sơ tán (2/6) · Dọc hành lang Tây S1, gọi đồng nghiệp tại điểm hẹn A vượt vật cản."
+                    : !State.Happened(ChapterFive.EvPair3) ? "Sơ tán (4/6) · Xuống cầu thang S1 qua cửa xả sân ngoài tới điểm tập kết."
+                    : "Sơ tán (6/6) · Quay lại xe bệnh nhân tại sảnh Khu B."
+                : !State.Happened(ChapterFive.EvReturnR) ? "Tới xe bệnh nhân ở sảnh Khu B."
+                : !State.Happened(ChapterFive.FlagOverlayAligned) ? "Xuống khu kỹ thuật tầng hầm B1 mở tủ bản vẽ và đối chiếu sơ đồ mặt bằng."
+                : !State.Has(EvidenceRegistry.SealedWallPhoto) ? "Theo lối Đông tầng hầm B1 kiểm chứng mảng tường gạch xây bít năm 2004."
+                : !GateService.G05(State) ? "Đối chiếu bản vẽ và ảnh chụp tường bít để mở khóa Phòng Hành chính."
+                : !State.Happened(ChapterFive.EvHandoff) ? "Lên tầng 3 vào Phòng Hành chính."
+                : "Đã tới ngưỡng Phòng Hành chính tầng 3."
+                : State.Happened("M1-complete") ? "Hồ sơ Phòng 101 đã lưu."
+                : GateService.G02(State) ? "Đến sổ giao ca ở Cấp cứu."
+                : State.layer == Reality.B ? "Trở về hiện trường qua bảng kẹp Phòng 101."
+                : !State.Has("E12") ? "Đối chiếu bản kê, ổ cắm và dấu bánh Phòng 101."
                 : !EvidenceRegistry.BundleComplete(State) ? "Tìm và ghép các phần hồ sơ trong kho 101."
-                : "Đối chiếu hồ sơ tại bảng kẹp phòng 101.";
+                : "Đối chiếu hồ sơ tại bảng kẹp Phòng 101.";
 
             if (task != lastObjectiveKey)
             {
@@ -1681,8 +1932,8 @@ namespace CTCC
                 objectiveStagnantSeconds = 0f;
                 hintTierShown = 0;
             }
-            string layerLabel = State.layer == Reality.M ? "M  ·  LỚP KÝ ỨC"
-                : State.layer == Reality.B ? "B  ·  BẢN BÁO CÁO 2005" : "R  ·  HIỆN TRƯỜNG 2012";
+            string layerLabel = State.layer == Reality.M ? "ĐÊM 18.11.2005  ·  KÝ ỨC"
+                : State.layer == Reality.B ? "ĐÊM 18.11.2005  ·  BÀN GIAO" : "17.11.2012  ·  AN SINH";
             string hudLine = State.chapter == "CH01" ? ResolveCh01ObjectiveHud() : task;
             ui.Hud(layerLabel, hudLine);
         }

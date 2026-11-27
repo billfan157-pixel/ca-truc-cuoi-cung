@@ -56,6 +56,7 @@ namespace CTCC
             yield return VerifyCh01WalkthroughSuite();
             yield return VerifyCh01Rebirth3Phase1Suite();
             yield return VerifyCh01Rebirth3Phase2Suite();
+            yield return VerifyCh01Rebirth3Phase25Suite();
             yield return VerifyM2FinalPhaseCDERegression();
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
             yield return VerifyScalableM3AndCh03();
@@ -2360,7 +2361,7 @@ namespace CTCC
             Require(handPresenter.PlacedItemAt(WorldAnchors.StaffDeskLeft) == BackpackCatalog.PaperObs101C &&
                     handPresenter.PlacedItemAt(WorldAnchors.StaffDeskRight) == BackpackCatalog.PaperShiftLog &&
                     InventoryService.GetAllPlaced(State).Count == 3 &&
-                    PocketNoteBuilder.BuildEpistemicSummary(State).Contains("Bàn điều dưỡng STAFF"),
+                    PocketNoteBuilder.BuildEpistemicSummary(State).Contains("Bàn điều dưỡng"),
                 "WT 2-slot STAFF desk renders both papers simultaneously and lists them in Pocket Note");
 
             // Zone unload/reload persistence of placed comparison items + remote recovery

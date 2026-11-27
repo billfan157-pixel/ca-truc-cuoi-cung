@@ -26,10 +26,11 @@ namespace CTCC
             None = 0,
             Exterior = 1 << 0,
             Reception = 1 << 1,
-            Ward = 1 << 2,
-            Emergency = 1 << 3,
-            Upper = 1 << 4,
-            AllAboveGround = Exterior | Reception | Ward | Emergency | Upper
+            Corridor = 1 << 2,
+            Ward = 1 << 3,
+            Emergency = 1 << 4,
+            Upper = 1 << 5,
+            AllAboveGround = Exterior | Reception | Corridor | Ward | Emergency | Upper
         }
 
         private struct TrackedCampusLight
@@ -37,6 +38,8 @@ namespace CTCC
             public ZoneRegion Owner;
             public Light Light;
             public CampusLightMask AllowedBuckets;
+            public float OriginalIntensity;
+            public float CurrentFactor;
         }
 
         private struct TrackedShadowLight
@@ -44,16 +47,11 @@ namespace CTCC
             public ZoneRegion Owner;
             public Light Light;
             public LightShadows OriginalShadows;
+            public float OriginalIntensity;
+            public float CurrentFactor;
             public bool IsCanopy;
             public bool IsWardWindow;
             public bool IsCorridorSpill;
-        }
-
-        private struct TrackedCampusShadowCaster
-        {
-            public ZoneRegion Owner;
-            public Renderer Renderer;
-            public ShadowCastingMode OriginalMode;
         }
 
         private struct TrackedExteriorParticle
@@ -64,14 +62,18 @@ namespace CTCC
 
         private readonly List<TrackedCampusLight> trackedCampusLights = new();
         private readonly List<TrackedShadowLight> trackedShadowLights = new();
-        private readonly List<TrackedCampusShadowCaster> trackedCampusShadowCasters = new();
         private readonly List<TrackedExteriorParticle> trackedSouthExteriorParticles = new();
         private RenderBudgetBucket activeRenderBucket = RenderBudgetBucket.None;
         private bool performanceBudgetSubscribed;
         private bool shadowsAblated;
-        private UniversalRenderPipelineAsset cachedPipeline;
-        private float originalPipelineShadowDistance = -1f;
-        private int originalPipelineCascadeCount = -1;
+        private Light cachedDirectionalMoon;
+        private LightShadows directionalMoonOrigShadows = LightShadows.Soft;
+        private float directionalMoonOrigIntensity = 1.38f;
+        private float directionalMoonFactor = 1f;
+        private FirstPerson cachedPlayer;
+        private Vector3 lastBudgetCamPos;
+        private bool hasLastBudgetCamPos;
+        private int lastAppliedShadowTierQuality = -1;
 
         internal void SetShadowsAblated(bool ablated)
         {
@@ -83,9 +85,18 @@ namespace CTCC
                     var light = trackedShadowLights[i].Light;
                     if (light != null) light.shadows = LightShadows.None;
                 }
+                if (cachedDirectionalMoon != null)
+                    cachedDirectionalMoon.shadows = LightShadows.None;
             }
             else
             {
+                if (cachedDirectionalMoon != null)
+                    cachedDirectionalMoon.shadows = directionalMoonOrigShadows;
+                for (int i = 0; i < trackedShadowLights.Count; i++)
+                {
+                    var entry = trackedShadowLights[i];
+                    if (entry.Light != null) entry.Light.shadows = entry.OriginalShadows;
+                }
                 activeRenderBucket = RenderBudgetBucket.None;
             }
         }
@@ -103,12 +114,6 @@ namespace CTCC
             {
                 RenderPipelineManager.beginCameraRendering -= OnBeginCameraRenderingBudget;
                 performanceBudgetSubscribed = false;
-            }
-            if (cachedPipeline != null && originalPipelineShadowDistance > 0f)
-            {
-                cachedPipeline.shadowDistance = originalPipelineShadowDistance;
-                if (originalPipelineCascadeCount > 0)
-                    cachedPipeline.shadowCascadeCount = originalPipelineCascadeCount;
             }
         }
 
@@ -133,18 +138,9 @@ namespace CTCC
                     {
                         Owner = region,
                         Light = light,
-                        AllowedBuckets = ClassifyCampusLight(light)
-                    });
-                }
-
-                foreach (var r in region.GetComponentsInChildren<Renderer>(true))
-                {
-                    if (r == null || r.shadowCastingMode == ShadowCastingMode.Off) continue;
-                    trackedCampusShadowCasters.Add(new TrackedCampusShadowCaster
-                    {
-                        Owner = region,
-                        Renderer = r,
-                        OriginalMode = r.shadowCastingMode
+                        AllowedBuckets = ClassifyCampusLight(light),
+                        OriginalIntensity = light.intensity,
+                        CurrentFactor = 1f
                     });
                 }
             }
@@ -160,6 +156,8 @@ namespace CTCC
                             Owner = region,
                             Light = light,
                             OriginalShadows = light.shadows,
+                            OriginalIntensity = light.intensity,
+                            CurrentFactor = 1f,
                             IsCanopy = true
                         });
                     }
@@ -198,6 +196,8 @@ namespace CTCC
                         Owner = region,
                         Light = light,
                         OriginalShadows = light.shadows,
+                        OriginalIntensity = light.intensity,
+                        CurrentFactor = 1f,
                         IsWardWindow = isWindow,
                         IsCorridorSpill = isSpill
                     });
@@ -220,6 +220,7 @@ namespace CTCC
             }
 
             activeRenderBucket = RenderBudgetBucket.None;
+            lastAppliedShadowTierQuality = -1;
         }
 
         private void UnregisterPerformanceEntries(ZoneRegion region)
@@ -227,7 +228,6 @@ namespace CTCC
             if (region == null) return;
             trackedCampusLights.RemoveAll(e => e.Owner == region || e.Light == null);
             trackedShadowLights.RemoveAll(e => e.Owner == region || e.Light == null);
-            trackedCampusShadowCasters.RemoveAll(e => e.Owner == region || e.Renderer == null);
             trackedSouthExteriorParticles.RemoveAll(e => e.Owner == region || e.Renderer == null);
             activeRenderBucket = RenderBudgetBucket.None;
         }
@@ -237,8 +237,8 @@ namespace CTCC
             string n = light.name;
             if (n.IndexOf("Inner Light Court", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                // Inner Light Court spans x=[6..14], z=[8..14]; 10.5m lights the court & window frames without flooding Room 101 clusters.
-                if (light.range > 10.5f) light.range = 10.5f;
+                // Inner Light Court spans x=[6..14], z=[8..14]; 8.8m lights courtyard trees cleanly without spilling into Room 101 south wall!
+                if (light.range > 8.8f) light.range = 8.8f;
             }
             else if (n.IndexOf("Upper Facade Moon Wash", StringComparison.OrdinalIgnoreCase) >= 0 ||
                      n.IndexOf("Upper Facade Night Glow", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -276,26 +276,27 @@ namespace CTCC
             string n = light.name;
             Vector3 p = light.transform.position;
 
+            // Generous sightline overlap so visible lights never vanish when stepping across doorways:
             if (n.IndexOf("Inner Light Court", StringComparison.OrdinalIgnoreCase) >= 0)
-                return CampusLightMask.Exterior | CampusLightMask.Ward | CampusLightMask.Emergency | CampusLightMask.Upper;
+                return CampusLightMask.AllAboveGround;
 
             if (n.IndexOf("KD South Emergency", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 n.IndexOf("K-C South balconies", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 n.IndexOf("Link KA-KC", StringComparison.OrdinalIgnoreCase) >= 0)
-                return CampusLightMask.Exterior | CampusLightMask.Emergency | CampusLightMask.Upper;
+                return CampusLightMask.Exterior | CampusLightMask.Corridor | CampusLightMask.Emergency | CampusLightMask.Upper;
 
             if (n.IndexOf("S1 West Gallery", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 n.IndexOf("Water tower", StringComparison.OrdinalIgnoreCase) >= 0)
-                return CampusLightMask.Exterior | CampusLightMask.Upper;
+                return CampusLightMask.Exterior | CampusLightMask.Reception | CampusLightMask.Upper;
 
             if (n.IndexOf("K-A Upper Facade", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 n.IndexOf("Canopy Sign", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 n.IndexOf("K-B Courtyard", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 n.IndexOf("Main gate", StringComparison.OrdinalIgnoreCase) >= 0)
-                return CampusLightMask.Exterior | CampusLightMask.Reception | CampusLightMask.Upper;
+                return CampusLightMask.Exterior | CampusLightMask.Reception | CampusLightMask.Corridor | CampusLightMask.Upper;
 
             if (p.z < -4f && p.x > -28f && p.x < 24f)
-                return CampusLightMask.Exterior | CampusLightMask.Reception | CampusLightMask.Upper;
+                return CampusLightMask.Exterior | CampusLightMask.Reception | CampusLightMask.Corridor | CampusLightMask.Upper;
 
             return CampusLightMask.Exterior | CampusLightMask.Upper;
         }
@@ -306,21 +307,115 @@ namespace CTCC
             if (pos.y >= 2.9f) return RenderBudgetBucket.UpperFloor;
             if (pos.x < -2.0f || pos.x > 18.0f || pos.z < -7.6f) return RenderBudgetBucket.Exterior;
             if (pos.z <= 0.6f) return RenderBudgetBucket.Reception;
-            if (pos.z < 15.2f) return pos.x >= 7.2f ? RenderBudgetBucket.WardRoom : RenderBudgetBucket.Corridor;
+            if (pos.z < 15.2f)
+                return (pos.x >= 5.65f && pos.z >= 1.85f && pos.z <= 8.25f)
+                    ? RenderBudgetBucket.WardRoom
+                    : RenderBudgetBucket.Corridor;
             return RenderBudgetBucket.Emergency;
+        }
+
+        internal static bool IsEnclosedIndoorBudget(Vector3 pos)
+        {
+            var bucket = ResolveRenderBudgetBucket(pos);
+            return bucket is RenderBudgetBucket.WardRoom or RenderBudgetBucket.Corridor
+                or RenderBudgetBucket.Reception or RenderBudgetBucket.Emergency
+                or RenderBudgetBucket.Basement;
+        }
+
+        private void EnsureDirectionalMoonCached()
+        {
+            if (cachedDirectionalMoon != null) return;
+            foreach (var l in GetComponentsInChildren<Light>(true))
+            {
+                if (l != null && l.type == LightType.Directional)
+                {
+                    cachedDirectionalMoon = l;
+                    directionalMoonOrigShadows = l.shadows;
+                    directionalMoonOrigIntensity = l.intensity;
+                    directionalMoonFactor = 1f;
+                    break;
+                }
+            }
         }
 
         private void UpdateRenderBudgetForPosition(Vector3 camPos)
         {
-            var bucket = ResolveRenderBudgetBucket(camPos);
-            if (bucket == activeRenderBucket) return;
-            activeRenderBucket = bucket;
+            EnsureDirectionalMoonCached();
+            if (cachedPlayer == null)
+                cachedPlayer = FindFirstObjectByType<FirstPerson>();
 
+            // Detect teleports (>2.5m jump or first frame) so QA/benchmark snaps immediately while walking fades smoothly!
+            bool teleported = !hasLastBudgetCamPos || (camPos - lastBudgetCamPos).sqrMagnitude > 6.25f;
+            lastBudgetCamPos = camPos;
+            hasLastBudgetCamPos = true;
+            float maxDelta = teleported ? 1f : Mathf.Clamp(Time.unscaledDeltaTime * 2.4f, 0.005f, 0.25f);
+
+            var bucket = ResolveRenderBudgetBucket(camPos);
+            bool bucketChanged = bucket != activeRenderBucket;
+            if (bucketChanged)
+            {
+                activeRenderBucket = bucket;
+                bool isIndoorTight = bucket is RenderBudgetBucket.WardRoom or RenderBudgetBucket.Corridor
+                    or RenderBudgetBucket.Reception or RenderBudgetBucket.Emergency or RenderBudgetBucket.Basement;
+                cachedPlayer?.SetIndoorBudget(isIndoorTight);
+
+                bool showSouthParticles = bucket is RenderBudgetBucket.Exterior or RenderBudgetBucket.Reception
+                    or RenderBudgetBucket.Corridor or RenderBudgetBucket.UpperFloor;
+                for (int i = 0; i < trackedSouthExteriorParticles.Count; i++)
+                {
+                    var psr = trackedSouthExteriorParticles[i].Renderer;
+                    if (psr != null && psr.enabled != showSouthParticles)
+                        psr.enabled = showSouthParticles;
+                }
+            }
+
+            // Configure URP SoftShadowQuality tier once per quality-level change (never mutating shadows to None on lit lamps!).
+            int qLevel = QualitySettings.GetQualityLevel();
+            if (qLevel != lastAppliedShadowTierQuality)
+            {
+                lastAppliedShadowTierQuality = qLevel;
+                bool medOrLow = qLevel <= 1;
+                for (int i = 0; i < trackedShadowLights.Count; i++)
+                {
+                    var entry = trackedShadowLights[i];
+                    if (entry.Light == null) continue;
+                    if (!shadowsAblated && entry.Light.shadows != entry.OriginalShadows)
+                        entry.Light.shadows = entry.OriginalShadows;
+                    if (entry.IsWardWindow)
+                    {
+                        var urp = entry.Light.GetUniversalAdditionalLightData();
+                        if (urp != null)
+                            urp.softShadowQuality = medOrLow ? SoftShadowQuality.Low : SoftShadowQuality.Medium;
+                    }
+                }
+            }
+
+            // CRITICAL LIGHTING INTEGRITY RULE:
+            // NEVER disable .shadows on Overcast monsoon moonlight while its intensity > 0!
+            // Doing so removes roof/wall occlusion and blasts 1.38-intensity moonlight straight through ceilings & walls.
+            // Above ground, always keep Directional Moonlight + soft shadows intact; only fade smoothly to 0 in deep Basement.
+            if (cachedDirectionalMoon != null)
+            {
+                float wantMoon = bucket == RenderBudgetBucket.Basement ? 0f : 1f;
+                if (Mathf.Abs(directionalMoonFactor - wantMoon) > 0.0005f || teleported)
+                {
+                    directionalMoonFactor = Mathf.MoveTowards(directionalMoonFactor, wantMoon, maxDelta);
+                    bool moonActive = directionalMoonFactor > 0.001f;
+                    if (cachedDirectionalMoon.enabled != moonActive)
+                        cachedDirectionalMoon.enabled = moonActive;
+                    cachedDirectionalMoon.intensity = directionalMoonOrigIntensity * directionalMoonFactor;
+                }
+                if (!shadowsAblated && cachedDirectionalMoon.shadows != directionalMoonOrigShadows)
+                    cachedDirectionalMoon.shadows = directionalMoonOrigShadows;
+            }
+
+            // Smooth intensity fade for distant campus lights (zero 1-frame lighting pops across doorways!).
             CampusLightMask mask = bucket switch
             {
                 RenderBudgetBucket.Exterior => CampusLightMask.Exterior,
                 RenderBudgetBucket.Reception => CampusLightMask.Reception,
-                RenderBudgetBucket.Corridor or RenderBudgetBucket.WardRoom => CampusLightMask.Ward,
+                RenderBudgetBucket.Corridor => CampusLightMask.Corridor,
+                RenderBudgetBucket.WardRoom => CampusLightMask.Ward,
                 RenderBudgetBucket.Emergency => CampusLightMask.Emergency,
                 RenderBudgetBucket.UpperFloor => CampusLightMask.Upper,
                 _ => CampusLightMask.None
@@ -330,69 +425,56 @@ namespace CTCC
             {
                 var entry = trackedCampusLights[i];
                 if (entry.Light == null) continue;
-                bool want = (entry.AllowedBuckets & mask) != 0;
-                if (entry.Light.enabled != want) entry.Light.enabled = want;
-            }
-
-            bool allowCampusShadowCasters = bucket is RenderBudgetBucket.Exterior or RenderBudgetBucket.Reception or RenderBudgetBucket.UpperFloor;
-            for (int i = 0; i < trackedCampusShadowCasters.Count; i++)
-            {
-                var entry = trackedCampusShadowCasters[i];
-                if (entry.Renderer == null) continue;
-                var wantMode = allowCampusShadowCasters ? entry.OriginalMode : ShadowCastingMode.Off;
-                if (entry.Renderer.shadowCastingMode != wantMode) entry.Renderer.shadowCastingMode = wantMode;
-            }
-
-            bool showSouthParticles = bucket is RenderBudgetBucket.Exterior or RenderBudgetBucket.Reception or RenderBudgetBucket.UpperFloor;
-            for (int i = 0; i < trackedSouthExteriorParticles.Count; i++)
-            {
-                var psr = trackedSouthExteriorParticles[i].Renderer;
-                if (psr != null && psr.enabled != showSouthParticles)
-                    psr.enabled = showSouthParticles;
-            }
-
-            if (!shadowsAblated)
-            {
-                for (int i = 0; i < trackedShadowLights.Count; i++)
+                float target = (entry.AllowedBuckets & mask) != 0 ? 1f : 0f;
+                if (Mathf.Abs(entry.CurrentFactor - target) > 0.0005f || teleported)
                 {
-                    var entry = trackedShadowLights[i];
-                    if (entry.Light == null) continue;
-                    bool wantShadow =
-                        (entry.IsCanopy && bucket is RenderBudgetBucket.Exterior or RenderBudgetBucket.Reception) ||
-                        (entry.IsWardWindow && bucket is RenderBudgetBucket.Corridor or RenderBudgetBucket.WardRoom) ||
-                        (entry.IsCorridorSpill && bucket is RenderBudgetBucket.Corridor or RenderBudgetBucket.Reception);
-                    var mode = wantShadow ? entry.OriginalShadows : LightShadows.None;
-                    if (entry.Light.shadows != mode) entry.Light.shadows = mode;
+                    entry.CurrentFactor = Mathf.MoveTowards(entry.CurrentFactor, target, maxDelta);
+                    bool shouldEnable = entry.CurrentFactor > 0.001f;
+                    if (entry.Light.enabled != shouldEnable)
+                        entry.Light.enabled = shouldEnable;
+                    entry.Light.intensity = entry.OriginalIntensity * entry.CurrentFactor;
+                    trackedCampusLights[i] = entry;
                 }
             }
 
-            var pipeline = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
-            if (pipeline != null)
+            // Local shadow-casting spotlights NEVER strip .shadows while lit!
+            // Instead, keep shadows ALWAYS ON and only smoothly fade intensity to 0 when strictly behind multiple solid walls.
+            for (int i = 0; i < trackedShadowLights.Count; i++)
             {
-                if (cachedPipeline != pipeline)
+                var entry = trackedShadowLights[i];
+                if (entry.Light == null) continue;
+                bool visible;
+                if (entry.IsCanopy)
                 {
-                    cachedPipeline = pipeline;
-                    originalPipelineShadowDistance = pipeline.shadowDistance;
-                    originalPipelineCascadeCount = pipeline.shadowCascadeCount;
+                    // Canopy spot at z=-8.65m is visible through front doors from Exterior, Reception, UpperFloor, and South Corridor (z < 7.5m).
+                    visible = bucket is RenderBudgetBucket.Exterior or RenderBudgetBucket.Reception or RenderBudgetBucket.UpperFloor
+                        || (bucket == RenderBudgetBucket.Corridor && camPos.z < 7.5f);
                 }
-                // Respect Low quality tighter shadowDistance; adapt Medium/High cleanly by indoor/outdoor sightlines.
-                float targetDist = bucket switch
+                else if (entry.IsWardWindow)
                 {
-                    RenderBudgetBucket.WardRoom => 15f,
-                    RenderBudgetBucket.Corridor => 17f,
-                    RenderBudgetBucket.Emergency => 18f,
-                    RenderBudgetBucket.Basement => 14f,
-                    RenderBudgetBucket.Reception => 22f,
-                    RenderBudgetBucket.UpperFloor => 20f,
-                    _ => 24f
-                };
-                float clamped = originalPipelineShadowDistance > 0f
-                    ? Mathf.Min(originalPipelineShadowDistance, targetDist)
-                    : targetDist;
-                if (Mathf.Abs(pipeline.shadowDistance - clamped) > 0.1f)
-                    pipeline.shadowDistance = clamped;
-                if (QualitySettings.GetQualityLevel() <= 1 && pipeline.shadowCascadeCount != 1)
-                    pipeline.shadowCascadeCount = 1;
+                    // Room 101 window moonlight stays active everywhere indoors on ground floor (Ward, Corridor, Reception, Emergency).
+                    visible = bucket is RenderBudgetBucket.WardRoom or RenderBudgetBucket.Corridor
+                        or RenderBudgetBucket.Reception or RenderBudgetBucket.Emergency;
+                }
+                else
+                {
+                    // Corridor doorway spill sits at Room 101 doorway (6.6, 2.45, 4.75) — MUST stay lit with shadows in Ward, Corridor, AND Reception!
+                    visible = bucket is RenderBudgetBucket.WardRoom or RenderBudgetBucket.Corridor
+                        or RenderBudgetBucket.Reception or RenderBudgetBucket.Emergency;
+                }
+
+                float target = visible ? 1f : 0f;
+                if (Mathf.Abs(entry.CurrentFactor - target) > 0.0005f || teleported)
+                {
+                    entry.CurrentFactor = Mathf.MoveTowards(entry.CurrentFactor, target, maxDelta);
+                    bool shouldEnable = entry.CurrentFactor > 0.001f;
+                    if (entry.Light.enabled != shouldEnable)
+                        entry.Light.enabled = shouldEnable;
+                    entry.Light.intensity = entry.OriginalIntensity * entry.CurrentFactor;
+                    trackedShadowLights[i] = entry;
+                }
+                if (!shadowsAblated && entry.Light.shadows != entry.OriginalShadows)
+                    entry.Light.shadows = entry.OriginalShadows;
             }
         }
     }

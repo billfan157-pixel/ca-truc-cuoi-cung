@@ -6,7 +6,7 @@ param(
     [switch]$S1Only,
     [ValidateSet('D3D12','D3D11')][string]$GraphicsApi = 'D3D12',
     [ValidateRange(30,900)][int]$TimeoutSeconds = 240,
-    [ValidateSet('module-failure','keyboard-failure','visual-failure','escape-premature','char-mesh','char-track','char-interruption','invalid-reasoning','broken-progression','v36-t02-wrong-key','v36-vo-leak','v36-ex01-autosolve','v36-f101-unverified-link')][string]$ProbeFailure,
+    [ValidateSet('module-failure','keyboard-failure','visual-failure','escape-premature','char-mesh','char-track','char-interruption','invalid-reasoning','broken-progression','v36-t02-wrong-key','v36-vo-leak','v36-ex01-autosolve','v36-f101-unverified-link','v36-p25-envelope-autoread')][string]$ProbeFailure,
     [ValidateSet('Low','Medium','High')][string]$Quality = 'Medium'
 )
 
@@ -60,6 +60,7 @@ if ($ProbeFailure) {
         'v36-vo-leak' { 'VO-SILENT-Q01 CH01-D01 renders as SilentThought with WCAG AA scrim and zero AudioBus usage' }
         'v36-ex01-autosolve' { 'V36-CH01-Q03 EX01 never auto-solves when all 3 sources are discovered' }
         'v36-f101-unverified-link' { 'V36-CH01-Q02 backend rejects unverified F101 link without SpatialFieldVerified provenance' }
+        'v36-p25-envelope-autoread' { 'P25-ENV-Q01 opening 3D envelope flap never auto-reads Lan letter or any E10a part (0/4)' }
     }
     if ($ctccRun.ExitCode -ne 1 -or !(Test-Path -LiteralPath $verdict) -or
         !(Select-String -LiteralPath $verdict -Quiet -Pattern '^RESULT=FAIL$') -or

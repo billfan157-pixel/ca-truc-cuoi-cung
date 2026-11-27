@@ -34,9 +34,7 @@ namespace CTCC
         private sealed class Curtain
         {
             public MeshFilter filter;
-            public Mesh mesh;
-            public Vector3[] rest;
-            public Vector3[] posed;
+            public Quaternion restRotation;
             public bool atRest = true;
         }
 
@@ -67,17 +65,17 @@ namespace CTCC
             {
                 foreach (var mf in extraCurtains)
                 {
-                    if (mf == null || mf.sharedMesh == null || !mf.sharedMesh.isReadable) continue;
+                    if (mf == null || mf.sharedMesh == null) continue;
                     bool exists = false;
                     for (int i = 0; i < dynamicCloth.Count; i++)
                         if (dynamicCloth[i].filter == mf) { exists = true; break; }
                     if (exists) continue;
-                    var mesh = mf.mesh;
-                    if (mesh != null && mesh.isReadable)
+                    dynamicCloth.Add(new Curtain
                     {
-                        mesh.MarkDynamic();
-                        dynamicCloth.Add(new Curtain { filter = mf, mesh = mesh, rest = mesh.vertices, posed = mesh.vertices });
-                    }
+                        filter = mf,
+                        restRotation = mf.transform.localRotation,
+                        atRest = true
+                    });
                 }
             }
         }
@@ -114,7 +112,7 @@ namespace CTCC
                 var blade = dynamicBlades[i];
                 if (blade == null) { dynamicBlades.RemoveAt(i); continue; }
                 if (reportLayer && blade.gameObject.activeInHierarchy && !reducedMotion && fanSpeed > 0.01f)
-                    blade.Rotate(0, Time.unscaledDeltaTime * (119 + i * 11) * fanSpeed, 0, Space.Self);
+                    blade.Rotate(Vector3.up, Time.unscaledDeltaTime * (119 + i * 11) * fanSpeed, Space.World);
             }
 
             bool blackout = Time.unscaledTime < tubeBlackoutUntil;
@@ -129,26 +127,29 @@ namespace CTCC
                     continue;
                 }
                 float pulse = Mathf.PerlinNoise(t * .38f, i * .86f);
-                entry.light.intensity = entry.power * (reducedMotion ? 1f : .90f + pulse * .19f);
+                entry.light.intensity = entry.power * (reducedMotion ? 1f : .92f + pulse * .14f);
             }
 
-            if (dynamicCloth.Count == 0 || Time.frameCount % 3 != 0)
-                return;
-            float clothTravel = reportLayer ? .019f : .041f;
+            // Smooth transform-level breeze sway on cloth-simulated curtains (zero CPU vertex re-upload / GPU Resident Drawer stutter!).
+            float swayDeg = reportLayer ? 0.42f : 1.05f;
             for (int k = dynamicCloth.Count - 1; k >= 0; k--)
             {
                 var c = dynamicCloth[k];
-                if (c.filter == null || c.mesh == null) { dynamicCloth.RemoveAt(k); continue; }
-                if (!c.filter.gameObject.activeInHierarchy || (reducedMotion && c.atRest)) continue;
-                for (int i = 0; i < c.rest.Length; i++)
+                if (c.filter == null) { dynamicCloth.RemoveAt(k); continue; }
+                if (!c.filter.gameObject.activeInHierarchy) continue;
+                if (reducedMotion)
                 {
-                    var p = c.rest[i];
-                    if (!reducedMotion)
-                        p.z += Mathf.Sin(p.x * 3.5f + p.y * 1.2f + t * 1.66f + k) * Mathf.Clamp01(-p.y * .63f) * clothTravel;
-                    c.posed[i] = p;
+                    if (!c.atRest)
+                    {
+                        c.filter.transform.localRotation = c.restRotation;
+                        c.atRest = true;
+                    }
+                    continue;
                 }
-                c.mesh.vertices = c.posed;
-                c.atRest = reducedMotion;
+                float angle = Mathf.Sin(t * 1.42f + k * 1.37f) * swayDeg
+                            + Mathf.Sin(t * 0.63f + k * 2.11f) * (swayDeg * 0.45f);
+                c.filter.transform.localRotation = c.restRotation * Quaternion.Euler(angle, 0f, angle * 0.25f);
+                c.atRest = false;
             }
         }
     }

@@ -178,6 +178,8 @@ namespace CTCC
 
             fade = Graphic(Rect("Reality transition", canvas, Vector2.zero, Vector2.one), Color.clear, true);
             fade.gameObject.SetActive(false);
+
+            InitMinimalHudElements();
         }
 
         public void Apply(VisitSettings options)
@@ -201,20 +203,23 @@ namespace CTCC
 
         public void Hud(string reality, string objective)
         {
-            place.text = reality;
-            task.text = objective;
+            PulseObjectiveMinimal(reality, objective);
         }
 
         public void Prompt(string text)
         {
-            bool has = !string.IsNullOrEmpty(text);
-            promptBacking.gameObject.SetActive(has);
-            prompt.text = text ?? "";
-            if (reticleRect != null)
+            // Minimal HUD (Phase 2.5): never re-show the giant 760x54 center prompt banner; route essential strings to bottom whisper.
+            if (promptBacking != null) promptBacking.gameObject.SetActive(false);
+            if (prompt != null) prompt.text = text ?? "";
+            if (whisperBacking != null)
             {
-                reticleRect.sizeDelta = has ? new Vector2(9, 9) : new Vector2(5, 5);
-                reticleRect.localRotation = has ? Quaternion.Euler(0, 0, 45f) : Quaternion.identity;
-                reticleImg.color = has ? new Color(0.95f, 0.94f, 0.72f, 0.96f) : new Color(0.95f, 0.92f, 0.78f, 0.56f);
+                bool has = !string.IsNullOrEmpty(text);
+                whisperBacking.gameObject.SetActive(has);
+                if (has)
+                {
+                    whisperText.fontSize = Scaled(17);
+                    whisperText.text = text;
+                }
             }
         }
 
@@ -301,6 +306,7 @@ namespace CTCC
             Texture splitImage, bool sideInspectMode, Action onClose, string inspectHint, int initialFocus = 0,
             bool largePrint = false)
         {
+            ClearStandaloneOverlayState();
             ClearModalPanel();
             dismiss = close;
             onCloseExtra = onClose;
@@ -436,6 +442,7 @@ namespace CTCC
             var extra = onCloseExtra;
             onCloseExtra = null;
             extra?.Invoke();
+            ClearStandaloneOverlayState();
             ResetNotebookInput();
             modal.gameObject.SetActive(false);
             hud.gameObject.SetActive(true);
@@ -471,6 +478,8 @@ namespace CTCC
             }
             if (toastBacking != null && Time.unscaledTime > toastUntil) toastBacking.gameObject.SetActive(false);
             if (chapterBacking != null && Time.unscaledTime > chapterUntil) chapterBacking.gameObject.SetActive(false);
+            TickMinimalHud();
+            TickQuickHudFade();
             if (modal == null || !IsModal || ModalInputBlocked || modalOpenedFrame == Time.frameCount) return;
             HandleNavigation(Keyboard.current);
         }

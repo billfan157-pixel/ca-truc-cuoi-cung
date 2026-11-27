@@ -128,6 +128,32 @@ Shader "CTCC/InspectPaperRaking"
             }
             ENDHLSL
         }
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode"="DepthOnly" }
+            ZWrite On
+            ColorMask R
+            Cull [_Cull]
+
+            HLSLPROGRAM
+            #pragma vertex DepthVert
+            #pragma fragment DepthFrag
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            struct DepthAttributes { float3 positionOS : POSITION; };
+            struct DepthVaryings { float4 positionCS : SV_POSITION; };
+
+            DepthVaryings DepthVert(DepthAttributes input)
+            {
+                DepthVaryings output;
+                output.positionCS = TransformObjectToHClip(input.positionOS);
+                return output;
+            }
+
+            half DepthFrag(DepthVaryings input) : SV_TARGET { return input.positionCS.z; }
+            ENDHLSL
+        }
     }
     FallBack "Universal Render Pipeline/Lit"
 }

@@ -33,7 +33,7 @@ namespace CTCC
                 if (picked)
                     return "[" + UseKey + "]  Kiểm tra hộp thư sắt (trống)";
                 return State.Happened(E10aParts.MailboxOpened)
-                    ? "★ [" + UseKey + "]  Lấy gói (chìa cổng cầm tay · bì E10a vào ba lô)   ·   [Q] Đọc giấy nhắn ngoài bì"
+                    ? "★ [" + UseKey + "]  Lấy chìa cổng và phong bì   ·   [Q] Đọc giấy nhắn ngoài bì"
                     : "★ [" + UseKey + "]  Mở nắp hộp thư sắt ngoài trụ cổng";
             }
 
@@ -78,7 +78,7 @@ namespace CTCC
                     }
                 }
                 if (target.id == "COMPARE_DESK_101" && InventoryService.CanAssembleCh02Drawing(State))
-                    return $"★ [{UseKey}]  Bàn Phòng 101 · Ghép 3 mảnh tranh (E11)";
+                    return $"★ [{UseKey}]  Bàn Phòng 101 · Ghép 3 mảnh tranh";
                 if (target.id == "COMPARE_CLIP_AN02")
                 {
                     return count > 0
@@ -94,7 +94,7 @@ namespace CTCC
             {
                 var eq = InventoryService.GetEquipped(State);
                 if (eq?.itemDefId == BackpackCatalog.Ch04Tape)
-                    return $"★ [{UseKey}]  Đặt băng họp E06a vào máy phát tại bàn trực";
+                    return $"★ [{UseKey}]  Đặt cuộn băng họp vào máy phát tại bàn trực";
             }
 
             string label = target.id switch
@@ -104,29 +104,29 @@ namespace CTCC
                 "AN01" when State.chapter == "CH01" => "Sổ trực quầy tiếp nhận",
                 "AN01" => "Mở sổ trực",
                 "BOARD" => State.Happened("CH01-T04") ? "Xem & nhận bảng kẹp Phòng 101" : "Xem bảng kẹp trên quầy",
-                "F101" when State.chapter == "CH02" => "Bảng kẹp 101   ·   Q Đổi lớp",
-                "F101" => "Nhấc phiếu trên bảng kẹp",
+                "F101" when State.chapter == "CH02" => "Bảng kẹp 101   ·   Q Chuyển lớp",
+                "F101" => "Xem phiếu F101 trên bảng kẹp",
                 "LAN_TALK" => !State.Happened("CH01-T04") ? "Nói chuyện với Lan" : "Hỏi thêm Lan",
                 "LAN_EMPTY_DESK" => "Nhìn quầy trực trống",
                 "OBS_CLOCK_0317" => "Xem kim đồng hồ",
                 "OBS101B" => "Cầm thẻ đầu giường",
                 "OBS101C" => "Xem tờ kẹp ở giường 02",
                 "OBS101D" => "Lấy phiếu trong ngăn",
-                "PZ04_SCHEDULE" => "Xem lịch đẩy xe thuốc (3 điểm dừng)",
+                "PZ04_SCHEDULE" => "Xem lịch đẩy xe thuốc",
                 "PZ04_ROOM_SLIP" => "Đọc phiếu tình trạng buồng Khu B",
                 "PZ04_STATUS_BOARD" => "Đối chiếu bảng tình trạng buồng Khu B",
-                "AN05" when State.chapter == "CH05" && State.Happened(ChapterFive.EvReturnR) => "Xe bệnh nhân AN05 · Đã ghi nhận ký ức 6/6",
-                "AN05" => "Xe bệnh nhân Khu B · Điểm neo ký ức AN05 (CH05)",
-                "AN05_HANDOFF_NOTE" => "Đọc ghi chú vị trí điểm neo AN05",
-                "CH05_M_PAIR1" => "Nhóm 1/3 · Mở lối Khu B & đẩy xe bệnh nhân (2/6)",
-                "CH05_M_PAIR2" => "Nhóm 2/3 · Điểm hẹn A & vượt vật cản hành lang S1 (4/6)",
-                "CH05_M_PAIR3_ASSEMBLY" => "Nhóm 3/3 · Bảng tập kết sân ngoài S1 (6/6)",
-                "CH05_M_EXIT" => "Xe đẩy AN05 · Tiến độ sơ tán / Tái hiện cố định / Thoát M",
-                "CH05_BLUEPRINTS" => "Tủ bản vẽ B1 · Đối chiếu Sơ đồ 2005 & Hoàn công E05 (PZ07)",
-                "LOC09_VALVE" => "Kiểm tra van bồn dung môi & tấm chắn gió LOC09",
-                "E05B_SEALED_DOOR" => "Quan sát hiện trường tường gạch xây bít 2004 (E05b)",
-                "LOC08_GATE" => "Cửa Phòng Hành chính LOC08 (Khóa G05)",
-                "CH05_HANDOFF" => "Bàn giao Chương 05 · Mốc CH05-CP03 (Ngưỡng LOC08)",
+                "AN05" when State.chapter == "CH05" && State.Happened(ChapterFive.EvReturnR) => "Xe bệnh nhân Khu B · Đã ghi nhận ký ức",
+                "AN05" => "Xe bệnh nhân sảnh Khu B",
+                "AN05_HANDOFF_NOTE" => "Đọc ghi chú cạnh xe bệnh nhân",
+                "CH05_M_PAIR1" => "Mở lối Khu B & đưa nhóm đầu ra hành lang S1",
+                "CH05_M_PAIR2" => "Điểm hẹn A · Vượt vật cản hành lang S1",
+                "CH05_M_PAIR3_ASSEMBLY" => "Bảng tập kết sân ngoài S1",
+                "CH05_M_EXIT" => "Xe bệnh nhân Khu B",
+                "CH05_BLUEPRINTS" => "Tủ bản vẽ tầng hầm B1",
+                "LOC09_VALVE" => "Kiểm tra van bồn dung môi & tấm chắn gió",
+                "E05B_SEALED_DOOR" => "Quan sát mảng tường gạch xây bít năm 2004",
+                "LOC08_GATE" => "Cửa Phòng Hành chính",
+                "CH05_HANDOFF" => "Ngưỡng cửa Phòng Hành chính",
                 "RADIO_LOC07" => "Bật đài cassette đánh lạc hướng",
                 Ch01FieldObjects.BinPedal when scene.PedalBin?.HeldOpen == true => "Nhả bàn đạp",
                 _ => target.title
@@ -290,7 +290,7 @@ namespace CTCC
             {
                 scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.52f);
                 ui.Toast("ĐÃ ĐỐI CHỨNG TẠI HIỆN TRƯỜNG GIƯỜNG 4",
-                    "Ô chữ ký trống trên thẻ AS-05B ↔ dấu chăn và dép quanh hốc Giường 4. Có thể quay lại bảng kẹp AN02 để ghi phiếu F101.", 5.8f);
+                    "Ô chữ ký trống trên thẻ AS-05B khớp với dấu chăn và dép quanh hốc Giường 4. Có thể quay lại bảng kẹp Phòng 101 để xử lý phiếu F101.", 5.8f);
             });
         }
 
@@ -365,8 +365,7 @@ namespace CTCC
 
             departureCueUntil = Time.unscaledTime + 4.6f;
             scene.atmosphere?.From("emergencyHum", player.Feet + Vector3.up, 0.38f);
-            string journal = Options.alternateBindings ? "J" : "Tab";
-            ui.Caption($"[Ù trầm] Minh · Mình chưa thể bỏ đi khi chuyện bên trong còn dang dở.\n{journal} → Pocket Note → Nhật ký điều tra.", 4.6f, true);
+            ui.Caption("[Tiếng mưa dịu lại ngoài cổng] Không thể bỏ về khi chuyện bên trong còn chưa rõ.", 4.4f, true);
         }
 
         private IEnumerator RunB07PeakGateSeam()
@@ -432,19 +431,38 @@ namespace CTCC
                     var position = target.Contact;
                     scene.atmosphere?.From(contact, position, .65f);
                     inspector.Open(target.inspectModel, null, 1f, ActiveVolume(), observationId: spec.Id,
-                        source: position, liftModel: true, pickupSeconds: handset ? .29f : .24f);
+                        source: position, liftModel: true, pickupSeconds: handset ? .29f : .24f, standaloneCenter: true);
                     if (handset)
                     {
                         scene.atmosphere?.ListenToHandset();
-                        ui.Caption("[Tín hiệu ngắt quãng, rồi nhiễu trong ống nghe]", 2.6f, aboveModal: true);
+                        ui.Caption("[Tín hiệu ngắt quãng, rồi nhiễu trong ống nghe]", 2.8f, aboveModal: true);
+                    }
+                    else if (!string.IsNullOrEmpty(spec.FactSummary))
+                    {
+                        ui.Caption(spec.FactSummary, 3.8f, aboveModal: true);
                     }
                     void PutDown() => StartCoroutine(ReturnHeldProp(position, contact));
-                    ui.ShowInspectSidebar(PlaceName(location), spec.Title, spec.FactSummary,
-                        new[] { new ActionChoice("Đặt lại chỗ cũ", PutDown) }, PutDown, () =>
+                    void ShowPropLarge()
+                    {
+                        scene.atmosphere?.PutHandsetDown();
+                        inspector.Close();
+                        ui.Show(PlaceName(location), spec.Title, spec.FactSummary,
+                            new[] { new ActionChoice("Đặt lại chỗ cũ", CloseModal) }, CloseModal, largePrint: true);
+                    }
+                    ui.ShowStandaloneOverlay(
+                        "Kéo xoay · Cuộn thu phóng · L chữ lớn · Esc đặt lại",
+                        PutDown,
+                        onClose: () =>
                         {
                             scene.atmosphere?.PutHandsetDown();
                             inspector.Close();
-                        });
+                        },
+                        microChips: new[]
+                        {
+                            new ActionChoice("Chữ lớn [L]", ShowPropLarge),
+                            new ActionChoice("Đặt lại [Esc]", PutDown)
+                        },
+                        onLargePrintKey: ShowPropLarge);
                 }
                 else
                 {

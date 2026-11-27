@@ -67,14 +67,14 @@ namespace CTCC.Editor
             canopyLamp.spotAngle = 124f;
             canopyLamp.innerSpotAngle = 68f;
             canopyLamp.shadowStrength = 0.85f;
-            Lamp("Street wash at the gate", LightType.Point, new Vector3(6.03f, 3.60f, -20.55f), 3.9f, 14.2f, new Color(.82f, .83f, .78f), permanent);
+            Lamp("Street wash at the gate", LightType.Point, new Vector3(5.85f, 4.10f, -21.15f), 4.2f, 15.0f, new Color(.82f, .83f, .78f), permanent);
             if (art)
             {
                 Lamp("Sodium spill reflected by the wet court", LightType.Point, new Vector3(3.07f, 1.65f, -12.8f),
                     1.45f, 11.2f, new Color(.85f, .78f, .65f), real);
-                var threshold = Lamp("Street-side wash along gate ironwork", LightType.Spot, new Vector3(3.9f, 3.36f, -23.1f),
-                    3.4f, 9.3f, new Color(.82f, .80f, .72f), real);
-                threshold.transform.LookAt(new Vector3(4.3f, 1.06f, -19.8f));
+                var threshold = Lamp("Street-side wash along gate ironwork", LightType.Spot, new Vector3(3.9f, 3.85f, -23.3f),
+                    3.8f, 10.5f, new Color(.82f, .80f, .72f), real);
+                threshold.transform.LookAt(new Vector3(4.15f, 1.55f, -20.0f));
                 threshold.spotAngle = 91f;
                 threshold.innerSpotAngle = 51f;
                 Lamp("Return from under the entry eave", LightType.Point, new Vector3(5.42f, 1.53f, -10.8f),
@@ -84,10 +84,10 @@ namespace CTCC.Editor
             Lamp("Emergency glass return", LightType.Point, new Vector3(6.20f, 2.65f, 19.48f), 1.48f, 9.8f, coolNight, permanent);
             Lamp("Wayfinding on staff corridor", LightType.Point, new Vector3(0.2f, 2.66f, 8.3f), 0.72f, 11.0f, coolNight, permanent);
 
-            // Calibrated horror bounce fills in R (deep atmospheric shadows without crushing clues or architectural depth!)
-            Lamp("Room 101 floor bounce R", LightType.Point, new Vector3(9.32f, 1.76f, 5.46f), 1.92f, 8.7f, subtleBounce, real);
-            Lamp("Back wall warm dust bounce R", LightType.Point, new Vector3(12.15f, 2.50f, 4.02f), .93f, 6.4f, new Color(0.80f, 0.74f, 0.60f), real);
-            Lamp("Dry store readable spill R", LightType.Point, new Vector3(15.6f, 2.45f, 3.65f), 1.66f, 6.2f, new Color(0.86f, 0.78f, 0.62f), real);
+            // Calibrated horror bounce fills in R (tight Forward+ cluster ranges so zero light bleeds into Store Room or Corridor!)
+            Lamp("Room 101 floor bounce R", LightType.Point, new Vector3(9.32f, 1.76f, 5.46f), 1.62f, 6.8f, subtleBounce, real);
+            Lamp("Back wall warm dust bounce R", LightType.Point, new Vector3(12.15f, 2.50f, 4.02f), .95f, 5.0f, new Color(0.80f, 0.74f, 0.60f), real);
+            Lamp("Dry store readable spill R", LightType.Point, new Vector3(15.6f, 2.45f, 3.65f), 1.72f, 4.6f, new Color(0.86f, 0.78f, 0.62f), real);
             var corrSpill = Lamp("Corridor doorway spill R", LightType.Spot, new Vector3(6.6f, 2.45f, 4.75f), 3.2f, 9.2f, coolNight, real, shadow: art);
             corrSpill.transform.LookAt(new Vector3(3.1f, 0.35f, 4.75f));
             corrSpill.spotAngle = 82f;
@@ -95,10 +95,23 @@ namespace CTCC.Editor
             Lamp("Corridor ambient depth R", LightType.Point, new Vector3(4.0f, 2.55f, 4.95f), 0.84f, 8.4f, coolNight, real);
             Lamp("Corridor mid bounce R", LightType.Point, new Vector3(4.0f, 2.55f, 10.6f), 0.96f, 8.2f, coolNight, real);
             Lamp("Corridor far red emergency hint R", LightType.Point, new Vector3(4.2f, 2.75f, 14.2f), 1.05f, 8.5f, new Color(0.88f, 0.28f, 0.22f), real);
-            Lamp("Desk readable spill R", LightType.Point, new Vector3(2.90f, 2.26f, -3.86f), 1.75f, 8.05f, new Color(0.72f, 0.78f, 0.74f), real);
-            // Subtle eerie warm desk lamp glow stays visible in R (walkthrough B02 uncanny cue); brighter active shift pool in B!
-            Lamp("Reception desk lamp warm glow", LightType.Point, new Vector3(1.31f, 1.46f, -4.21f), .55f, 3.10f, new Color(1f, .82f, .58f), permanent);
-            Lamp("Reception desk lamp active B", LightType.Point, new Vector3(1.36f, 1.48f, -4.18f), .68f, 3.40f, new Color(1f, .88f, .68f), report);
+            Lamp("Desk readable spill R", LightType.Point, new Vector3(2.90f, 2.26f, -3.86f), 1.45f, 8.05f, new Color(0.66f, 0.76f, 0.78f), real);
+            // Focused warm tungsten desk lamp cone emanating directly from inside the sculpted green-enamel bell shade!
+            var deskConeR = Lamp("Reception desk lamp warm glow", LightType.Spot, new Vector3(1.56f, 1.50f, -3.94f), 2.15f, 3.60f, new Color(1.0f, 0.78f, 0.48f), permanent, shadow: false);
+            deskConeR.transform.LookAt(new Vector3(1.58f, 1.12f, -3.45f));
+            deskConeR.spotAngle = 108f;
+            deskConeR.innerSpotAngle = 42f;
+            var deskConeB = Lamp("Reception desk lamp active B", LightType.Spot, new Vector3(1.56f, 1.50f, -3.94f), 1.68f, 3.85f, new Color(1.0f, 0.85f, 0.60f), report, shadow: false);
+            deskConeB.transform.LookAt(new Vector3(1.52f, 1.12f, -3.40f));
+            deskConeB.spotAngle = 114f;
+            deskConeB.innerSpotAngle = 48f;
+            // Subtle cool monsoon entry spill from courtyard doorway into abandoned R lobby (sculpts counter relief & wet floor sheen!)
+            var entrySpillR = Lamp("Reception entry monsoon spill R", LightType.Spot, new Vector3(4.05f, 2.38f, -7.75f), 2.65f, 9.2f, new Color(0.56f, 0.74f, 0.90f), real, shadow: false);
+            entrySpillR.transform.LookAt(new Vector3(2.15f, 0.82f, -3.40f));
+            entrySpillR.spotAngle = 96f;
+            entrySpillR.innerSpotAngle = 42f;
+            // Subtle warm lobby floor/apron bounce in B so carved ironwood wainscot, brass kickplate & built-in drawer read with 3D depth
+            Lamp("Reception counter front fill B", LightType.Point, new Vector3(3.15f, 0.98f, -3.95f), 0.78f, 5.8f, new Color(0.92f, 0.90f, 0.80f), report);
             // Warm localized gooseneck reading lamp pool over STAFF nursing desk in 2005 B (dark & cold in 2012 R!)
             Lamp("Staff desk sconce B", LightType.Point, new Vector3(0.54f, 1.56f, 3.22f), 1.35f, 4.2f, new Color(0.98f, 0.88f, 0.68f), report);
 
@@ -106,15 +119,16 @@ namespace CTCC.Editor
             var cleanTube = new Color(.94f, .97f, .89f);
             Tube(new Vector3(4.00f, 3.59f, 4.75f), 0f, cleanTube, 3.1f, castShadow: art);
             Tube(new Vector3(4.00f, 3.59f, 10.60f), 0f, cleanTube, 2.3f, castShadow: false);
-            Tube(new Vector3(1.28f, 3.59f, -3.21f), 0f, cleanTube, 2.24f, castShadow: false);
-            Tube(new Vector3(6.32f, 3.59f, -4.58f), 0f, cleanTube, 2.2f, castShadow: false);
-            Tube(new Vector3(7.80f, 3.59f, 5.00f), 90f, cleanTube, 3.4f, castShadow: art);
-            var bed4Tube = Tube(new Vector3(11.55f, 3.59f, 5.20f), 90f, cleanTube, 3.1f, castShadow: art);
+            Tube(new Vector3(1.28f, 3.59f, -3.21f), 0f, cleanTube, 2.35f, castShadow: art);
+            Tube(new Vector3(6.32f, 3.59f, -4.58f), 0f, cleanTube, 2.75f, castShadow: false);
+            // Room 101 T8 fluorescent fixtures offset cleanly clear of ceiling fan sweep circles (West N bay & East S Bed-4 bay!)
+            Tube(new Vector3(7.70f, 3.59f, 6.55f), 90f, cleanTube, 3.4f, castShadow: art);
+            var bed4Tube = Tube(new Vector3(11.65f, 3.59f, 3.45f), 90f, cleanTube, 3.1f, castShadow: art);
             Tube(new Vector3(0.05f, 3.59f, 3.85f), 0f, cleanTube, 2.1f, castShadow: false);
             if (multiScene && bed4Tube != null) zones["LOC03"].region.bed4TubeLight = bed4Tube;
             else if (bed4Tube != null) world.bed4TubeLight = bed4Tube;
 
-            Lamp("Room 101 GI bounce B", LightType.Point, new Vector3(9.65f, 0.85f, 5.0f), 0.82f, 8.8f, new Color(0.76f, 0.82f, 0.72f), report);
+            Lamp("Room 101 GI bounce B", LightType.Point, new Vector3(9.65f, 0.92f, 5.0f), 0.88f, 7.2f, new Color(0.76f, 0.82f, 0.72f), report);
             Lamp("Corridor GI bounce B", LightType.Point, new Vector3(4.0f, 0.95f, 5.5f), 0.65f, 8.8f, new Color(0.74f, 0.80f, 0.72f), report);
             Lamp("Reception GI bounce B", LightType.Point, new Vector3(3.35f, 1.10f, -3.5f), .83f, 7.4f, new Color(.86f, .87f, .81f), report);
 
@@ -132,7 +146,7 @@ namespace CTCC.Editor
             {
                 var from = new Vector3(w.x, 2.55f, 10.45f);
                 var to = new Vector3(w.x + 0.35f, 0.15f, 4.35f);
-                var beam = Lamp("Window key moonlight", LightType.Spot, from, w.intensity, 12.8f, new Color(0.58f, 0.78f, 0.94f), real, shadow: w.shadow);
+                var beam = Lamp("Window key moonlight", LightType.Spot, from, w.intensity, 9.2f, new Color(0.58f, 0.78f, 0.94f), real, shadow: w.shadow);
                 beam.transform.LookAt(to);
                 beam.spotAngle = 62f;
                 beam.innerSpotAngle = 32f;
@@ -141,6 +155,14 @@ namespace CTCC.Editor
                     beam.shadowStrength = 0.90f;
                     beam.shadowBias = 0.025f;
                     beam.shadowNormalBias = 0.22f;
+                    var urpLight = beam.GetUniversalAdditionalLightData();
+                    if (urpLight != null)
+                    {
+                        var so = new SerializedObject(urpLight);
+                        var tierProp = so.FindProperty("m_AdditionalLightsShadowResolutionTier");
+                        if (tierProp != null) tierProp.intValue = UniversalAdditionalLightData.AdditionalLightsShadowResolutionTierMedium;
+                        so.ApplyModifiedPropertiesWithoutUndo();
+                    }
                 }
                 if (w.shadow) LightShaft(new Vector3(w.x, 1.92f, 7.98f), to, .71f, .72f, real);
             }
@@ -160,10 +182,10 @@ namespace CTCC.Editor
                 world.corridorReflection = rpHall;
             }
 
-            // --- Blender 3-Blade Enamel Ceiling Fans ---
-            Fan(new Vector3(7.55f, 3.58f, 5.05f));
-            Fan(new Vector3(11.35f, 3.58f, 5.05f));
-            Fan(new Vector3(4.30f, 3.58f, -3.94f));
+            // --- Hero Cycles-Baked 3-Blade Enamel Ceiling Fans (centered in structural bays, 1.5m+ clear of T8 tubes & curtain tracks!) ---
+            Fan(new Vector3(7.70f, 3.58f, 4.95f), "CTCC_LOC02_CeilingFan");
+            Fan(new Vector3(11.65f, 3.58f, 5.12f), "CTCC_LOC02_CeilingFan");
+            Fan(new Vector3(4.30f, 3.58f, -3.94f), "CTCC_LOC02_CeilingFan");
 
             // --- Weather & Atmosphere: Monsoon Rain, Exterior Courtyard Mist, Dust Motes & Volumetric Cones (Upgrade #7) ---
             Rain("Light court rain", new Vector3(9.72f, 4.1f, 9.2f), new Vector3(9.2f, .18f, 2.2f), 285,
@@ -240,7 +262,7 @@ namespace CTCC.Editor
             AddGrid(3.0f, 5.0f, 2, 0.8f, 15.2f, 6, interiorHeights);
             AddGrid(-0.5f, 0.8f, 2, 1.0f, 15.0f, 4, new[] { 0.7f, 1.8f });
             // LOC03 Room 101 + Store Room (Kho giường)
-            AddGrid(6.2f, 13.2f, 4, 2.5f, 7.5f, 3, interiorHeights);
+            AddGrid(6.2f, 13.2f, 5, 2.5f, 7.5f, 4, interiorHeights);
             AddGrid(14.3f, 16.6f, 2, 2.5f, 5.0f, 2, new[] { 0.75f, 1.85f });
             // LOC04 Emergency Bay
             AddGrid(0.2f, 8.2f, 4, 16.8f, 21.4f, 3, interiorHeights);
@@ -468,9 +490,9 @@ namespace CTCC.Editor
             return lit;
         }
 
-        private void Fan(Vector3 p)
+        private void Fan(Vector3 p, string modelName = "CTCC_ENV_CeilingFan")
         {
-            var fan = PlaceBlenderModel("CTCC_ENV_CeilingFan", permanent, p, 0f, pairRB: true);
+            var fan = PlaceBlenderModel(modelName, permanent, p, 0f, pairRB: true);
             var rotor = FindDescendant(fan.transform, "FanRotor");
             if (rotor != null)
             {

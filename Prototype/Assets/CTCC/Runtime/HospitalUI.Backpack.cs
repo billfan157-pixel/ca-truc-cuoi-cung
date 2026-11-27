@@ -16,11 +16,31 @@ namespace CTCC
         private Text cinematicSkipText;
         private GameObject cinematicBarTop, cinematicBarBottom;
 
-        // 4 Quick-Slots compact HUD bar (Proposal V1.1 §3.1 / BP-02)
+        // 4 Quick-Slots compact HUD bar (auto-fades during quiet exploration for Minimal HUD!)
         private GameObject quickSlotBar;
+        private CanvasGroup heldBadgeGroup;
+        private CanvasGroup quickSlotGroup;
+        private float quickHudVisibleUntil;
         private readonly Image[] quickSlotBg = new Image[InventoryService.MaxQuickSlots];
         private readonly Image[] quickSlotBorder = new Image[InventoryService.MaxQuickSlots];
         private readonly Text[] quickSlotText = new Text[InventoryService.MaxQuickSlots];
+
+        private void TickQuickHudFade()
+        {
+            float target = Time.unscaledTime < quickHudVisibleUntil ? 1f : 0.14f;
+            float step = Time.unscaledDeltaTime * 1.8f;
+            if (heldBadgeGroup != null)
+                heldBadgeGroup.alpha = Mathf.MoveTowards(heldBadgeGroup.alpha, target, step);
+            if (quickSlotGroup != null)
+                quickSlotGroup.alpha = Mathf.MoveTowards(quickSlotGroup.alpha, target, step);
+        }
+
+        private void PulseQuickHud(float seconds = 3.2f)
+        {
+            quickHudVisibleUntil = Mathf.Max(quickHudVisibleUntil, Time.unscaledTime + seconds);
+            if (heldBadgeGroup != null) heldBadgeGroup.alpha = 1f;
+            if (quickSlotGroup != null) quickSlotGroup.alpha = 1f;
+        }
 
         private void EnsureWalkthroughHudElements()
         {
@@ -29,6 +49,7 @@ namespace CTCC
             {
                 var box = Fixed("HeldItemBadge", hud, new Vector2(1, 0), new Vector2(-496, 90), new Vector2(456, 46));
                 heldBadgeBacking = Graphic(box, new Color(0.040f, 0.064f, 0.056f, 0.86f), false);
+                heldBadgeGroup = box.gameObject.AddComponent<CanvasGroup>();
                 Graphic(Rect("HeldAccent", box, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(3, 0)), Accent, false);
                 heldBadgeText = FillText("HeldLabel", Rect("HeldInset", box, Vector2.zero, Vector2.one, new Vector2(14, 0), new Vector2(-10, 0)),
                     18, Ink, TextAnchor.MiddleLeft, true);
@@ -38,6 +59,7 @@ namespace CTCC
             {
                 var bar = Fixed("QuickSlotBar", hud, new Vector2(1, 0), new Vector2(-856, 28), new Vector2(816, 48));
                 quickSlotBar = bar.gameObject;
+                quickSlotGroup = bar.gameObject.AddComponent<CanvasGroup>();
                 const float slotW = 198f;
                 const float gap = 8f;
                 for (int i = 0; i < InventoryService.MaxQuickSlots; i++)
@@ -86,6 +108,7 @@ namespace CTCC
             {
                 heldBadgeText.fontSize = Scaled(18);
                 heldBadgeText.text = $"Trên tay: {itemLabel}  ·  [H] Cất";
+                PulseQuickHud();
             }
         }
 
@@ -95,6 +118,7 @@ namespace CTCC
             if (quickSlotBar == null) return;
             int count = slots != null ? Mathf.Min(slots.Count, InventoryService.MaxQuickSlots) : 0;
             quickSlotBar.SetActive(count > 0);
+            if (count > 0) PulseQuickHud(2.6f);
             for (int i = 0; i < InventoryService.MaxQuickSlots; i++)
             {
                 bool active = i < count;

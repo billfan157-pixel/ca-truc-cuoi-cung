@@ -202,8 +202,8 @@ namespace CTCC
             Texture image = null;
             if (documentSelection == "E10a" && State.Happened("E10a.SMSRead"))
             {
-                title = "Bì thư của Bảy";
-                copy = "Túi vải cạnh cổng phụ · Lớp R\n\nTờ hẹn lúc 23 giờ, thư cũ, mẩu báo và tin nhắn báo hoãn.";
+                title = "Phong bì chú Bảy gửi lại";
+                copy = "Hộp thư sắt trụ cổng phụ · 17/11/2012\n\nGiấy nhắn ngoài bì, thư cũ năm 2005 của Lan, mẩu báo ngày 19/11/2005 và chìa khóa cũ.";
                 actions.Add(new ActionChoice("Mở bì thư", Letter));
                 actions.Add(new ActionChoice("Ghi bên lề", () => EditJournalNote(-1, JournalNoteKind.Annotation, "E10a")));
             }

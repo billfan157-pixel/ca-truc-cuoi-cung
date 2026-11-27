@@ -16,7 +16,7 @@ namespace CTCC.Editor
             var mailbox = UnityEngine.Object.FindObjectsByType<SceneTarget>(FindObjectsSortMode.None).FirstOrDefault(t => t.id == "MAILBOX");
             if (mailbox != null)
             {
-                mailbox.transform.position = new Vector3(5.36f, 1.12f, -20.23f);
+                mailbox.transform.position = new Vector3(5.36f, 1.18f, -20.34f);
                 mailbox.GetComponent<BoxCollider>().size = new Vector3(.36f, .44f, .24f);
             }
             EditorSceneManager.SaveScene(outside);

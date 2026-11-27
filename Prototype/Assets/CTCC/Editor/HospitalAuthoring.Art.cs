@@ -109,6 +109,58 @@ namespace CTCC.Editor
             Mat("WarmGlow").EnableKeyword("_EMISSION");
             EditorUtility.SetDirty(Mat("WarmGlow"));
 
+            // LOC02 Reception Hero Blender 4.5 Cycles-Baked PBR Materials (Paired B 2005 <-> R 2012)
+            HeroAtlasMat("LOC02_CounterTop", hasR: true, bump: 0.78f, ao: 0.92f);
+            HeroAtlasMat("LOC02_CounterBody", hasR: true, bump: 0.84f, ao: 0.94f);
+            HeroAtlasMat("LOC02_Partition", hasR: true, bump: 0.82f, ao: 0.92f);
+            HeroAtlasMat("LOC02_Notices", hasR: true, bump: 0.30f, ao: 0.72f);
+            HeroAtlasMat("LOC02_DeskProps", hasR: true, bump: 0.76f, ao: 0.92f);
+            HeroAtlasMat("LOC02_DutyChair", hasR: true, bump: 0.80f, ao: 0.90f);
+            HeroAtlasMat("LOC02_FileRack", hasR: true, bump: 0.78f, ao: 0.92f);
+            HeroAtlasMat("LOC02_Plant", hasR: true, bump: 0.74f, ao: 0.90f);
+            HeroAtlasMat("LOC02_WallClock", hasR: true, bump: 0.70f, ao: 0.88f);
+            HeroAtlasMat("LOC02_DeskDrawer", hasR: true, bump: 0.78f, ao: 0.90f);
+            HeroAtlasMat("LOC02_S1Door", hasR: true, bump: 0.86f, ao: 0.94f);
+            HeroAtlasMat("LOC02_WaitingBench", hasR: true, bump: 0.92f, ao: 0.92f);
+            HeroAtlasMat("LOC02_RosterBoard", hasR: true, bump: 0.70f, ao: 0.90f);
+            HeroAtlasMat("LOC02_SwitchBoard", hasR: true, bump: 0.78f, ao: 0.90f);
+            HeroAtlasMat("LOC02_CeilingArch", hasR: true, bump: 0.82f, ao: 0.90f);
+            HeroAtlasMat("LOC02_CeilingFan", hasR: true, bump: 0.75f, ao: 0.90f);
+            HeroAtlasMat("LOC02_DutyBook", hasR: false, bump: 0.65f, ao: 0.88f);
+            HeroAtlasMat("LOC02_TeaSet", hasR: false, bump: 0.62f, ao: 0.88f);
+            HeroAtlasMat("LOC02_SpareBattery", hasR: false, bump: 0.65f, ao: 0.88f);
+
+            // LOC03 Ward 101 & Store Room Hero Blender 4.5 Cloth-Sim + Cycles-Baked PBR Materials (Paired B 2005 <-> R 2012)
+            HeroAtlasMat("LOC03_WardBed", hasR: true, bump: 0.80f, ao: 0.92f);
+            HeroAtlasMat("LOC03_WardBedLived", hasR: true, bump: 0.80f, ao: 0.92f);
+            HeroAtlasMat("LOC03_Curtain", hasR: true, bump: 0.72f, ao: 0.88f, twoSided: true);
+            HeroAtlasMat("LOC03_Bed4Trace", hasR: false, bump: 0.78f, ao: 0.90f);
+            HeroAtlasMat("LOC03_BedsideCab", hasR: true, bump: 0.76f, ao: 0.92f);
+            HeroAtlasMat("LOC03_Bed3Drawer", hasR: false, bump: 0.76f, ao: 0.90f);
+            HeroAtlasMat("LOC03_MedCabinet", hasR: true, bump: 0.78f, ao: 0.92f);
+            HeroAtlasMat("LOC03_WardSink", hasR: true, bump: 0.82f, ao: 0.92f);
+            HeroAtlasMat("LOC03_WardStool", hasR: true, bump: 0.74f, ao: 0.90f);
+            HeroAtlasMat("LOC03_WardArch", hasR: true, bump: 0.82f, ao: 0.90f);
+            HeroAtlasMat("LOC03_Bed4Conduit", hasR: true, bump: 0.76f, ao: 0.88f);
+            HeroAtlasMat("LOC03_WindowWide", hasR: true, bump: 0.78f, ao: 0.90f);
+            HeroAtlasMat("LOC03_WindowMid", hasR: true, bump: 0.78f, ao: 0.90f);
+            HeroAtlasMat("LOC03_WindowNarrow", hasR: true, bump: 0.78f, ao: 0.90f);
+            HeroAtlasMat("LOC03_WardDoorFrame", hasR: true, bump: 0.84f, ao: 0.92f);
+            HeroAtlasMat("LOC03_WardDoorLeaf", hasR: true, bump: 0.84f, ao: 0.92f);
+            HeroAtlasMat("LOC03_TubeFixture", hasR: true, bump: 0.72f, ao: 0.88f);
+            HeroAtlasMat("LOC03_WallOutlet", hasR: true, bump: 0.72f, ao: 0.88f);
+            HeroAtlasMat("LOC03_IVStand", hasR: true, bump: 0.74f, ao: 0.90f);
+            HeroAtlasMat("LOC03_ThermosMug", hasR: true, bump: 0.76f, ao: 0.90f);
+            HeroAtlasMat("LOC03_WashbasinMat", hasR: true, bump: 0.82f, ao: 0.90f);
+            HeroAtlasMat("LOC03_Slippers", hasR: true, bump: 0.76f, ao: 0.90f);
+            HeroAtlasMat("LOC03_CareProps", hasR: false, bump: 0.72f, ao: 0.88f);
+            HeroAtlasMat("LOC03_PedalBin", hasR: true, bump: 0.74f, ao: 0.90f);
+            HeroAtlasMat("LOC03_Clipboard", hasR: false, bump: 0.74f, ao: 0.88f);
+            HeroAtlasMat("LOC03_ChartHolder", hasR: false, bump: 0.74f, ao: 0.88f);
+            HeroAtlasMat("LOC03_DryShelf", hasR: true, bump: 0.82f, ao: 0.92f);
+            HeroAtlasMat("LOC03_StorePayoff", hasR: true, bump: 0.80f, ao: 0.92f);
+            HeroAtlasMat("LOC03_PatientBag", hasR: true, bump: 0.80f, ao: 0.90f);
+
             Lit("MonitorScreen", 1f, 1f, 1f, smooth: 0.65f);
             if (art)
             {
@@ -459,6 +511,26 @@ namespace CTCC.Editor
                     rakingRef.SetFloat("_RakingReveal", 0f);
                     EditorUtility.SetDirty(rakingRef);
                 }
+
+                // Retain URP/Lit {_NORMALMAP}-without-{_METALLICSPECGLOSSMAP} variant in standalone builds for PhysicalInspector sheets!
+                var litShader = Shader.Find("Universal Render Pipeline/Lit");
+                if (litShader != null)
+                {
+                    var inspectLit = MaterialAsset("InspectPaperLit", litShader);
+                    inspectLit.SetColor("_BaseColor", new Color(0.86f, 0.85f, 0.82f, 1f));
+                    inspectLit.SetFloat("_Smoothness", 0.05f);
+                    inspectLit.SetFloat("_Metallic", 0f);
+                    inspectLit.SetFloat("_Cull", 2f);
+                    var fiber = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/Art/Resources/CTCC/PaperFiber_Normal.png");
+                    if (fiber != null)
+                    {
+                        inspectLit.SetTexture("_BumpMap", fiber);
+                        inspectLit.SetFloat("_BumpScale", 0.16f);
+                        inspectLit.EnableKeyword("_NORMALMAP");
+                    }
+                    EditorUtility.SetDirty(inspectLit);
+                    world.inspectPaperTemplate = inspectLit;
+                }
             }
         }
 
@@ -485,28 +557,53 @@ namespace CTCC.Editor
                 bool clampedAtlas = leafOrHairAlpha || family is "LanSkin" or "AnSkin" or "GatekeeperSkin"
                     or "LanEye" or "LanTeeth" or "LanTongue" or "LanBadge" or "LanHair" or "AnHair"
                     or "GatekeeperHair" or "HairCards" or "LanEyebrow" or "LanEyelash" or "ObscuredFace"
-                    or "ObsCard" or "F101";
-                bool stream = repeat && !clampedAtlas && family is not ("WaterRun" or "PaintLoss" or "DampFloor" or "RustRun" or "WallBaseGrime" or "SkinMicroPore" or "TubeYellowStain" or "StretcherDragTrack" or "TerrazzoRainSeep");
+                    or "ObsCard" or "F101" or "LOC02" or "LOC03";
+                bool heroAtlas = family is "LOC02" or "LOC03";
+                bool stream = repeat && (!clampedAtlas || heroAtlas) && family is not ("WaterRun" or "PaintLoss" or "DampFloor" or "RustRun" or "WallBaseGrime" or "SkinMicroPore" or "TubeYellowStain" or "StretcherDragTrack" or "TerrazzoRainSeep");
                 var wantedType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
                 var wrap = repeat && !clampedAtlas ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
                 bool wantAlpha = !repeat || leafOrHairAlpha;
-                bool keepPaperSize = family is "Doc" or "F101" or "ObsCard" or "Calendar2005";
+                bool keepPaperSize = family is "Doc" or "F101" or "ObsCard" or "Calendar2005" or "BedList" or "Transfer" or "Drawing" or "DrawingPiece1" or "DrawingPiece2" or "DrawingPiece3" or "LanBadge" or "Sign";
                 var npotScale = keepPaperSize ? TextureImporterNPOTScale.None : importer.npotScale;
+                var wantFilter = (keepPaperSize || heroAtlas) ? FilterMode.Trilinear : FilterMode.Bilinear;
+                int wantAniso = (keepPaperSize || heroAtlas) ? 16 : 8;
+                float wantMipBias = keepPaperSize ? -0.5f : (heroAtlas ? -0.25f : 0f);
+                var wantComp = (keepPaperSize || heroAtlas) ? TextureImporterCompression.CompressedHQ : TextureImporterCompression.Compressed;
+                int wantPriority = heroAtlas ? 4 : 0;
                 if (importer.textureType == wantedType && importer.sRGBTexture == !linearData &&
-                    importer.wrapMode == wrap && importer.anisoLevel == 8 && importer.maxTextureSize == 2048 &&
+                    importer.wrapMode == wrap && importer.anisoLevel == wantAniso && importer.maxTextureSize == 2048 &&
                     importer.alphaIsTransparency == wantAlpha && importer.streamingMipmaps == stream &&
-                    importer.npotScale == npotScale)
+                    importer.streamingMipmapsPriority == wantPriority &&
+                    importer.npotScale == npotScale && importer.filterMode == wantFilter &&
+                    Mathf.Approximately(importer.mipMapBias, wantMipBias) && importer.textureCompression == wantComp)
                     continue;
                 importer.textureType = wantedType;
                 importer.sRGBTexture = !linearData;
                 importer.wrapMode = wrap;
                 importer.maxTextureSize = 2048;
-                importer.anisoLevel = 8;
+                importer.anisoLevel = wantAniso;
+                importer.filterMode = wantFilter;
+                importer.mipMapBias = wantMipBias;
                 importer.alphaIsTransparency = wantAlpha;
                 importer.streamingMipmaps = stream;
+                importer.streamingMipmapsPriority = wantPriority;
                 importer.npotScale = npotScale;
-                importer.textureCompression = TextureImporterCompression.Compressed;
+                importer.textureCompression = wantComp;
                 importer.SaveAndReimport();
+            }
+
+            // Ensure Resources/CTCC/Calendar2005_Previous.png also gets crisp Trilinear + aniso 16 + NPOT None + BC7!
+            const string calPrevPath = Root + "/Art/Resources/CTCC/Calendar2005_Previous.png";
+            if (AssetImporter.GetAtPath(calPrevPath) is TextureImporter calImp &&
+                (calImp.anisoLevel != 16 || calImp.filterMode != FilterMode.Trilinear || calImp.npotScale != TextureImporterNPOTScale.None || !Mathf.Approximately(calImp.mipMapBias, -0.5f)))
+            {
+                calImp.wrapMode = TextureWrapMode.Clamp;
+                calImp.anisoLevel = 16;
+                calImp.filterMode = FilterMode.Trilinear;
+                calImp.mipMapBias = -0.5f;
+                calImp.npotScale = TextureImporterNPOTScale.None;
+                calImp.textureCompression = TextureImporterCompression.CompressedHQ;
+                calImp.SaveAndReimport();
             }
 
             foreach (var f in Directory.GetFiles(Models, "*.fbx"))
@@ -644,6 +741,53 @@ namespace CTCC.Editor
             }
             EditorUtility.SetDirty(mat);
             return mat;
+        }
+
+        private void HeroAtlasMat(string atlas, bool hasR, float bump = 0.82f, float ao = 0.90f, bool twoSided = false)
+        {
+            if (!art)
+            {
+                if (hasR)
+                {
+                    Lit(atlas + "B", 0.45f, 0.50f, 0.46f, twoSided: twoSided);
+                    Lit(atlas + "R", 0.32f, 0.36f, 0.34f, twoSided: twoSided);
+                }
+                else Lit(atlas, 0.55f, 0.54f, 0.50f, twoSided: twoSided);
+                return;
+            }
+            var normalTex = AssetDatabase.LoadAssetAtPath<Texture2D>(Maps + atlas + "_Normal.png");
+            void BuildVariant(string key)
+            {
+                var mat = MaterialAsset(key, Shader.Find("Universal Render Pipeline/Lit"));
+                mat.SetColor("_BaseColor", Color.white);
+                mat.SetFloat("_Metallic", 1.0f);
+                mat.SetFloat("_Smoothness", 1.0f);
+                mat.SetFloat("_Cull", twoSided ? 0 : 2);
+                var col = AssetDatabase.LoadAssetAtPath<Texture2D>(Maps + key + "_Color.png");
+                var mask = AssetDatabase.LoadAssetAtPath<Texture2D>(Maps + key + "_Mask.png");
+                if (col != null) mat.SetTexture("_BaseMap", col);
+                if (normalTex != null)
+                {
+                    mat.SetTexture("_BumpMap", normalTex);
+                    mat.SetFloat("_BumpScale", bump);
+                    mat.EnableKeyword("_NORMALMAP");
+                }
+                if (mask != null)
+                {
+                    mat.SetTexture("_MetallicGlossMap", mask);
+                    mat.SetTexture("_OcclusionMap", mask);
+                    mat.SetFloat("_OcclusionStrength", ao);
+                    mat.EnableKeyword("_METALLICSPECGLOSSMAP");
+                    mat.EnableKeyword("_OCCLUSIONMAP");
+                }
+                EditorUtility.SetDirty(mat);
+            }
+            if (hasR)
+            {
+                BuildVariant(atlas + "B");
+                BuildVariant(atlas + "R");
+            }
+            else BuildVariant(atlas);
         }
 
         private Material MaterialAsset(string key, Shader shader)
@@ -994,71 +1138,92 @@ namespace CTCC.Editor
             return name;
         }
 
-        private static string ReportKey(string key) => key switch
+        private static string ReportKey(string key)
         {
-            "PlasterR" => "PlasterB",
-            "DadoR" => "DadoB",
-            "FloorR" => "FloorB",
-            "WoodDoor" or "WoodDoorR" => "WoodDoorB",
-            "MetalOld" => "MetalPaint",
-            "CabinetOld" => "CabinetPaint",
-            "CottonOld" => "Cotton",
-            "TextileOld" => "Textile",
-            "MattressOld" => "Mattress",
-            "CurtainOld" => "Curtain",
-            "DeadTube" => "LiveTube",
-            "ExteriorFacade" => "ExteriorFacadeB",
-            "CampusStuccoR" => "CampusStuccoB",
-            "CorrugatedRoofR" => "CorrugatedRoofB",
-            "ConcretePavingR" => "ConcretePavingB",
-            "WindowDarkR" => "WindowLitB",
-            _ => key
-        };
+            if ((key.StartsWith("LOC02_", StringComparison.Ordinal) || key.StartsWith("LOC03_", StringComparison.Ordinal))
+                && key.EndsWith("R", StringComparison.Ordinal))
+                return key.Substring(0, key.Length - 1) + "B";
+            return key switch
+            {
+                "PlasterR" => "PlasterB",
+                "DadoR" => "DadoB",
+                "FloorR" => "FloorB",
+                "WoodDoor" or "WoodDoorR" => "WoodDoorB",
+                "MetalOld" => "MetalPaint",
+                "CabinetOld" => "CabinetPaint",
+                "CottonOld" => "Cotton",
+                "TextileOld" => "Textile",
+                "MattressOld" => "Mattress",
+                "CurtainOld" => "Curtain",
+                "DeadTube" => "LiveTube",
+                "ExteriorFacade" => "ExteriorFacadeB",
+                "CampusStuccoR" => "CampusStuccoB",
+                "CorrugatedRoofR" => "CorrugatedRoofB",
+                "ConcretePavingR" => "ConcretePavingB",
+                "WindowDarkR" => "WindowLitB",
+                _ => key
+            };
+        }
 
-        private static string AgedKey(string reportKey) => reportKey switch
+        private static string AgedKey(string reportKey)
         {
-            "PlasterB" => "PlasterR",
-            "DadoB" => "DadoR",
-            "FloorB" => "FloorR",
-            "WoodDoorB" => "WoodDoorR",
-            "MetalPaint" => "MetalOld",
-            "CabinetPaint" => "CabinetOld",
-            "Cotton" => "CottonOld",
-            "Textile" => "TextileOld",
-            "Mattress" => "MattressOld",
-            "Curtain" => "CurtainOld",
-            "LiveTube" => "DeadTube",
-            "ExteriorFacadeB" => "ExteriorFacade",
-            "CampusStuccoB" => "CampusStuccoR",
-            "CorrugatedRoofB" => "CorrugatedRoofR",
-            "ConcretePavingB" => "ConcretePavingR",
-            "WindowLitB" => "WindowDarkR",
-            _ => reportKey
-        };
+            if ((reportKey.StartsWith("LOC02_", StringComparison.Ordinal) || reportKey.StartsWith("LOC03_", StringComparison.Ordinal))
+                && reportKey.EndsWith("B", StringComparison.Ordinal))
+                return reportKey.Substring(0, reportKey.Length - 1) + "R";
+            return reportKey switch
+            {
+                "PlasterB" => "PlasterR",
+                "DadoB" => "DadoR",
+                "FloorB" => "FloorR",
+                "WoodDoorB" => "WoodDoorR",
+                "MetalPaint" => "MetalOld",
+                "CabinetPaint" => "CabinetOld",
+                "Cotton" => "CottonOld",
+                "Textile" => "TextileOld",
+                "Mattress" => "MattressOld",
+                "Curtain" => "CurtainOld",
+                "LiveTube" => "DeadTube",
+                "ExteriorFacadeB" => "ExteriorFacade",
+                "CampusStuccoB" => "CampusStuccoR",
+                "CorrugatedRoofB" => "CorrugatedRoofR",
+                "ConcretePavingB" => "ConcretePavingR",
+                "WindowLitB" => "WindowDarkR",
+                _ => reportKey
+            };
+        }
 
         private void BuildFurnishing()
         {
-            // Reception & Duty Desk (LOC02)
+            // Reception & Duty Desk (LOC02) — Hero Blender 4.5 two-tier counter with preserved collision & heights!
             var desk = Group("Bàn trực · quầy hai cao độ", ResolveParent(permanent, new Vector3(1.45f, 0, -3.24f)), new Vector3(1.45f, 0, -3.24f));
-            Box("Terrazzo plinth", new Vector3(0, 0.06f, 0), new Vector3(1.35f, 0.12f, 3.88f), Mat("BaseTrim"), desk, true, isStatic: true);
-            Surface("Counter apron", new Vector3(1.45f, 0.55f, -3.24f), new Vector3(1.25f, 0.98f, 3.8f), "DadoR", "DadoB", true, 1.8f, isStatic: true);
-            Box("Wide counter top", new Vector3(0, 1.08f, 0), new Vector3(1.48f, 0.095f, 4f), Mat("Ceramic"), desk, tile: 1.2f, isStatic: true);
+            var plinthCol = Box("Terrazzo plinth", new Vector3(0, 0.06f, 0), new Vector3(1.35f, 0.12f, 3.88f), Mat("BaseTrim"), desk, true, isStatic: true);
+            var apronCol = Surface("Counter apron", new Vector3(1.45f, 0.55f, -3.24f), new Vector3(1.25f, 0.98f, 3.8f), "DadoR", "DadoB", true, 1.8f, isStatic: true);
+            var topCol = Box("Wide counter top", new Vector3(0, 1.08f, 0), new Vector3(1.48f, 0.095f, 4f), Mat("Ceramic"), desk, tile: 1.2f, isStatic: true);
             if (art)
             {
-                // Grounded lower accessible reception counter wing with matching wainscot apron & plinth
-                Box("Lower accessible apron", new Vector3(0.05f, 0.37f, -2.32f), new Vector3(1.16f, 0.74f, 0.64f), Mat("DadoR"), desk, true, tile: 1.8f, isStatic: true);
-                Box("Lower accessible end", new Vector3(0.05f, 0.78f, -2.32f), new Vector3(1.25f, 0.07f, 0.71f), Mat("Ceramic"), desk, true, isStatic: true);
-                // Blender Reception Props: open duty ledger + vintage landline phone + green desk lamp + folder tray!
-                var recProps = PlaceBlenderModel("CTCC_PROP_ReceptionProps", desk, new Vector3(0.32f, 1.128f, -0.18f), 0f, pairRB: true, castShadows: false);
+                // Preserve exact solid BoxColliders while hiding primitive cubes beneath our sculpted Blender counter!
+                plinthCol.GetComponent<Renderer>().enabled = false;
+                apronCol.GetComponent<Renderer>().enabled = false;
+                topCol.GetComponent<Renderer>().enabled = false;
+                var lowerApronCol = Box("Lower accessible apron", new Vector3(0.05f, 0.37f, -2.32f), new Vector3(1.16f, 0.74f, 0.64f), Mat("DadoR"), desk, true, tile: 1.8f, isStatic: true);
+                var lowerEndCol = Box("Lower accessible end", new Vector3(0.05f, 0.78f, -2.32f), new Vector3(1.25f, 0.07f, 0.71f), Mat("Ceramic"), desk, true, isStatic: true);
+                lowerApronCol.GetComponent<Renderer>().enabled = false;
+                lowerEndCol.GetComponent<Renderer>().enabled = false;
+
+                var heroCounter = PlaceBlenderModel("CTCC_LOC02_ReceptionCounter", desk, Vector3.zero, 0f, pairRB: true, castShadows: true);
+                staticArchitecture.Add(heroCounter);
+
+                // Blender Reception Props: open duty ledger + vintage landline phone + green desk lamp + folder tray + stamps!
+                var recProps = PlaceBlenderModel("CTCC_PROP_ReceptionProps", desk, new Vector3(0.32f, 1.128f, -0.18f), 0f, pairRB: true, castShadows: true);
                 staticArchitecture.Add(recProps);
-                Decal("DeskContactAO", "BedContact", new Vector3(1.45f, 0.01f, -3.24f), Vector3.up, 1.85f, 4.35f, 0.25f, permanent, 0.80f);
+                Decal("DeskContactAO", "BedContact", new Vector3(1.45f, 0.01f, -3.24f), Vector3.up, 1.85f, 4.45f, 0.25f, permanent, 0.85f);
 
                 Sign("Quầy", "Station", new Vector3(2.085f, 0.67f, -3.35f), Vector3.right, new Vector2(0.93f, 0.35f));
                 // Mounted on solid north pier of west wall (z in [-2.65..0]) above FileRack — never floats over S1 stairwell!
                 Sign("Foundation plaque", "Welcome", new Vector3(-0.985f, 2.26f, -1.78f), Vector3.right, new Vector2(1.26f, 0.48f));
 
-                // Real 3D Blender Wall Clock with separate R (11:52) and B (03:17) hands!
-                var clock = PlaceBlenderModel("CTCC_PROP_WallClock", permanent, new Vector3(-0.99f, 2.74f, -3.26f), 90f, pairRB: true, castShadows: false);
+                // Real 3D Blender Wall Clock with baked high-res dial face + separate R (11:52) and B (03:17) 3D hands facing +X into LOC02!
+                var clock = PlaceBlenderModel("CTCC_PROP_WallClock", permanent, new Vector3(-0.99f, 2.74f, -3.26f), -90f, pairRB: true, castShadows: true);
                 var handsR = FindDescendant(clock.transform, "HandsR");
                 var handsB = FindDescendant(clock.transform, "HandsB");
                 if (multiScene)
@@ -1071,8 +1236,6 @@ namespace CTCC.Editor
                     if (handsR != null) world.clockHandsR = handsR.gameObject;
                     if (handsB != null) world.clockHandsB = handsB.gameObject;
                 }
-                var dial = Flat("Clock dial face", "ClockR", new Vector3(-0.955f, 2.74f, -3.26f), Vector3.right, new Vector2(0.34f, 0.34f), permanent);
-                AddFinish(new LayerFinish { renderer = dial.GetComponent<Renderer>(), real = Mat("ClockR"), report = Mat("ClockB") });
             }
 
             // Room 101 Beds 1-3 + Outlets 1-4 + Bedside Cabinets + IV Stands + Vietnamese Attendant Props!
@@ -1089,7 +1252,8 @@ namespace CTCC.Editor
                     if (art)
                     {
                         proxy.GetComponent<MeshRenderer>().enabled = false;
-                        PlaceBlenderModel("CTCC_PROP_WardBed", root, Vector3.zero, 0f, pairRB: true);
+                        // Bed 2 uses lived-in hero variant (turned-back blue blanket + centered footboard frame aligned with OBS101C!)
+                        PlaceBlenderModel(bed.id == "2" ? "CTCC_LOC03_WardBedLived" : "CTCC_PROP_WardBed", root, Vector3.zero, 0f, pairRB: true);
                         Decal("BedContact_" + bed.id, "BedContact", p + new Vector3(0, 0.01f, 0), Vector3.up, 1.38f, 2.48f, 0.24f, permanent, 0.88f);
 
                         var cabPos = p + new Vector3(0.74f, 0, bed.yaw == 0 ? 0.66f : -0.63f);
@@ -1110,6 +1274,9 @@ namespace CTCC.Editor
                             staticArchitecture.Add(mat1);
                             PlaceBlenderModel("CTCC_PROP_CH01CareSupplies", ResolveParent(report, cabPos),
                                 cabPos + root.localRotation * new Vector3(.024f, .758f, -.014f), bed.yaw + 19f, pairRB: false, castShadows: false);
+                            // Classic Vietnamese hospital attendant stool tucked cleanly beside Bed 1 cabinet (clear of walkways!)
+                            var stool1 = PlaceBlenderModel("CTCC_LOC03_WardStool", permanent, new Vector3(8.02f, 0f, 6.92f), 18f, pairRB: true, castShadows: false);
+                            staticArchitecture.Add(stool1);
                         }
                         else if (bed.id == "2")
                         {
@@ -1120,6 +1287,9 @@ namespace CTCC.Editor
                             staticArchitecture.Add(iv2);
                             // Iconic yellow Vietnamese honeycomb slippers (dép tổ ong) resting naturally beside Bed 2!
                             PlaceBlenderModel("CTCC_PROP_HoneycombSlippers", permanent, p + new Vector3(0.66f, 0f, -0.08f), -18f, pairRB: true, castShadows: false);
+                            // Second hospital attendant stool tucked neatly under north narrow window east of Bed 2 cabinet
+                            var stool2 = PlaceBlenderModel("CTCC_LOC03_WardStool", permanent, new Vector3(11.72f, 0f, 7.56f), -34f, pairRB: true, castShadows: false);
+                            staticArchitecture.Add(stool2);
                         }
                         else if (bed.id == "3")
                         {
@@ -1249,8 +1419,8 @@ namespace CTCC.Editor
                 Flat("CH01_PR01_CornerTrace", "CH01_PR01_Corner", new Vector3(12.62f, 0.015f, 3.18f), Vector3.up, new Vector2(0.30f, 0.30f), refutedObj.transform);
                 Lamp("Refuted alcove cold highlight", LightType.Point, new Vector3(11.65f, 1.45f, 3.35f), 0.72f, 3.9f, new Color(0.60f, 0.80f, 0.88f), refutedObj.transform);
 
-                // Permanent curtain between Bed 1 & entrance sightline (width 1.25 m)
-                var midCurtain = PlaceBlenderModel("CTCC_ENV_CurtainAssembly", permanent, new Vector3(6.58f, 2.75f, 5.32f), 0f, pairRB: true, scale: new Vector3(0.54f, 1f, 1f));
+                // Permanent curtain between Bed 1 & entrance sightline (shifted neatly clear of door swing, F101 clipboard & West ceiling fan!)
+                var midCurtain = PlaceBlenderModel("CTCC_ENV_CurtainAssembly", permanent, new Vector3(6.52f, 2.75f, 5.68f), 0f, pairRB: true, scale: new Vector3(0.52f, 1f, 1f));
                 RegisterCurtainMotion(midCurtain, wireInteractive: false);
 
                 // Aged tattered R curtain partially drawn near Bed 4 alcove
@@ -1322,11 +1492,18 @@ namespace CTCC.Editor
                 staticArchitecture.Add(cond);
             }
 
-            // Deep Structural Reinforced-Concrete Beam Spanning Room 101 Ceiling (shared R/B landmark!)
-            Surface("Deep beam spanning 101", new Vector3(9.77f, 3.40f, 5.00f), new Vector3(0.32f, 0.40f, 6.02f), "PlasterR", "PlasterB", tile: 2.2f, isStatic: true);
-            // Perimeter ceiling cornice beams in Room 101
-            Surface("North ring beam", new Vector3(9.75f, 3.46f, 7.98f), new Vector3(8.0f, 0.28f, 0.24f), "PlasterR", "PlasterB", tile: 2.2f, isStatic: true);
-            Surface("South ring beam", new Vector3(9.75f, 3.46f, 2.02f), new Vector3(8.0f, 0.28f, 0.24f), "PlasterR", "PlasterB", tile: 2.2f, isStatic: true);
+            // Hero Cycles-Baked Room 101 Structural Ceiling Beams, Corner Pilasters & Continuous Galvanized Conduits (replaces legacy primitive cubes!)
+            var wardArch = PlaceBlenderModel("CTCC_LOC03_WardArch", permanent, new Vector3(9.70f, 0f, 5.00f), 0f, pairRB: true, castShadows: false);
+            staticArchitecture.Add(wardArch);
+            // DEC-V361-CH01-01 canon purity: Bed 4 vertical south-wall conduit drop exists ONLY in Layer R (meeting R-only physical WallOutlet #4!)
+            PlaceBlenderModel("CTCC_LOC03_Bed4ConduitR", real, new Vector3(9.70f, 0f, 5.00f), 0f, pairRB: false, forceAged: true, castShadows: false);
+
+            // Hero 1987 Wall-Hung Ceramic Hospital Handwashing Basin on Room 101 East Wall (physically grounds the existing 'Broken capillary line' leak!)
+            var wardSink = PlaceBlenderModel("CTCC_LOC03_WardSink", permanent, new Vector3(13.68f, 0f, 6.57f), 90f, pairRB: true, castShadows: true);
+            staticArchitecture.Add(wardSink);
+            Box("Ward sink collider", new Vector3(13.45f, 0.78f, 6.57f), new Vector3(0.46f, 0.42f, 0.62f), Mat("Ceramic"), permanent, solid: true)
+                .GetComponent<Renderer>().enabled = false;
+            Decal("WardSinkFloorAO", "BedContact", new Vector3(13.44f, 0.01f, 6.57f), Vector3.up, 0.66f, 0.96f, 0.22f, permanent, 0.68f);
 
             // Courtyard Entry Canopy (stepped 1987 concrete portico slab seated flush on exterior wall z=-8.10 + green fascia + brick column plinths & concrete capitals)
             Box("Courtyard entry canopy", new Vector3(4, 2.85f, -9.56f), new Vector3(4.55f, 0.22f, 2.92f), Mat("BaseTrim"), tile: 2f, isStatic: true);
@@ -1374,11 +1551,29 @@ namespace CTCC.Editor
             // Framed Vietnamese Hospital Ward Regulations Notice Board inside Room 101 south wall
             Sign("WardRulesBoard", "WardRules", new Vector3(9.65f, 1.62f, 2.02f), Vector3.forward, new Vector2(0.56f, 0.74f));
 
-            // 4-Seat Steel Corridor Waiting Bench in Reception (LOC02) + Second Bench in Corridor
-            var bench1 = PlaceBlenderModel("CTCC_PROP_WaitingBench", permanent, new Vector3(7.24f, 0f, -5.12f), 0f, pairRB: true);
-            Box("Bench collider", new Vector3(7.24f, 0.38f, -5.12f), new Vector3(0.54f, 0.76f, 2.12f), Mat("Steel"), permanent, solid: true).GetComponent<Renderer>().enabled = false;
-            staticArchitecture.Add(bench1);
-            Decal("Bench1AO", "BedContact", new Vector3(7.24f, 0.01f, -5.12f), Vector3.up, 0.78f, 2.30f, 0.22f, permanent, 0.80f);
+            // Hero Perforated Stainless Waiting Hall Rows in Reception (LOC02 — 5 benches, authentic Vietnamese hospital waiting area!)
+            // Preserves full 2.8m main entry->corridor axis (x in [2.6..5.4]), AP02 (4,-3.3), AP03 (6.55,-4.10), STAIRWELL & corner plant!
+            var loc02Benches = new (string tag, Vector3 pos, float yaw, float lenScale)[]
+            {
+                ("EastS",   new Vector3(8.36f, 0f, -5.50f),  0f, 1.00f),
+                ("EastN",   new Vector3(8.36f, 0f, -2.98f),  0f, 1.00f),
+                ("CenterE", new Vector3(6.05f, 0f, -5.65f),  0f, 0.84f),
+                ("SouthE",  new Vector3(6.72f, 0f, -7.42f), 90f, 1.00f),
+                ("SouthW",  new Vector3(1.26f, 0f, -7.42f), 90f, 1.00f),
+            };
+            foreach (var b in loc02Benches)
+            {
+                var sc = Mathf.Approximately(b.lenScale, 1f) ? (Vector3?)null : new Vector3(1f, 1f, b.lenScale);
+                var benchGo = PlaceBlenderModel("CTCC_LOC02_WaitingBench", permanent, b.pos, b.yaw, pairRB: true, scale: sc);
+                bool rotated = Mathf.Abs(b.yaw) > 45f;
+                float len = 2.08f * b.lenScale;
+                var colSize = rotated ? new Vector3(len, 0.76f, 0.56f) : new Vector3(0.56f, 0.76f, len);
+                Box("Bench collider " + b.tag, b.pos + new Vector3(0f, 0.38f, 0f), colSize, Mat("Steel"), permanent, solid: true)
+                    .GetComponent<Renderer>().enabled = false;
+                staticArchitecture.Add(benchGo);
+                Decal("BenchAO_" + b.tag, "BedContact", b.pos + new Vector3(0f, 0.01f, 0f), Vector3.up,
+                    rotated ? len + 0.20f : 0.78f, rotated ? 0.78f : len + 0.20f, 0.22f, permanent, 0.78f);
+            }
 
             // Corridor PA Intercom Speaker outside Room 101 (visually anchors CH01-PA01..03 broadcasts!)
             var pa = PlaceBlenderModel("CTCC_PROP_PASpeaker", permanent, new Vector3(5.50f, 2.62f, 3.35f), 90f, pairRB: true, castShadows: false);
@@ -1434,8 +1629,8 @@ namespace CTCC.Editor
                 ("HallN", new Vector3(4.00f, 3.595f, 10.60f), 0f),
                 ("RecW", new Vector3(2.15f, 3.595f, -3.20f), 0f),
                 ("RecE", new Vector3(6.32f, 3.595f, -4.58f), 0f),
-                ("R101W", new Vector3(7.80f, 3.595f, 5.00f), 90f),
-                ("R101E", new Vector3(11.55f, 3.595f, 5.20f), 90f),
+                ("R101W", new Vector3(7.70f, 3.595f, 6.55f), 90f),
+                ("R101E", new Vector3(11.65f, 3.595f, 3.45f), 90f),
                 ("Staff", new Vector3(0.05f, 3.595f, 3.85f), 0f),
             };
             foreach (var ts in tubeSpots)
@@ -1493,7 +1688,7 @@ namespace CTCC.Editor
             }
 
             // Sculpted Blender Patient Canvas Bag in Room 101 Store (Kho giường)
-            PlaceBlenderModel("CTCC_PROP_PatientBag", real, new Vector3(14.95f, 0.865f, 2.65f), 24f, pairRB: false);
+            PlaceBlenderModel("CTCC_PROP_PatientBag", real, new Vector3(14.95f, 0.865f, 2.65f), 24f, pairRB: false, forceAged: true);
             for (int i = 0; i < 3; i++)
                 Box("Folder", new Vector3(15.59f + 0.13f * i, 0.878f + i * 0.016f, 2.51f), new Vector3(0.28f, 0.013f, 0.26f),
                     Mat(i == 0 ? "Paper" : "KraftPaper"), real);
@@ -1508,10 +1703,10 @@ namespace CTCC.Editor
             // Core v3.6.2 (DEC-V36-CH01-01): E10a moved from ground canvas bag to the East Gate Pillar iron mailbox (MAILBOX in DressLoc01Exterior).
             CapsuleTarget("AN02", "Điểm neo phòng 101", new Vector3(6.51f, 0.55f, 5.14f), new Vector3(0.59f, 0.45f, 0.33f));
 
-            // Hero Blender Wooden Clipboard F101 on Room 101 Wall
+            // Hero Blender Wooden Clipboard F101 on Room 101 Wall (yaw=-90 faces +X into Room 101 so steel spring clip & pen sit cleanly in front!)
             if (art)
             {
-                PlaceBlenderModel("CTCC_PROP_ClipboardF101", permanent, new Vector3(5.72f, 1.37f, 5.50f), 90f, pairRB: false, castShadows: false);
+                PlaceBlenderModel("CTCC_PROP_ClipboardF101", permanent, new Vector3(5.72f, 1.37f, 5.50f), -90f, pairRB: false, castShadows: false);
             }
             else
             {
@@ -1521,7 +1716,7 @@ namespace CTCC.Editor
             CapsuleTarget("F101", "Xử lý phiếu 101", new Vector3(5.811f, 1.37f, 5.50f), new Vector3(0.14f, 0.52f, 0.52f));
             CapsuleTarget("OBS101A", "Dấu sử dụng tại vị trí giường 4", new Vector3(11.05f, 0.28f, 3.35f), new Vector3(0.86f, 0.44f, 0.90f), report);
             CapsuleTarget("OBS101B", "Thẻ bàn giao giường 4 (AS-05B)", new Vector3(11.35f, 1.34f, 4.48f), new Vector3(0.42f, 0.48f, 0.22f), report);
-            CapsuleTarget("OBS101C", "Phiếu chuyển giường 02 (Đã hoàn tất)", new Vector3(10.25f, 0.94f, 5.88f), new Vector3(0.42f, 0.46f, 0.28f), report);
+            CapsuleTarget("OBS101C", "Phiếu chuyển giường 02 (Đã hoàn tất)", new Vector3(10.25f, 0.84f, 5.92f), new Vector3(0.42f, 0.46f, 0.28f), report);
             CapsuleTarget("LAN_TALK", "Trò chuyện với Lan", new Vector3(2.17f, 1.57f, -3.24f), new Vector3(0.32f, 0.58f, 0.60f), report);
             CapsuleTarget("OBS_CLOCK_0317", "Đồng hồ treo tường (Dừng ở 03:17)", new Vector3(-0.92f, 2.42f, -3.26f), new Vector3(0.46f, 0.80f, 0.56f), permanent);
             CapsuleTarget("LIST", "Bản kê ba giường", new Vector3(6.65f, 1.34f, 2.127f), new Vector3(0.54f, 0.58f, 0.13f), real);
@@ -1577,19 +1772,28 @@ namespace CTCC.Editor
                 "DrawingPiece1", "DrawingPiece2", "DrawingPiece3"
             }, id => new InspectImage { id = id, image = Tex(id) });
 
-            // 3D Physical Inspector Model Templates (hidden container cloned on demand by PhysicalInspector!)
+            // 3D Physical Inspector / Inventory / Interactive Hardware Model Templates (hidden container cloned on demand!)
             var templates = Group("Inspect3DTemplates", world.transform);
             var envTmpl = PlaceBlenderModel("CTCC_PROP_BayEnvelope", templates, Vector3.zero, 0f, pairRB: false);
             envTmpl.SetActive(false);
+            var envInteractiveTmpl = PlaceBlenderModel("CTCC_PROP_EnvelopeInteractive", templates, Vector3.zero, 0f, pairRB: false);
+            envInteractiveTmpl.SetActive(false);
+            var gateKeyTmpl = PlaceBlenderModel("CTCC_PROP_GateKey", templates, Vector3.zero, 0f, pairRB: false);
+            gateKeyTmpl.SetActive(false);
+            var wingCKeyTmpl = PlaceBlenderModel("CTCC_PROP_WingCKey", templates, Vector3.zero, 0f, pairRB: false);
+            wingCKeyTmpl.SetActive(false);
             var wristTmpl = PlaceBlenderModel("CTCC_PROP_WristbandC01", templates, Vector3.zero, 0f, pairRB: false);
             wristTmpl.SetActive(false);
             var phoneTmpl = PlaceBlenderModel("CTCC_PROP_MinhPhone", templates, Vector3.zero, 0f, pairRB: false);
-            var phoneScreen = Flat("PhoneScreenFace", "Doc_PhoneScreen", new Vector3(0f, 0.022f, -0.0085f), Vector3.back, new Vector2(0.041f, 0.051f), phoneTmpl.transform);
+            var phoneScreen = Flat("PhoneScreenFace", "Doc_PhoneScreen", new Vector3(0f, 0.023f, -0.0082f), Vector3.back, new Vector2(0.041f, 0.051f), phoneTmpl.transform);
             if (phoneScreen != null) phoneScreen.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             phoneTmpl.SetActive(false);
             world.inspectModels = new[]
             {
                 new InspectModel { id = "E10a", template = envTmpl },
+                new InspectModel { id = "ENVELOPE_3D", template = envInteractiveTmpl },
+                new InspectModel { id = "GATE_KEY", template = gateKeyTmpl },
+                new InspectModel { id = "WINGC_KEY", template = wingCKeyTmpl },
                 new InspectModel { id = "WRIST", template = wristTmpl },
                 new InspectModel { id = "PHONE", template = phoneTmpl }
             };
@@ -1607,7 +1811,7 @@ namespace CTCC.Editor
             Sign("Form C", "FileC", notice, Vector3.left, new Vector2(0.91f, 0.34f), statusCObj.transform);
 
             // Readable world-space document sheets atop physical props (F101 wall sheet dynamically swaps on A/B/C!)
-            var f101WallFlat = Flat("F101", "F101", new Vector3(5.736f, 1.365f, 5.50f), Vector3.right, new Vector2(0.222f, 0.310f));
+            var f101WallFlat = Flat("F101", "F101", new Vector3(5.730f, 1.364f, 5.50f), Vector3.right, new Vector2(0.222f, 0.310f));
             var f101WallMr = f101WallFlat.GetComponent<Renderer>();
             if (multiScene)
             {
@@ -1635,12 +1839,13 @@ namespace CTCC.Editor
             if (multiScene) zones["LOC03"].region.bed4ChartHolder = bed4Holder;
             else world.bed4ChartHolder = bed4Holder;
             PlaceBlenderModel("CTCC_PROP_Bed4BlanketTrace", loc03RepRoot, new Vector3(11.08f, 0f, 3.16f), -22f, pairRB: false, castShadows: false);
-            Flat("OBS101C_Bed2Chart", "Doc_Bed2Transfer", new Vector3(10.25f, 0.92f, 5.91f), Vector3.back, new Vector2(0.21f, 0.28f), loc03RepRoot);
+            Flat("OBS101C_Bed2Chart", "Doc_Bed2Transfer", new Vector3(10.25f, 0.782f, 5.972f), Vector3.back, new Vector2(0.206f, 0.272f), loc03RepRoot);
 
             // CH01-R Interactive Bed 3 Drawer (DRAWER-BED3 -> reveals OBS101D Bed-3 routine medication comparison record!)
-            var bed3DrawerRoot = Group("Drawer_Bed3_Root", loc03RepRoot, new Vector3(8.64f, 0.56f, 2.52f));
+            // Seated flush over BedsideCabinet's upper drawer opening (y=0.625, front z=2.615) so it reads as ONE seamless drawer!
+            var bed3DrawerRoot = Group("Drawer_Bed3_Root", loc03RepRoot, new Vector3(8.64f, 0.622f, 2.502f));
             bed3DrawerRoot.localRotation = Quaternion.Euler(0f, 180f, 0f);
-            PlaceBlenderModel("CTCC_PROP_InteractiveDrawer", bed3DrawerRoot, Vector3.zero, 180f, pairRB: false, scale: new Vector3(0.86f, 0.88f, 0.88f), castShadows: false);
+            PlaceBlenderModel("CTCC_LOC03_Bed3Drawer", bed3DrawerRoot, Vector3.zero, 180f, pairRB: false, scale: new Vector3(0.96f, 1.04f, 0.88f), castShadows: false);
             Flat("Bed3MedsSheet", "Doc_Bed3Meds", new Vector3(0f, -0.025f, 0.01f), Vector3.up, new Vector2(0.21f, 0.27f), bed3DrawerRoot);
             CapsuleTarget("DRAWER-BED3", "Ngăn tủ đầu giường 03", new Vector3(0f, -0.02f, -0.17f), new Vector3(0.42f, 0.14f, 0.08f), bed3DrawerRoot);
             CapsuleTarget("OBS101D", "Phiếu phát thuốc giường 03", new Vector3(0f, 0.06f, 0.02f), new Vector3(0.32f, 0.14f, 0.24f), bed3DrawerRoot);
@@ -1656,7 +1861,7 @@ namespace CTCC.Editor
             var loc02PermRoot = ResolveParent(permanent, new Vector3(1.96f, 0.66f, -5.06f));
             var deskDrawerRoot = Group("Drawer_Reception_Root", loc02PermRoot, new Vector3(1.96f, 0.66f, -5.06f));
             deskDrawerRoot.localRotation = Quaternion.Euler(0f, -90f, 0f);
-            PlaceBlenderModel("CTCC_PROP_InteractiveDrawer", deskDrawerRoot, Vector3.zero, 180f, pairRB: true, scale: new Vector3(0.92f, 0.92f, 0.92f), castShadows: false);
+            PlaceBlenderModel("CTCC_LOC02_DeskDrawer", deskDrawerRoot, Vector3.zero, 180f, pairRB: true, scale: new Vector3(0.92f, 0.92f, 0.92f), castShadows: false);
             Flat("ReceptionRosterSheet", "Doc_DutyRoster", new Vector3(0f, -0.025f, 0.01f), Vector3.up, new Vector2(0.22f, 0.28f), deskDrawerRoot);
             CapsuleTarget("DRAWER-DESK", "Ngăn kéo quầy tiếp nhận", new Vector3(0f, -0.02f, -0.17f), new Vector3(0.44f, 0.14f, 0.08f), deskDrawerRoot);
             CapsuleTarget("OBS_RECEPTION_DRAWER", "Sổ phân ca trực 17–18/11/2005", new Vector3(0f, 0.06f, 0.02f), new Vector3(0.34f, 0.14f, 0.24f), deskDrawerRoot);
@@ -1686,7 +1891,7 @@ namespace CTCC.Editor
             PlaceBlenderModel("CTCC_PROP_InteractiveDrawer", nurseDrawerRoot, Vector3.zero, 180f, pairRB: false, scale: new Vector3(0.88f, 0.88f, 0.88f), castShadows: false);
             Flat("ShiftGuideDrawerSheet", "Doc_ShiftGuide", new Vector3(0f, -0.025f, 0.01f), Vector3.up, new Vector2(0.21f, 0.27f), nurseDrawerRoot);
             CapsuleTarget("DRAWER-NURSE", "Ngăn bàn điều dưỡng", new Vector3(0f, -0.02f, -0.17f), new Vector3(0.42f, 0.14f, 0.08f), nurseDrawerRoot);
-            CapsuleTarget("OBS_SHIFT_LOG", "Quy chế bàn giao ca đêm AS-05", new Vector3(0f, 0.06f, 0.02f), new Vector3(0.32f, 0.14f, 0.24f), nurseDrawerRoot);
+            CapsuleTarget("OBS_SHIFT_LOG", "Quy chế bàn giao ca đêm", new Vector3(0f, 0.06f, 0.02f), new Vector3(0.32f, 0.14f, 0.24f), nurseDrawerRoot);
             if (multiScene)
             {
                 zones["LOC03"].region.drawerNurse = nurseDrawerRoot;

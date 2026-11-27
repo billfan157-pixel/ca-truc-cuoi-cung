@@ -663,23 +663,23 @@ namespace CTCC.Editor
             // sits flush at y=0 (0.90m brick plinth + coping + iron spear railings + 2.28m piers, zero double-stacking!).
             if (art)
             {
-                Box("West yard brick wall", new Vector3(-5f, 0.425f, -14f), new Vector3(0.22f, 0.85f, 12f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true).GetComponent<Renderer>().enabled = false;
-                Box("East yard brick wall", new Vector3(13f, 0.425f, -14f), new Vector3(0.22f, 0.85f, 12f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true).GetComponent<Renderer>().enabled = false;
-                Box("Front yard brick wall L", new Vector3(-1.1f, 0.86f, -20f), new Vector3(7.8f, 1.72f, 0.24f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true).GetComponent<Renderer>().enabled = false;
-                Box("Front yard brick wall R", new Vector3(9.1f, 0.86f, -20f), new Vector3(7.8f, 1.72f, 0.24f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true).GetComponent<Renderer>().enabled = false;
+                Box("West yard brick wall", new Vector3(-5f, 1.125f, -14f), new Vector3(0.24f, 2.25f, 12f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true).GetComponent<Renderer>().enabled = false;
+                Box("East yard brick wall", new Vector3(13f, 1.125f, -14f), new Vector3(0.24f, 2.25f, 12f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true).GetComponent<Renderer>().enabled = false;
+                Box("Front yard brick wall L", new Vector3(-1.33f, 1.14f, -20f), new Vector3(7.34f, 2.28f, 0.26f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true).GetComponent<Renderer>().enabled = false;
+                Box("Front yard brick wall R", new Vector3(9.33f, 1.14f, -20f), new Vector3(7.34f, 2.28f, 0.26f), Mat("WeatheredBrick"), solid: true, tile: 1.6f, isStatic: true).GetComponent<Renderer>().enabled = false;
             }
             else
             {
-                Wall(false, -5, -20, -8, 0, 0.85f);
-                Wall(false, 13, -20, -8, 0, 0.85f);
-                Wall(true, -20, -5, 2.8f, 0, 1.72f);
-                Wall(true, -20, 5.2f, 13, 0, 1.72f);
+                Wall(false, -5, -20, -8, 0, 2.25f);
+                Wall(false, 13, -20, -8, 0, 2.25f);
+                Wall(true, -20, -5, 2.8f, 0, 2.28f);
+                Wall(true, -20, 5.2f, 13, 0, 2.28f);
             }
 
             var gate = Opening("GATE-CONG");
             var outerGate = HingedExteriorGate("GATE-CONG", gate, -101);
-            var seam = Box("Exhausted gate seam only", new Vector3(4, 1.1f, -20.50f),
-                new Vector3(2.44f, 2.20f, 0.07f), Mat("Glass"), solid: true);
+            var seam = Box("Exhausted gate seam only", new Vector3(4, 1.28f, -20.50f),
+                new Vector3(2.44f, 2.56f, 0.07f), Mat("Glass"), solid: true);
             seam.GetComponent<Renderer>().enabled = false;
             seam.SetActive(false);
             if (multiScene)
@@ -774,19 +774,29 @@ namespace CTCC.Editor
 
         private DoorPose HingedExteriorGate(string name, Aperture a, float angle)
         {
-            if (!art) return Hinged(name, a, 1.80f, Mat("MetalPaint"), angle, false);
+            // Phase 2.5 institutional Vietnamese hospital gate scale: 2.52m gate collider / 2.48m frame (2.62m finials)
+            // framed by 2.88m masonry pillars (0.46x0.44m, inner edges locked at x=2.80 & 5.20) + 3.08m overhead lintel beam!
+            if (!art) return Hinged(name, a, 2.52f, Mat("MetalPaint"), angle, false);
             var pos = new Vector3(a.x, 0, a.z);
             var parent = ResolveParent(null, pos);
             var offset = new Vector3(-a.width / 2f, 0, 0);
             Transform pivot = Group(name + " · hinge", parent, pos + offset);
-            var proxy = Box("Gate collider", new Vector3(a.width / 2f, 0.90f, 0), new Vector3(a.width - 0.025f, 1.80f, 0.08f), Mat("MetalOld"), pivot, solid: true);
+            var proxy = Box("Gate collider", new Vector3(a.width / 2f, 1.26f, 0), new Vector3(a.width - 0.025f, 2.52f, 0.08f), Mat("MetalOld"), pivot, solid: true);
             proxy.GetComponent<Renderer>().enabled = false;
             PlaceBlenderModel("CTCC_PROP_ExteriorGate", pivot, Vector3.zero, 0f, pairRB: true);
             foreach (int s in new[] { -1, 1 })
             {
-                Box("Gate pillar", new Vector3(a.x + s * (a.width * 0.5f + 0.16f), 1.05f, a.z), new Vector3(0.32f, 2.10f, 0.34f), Mat("PlasterR"), parent, solid: true, tile: 1.5f, isStatic: true);
-                Box("Gate pillar cap", new Vector3(a.x + s * (a.width * 0.5f + 0.16f), 2.14f, a.z), new Vector3(0.38f, 0.09f, 0.40f), Mat("BaseTrim"), parent, isStatic: true);
+                float px = a.x + s * (a.width * 0.5f + 0.23f); // West=2.57, East=5.43 (inner edges locked at 2.80 & 5.20)
+                Box("Gate pillar", new Vector3(px, 1.44f, a.z), new Vector3(0.46f, 2.88f, 0.44f), Mat("PlasterR"), parent, solid: true, tile: 1.5f, isStatic: true);
+                Box("Gate pillar plinth", new Vector3(px, 0.16f, a.z), new Vector3(0.52f, 0.32f, 0.50f), Mat("BaseTrim"), parent, isStatic: true);
+                Box("Gate pillar cap", new Vector3(px, 2.93f, a.z), new Vector3(0.54f, 0.10f, 0.52f), Mat("BaseTrim"), parent, isStatic: true);
+                // Institutional pillar lantern base + frosted globe atop caps
+                Box("Gate pillar lamp neck", new Vector3(px, 3.36f, a.z), new Vector3(0.16f, 0.10f, 0.16f), Mat("MetalOld"), parent, isStatic: true);
+                Box("Gate pillar lamp globe", new Vector3(px, 3.50f, a.z), new Vector3(0.18f, 0.20f, 0.18f), Mat("WarmGlow"), parent, isStatic: true);
             }
+            // Overhead concrete hospital gate transom beam spanning [2.34..5.66] at y=2.90..3.26 (28cm clearance above 2.62m finials)
+            Box("Gate lintel beam", new Vector3(a.x, 3.08f, a.z), new Vector3(a.width + 0.96f, 0.36f, 0.44f), Mat("PlasterR"), parent, solid: true, tile: 1.5f, isStatic: true);
+            Box("Gate lintel coping", new Vector3(a.x, 3.30f, a.z), new Vector3(a.width + 1.06f, 0.08f, 0.52f), Mat("BaseTrim"), parent, isStatic: true);
             return new DoorPose { pivot = pivot, openAngle = angle };
         }
 

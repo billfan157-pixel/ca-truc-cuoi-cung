@@ -8,20 +8,19 @@ using UnityEngine.InputSystem;
 namespace CTCC
 {
     /// <summary>
-    /// Core v3.6.2 (GAP-R3-06 / GAP-R3-09 / Plan 4.3 / 4.5) World-First 3D AN02 Clipboard Controller for CH01.
-    /// Features:
-    /// - Smooth (or reduced-motion instant) 3D camera over physical wall clipboard CTCC_PROP_ClipboardF101 keeping Room 101
-    ///   & Bed 4 curtain visible in the peripheral frame (ZERO 2-column Journal modal in CH01!).
-    /// - Equal-step A/B/C decision selection with NO default and NO moral color coding, 2-step Preview -> Sign N. H. Minh -> Confirm.
-    /// - Direct F101 zero-line & AS-05B receiver-box marking, read-only spatial Bed-4 link status (backend-enforced provenance).
-    /// - Free manual 4-digit HH:MM EX01 margin note entry (starts neutral --:--, ZERO preset distractors from future chapters,
-    ///   full mouse + keyboard 0-9 / arrows / Backspace parity, never auto-solves).
-    /// - Esc cancels cleanly while preserving F101Draft & EX01 digits; Large-Print 130% mode shares the exact same state.
+    /// Core v3.6.2 + Phase 2.5 Diegetic Direct-Surface 3D AN02 Clipboard Controller (Requirement G):
+    /// - Default mode uses DiegeticAn02Surface directly on Room 101's physical wall clipboard CTCC_PROP_ClipboardF101
+    ///   with ZERO 2D sidebar: player clicks straight on the 3D F101 paper (circle "0", neutral equal-step A/B/C boxes,
+    ///   2-step cursive "N. H. Minh" ink signature + red stamp box, top-right corner lift for 2-sided 3D inspect) and the
+    ///   pinned 3D margin slip beside it (free manual 4-digit HH:MM EX01 entry + Branch C sources & claim).
+    /// - Preserves 100% of backend invariants: neutral equal-step A/B/C, read-only SpatialFieldVerified Bed-4 link provenance,
+    ///   zero preset distractors on EX01, Esc draft preservation, Task02HardGateEnabled => false, and opt-in Large Print 130%.
     /// </summary>
     public sealed partial class HospitalGame
     {
         private enum An02View { Clipboard, RefuteBuilder, Ex01Timecode, Preview, Confirm }
 
+        private DiegeticAn02Surface an02Surface;
         private bool an02Active;
         private bool an02LargePrint;
         private An02View an02View;
@@ -31,6 +30,7 @@ namespace CTCC
         private readonly int[] ex01Digits = { -1, -1, -1, -1 }; // H1, H2, M1, M2 (-1 = neutral '-')
         private int ex01DigitCursor;
         private string ex01Feedback;
+        private bool an02SlipShowsBranchC;
 
         /// <summary>
         /// Core v3.6.2 D1: Task 02 (Bed 2 transfer comparison OBS101C) stays non-blocking by default
@@ -38,13 +38,23 @@ namespace CTCC
         /// </summary>
         internal bool Task02HardGateEnabled => false;
         internal bool IsAn02Clipboard3DActive => an02Active;
+        internal bool IsAn02DirectSurfaceActive => an02Active && an02Surface != null && an02Surface.IsActive;
+
+        private void SetWallF101Visible(bool visible)
+        {
+            if (scene?.f101WallRenderer != null)
+                scene.f101WallRenderer.enabled = visible;
+        }
 
         private void ResetAn02ClipboardState()
         {
+            an02Surface?.Close();
+            SetWallF101Visible(true);
             if (an02Active && player != null)
                 player.RestoreCameraPose(an02SavedPose);
             an02Active = false;
             an02LargePrint = false;
+            an02SlipShowsBranchC = false;
             an02View = An02View.Clipboard;
             ex01Digits[0] = ex01Digits[1] = ex01Digits[2] = ex01Digits[3] = -1;
             ex01DigitCursor = 0;
@@ -79,19 +89,18 @@ namespace CTCC
                 Vector3 clipCenter = scene.f101WallRenderer != null
                     ? scene.f101WallRenderer.bounds.center
                     : new Vector3(5.736f, 1.365f, 5.50f);
-                // Frame the 3D clipboard crisply on the left ~55% while keeping Room 101 & Bed 4 curtain visible peripherally!
-                an02CamTargetPos = clipCenter + new Vector3(0.58f, 0.04f, -0.14f);
-                Vector3 lookTarget = clipCenter + new Vector3(0.0f, -0.02f, 0.22f);
+                // Crisp straight-on framing centered cleanly over the unobstructed F101 + pinned 3D margin slip pair!
+                an02CamTargetPos = clipCenter + new Vector3(0.49f, 0.006f, 0.28f);
+                Vector3 lookTarget = clipCenter + new Vector3(0.0f, -0.004f, 0.28f);
                 an02CamTargetRot = Quaternion.LookRotation((lookTarget - an02CamTargetPos).normalized, Vector3.up);
 
                 if (Options.reduceMotion || qaFolder != null)
-                {
                     player.Eye.transform.SetPositionAndRotation(an02CamTargetPos, an02CamTargetRot);
-                }
             }
 
             if (an02View is (An02View.Preview or An02View.Confirm))
                 an02View = An02View.Clipboard;
+            an02SlipShowsBranchC = reportDraft.Decision == FormStatus.Refuted;
             formFeedback = null;
             ex01Feedback = null;
             RenderAn02Clipboard3D();
@@ -99,7 +108,10 @@ namespace CTCC
 
         private void ExitAn02Clipboard3D(bool clearDraft)
         {
+            an02Surface?.Close();
+            SetWallF101Visible(true);
             an02View = An02View.Clipboard;
+            an02SlipShowsBranchC = false;
             formFeedback = null;
             ex01Feedback = null;
             if (clearDraft)
@@ -120,6 +132,7 @@ namespace CTCC
             if (!an02Active || player?.Eye == null) return;
             if (!ui.IsModal)
             {
+                an02Surface?.Close();
                 player.RestoreCameraPose(an02SavedPose);
                 an02Active = false;
                 return;
@@ -130,9 +143,25 @@ namespace CTCC
             player.Eye.transform.position = Vector3.Lerp(player.Eye.transform.position, an02CamTargetPos, t);
             player.Eye.transform.rotation = Quaternion.Slerp(player.Eye.transform.rotation, an02CamTargetRot, t);
 
-            // Direct keyboard digit typing for EX01 free HH:MM entry (0-9, Left/Right, Backspace)
-            if (an02View == An02View.Ex01Timecode && !busy && !ui.ModalInputBlocked && Keyboard.current is Keyboard k)
-                HandleEx01KeyboardDigits(k);
+            if (an02Surface != null)
+            {
+                an02Surface.InputBlocked = busy || ui.ModalInputBlocked;
+                if (an02Surface.IsActive && ui.IsStandaloneOverlay)
+                {
+                    an02Surface.ProjectHotspots(projectedHotspotsBuf);
+                    ui.Update3DHotspotMarkers(projectedHotspotsBuf);
+                }
+            }
+
+            // Direct keyboard input: 0-9 / arrows / Backspace for EX01 free HH:MM (both on 3D slip & Large Print) + [F] to lift 2-sided F101
+            if (!busy && !ui.ModalInputBlocked && Keyboard.current is Keyboard k)
+            {
+                bool allowDigits = (!an02LargePrint && !an02SlipShowsBranchC) || an02View == An02View.Ex01Timecode;
+                if (allowDigits) HandleEx01KeyboardDigits(k);
+
+                if (!an02LargePrint && k.fKey.wasPressedThisFrame)
+                    LiftF101SheetToInspector();
+            }
         }
 
         private void HandleEx01KeyboardDigits(Keyboard k)
@@ -213,14 +242,244 @@ namespace CTCC
             RenderAn02Clipboard3D();
         }
 
+        private void LiftF101SheetToInspector()
+        {
+            an02Surface?.Close();
+            SetWallF101Visible(true);
+            var spec = ObservationRegistry.Get(ObservationRegistry.F101Sheet);
+            if (spec != null)
+                OpenObservationInspector(spec, onReturn: EnterAn02Clipboard3DImmediate, returnLabel: "Quay lại bảng kẹp");
+        }
+
         private void RenderAn02Clipboard3D()
         {
             if (State == null || !casework.CanRevise) { ExitAn02Clipboard3D(false); return; }
 
-            if (an02View == An02View.Ex01Timecode) { RenderAn02Ex01Margin(); return; }
-            if (an02View == An02View.RefuteBuilder) { RenderAn02RefuteBuilder(); return; }
-            if (an02View is (An02View.Preview or An02View.Confirm)) { RenderAn02PreviewAndConfirm(); return; }
+            // Phase 2.5 Default Mode: 100% Diegetic Direct-Surface 3D F101 + Pinned Slip (ZERO sidebar!)
+            bool useDirectSurface = !an02LargePrint && an02Surface != null &&
+                                    SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null;
+            if (useDirectSurface)
+            {
+                RenderAn02DirectSurface3D();
+                return;
+            }
 
+            // Opt-in Accessible Large Print 130% (and headless/QA safe fallback) sharing exact same state!
+            an02Surface?.Close();
+            SetWallF101Visible(true);
+            if (an02View == An02View.Ex01Timecode) { RenderAn02Ex01MarginLarge(); return; }
+            if (an02View == An02View.RefuteBuilder) { RenderAn02RefuteBuilderLarge(); return; }
+            if (an02View is (An02View.Preview or An02View.Confirm)) { RenderAn02PreviewAndConfirmLarge(); return; }
+            RenderAn02MainLarge();
+        }
+
+        private void RenderAn02DirectSurface3D()
+        {
+            Vector3 clipCenter = scene.f101WallRenderer != null
+                ? scene.f101WallRenderer.bounds.center
+                : new Vector3(5.736f, 1.365f, 5.50f);
+
+            if (!an02Surface.IsActive)
+                an02Surface.Open(clipCenter, Image("F101"), ActiveVolume(), Options.reduceMotion, HandleAn02SurfaceZoneClick);
+            SetWallF101Visible(false);
+
+            var surfaceState = BuildCurrentAn02SurfaceState();
+            an02Surface.InputBlocked = busy || ui.ModalInputBlocked;
+            an02Surface.Redraw(surfaceState);
+
+            var chips = new[]
+            {
+                new ActionChoice("Soi 2 mặt [F]", LiftF101SheetToInspector),
+                new ActionChoice("Chữ lớn [L]", ToggleAn02LargePrint),
+                new ActionChoice("Rời bảng [Esc]", () => ExitAn02Clipboard3D(clearDraft: false))
+            };
+            string whisper = an02View == An02View.Confirm
+                ? "Bước 2/2: Bấm ô đỏ trên phiếu để đóng dấu ca trực · Esc rời bảng kẹp"
+                : an02View == An02View.Preview
+                    ? "Bước 1/2: Bấm dòng chữ ký trên phiếu để ký N. H. Minh · Esc rời bảng kẹp"
+                    : "Bấm trực tiếp lên phiếu F101 và giấy ghi chú · Gõ 0–9 cho mốc giờ · F soi 2 mặt · L chữ lớn · Esc rời bảng";
+
+            if (!ui.IsStandaloneOverlay)
+            {
+                ui.ShowStandaloneOverlay(
+                    whisper,
+                    () => ExitAn02Clipboard3D(clearDraft: false),
+                    onClose: () => { an02Surface?.Close(); SetWallF101Visible(true); },
+                    microChips: chips,
+                    onLargePrintKey: ToggleAn02LargePrint,
+                    backdropAlpha: 0.04f);
+            }
+            else
+            {
+                ui.SetStandaloneBottomWhisper(whisper);
+            }
+        }
+
+        private void ToggleAn02LargePrint()
+        {
+            an02LargePrint = !an02LargePrint;
+            RenderAn02Clipboard3D();
+        }
+
+        private An02SurfaceState BuildCurrentAn02SurfaceState()
+        {
+            bool zeroMarked = State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet) == F101Annotations.Zero;
+            bool hasObsA = HypothesisService.HasExaminedInLayerB(State, ObservationRegistry.Bed4Traces);
+            bool hasObsB = HypothesisService.HasExaminedInLayerB(State, ObservationRegistry.Bed4Card);
+            bool cardMarked = State.f101Annotations.MarkedHotspot(ObservationRegistry.Bed4Card) == F101Annotations.Receiver;
+            bool spatialLinked = State.f101Annotations.HasLink &&
+                                 F101Annotations.ResolveLinkProvenance(State) == F101LinkProvenance.SpatialFieldVerified;
+            bool hasClock = CorroborationService.HasClock(State);
+            bool hasCardTime = CorroborationService.HasCardTimestamp(State);
+            bool hasShift = CorroborationService.TryResolveShiftContext(State, out _);
+            bool ex01Solved = CorroborationService.IsCorroborated(State);
+
+            var sources = new List<(string id, string label, bool selected)>();
+            foreach (var rec in State.observationRecords)
+            {
+                if (rec.stage < ObservationStage.Examined) continue;
+                var spec = ObservationRegistry.Get(rec.id);
+                if (spec == null || !spec.SelectableForF101) continue;
+                sources.Add((spec.Id, ShortSourceName(spec), reportDraft.Includes(spec.Id)));
+            }
+            var claims = new List<(string id, string label, bool selected)>();
+            foreach (var c in HypothesisService.F101Claims)
+                claims.Add((c.Id, c.Label, reportDraft.ClaimId == c.Id));
+
+            int signStep = an02View == An02View.Confirm ? 2 : an02View == An02View.Preview ? 1 : 0;
+            string fb = an02SlipShowsBranchC ? formFeedback : (!string.IsNullOrEmpty(ex01Feedback) ? ex01Feedback : formFeedback);
+
+            return new An02SurfaceState(
+                reportDraft.Decision,
+                State.f101.current,
+                State.f101.revision,
+                zeroMarked,
+                hasObsA,
+                hasObsB,
+                cardMarked,
+                spatialLinked,
+                hasClock,
+                hasCardTime,
+                hasShift,
+                ex01Solved,
+                ex01Digits,
+                ex01DigitCursor,
+                an02SlipShowsBranchC,
+                signStep,
+                fb,
+                sources,
+                claims);
+        }
+
+        private void HandleAn02SurfaceZoneClick(string zoneId)
+        {
+            if (State == null || busy || string.IsNullOrEmpty(zoneId)) return;
+
+            if (zoneId == "LIFT_F101") { LiftF101SheetToInspector(); return; }
+            if (zoneId == "SLIP_TAB_NOTES") { an02SlipShowsBranchC = false; RenderAn02Clipboard3D(); return; }
+            if (zoneId == "SLIP_TAB_C") { an02SlipShowsBranchC = true; RenderAn02Clipboard3D(); return; }
+
+            if (zoneId == "MARK_ZERO")
+            {
+                SaveCheckpoint(() => casework.ToggleF101MarkAsync(ObservationRegistry.F101Sheet, F101Annotations.Zero), RenderAn02Clipboard3D);
+                return;
+            }
+            if (zoneId == "MARK_CARD")
+            {
+                SaveCheckpoint(() => casework.ToggleF101MarkAsync(ObservationRegistry.Bed4Card, F101Annotations.Receiver), RenderAn02Clipboard3D);
+                return;
+            }
+            if (zoneId == "OPT_A")
+            {
+                reportDraft.Decision = FormStatus.Affirmed;
+                an02View = An02View.Clipboard;
+                formFeedback = null;
+                RenderAn02Clipboard3D();
+                return;
+            }
+            if (zoneId == "OPT_B")
+            {
+                reportDraft.Decision = FormStatus.Unverified;
+                an02View = An02View.Clipboard;
+                formFeedback = null;
+                RenderAn02Clipboard3D();
+                return;
+            }
+            if (zoneId == "OPT_C")
+            {
+                reportDraft.Decision = FormStatus.Refuted;
+                an02View = An02View.Clipboard;
+                an02SlipShowsBranchC = true;
+                formFeedback = null;
+                RenderAn02Clipboard3D();
+                return;
+            }
+            if (zoneId == "SIGN_PREVIEW")
+            {
+                ValidateAndPreviewAn02();
+                return;
+            }
+            if (zoneId == "SIGN_NAME")
+            {
+                an02View = An02View.Confirm;
+                formFeedback = null;
+                RenderAn02Clipboard3D();
+                return;
+            }
+            if (zoneId == "SIGN_STAMP")
+            {
+                var submission = reportDraft.Submission(State.f101Annotations);
+                StartCoroutine(SignAn02F101(reportDraft.Decision, submission));
+                return;
+            }
+            if (zoneId == "SIGN_CANCEL")
+            {
+                an02View = An02View.Clipboard;
+                formFeedback = null;
+                RenderAn02Clipboard3D();
+                return;
+            }
+            if (zoneId.StartsWith("EX01_D", StringComparison.Ordinal) && zoneId.Length == 7 &&
+                int.TryParse(zoneId.Substring(6, 1), out int slot) && slot >= 0 && slot < 4)
+            {
+                StepEx01Digit(slot, +1);
+                return;
+            }
+            if (zoneId == "EX01_RESET")
+            {
+                ex01Digits[0] = ex01Digits[1] = ex01Digits[2] = ex01Digits[3] = -1;
+                ex01DigitCursor = 0;
+                ex01Feedback = null;
+                RenderAn02Clipboard3D();
+                return;
+            }
+            if (zoneId == "EX01_SUBMIT")
+            {
+                SubmitAn02Ex01Timecode();
+                return;
+            }
+            if (zoneId.StartsWith("SRC_", StringComparison.Ordinal))
+            {
+                string obsId = zoneId.Substring(4);
+                reportDraft.Toggle(obsId);
+                if (an02View is (An02View.Preview or An02View.Confirm)) an02View = An02View.Clipboard;
+                formFeedback = null;
+                RenderAn02Clipboard3D();
+                return;
+            }
+            if (zoneId.StartsWith("CLM_", StringComparison.Ordinal))
+            {
+                reportDraft.ClaimId = zoneId.Substring(4);
+                if (an02View is (An02View.Preview or An02View.Confirm)) an02View = An02View.Clipboard;
+                formFeedback = null;
+                RenderAn02Clipboard3D();
+            }
+        }
+
+        // ==================== OPT-IN ACCESSIBLE LARGE PRINT 130% VIEWS ====================
+
+        private void RenderAn02MainLarge()
+        {
             bool zeroMarked = State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet) == F101Annotations.Zero;
             bool hasObsA = HypothesisService.HasExaminedInLayerB(State, ObservationRegistry.Bed4Traces);
             bool hasObsB = HypothesisService.HasExaminedInLayerB(State, ObservationRegistry.Bed4Card);
@@ -235,27 +494,27 @@ namespace CTCC
                 : $"Bản hiện hành: Lần {State.f101.revision} · {Status(State.f101.current)} (Lần đầu: {Status(State.f101.firstDecision)})";
 
             var sb = new StringBuilder();
-            sb.AppendLine("Bệnh viện An Sinh · Phòng 101 · Ca đêm 18/11/2005 (Lớp B)");
+            sb.AppendLine("Bệnh viện An Sinh · Phòng 101 · Ca đêm 18/11/2005");
             sb.AppendLine(revLine);
             sb.AppendLine();
             sb.AppendLine("THEO BẢNG BÀN GIAO: Bệnh nhân chưa bàn giao: 0" + (zeroMarked ? "   [✓ ĐÃ ĐÁNH DẤU SỐ 0]" : ""));
             sb.AppendLine("• Giường 01–03 đã ghi chốt trên bảng in; không có dòng giường 04.");
             if (hasObsC)
-                sb.AppendLine("• Mẫu đối chiếu Giường 02 (OBS101C): chuyển Nội B có đủ 2 chữ ký giao–nhận.");
+                sb.AppendLine("• Phiếu chuyển Giường 02: chuyển Nội B có đủ 2 chữ ký giao–nhận.");
             sb.AppendLine();
             sb.AppendLine("GHI NHẬN TẠI CHỖ:");
             if (!hasObsA && !hasObsB)
                 sb.AppendLine("• Chưa có quan sát tại hốc giường 4 (A và B không yêu cầu quan sát).");
             else
             {
-                if (hasObsA) sb.AppendLine("• OBS101A: Dấu chăn gấp vội & đôi dép nhỏ sau rèm giường 4.");
-                if (hasObsB) sb.AppendLine("• OBS101B: Thẻ AS-05B giường 4 còn trống ô ký nhận" + (cardMarked ? " [✓ ĐÃ ĐÁNH DẤU Ô NHẬN]." : "."));
+                if (hasObsA) sb.AppendLine("• Dấu chăn gấp vội & đôi dép nhỏ sau rèm giường 4.");
+                if (hasObsB) sb.AppendLine("• Thẻ AS-05B giường 4 còn trống ô ký nhận" + (cardMarked ? " [✓ ĐÃ ĐÁNH DẤU Ô NHẬN]." : "."));
                 sb.AppendLine(spatialLinked
-                    ? "• Đối chứng hiện trường: ✓ Đã liên hệ trực tiếp thẻ AS-05B ↔ dấu tại hốc giường 4."
+                    ? "• Đối chứng hiện trường: ✓ Đã liên hệ trực tiếp thẻ AS-05B với dấu tại hốc giường 4."
                     : "• Đối chứng hiện trường: Chưa đối chứng trực tiếp tại hốc giường 4.");
             }
             if (ex01Solved)
-                sb.AppendLine("• Mép ghi chú ngoại lệ (EX01): ✓ Đã ghi nhận mốc trùng 03:17.");
+                sb.AppendLine("• Ghi chú mốc giờ ngoại lệ: ✓ Đã ghi nhận mốc trùng 03:17.");
             if (!string.IsNullOrEmpty(formFeedback))
                 sb.AppendLine().AppendLine("⚠ " + formFeedback);
 
@@ -270,7 +529,6 @@ namespace CTCC
                     SaveCheckpoint(() => casework.ToggleF101MarkAsync(ObservationRegistry.Bed4Card, F101Annotations.Receiver), RenderAn02Clipboard3D)));
             }
 
-            // 3 neutral, equal-priority options (NO default, A and B require exact same steps!)
             choices.Add(new ActionChoice(Check(reportDraft.Decision == FormStatus.Affirmed) + "A · Xác nhận theo bản kê: 0 bệnh nhân chưa bàn giao", () =>
             {
                 reportDraft.Decision = FormStatus.Affirmed;
@@ -294,31 +552,23 @@ namespace CTCC
             choices.Add(new ActionChoice("Đọc lại trên phiếu (xác nhận trước khi ký)", ValidateAndPreviewAn02,
                 reportDraft.Decision != FormStatus.Pending));
             choices.Add(new ActionChoice(ex01Solved
-                ? "Mép ghi chú ngoại lệ (EX01 · Đã ghi 03:17)"
-                : "Mép ghi chú ngoại lệ · Tự nhập mốc giờ (EX01)", () =>
+                ? "Ghi chú mốc giờ ngoại lệ (Đã ghi 03:17)"
+                : "Ghi chú mốc giờ ngoại lệ · Tự nhập HH:MM", () =>
             {
                 an02View = An02View.Ex01Timecode;
                 ex01Feedback = null;
                 RenderAn02Clipboard3D();
             }));
-            choices.Add(new ActionChoice("Nhấc tờ F101 soi 3D hai mặt", () =>
-            {
-                var spec = ObservationRegistry.Get(ObservationRegistry.F101Sheet);
-                if (spec != null) OpenObservationInspector(spec, onReturn: EnterAn02Clipboard3DImmediate, returnLabel: "Quay lại bảng kẹp AN02");
-            }));
-            choices.Add(new ActionChoice(an02LargePrint ? "Về góc nhìn bảng kẹp 3D" : "Mở bản chữ lớn (130%)", () =>
-            {
-                an02LargePrint = !an02LargePrint;
-                RenderAn02Clipboard3D();
-            }));
+            choices.Add(new ActionChoice("Nhấc tờ F101 soi 3D hai mặt", LiftF101SheetToInspector));
+            if (qaFolder == null && an02Surface != null)
+                choices.Add(new ActionChoice("Quay lại mặt giấy 3D trực tiếp", ToggleAn02LargePrint));
             choices.Add(new ActionChoice("Rời bảng kẹp (giữ bản nháp)", () => ExitAn02Clipboard3D(clearDraft: false)));
 
-            ShowAn02Panel("BẢNG KẸP VẬT LÝ  ·  AN02", "Phiếu bàn giao ca đêm F101", sb.ToString().TrimEnd(),
-                choices.ToArray(), () => ExitAn02Clipboard3D(clearDraft: false),
-                "Tab/Shift+Tab: Chọn mục · Enter: Đánh dấu/Xác nhận · Esc: Rời bảng kẹp (giữ bản nháp)");
+            ui.Show("BẢNG KẸP PHÒNG 101  ·  CHỮ LỚN", "Phiếu bàn giao ca đêm F101", sb.ToString().TrimEnd(),
+                choices.ToArray(), () => ExitAn02Clipboard3D(clearDraft: false), Image("F101"), largePrint: true);
         }
 
-        private void RenderAn02RefuteBuilder()
+        private void RenderAn02RefuteBuilderLarge()
         {
             var sb = new StringBuilder();
             bool zeroMarked = State.f101Annotations.MarkedHotspot(ObservationRegistry.F101Sheet) == F101Annotations.Zero;
@@ -360,19 +610,18 @@ namespace CTCC
                 }));
             }
             choices.Add(new ActionChoice("Đọc lại trên phiếu (kiểm tra căn cứ)", ValidateAndPreviewAn02));
-            choices.Add(new ActionChoice("Quay lại mặt phiếu AN02", () =>
+            choices.Add(new ActionChoice("Quay lại mặt phiếu", () =>
             {
                 an02View = An02View.Clipboard;
                 formFeedback = null;
                 RenderAn02Clipboard3D();
             }));
 
-            ShowAn02Panel("BẢNG KẸP AN02  ·  NHÁNH C", "Chọn nguồn đối chiếu & kết luận", sb.ToString().TrimEnd(),
-                choices.ToArray(), () => { an02View = An02View.Clipboard; RenderAn02Clipboard3D(); },
-                "Nhánh C yêu cầu: đánh dấu số 0 trên F101 + ô ký nhận AS-05B + đối chứng tại hốc giường 4 + chọn nguồn và kết luận hợp lệ.");
+            ui.Show("BẢNG KẸP PHÒNG 101  ·  NHÁNH C", "Chọn nguồn đối chiếu & kết luận", sb.ToString().TrimEnd(),
+                choices.ToArray(), () => { an02View = An02View.Clipboard; RenderAn02Clipboard3D(); }, Image("F101"), largePrint: true);
         }
 
-        private void RenderAn02Ex01Margin()
+        private void RenderAn02Ex01MarginLarge()
         {
             bool hasClock = CorroborationService.HasClock(State);
             bool hasCardTime = CorroborationService.HasCardTimestamp(State);
@@ -381,19 +630,19 @@ namespace CTCC
             string formatted = FormatEx01Digits();
 
             var sb = new StringBuilder();
-            sb.AppendLine("MÉP GHI CHÚ NGOẠI LỆ TRÊN BẢNG KẸP AN02 (EX01 · TÙY CHỌN)");
+            sb.AppendLine("GHI CHÚ MỐC GIỜ NGOẠI LỆ (TÙY CHỌN)");
             sb.AppendLine("Ghi mốc giờ lặp lại giữa hiện trường và giấy tờ ca trực — không sửa nguyên văn thẻ và không suy đoán thời điểm tử vong.");
             sb.AppendLine();
-            sb.AppendLine($"• Đồng hồ quầy tiếp nhận (Lớp B): {(hasClock ? "✓ Đã quan sát" : "Chưa kiểm")}");
+            sb.AppendLine($"• Đồng hồ quầy tiếp nhận: {(hasClock ? "✓ Đã quan sát" : "Chưa kiểm")}");
             sb.AppendLine($"• Vết hằn mặt sau thẻ AS-05B (soi nghiêng / chữ lớn): {(hasCardTime ? "✓ Đã đọc vết hằn" : "Chưa soi mặt sau")}");
-            sb.AppendLine($"• Nguồn bối cảnh ca trực (Quầy / STAFF): {(hasShift ? "✓ " + (ObservationRegistry.Get(ctxId)?.Title ?? ctxId) : "Chưa kiểm")}");
+            sb.AppendLine($"• Tài liệu bối cảnh ca trực: {(hasShift ? "✓ " + (ObservationRegistry.Get(ctxId)?.Title ?? ctxId) : "Chưa kiểm")}");
             sb.AppendLine();
 
             var choices = new List<ActionChoice>();
             if (solved)
             {
                 sb.AppendLine("✓ ĐÃ GHI NHẬN MỐC TRÙNG: 03:17");
-                sb.AppendLine("Đồng hồ quầy lớp B và vết hằn mặt sau thẻ AS-05B trùng cùng một mốc giờ — chưa xác định sự kiện, thời điểm tử vong hay số phận người bệnh.");
+                sb.AppendLine("Đồng hồ quầy và vết hằn mặt sau thẻ AS-05B trùng cùng một mốc giờ — chưa xác định sự kiện, thời điểm tử vong hay số phận người bệnh.");
             }
             else
             {
@@ -426,9 +675,8 @@ namespace CTCC
                 RenderAn02Clipboard3D();
             }));
 
-            ShowAn02Panel("BẢNG KẸP AN02  ·  GHI CHÚ EX01", "Mốc giờ ngoại lệ (Tự nhập HH:MM)", sb.ToString().TrimEnd(),
-                choices.ToArray(), () => { an02View = An02View.Clipboard; RenderAn02Clipboard3D(); },
-                "Gõ phím số 0–9 hoặc bấm từng ô để tự xác lập mốc HH:MM · Backspace xóa · Esc quay lại phiếu.");
+            ui.Show("BẢNG KẸP PHÒNG 101  ·  MỐC GIỜ", "Ghi chú mốc giờ (Tự nhập HH:MM)", sb.ToString().TrimEnd(),
+                choices.ToArray(), () => { an02View = An02View.Clipboard; RenderAn02Clipboard3D(); }, Image("F101"), largePrint: true);
         }
 
         private void SubmitAn02Ex01Timecode()
@@ -437,10 +685,10 @@ namespace CTCC
             if (!CorroborationService.CanCorroborate0317(State))
             {
                 ex01Feedback = !CorroborationService.HasClock(State)
-                    ? "Cần kiểm trực tiếp chiếc đồng hồ treo sau quầy tiếp nhận ở lớp B trước."
+                    ? "Cần kiểm trực tiếp chiếc đồng hồ treo sau quầy tiếp nhận trước."
                     : !CorroborationService.HasCardTimestamp(State)
                         ? "Cần soi nghiêng (hoặc mở bản chữ lớn) mặt sau thẻ AS-05B để đọc vết hằn giờ trước."
-                        : "Cần xem thêm một tài liệu bối cảnh ca trực (sổ ngăn kéo quầy hoặc quy chế/thông báo ở STAFF) trước khi ghi mốc ngoại lệ.";
+                        : "Cần xem thêm một tài liệu bối cảnh ca trực (sổ ngăn kéo quầy hoặc quy chế/thông báo phòng nhân viên) trước khi ghi mốc ngoại lệ.";
                 RenderAn02Clipboard3D();
                 return;
             }
@@ -457,12 +705,12 @@ namespace CTCC
                 {
                     scene.atmosphere?.From("signaturePen", scene.f101WallRenderer != null ? scene.f101WallRenderer.bounds.center : player.Feet + Vector3.up, 0.72f);
                     ex01Feedback = null;
-                    ui.Toast("ĐÃ GHI CHÚ NGOẠI LỆ · 03:17",
-                        "Mốc 03:17 trùng giữa đồng hồ quầy lớp B và vết hằn mặt sau thẻ AS-05B (chưa xác định sự kiện hay giờ tử vong).", 5.5f);
+                    ui.Toast("ĐÃ GHI CHÚ MỐC GIỜ · 03:17",
+                        "Mốc 03:17 trùng giữa đồng hồ quầy và vết hằn mặt sau thẻ AS-05B (chưa xác định sự kiện hay giờ tử vong).", 5.5f);
                 }
                 else
                 {
-                    ex01Feedback = $"Mốc [{raw}] chưa khớp với giờ trên đồng hồ quầy lớp B và vết hằn mặt sau thẻ AS-05B.";
+                    ex01Feedback = $"Mốc [{raw}] chưa khớp với giờ trên đồng hồ quầy và vết hằn mặt sau thẻ AS-05B.";
                 }
                 RenderAn02Clipboard3D();
             });
@@ -477,6 +725,8 @@ namespace CTCC
                 formFeedback = eval.Message;
                 if (!string.IsNullOrEmpty(eval.ProgressiveHint))
                     formFeedback += "\nGợi ý: " + eval.ProgressiveHint;
+                if (reportDraft.Decision == FormStatus.Refuted)
+                    an02SlipShowsBranchC = true;
                 RenderAn02Clipboard3D();
                 return;
             }
@@ -485,7 +735,7 @@ namespace CTCC
             RenderAn02Clipboard3D();
         }
 
-        private void RenderAn02PreviewAndConfirm()
+        private void RenderAn02PreviewAndConfirmLarge()
         {
             bool confirmStep = an02View == An02View.Confirm;
             var submission = reportDraft.Submission(State.f101Annotations);
@@ -539,10 +789,9 @@ namespace CTCC
                 }));
             }
 
-            ShowAn02Panel(confirmStep ? "BẢNG KẸP AN02  ·  ĐÓNG DẤU" : "BẢNG KẸP AN02  ·  XEM TRƯỚC",
+            ui.Show(confirmStep ? "BẢNG KẸP PHÒNG 101  ·  ĐÓNG DẤU" : "BẢNG KẸP PHÒNG 101  ·  XEM TRƯỚC",
                 confirmStep ? "Xác nhận chữ ký N. H. Minh" : "Đọc lại trước khi ký", sb.ToString().TrimEnd(),
-                choices.ToArray(), () => { an02View = An02View.Clipboard; RenderAn02Clipboard3D(); },
-                "Esc: Quay lại phiếu (giữ bản nháp) · Không có lựa chọn mặc định.");
+                choices.ToArray(), () => { an02View = An02View.Clipboard; RenderAn02Clipboard3D(); }, Image("F101"), largePrint: true);
         }
 
         private IEnumerator SignAn02F101(FormStatus choice, DeductionSubmission submission)
@@ -550,7 +799,7 @@ namespace CTCC
             if (busy || an02View != An02View.Confirm) yield break;
             if (!casework.CanRevise || !transaction.AtRequiredPlace(player.Feet, RealityTransaction.WardClipboard))
             {
-                formFeedback = "Mình cần đứng ở vùng an toàn cạnh bảng kẹp (vạch cửa AP04) để ký.";
+                formFeedback = "Mình cần đứng ở vùng an toàn cạnh bảng kẹp trong phòng để ký.";
                 RenderAn02Clipboard3D();
                 yield break;
             }
@@ -573,7 +822,7 @@ namespace CTCC
                     formFeedback = result switch
                     {
                         CommitResult.PadRequired => task.Result.Evaluation.Message,
-                        CommitResult.Obstructed => "Đang đứng trong vùng biến đổi hốc giường 4. Hãy bước về gần vạch cửa AP04 rồi ký lại.",
+                        CommitResult.Obstructed => "Đang đứng trong vùng biến đổi hốc giường 4. Hãy bước về gần cửa rồi ký lại.",
                         _ => "Chưa ghi được bản lưu. Bản nháp và chữ ký vẫn được giữ nguyên."
                     };
                 }
@@ -603,18 +852,6 @@ namespace CTCC
                 ExitAn02Clipboard3D(clearDraft: true);
             else
                 RenderAn02Clipboard3D();
-        }
-
-        private void ShowAn02Panel(string section, string title, string body, ActionChoice[] choices, Action onDismiss, string hint)
-        {
-            if (an02LargePrint)
-            {
-                ui.Show(section + "  ·  CHỮ LỚN", title, body, choices, onDismiss, Image("F101"), largePrint: true);
-            }
-            else
-            {
-                ui.ShowInspectSidebar(section, title, body, choices, onDismiss, null, hint);
-            }
         }
     }
 }
