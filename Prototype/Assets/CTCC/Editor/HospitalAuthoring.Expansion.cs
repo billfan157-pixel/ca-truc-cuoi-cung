@@ -67,6 +67,13 @@ namespace CTCC.Editor
             var loc08Handoff = Group("LOC08 · CH05 Handoff Desk", upper, new(6.85f, ArchiveLevel, 32.3f));
             Box("LOC08 admin desk", new(0f, .44f, 0f), new(.90f, .88f, 1.75f), Mat("Wood"), loc08Handoff, solid: true, isStatic: true);
             Box("LOC08 report binder", new(-.12f, .905f, 0f), new(.36f, .05f, .48f), Mat("KraftPaper"), loc08Handoff, solid: false, isStatic: true);
+            if (art)
+            {
+                // Phase 3 H08 Recovery blotter on south clear half of LOC08 desk (zero overlap with binder at z=0!)
+                var loc08Blotter = PlaceBlenderModel("CTCC_PROP_Loc08RecoveryBlotter", loc08Handoff,
+                    new Vector3(-0.04f, 0.881f, -0.52f), 0f, pairRB: false, castShadows: false);
+                staticArchitecture.Add(loc08Blotter);
+            }
             var handoffMarker = Group("LOC08 · Handoff Marker", loc08Handoff, new(-.12f, .94f, 0f));
             Box("CP03 brass badge", Vector3.zero, new(.28f, .025f, .36f), Mat("Brass"), handoffMarker, solid: false);
             handoffMarker.gameObject.SetActive(false);

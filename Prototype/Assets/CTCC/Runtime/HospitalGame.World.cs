@@ -1,5 +1,7 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace CTCC
 {
@@ -10,7 +12,8 @@ namespace CTCC
         private float wardVisibleSeconds;
         private bool b07GateAttemptRunning;
         private float departureCueUntil;
-        private const float DepartureThresholdZ = -19.92f;
+        private bool wasWr05Engaged;
+        private float wr05PressureBlend;
         private const string BlanketTrace = "BED4_BLANKET", SlipperTrace = "BED4_SLIPPERS";
 
         private bool CanSpatialLinkBed4() =>
@@ -52,8 +55,8 @@ namespace CTCC
             if (target.id == "SEAM")
             {
                 if (State.chapter == "CH01" && State.Happened("CH01-T08") && !State.Happened("CH01-T09"))
-                    return "[" + UseKey + "]  Kéo mở cánh cổng phụ   ·   Giữ chuột trái để kéo";
-                return "[" + UseKey + "]  Nhìn ra cổng phụ";
+                    return "[" + UseKey + "]  Bước qua cổng phụ để rời bệnh viện";
+                return "[" + UseKey + "]  Nhìn ra ngoài cổng phụ";
             }
 
             if (target.id is ("COMPARE_CLIP_AN02" or "COMPARE_DESK_STAFF" or "COMPARE_DESK_RECEPTION" or "COMPARE_DESK_101"))
@@ -127,6 +130,7 @@ namespace CTCC
                 "E05B_SEALED_DOOR" => "Quan sát mảng tường gạch xây bít năm 2004",
                 "LOC08_GATE" => "Cửa Phòng Hành chính",
                 "CH05_HANDOFF" => "Ngưỡng cửa Phòng Hành chính",
+                "LOC08_RECOVERY_DESK" => "Bàn kiểm lại phong bì & điện thoại",
                 "RADIO_LOC07" => "Bật đài cassette đánh lạc hướng",
                 Ch01FieldObjects.BinPedal when scene.PedalBin?.HeldOpen == true => "Nhả bàn đạp",
                 _ => target.title
@@ -344,28 +348,60 @@ namespace CTCC
             StartCoroutine(RunB07PeakGateSeam());
         }
 
-        private bool TryDepartureThreshold(Vector3 feet)
+        private bool CheckPreT09GateThreshold(Vector3 feet)
         {
-            if (!IsDepartureDeferred() || scene.outerGate?.pivot == null ||
-                Mathf.Abs(feet.x - 4f) > 1.25f || Mathf.Abs(feet.y) > 0.4f || feet.z > DepartureThresholdZ)
-                return false;
-
-            player.NudgeWithinScene(new Vector3(0f, 0f, Mathf.Min(0.72f, -19.22f - feet.z)));
-            RespondToDeparture();
+            if (b07GateAttemptRunning || busy) return false;
+            if (!Wr05ExitBoundaryFilter.IsCrossingPreT09Seam(State, feet)) return false;
+            StartCoroutine(RunB07PeakGateSeam());
             return true;
         }
 
-        private bool IsDepartureDeferred() =>
-            State.layer == Reality.R && State.Happened("CH01-T09") &&
-            State.chapter is ("CH01" or "CH02" or "CH03" or "CH04" or "CH05");
+        private bool IsDepartureDeferred() => Wr05ExitBoundaryFilter.IsActive(State);
+
+        private void TickWr05GatePerception()
+        {
+            bool wr05Active = Wr05ExitBoundaryFilter.IsActive(State);
+            bool engaged = wr05Active && player != null && player.Wr05EngagedThisFrame && !ui.IsModal && !busy;
+            scene.atmosphere?.SetExitBoundaryHum(engaged, new Vector3(4f, 1.35f, -20.0f));
+
+            if (engaged && !wasWr05Engaged)
+                RespondToDeparture();
+            wasWr05Engaged = engaged;
+
+            // Subtle psychological atmosphere shift while pushing outward against WR05 (zero motion sickness; strictly static under Reduced Motion).
+            float targetBlend = engaged && !Options.reduceMotion ? 1f : 0f;
+            float dt = Time.unscaledDeltaTime;
+            float nextBlend = Mathf.MoveTowards(wr05PressureBlend, targetBlend, dt * (targetBlend > wr05PressureBlend ? 2.4f : 4.2f));
+            if (Mathf.Abs(nextBlend - wr05PressureBlend) > 0.0005f || (wr05PressureBlend > 0f && targetBlend == 0f))
+            {
+                wr05PressureBlend = nextBlend;
+                ApplyWr05PostPressure(wr05PressureBlend);
+            }
+        }
+
+        private void ApplyWr05PostPressure(float amount)
+        {
+            Volume activeVol = State != null && State.layer == Reality.B ? scene.reportGrade : scene.realGrade;
+            if (activeVol == null || activeVol.sharedProfile == null) return;
+            if (activeVol.sharedProfile.TryGet<Vignette>(out var vig))
+            {
+                float baseVig = State != null && State.layer == Reality.B ? 0.16f : 0.28f;
+                vig.intensity.value = Mathf.Lerp(baseVig, baseVig + 0.11f, amount);
+            }
+            if (activeVol.sharedProfile.TryGet<ColorAdjustments>(out var ca))
+            {
+                float baseSat = State != null && State.layer == Reality.B ? -4f : -16f;
+                ca.saturation.value = Mathf.Lerp(baseSat, baseSat - 14f, amount);
+            }
+        }
 
         private void RespondToDeparture()
         {
             if (!IsDepartureDeferred() || Time.unscaledTime < departureCueUntil) return;
 
-            departureCueUntil = Time.unscaledTime + 4.6f;
-            scene.atmosphere?.From("emergencyHum", player.Feet + Vector3.up, 0.38f);
-            ui.Caption("[Tiếng mưa dịu lại ngoài cổng] Không thể bỏ về khi chuyện bên trong còn chưa rõ.", 4.4f, true);
+            departureCueUntil = Time.unscaledTime + 4.2f;
+            scene.atmosphere?.PulseAmbienceDip(1.6f, 0.36f);
+            ui.Caption("[Tiếng mưa ngoài cổng nghẹn lại] Tìm lối ra.", 3.8f, true);
         }
 
         private IEnumerator RunB07PeakGateSeam()
@@ -373,13 +409,13 @@ namespace CTCC
             b07GateAttemptRunning = true;
             try
             {
-                // Peak Horror #2: Metal slam outside gate + brief rain/ambience dip + bar shadow (safe under Reduced Motion)
+                // Core v3.6.2 B07: Outer gate stays open after T08; stepping through triggers one-time scripted T09 seam -> AP01 + CH01-D14.
                 dreadDirector?.PlayPeakGateSlam(Options.reduceMotion);
-                if (scene.outerGate?.pivot != null)
-                    scene.interactables?.MoveDoor("GATE-CONG", scene.outerGate.pivot, 0f, Options.reduceMotion, null);
-                yield return new WaitForSecondsRealtime(Options.reduceMotion ? 0.14f : 0.46f);
+                scene.atmosphere?.PulseAmbienceDip(1.8f, 0.24f);
+                yield return new WaitForSecondsRealtime(Options.reduceMotion ? 0.12f : 0.38f);
                 TransitionAsync(() => casework.OutsideAttemptAsync(player.Feet), true, () =>
                 {
+                    scene.atmosphere?.SetReturnWalkRainScale(0.68f);
                     PresentLine("CH01-D14", 1, "B07");
                 });
             }

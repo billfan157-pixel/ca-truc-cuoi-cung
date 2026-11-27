@@ -248,13 +248,13 @@ namespace CTCC
                 snapshot.chapter == "CH01" && snapshot.layer == Reality.B &&
                 snapshot.Happened("CH01-T05") && !snapshot.Happened("CH01-T06"))
                 effectiveRoomPose = 0.13f; // Unlocked ajar after BOARD pickup — Minh pushes/drags DOOR-101 to step inside!
-            bool b07GateLatched = snapshot.chapter == "CH01" && snapshot.Happened("CH01-T08") &&
-                !snapshot.Happened("CH01-T09");
+            // Core v3.6.2 (DEC-V361-CH01-01 / B06): outer gate NEVER relocks or latches shut after T08 collapse!
+            // Post-T09 exit restriction is handled strictly by WR05 swept-boundary projection (zero seamBlocker collider).
             scene.Present(snapshot.layer == Reality.B, (int)snapshot.f101.current,
                 snapshot.Happened("CH01-T02"), snapshot.Happened("CH01-T05"),
                 snapshot.Has("E12"), GateService.G02(snapshot),
                 snapshot.layer == Reality.M, GateService.G03(snapshot), snapshot.chapter is ("CH04" or "CH05"), deferF101Visuals,
-                effectiveRoomPose, b07GateLatched, memoryS1Discharge: RegionStreamer.IsS1DischargeMemory(snapshot));
+                effectiveRoomPose, b07GateLatched: false, memoryS1Discharge: RegionStreamer.IsS1DischargeMemory(snapshot));
             if (restoreProps && scene.interactables != null)
             {
                 foreach (var pose in snapshot.sceneProps)
@@ -266,7 +266,7 @@ namespace CTCC
                     scene.staffCrossDoor.isOpen = scene.interactables.IsDoorOpen("DOOR-STAFF");
             }
             scene.PresentCasework(snapshot);
-            scene.PresentCheckpointProps(snapshot.Happened("CH01-T09"), snapshot.Happened("CH01-BATTERY"));
+            scene.PresentCheckpointProps(false, snapshot.Happened("CH01-BATTERY"));
         }
 
         private void Revert(Vector3 point, List<(string Id, float Openness)> previousPoses)

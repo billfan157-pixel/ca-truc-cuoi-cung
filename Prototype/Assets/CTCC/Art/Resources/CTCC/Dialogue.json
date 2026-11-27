@@ -2883,7 +2883,8 @@
       "chapter": "CH05",
       "beat": "B06",
       "requiredEvents": [
-        "ValveSabotageFound"
+        "ValveSabotageFound",
+        "E10a.Part.publicReportSummary"
       ]
     }
   ]

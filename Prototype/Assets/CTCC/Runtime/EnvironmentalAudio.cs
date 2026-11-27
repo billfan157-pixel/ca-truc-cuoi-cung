@@ -61,11 +61,14 @@ namespace CTCC
         private AudioClip signaturePen;
         private AudioClip cradleClick, enamelPedal, ceramicContact;
         private AudioClip signKnock, keyTurn, latchClick, gateSlam, bagZip, clipSnap;
-        private AudioClip mailboxLatch, mailboxLidCreak, mailboxPackagePickup, phoneSmsChime, phoneRingNoAnswer, clockEegHum;
+        private AudioClip mailboxLatch, mailboxLidCreak, mailboxPackagePickup, phoneSmsChime, phoneRingNoAnswer, clockEegHum, b08EchoWhisper;
         private AudioSource handset;
         private AudioSource penWriteLoop;
         private bool penWriteActive;
         private float penWriteGain;
+        private AudioSource exitBoundaryHumLoop;
+        private bool exitBoundaryHumActive;
+        private float exitBoundaryHumGain;
         private AudioSource fireBellLoop;
         private float fireBellGain;
         private float tensionDipUntil;
@@ -73,6 +76,7 @@ namespace CTCC
         private float tensionGain = 1f;
         private float returnWalkRainScale = 1f;
         internal Transform Listener => listener;
+        internal float ExitBoundaryHumGain => exitBoundaryHumGain;
 
         public string DirectionTo(Vector3 position)
         {
@@ -182,6 +186,39 @@ namespace CTCC
             }
         }
 
+        /// <summary>
+        /// Phase 3 B07 WR05: Smoothly fades in/out the low atmospheric gate threshold dread hum while
+        /// Minh pushes outward against WR05. Stops cleanly when released or muted.
+        /// </summary>
+        internal void SetExitBoundaryHum(bool active, Vector3 gateWorldPos)
+        {
+            exitBoundaryHumActive = active;
+            if (active && exitBoundaryHumLoop == null)
+            {
+                var clip = Resources.Load<AudioClip>("CTCC/CH01_ExitBoundaryHum");
+                if (clip == null) return;
+                var go = new GameObject("WR05 Exit Boundary Hum Loop");
+                go.transform.SetParent(transform, false);
+                go.transform.position = gateWorldPos;
+                exitBoundaryHumLoop = go.AddComponent<AudioSource>();
+                exitBoundaryHumLoop.clip = clip;
+                exitBoundaryHumLoop.loop = true;
+                exitBoundaryHumLoop.playOnAwake = false;
+                exitBoundaryHumLoop.dopplerLevel = 0f;
+                exitBoundaryHumLoop.rolloffMode = AudioRolloffMode.Linear;
+                exitBoundaryHumLoop.minDistance = 1.4f;
+                exitBoundaryHumLoop.maxDistance = 10.0f;
+                exitBoundaryHumLoop.volume = 0f;
+                if (propCue != null) exitBoundaryHumLoop.outputAudioMixerGroup = propCue.outputAudioMixerGroup;
+                exitBoundaryHumLoop.Play();
+            }
+            if (exitBoundaryHumLoop != null)
+            {
+                exitBoundaryHumLoop.transform.position = gateWorldPos;
+                if (active && !exitBoundaryHumLoop.isPlaying) exitBoundaryHumLoop.Play();
+            }
+        }
+
         internal static float DistanceGain(AudioSource source, Transform ear)
         {
             if (ear == null) return 1f;
@@ -257,6 +294,16 @@ namespace CTCC
                 float penDist = mono ? DistanceGain(penWriteLoop, listener) : 1f;
                 penWriteLoop.volume = 0.42f * penWriteGain * sfxScale * duckGain * signatureGain * tensionGain * penDist;
                 if (penWriteGain <= 0.001f && penWriteLoop.isPlaying) penWriteLoop.Stop();
+            }
+
+            if (exitBoundaryHumLoop != null)
+            {
+                float targetHum = exitBoundaryHumActive ? 1f : 0f;
+                exitBoundaryHumGain = Mathf.MoveTowards(exitBoundaryHumGain, targetHum, dt * (targetHum < exitBoundaryHumGain ? 4.8f : 2.6f));
+                exitBoundaryHumLoop.spatialBlend = mono ? 0f : 0.65f;
+                float humDist = mono ? DistanceGain(exitBoundaryHumLoop, listener) : 1f;
+                exitBoundaryHumLoop.volume = 0.46f * exitBoundaryHumGain * sfxScale * duckGain * humDist;
+                if (exitBoundaryHumGain <= 0.001f && exitBoundaryHumLoop.isPlaying) exitBoundaryHumLoop.Stop();
             }
 
             if (MemoryEvacuationLayer && fireBellLoop == null)
@@ -394,6 +441,7 @@ namespace CTCC
                 "phoneSmsChime" => phoneSmsChime != null ? phoneSmsChime : phoneSmsChime = Resources.Load<AudioClip>("CTCC/CH01_PhoneSmsChime"),
                 "phoneRingNoAnswer" => phoneRingNoAnswer != null ? phoneRingNoAnswer : phoneRingNoAnswer = Resources.Load<AudioClip>("CTCC/CH01_PhoneRingNoAnswer"),
                 "clockEegHum" => clockEegHum != null ? clockEegHum : clockEegHum = Resources.Load<AudioClip>("CTCC/CH01_Clock0317_EEGHum"),
+                "b08EchoWhisper" => b08EchoWhisper != null ? b08EchoWhisper : b08EchoWhisper = Resources.Load<AudioClip>("CTCC/CH01_B08EchoWhisper"),
                 _ => null
             };
             if (sound == null || propCue == null) return;

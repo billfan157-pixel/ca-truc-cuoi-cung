@@ -65,7 +65,7 @@ def guarded_conditions(sheet: dict) -> list[dict]:
     ch05_guarded = {
         "CH05-D04": ("B05", "Sau nhóm 3", ["CH05-T04"]),
         "CH05-D06": ("B07", "E05b", ["CH05-T05"]),
-        "CH05-D08": ("B06", "B06", ["ValveSabotageFound"]),
+        "CH05-D08": ("B06", "B06", ["ValveSabotageFound", "E10a.Part.publicReportSummary"]),
     }
     for row in sheet.values():
         identity = row.get("A")

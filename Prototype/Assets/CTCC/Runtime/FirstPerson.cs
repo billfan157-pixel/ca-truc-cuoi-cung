@@ -36,6 +36,8 @@ namespace CTCC
         public bool CanPlay { get; set; }
         public bool LookSuppressed { get; set; }
         public bool ExternalCameraControl { get; set; }
+        public System.Func<Vector3, Vector3, Wr05FilterResult> BoundaryFilter { get; set; }
+        public bool Wr05EngagedThisFrame { get; private set; }
         public bool IsCrouching => capsule != null && capsule.height < 1.35f;
         public bool IsRunning => currentVelocity.sqrMagnitude > 9.0f;
         public bool IsMoving => currentVelocity.sqrMagnitude > 0.05f;
@@ -217,12 +219,20 @@ namespace CTCC
             bool focusedOrIgnored = Application.isFocused ||
                 InputSystem.settings.backgroundBehavior == InputSettings.BackgroundBehavior.IgnoreFocus;
             if (!CanPlay || ExternalCameraControl || eye == null || !focusedOrIgnored)
+            {
+                Wr05EngagedThisFrame = false;
                 return;
+            }
             var k = Keyboard.current;
             var m = Mouse.current;
-            if (k == null) return;
+            if (k == null)
+            {
+                Wr05EngagedThisFrame = false;
+                return;
+            }
             if (LookSuppressed)
             {
+                Wr05EngagedThisFrame = false;
                 currentVelocity = Vector3.zero;
                 Vector3 rest = Vector3.up * (capsule.height - .16f);
                 eye.transform.localPosition = Vector3.Lerp(eye.transform.localPosition, rest,
@@ -332,16 +342,23 @@ namespace CTCC
         private static float Axis(Keyboard keyboard, Key left, Key right) =>
             (keyboard[right].isPressed ? 1 : 0) - (keyboard[left].isPressed ? 1 : 0);
 
-        public void NudgeWithinScene(Vector3 displacement)
-        {
-            capsule.Move(displacement);
-            currentVelocity = Vector3.zero;
-        }
-
         public void Move(Vector3 planarMetresPerSecond, float seconds)
         {
             verticalSpeed = capsule.isGrounded ? -1.15f : Mathf.Max(-15f, verticalSpeed - 18f * seconds);
-            capsule.Move((planarMetresPerSecond + Vector3.up * verticalSpeed) * seconds);
+            Vector3 displacement = (planarMetresPerSecond + Vector3.up * verticalSpeed) * seconds;
+            Wr05EngagedThisFrame = false;
+            if (BoundaryFilter != null)
+            {
+                var filtered = BoundaryFilter(Feet, displacement);
+                displacement = filtered.AdjustedDelta;
+                if (filtered.Blocked)
+                {
+                    Wr05EngagedThisFrame = true;
+                    if (filtered.ClampVelocityZ && currentVelocity.z < 0f)
+                        currentVelocity.z = 0f;
+                }
+            }
+            capsule.Move(displacement);
         }
 
         public SceneTarget Focus(FuncTarget allowed)

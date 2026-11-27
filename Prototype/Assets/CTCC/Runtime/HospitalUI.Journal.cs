@@ -66,6 +66,7 @@ namespace CTCC
         internal void ShowNotebook(int bookmark, Action<int> select, Action close, bool alternate, bool animate,
             bool wideComparison = false, bool clipboard = false, bool returnToClipboard = false, Action putDown = null)
         {
+            ClearStandaloneOverlayState();
             bool samePage = notebookOpen && notebookBookmark == bookmark && notebookWide == wideComparison &&
                 notebookClipboard == clipboard;
             previousNotebookFocus = samePage && EventSystem.current != null

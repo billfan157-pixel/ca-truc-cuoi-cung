@@ -49,6 +49,7 @@ namespace CTCC
         public GameObject mailboxPackageVisual;
         public GameObject receptionGlassSilhouette;
         public GameObject receptionBoard;
+        public B08EchoController b08Echo;
         public AudioSource receptionFan;
         public GameObject trolleyShadowProp;
         public Light[] emergencyRedLights = Array.Empty<Light>();

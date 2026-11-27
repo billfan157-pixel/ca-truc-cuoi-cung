@@ -279,7 +279,8 @@ namespace CTCC
                 ? scene.f101WallRenderer.bounds.center
                 : new Vector3(5.736f, 1.365f, 5.50f);
 
-            if (!an02Surface.IsActive)
+            bool openedNow = !an02Surface.IsActive;
+            if (openedNow)
                 an02Surface.Open(clipCenter, Image("F101"), ActiveVolume(), Options.reduceMotion, HandleAn02SurfaceZoneClick);
             SetWallF101Visible(false);
 
@@ -299,7 +300,7 @@ namespace CTCC
                     ? "Bước 1/2: Bấm dòng chữ ký trên phiếu để ký N. H. Minh · Esc rời bảng kẹp"
                     : "Bấm trực tiếp lên phiếu F101 và giấy ghi chú · Gõ 0–9 cho mốc giờ · F soi 2 mặt · L chữ lớn · Esc rời bảng";
 
-            if (!ui.IsStandaloneOverlay)
+            if (openedNow || !ui.IsStandaloneOverlay)
             {
                 ui.ShowStandaloneOverlay(
                     whisper,

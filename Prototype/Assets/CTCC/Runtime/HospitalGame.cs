@@ -306,6 +306,7 @@ namespace CTCC
             };
             casework = new Casework(transaction);
             transaction.Committed += ApplyCommitted;
+            player.BoundaryFilter = (start, delta) => Wr05ExitBoundaryFilter.Filter(State, start, delta);
 
             int dreadSeed = State.dreadSeed;
             string seedArg = Argument("-ctcc-dread-seed");
@@ -422,6 +423,7 @@ namespace CTCC
 
             bool b08ReturnWalk = current.chapter == "CH01" && current.Happened("CH01-T09") && !current.Happened("CH01-T10");
             scene.atmosphere?.SetReturnWalkRainScale(b08ReturnWalk ? 0.62f : 1f);
+            scene.B08Echo?.Sync(current, player?.Eye?.transform, scene.atmosphere, current.settings.reduceMotion, instantForQa: qaFolder != null);
 
             RefreshObjective();
         }
@@ -547,7 +549,10 @@ namespace CTCC
             }
 
             Vector3 feet = player.Feet;
-            if (TryDepartureThreshold(feet)) return;
+            TickWr05GatePerception();
+            if (B08EchoController.ShouldManifest(State))
+                scene.B08Echo?.Sync(State, player?.Eye?.transform, scene.atmosphere, Options.reduceMotion, instantForQa: qaFolder != null);
+            if (CheckPreT09GateThreshold(feet)) return;
             if (scene.PedalBin?.HeldOpen == true && (scene.PedalBin.transform.position - feet).sqrMagnitude > 7f)
                 SetPedalBin(false);
             if (!streaming && Time.unscaledTime >= reconcileRegionsAt)
@@ -831,8 +836,7 @@ namespace CTCC
                 }
                 else if (target != null && mouse.leftButton.wasPressedThisFrame)
                 {
-                    bool draggableNow = IsDraggablePhysicalRig(target.id) ||
-                                        (target.id == "SEAM" && State.chapter == "CH01" && State.Happened("CH01-T08") && !State.Happened("CH01-T09"));
+                    bool draggableNow = IsDraggablePhysicalRig(target.id);
                     if (draggableNow && scene.interactables != null)
                     {
                         lmbPendingDragTarget = target;
@@ -861,7 +865,7 @@ namespace CTCC
                 else Use(target.id, target.transform);
             }
             else if (TryRecordWardChange()) return;
-            else if (!TryPlayStaffReaction() && !busy && !savingDialogue && !ui.IsModal &&
+            else if (qaFolder == null && !TryPlayStaffReaction() && !busy && !savingDialogue && !ui.IsModal &&
                 (gatekeeperCameo == null || !gatekeeperCameo.IsActive) &&
                 transaction.HasPendingDialogue && Time.unscaledTime >= dialogueSaveAt)
                 StartCoroutine(SaveDialogue());
@@ -885,8 +889,7 @@ namespace CTCC
         private WorldMarkerKind ClassifyWorldMarker(SceneTarget target)
         {
             if (target == null) return WorldMarkerKind.None;
-            if (IsDraggablePhysicalRig(target.id) ||
-                (target.id == "SEAM" && State.chapter == "CH01" && State.Happened("CH01-T08") && !State.Happened("CH01-T09")))
+            if (IsDraggablePhysicalRig(target.id))
                 return WorldMarkerKind.Drag;
             if (target.fieldObject != null) return WorldMarkerKind.Clue;
             switch (target.id)
@@ -1123,6 +1126,7 @@ namespace CTCC
             "CH05_BLUEPRINTS" or "LOC09_VALVE" or "E05B_SEALED_DOOR" => State.chapter == "CH05" && State.layer == Reality.R,
             "LOC08_GATE" => State.chapter is ("CH03" or "CH04" or "CH05") && State.layer == Reality.R && !GateService.G05(State),
             "CH05_HANDOFF" => State.chapter == "CH05" && State.layer == Reality.R && GateService.G05(State),
+            "LOC08_RECOVERY_DESK" => State.chapter is ("CH05" or "CH06") && State.layer == Reality.R && GateService.G05(State),
             Ch01FieldObjects.BinInterior => State.chapter == "CH01" && scene.PedalBin?.CanSeeInside == true,
             _ when target.fieldObject != null => target.fieldObject.Observation.AllowsChapter(State.chapter) &&
                 target.fieldObject.Observation.AllowsLayer(State.layer) &&
@@ -1355,6 +1359,9 @@ namespace CTCC
                 case "CH05_HANDOFF":
                     Ch05HandoffLoc08();
                     break;
+                case "LOC08_RECOVERY_DESK":
+                    InteractLoc08RecoveryDesk();
+                    break;
                 case "CH04_POWER":
                     Ch04PowerBoard();
                     break;
@@ -1405,7 +1412,11 @@ namespace CTCC
             }
             if (source != null) scene.atmosphere?.From("paperFlip", source.position, 0.6f);
             if (collapsingR)
+            {
                 scene.atmosphere?.From("breakerCut", new Vector3(1.5f, 2.2f, -3.2f));
+                scene.atmosphere?.PulseAmbienceDip(1.4f, 0.22f);
+                scene.atmosphere?.SetPenWriting(false, Vector3.zero);
+            }
 
             TransitionAsync(() => casework.AtHubAsync(player.Feet), false, () =>
             {
@@ -1420,11 +1431,18 @@ namespace CTCC
                 {
                     lanDirector?.StopEncounter(false);
                     scene.atmosphere?.SetPenWriting(false, Vector3.zero);
+                    // Core 04 / Core 06 B06: guarantee >= 120s flashlight floor on collapse return to dark 2012 R.
+                    if (player.BatterySeconds < 120) player.RestoreBattery(120);
+                    scene.atmosphere?.SetReturnWalkRainScale(0.94f);
+                    handPresenter?.SyncState(State, scene, hideViewModel: false);
                     PresentLine("CH01-D13", 1, "B06");
+                    if (Options.captions)
+                        ui.Caption("[Ánh đèn hành lang vụt tắt. Mưa đêm 2012 lại dội xuống khoảng sân trước quầy trực trống lạnh.]", 4.4f);
                 }
                 else if (startingCh02)
                 {
                     scene.atmosphere?.SetReturnWalkRainScale(1f);
+                    handPresenter?.SyncState(State, scene, hideViewModel: false);
                     WritePlaytestTelemetryIfEnabled();
                     ui.ShowChapterCard("CHƯƠNG 02  ·  17.11.2012", "PHÒNG BỆNH TRỐNG", 4.6f);
                     scene.atmosphere?.From("phoneBuzz", scene.PhoneAnchor != null ? scene.PhoneAnchor.transform.position : new Vector3(1.8f, 1.2f, -3.2f));
@@ -1607,6 +1625,7 @@ namespace CTCC
             if (player.Eye != null) player.Eye.fieldOfView = Mathf.Clamp(Options.fov, 55f, 82f);
             ui.Fade(0f);
             busy = false;
+            handPresenter?.SyncState(State, scene, hideViewModel: false);
             RefreshControls();
             if (Report(outcome))
             {

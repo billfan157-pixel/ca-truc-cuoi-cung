@@ -61,6 +61,7 @@ namespace CTCC
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return VerifyRender();
             yield return VerifyScalableM3AndCh03();
             yield return VerifyCh05Suite();
+            yield return VerifyCh01Rebirth3Phase3Suite();
             yield return VerifyCampusWorldQA();
         }
 
@@ -458,7 +459,9 @@ namespace CTCC
             Walk(new Vector3(4,0,-19.2f));
             Apply(casework.OutsideAttempt(player.Feet),"seam");
             player.Teleport(scene.Pad("AP01"));
-            Require(casework.OutsideAttempt(player.Feet)!=CommitResult.Applied && scene.seamBlocker.activeSelf,"seam once");
+            Require(casework.OutsideAttempt(player.Feet)!=CommitResult.Applied &&
+                (scene.seamBlocker == null || !scene.seamBlocker.activeSelf) &&
+                Wr05ExitBoundaryFilter.IsActive(State),"seam once + WR05 swept-boundary without seamBlocker");
             Walk(new Vector3(4,0,-3.30f));
             Apply(casework.AtHub(player.Feet,out _),"CH02 handoff");
             Require(transaction.Restore(SaveSlot.Auto,out var handoff)==SaveRead.Valid && handoff!=null,"reload CP04");
@@ -1377,11 +1380,18 @@ namespace CTCC
                 !ChapterFive.CanVerifyH03(e05bOnly) && !GateService.H03(e05bOnly) && !GateService.G05(e05bOnly),
                 "CH05-Q03 symmetric: physical E05b without aligned PZ07 keeps H03/G05 closed");
 
-            // Optional LOC09 valve (DEC-V32-03): CH05-D08 blocked before observation, unlocks at beat B06 only!
+            // Optional LOC09 valve (DEC-V32-03 + Core v3.6.2 Phase 3): CH05-D08 requires ValveSabotageFound + E10a.Part.publicReportSummary (no E09 guard)!
             Require(!MayDeliver("CH05-D08", "B06"), "CH05-D08 blocked before optional LOC09 valve observation");
             yield return WaitForApplied(ChapterFive.ObserveOptionalValveAsync(transaction), "CH05 optional LOC09 valve");
+            bool hadNewsBeforeValve = State.Happened(E10aParts.PublicReportSummary);
+            if (!hadNewsBeforeValve)
+            {
+                Require(State.Happened(ChapterFive.FlagValveSabotage) && !MayDeliver("CH05-D08", "B06"),
+                    "Core v3.6.2 Phase 3: CH05-D08 stays blocked without E10a.Part.publicReportSummary even after valve observation");
+                yield return WaitForApplied(casework.RecordE10aPartReadAsync(E10aParts.PublicReportSummary), "CH05 read carried newspaper");
+            }
             Require(State.Happened(ChapterFive.FlagValveSabotage) && MayDeliver("CH05-D08", "B06") && !MayDeliver("CH05-D08", "B07"),
-                "DEC-V32-03 optional LOC09 valve unlocks CH05-D08 strictly at beat B06");
+                "DEC-V32-03 + Phase 3: optional LOC09 valve + publicReportSummary unlocks CH05-D08 strictly at beat B06");
             player.Teleport(new Vector3(6.2f, -3.4f, 35.6f), Quaternion.Euler(0f, -90f, 0f));
             yield return CaptureHospitalFrame("ch05-loc09-valve-R", player.transform, 0f);
 

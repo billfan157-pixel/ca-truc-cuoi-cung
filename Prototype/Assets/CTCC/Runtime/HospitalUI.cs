@@ -270,6 +270,17 @@ namespace CTCC
             if (cue.text == text) cueBacking.gameObject.SetActive(false);
         }
 
+        internal void ClearTransientMessages()
+        {
+            cueUntil = 0f;
+            cueHideAt = 0f;
+            toastUntil = 0f;
+            chapterUntil = 0f;
+            if (cueBacking != null) cueBacking.gameObject.SetActive(false);
+            if (toastBacking != null) toastBacking.gameObject.SetActive(false);
+            if (chapterBacking != null) chapterBacking.gameObject.SetActive(false);
+        }
+
         internal bool IsShowingCaption(string text) =>
             cueBacking != null && cueBacking.gameObject.activeSelf && cue != null && cue.text == text;
 

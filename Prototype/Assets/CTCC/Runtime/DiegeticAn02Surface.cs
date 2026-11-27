@@ -289,10 +289,12 @@ namespace CTCC
 
         private void InvokeZone(string zoneId)
         {
-            if (audioBus != null && worldRoot != null)
+            // TASK03 contract: an unchanged F101 resubmission is silent (no PA, stamp or transition cue).
+            // The real rubber-stamp is played by SignAn02F101 only when the revision actually changes,
+            // so the SIGN_STAMP press itself makes no sound here.
+            if (audioBus != null && worldRoot != null && zoneId != "SIGN_STAMP")
             {
-                string sfx = zoneId is ("SIGN_STAMP") ? "stamp"
-                    : zoneId is ("MARK_ZERO" or "MARK_CARD" or "SIGN_NAME" or "EX01_SUBMIT") ? "signaturePen"
+                string sfx = zoneId is ("MARK_ZERO" or "MARK_CARD" or "SIGN_NAME" or "EX01_SUBMIT") ? "signaturePen"
                     : "paperFlip";
                 audioBus.From(sfx, worldRoot.position, 0.55f);
             }
@@ -649,31 +651,31 @@ namespace CTCC
             cRt.anchorMin = new Vector2(0.05f, 0.04f); cRt.anchorMax = new Vector2(0.95f, 0.86f);
             cRt.offsetMin = Vector2.zero; cRt.offsetMax = Vector2.zero;
 
-            slipBranchCChecklist = MakeText(RectOf(cRt, "ChecklistC", new Vector2(0f, 0.855f), new Vector2(1f, 0.995f)),
-                "", 18, new Color(0.15f, 0.14f, 0.12f, 1f), TextAnchor.UpperLeft, bold: false);
+            slipBranchCChecklist = MakeText(RectOf(cRt, "ChecklistC", new Vector2(0f, 0.860f), new Vector2(1f, 0.995f)),
+                "", 17, new Color(0.15f, 0.14f, 0.12f, 1f), TextAnchor.UpperLeft, bold: false);
 
-            // Pool 7 selectable evidence source rows
-            for (int i = 0; i < 7; i++)
+            // Pool all 9 selectable evidence source rows (matches every SelectableForF101 observation in DeductionFramework)
+            for (int i = 0; i < 9; i++)
             {
-                float yTop = 0.840f - i * 0.056f;
-                var row = MakePanel(cRt, "Src_" + i, new Vector2(0f, yTop - 0.050f), new Vector2(1f, yTop), new Color(0.88f, 0.84f, 0.72f, 0.95f));
-                var box = MakePanel(row.rectTransform, "Bx", new Vector2(0.015f, 0.14f), new Vector2(0.080f, 0.86f), new Color(0.98f, 0.97f, 0.92f, 1f));
+                float yTop = 0.850f - i * 0.044f;
+                var row = MakePanel(cRt, "Src_" + i, new Vector2(0f, yTop - 0.039f), new Vector2(1f, yTop), new Color(0.88f, 0.84f, 0.72f, 0.95f));
+                var box = MakePanel(row.rectTransform, "Bx", new Vector2(0.015f, 0.12f), new Vector2(0.078f, 0.88f), new Color(0.98f, 0.97f, 0.92f, 1f));
                 var bo = box.gameObject.AddComponent<Outline>();
                 bo.effectColor = new Color(0.18f, 0.18f, 0.16f, 0.90f);
                 bo.effectDistance = new Vector2(2f, -2f);
-                var mk = MakeText(box.rectTransform, "", 24, new Color(0.08f, 0.24f, 0.66f, 1f), TextAnchor.MiddleCenter, bold: true);
-                var lbl = MakeText(RectOf(row.rectTransform, "Lb", new Vector2(0.098f, 0.02f), new Vector2(0.985f, 0.98f)),
-                    "", 18, new Color(0.12f, 0.12f, 0.11f, 1f), TextAnchor.MiddleLeft, bold: true);
+                var mk = MakeText(box.rectTransform, "", 22, new Color(0.08f, 0.24f, 0.66f, 1f), TextAnchor.MiddleCenter, bold: true);
+                var lbl = MakeText(RectOf(row.rectTransform, "Lb", new Vector2(0.095f, 0.02f), new Vector2(0.985f, 0.98f)),
+                    "", 16, new Color(0.12f, 0.12f, 0.11f, 1f), TextAnchor.MiddleLeft, bold: true);
                 row.gameObject.SetActive(false);
                 slipSourceRows.Add((row.gameObject, box, mk, lbl));
             }
 
             // Pool all 5 F101 claim radio rows
-            MakeText(RectOf(cRt, "ClaimHdr", new Vector2(0f, 0.415f), new Vector2(1f, 0.448f)),
+            MakeText(RectOf(cRt, "ClaimHdr", new Vector2(0f, 0.422f), new Vector2(1f, 0.454f)),
                 "KẾT LUẬN ĐÍNH KÈM:", 18, new Color(0.20f, 0.18f, 0.14f, 1f), TextAnchor.MiddleLeft, bold: true);
             for (int i = 0; i < 5; i++)
             {
-                float yTop = 0.410f - i * 0.062f;
+                float yTop = 0.416f - i * 0.062f;
                 var row = MakePanel(cRt, "Clm_" + i, new Vector2(0f, yTop - 0.056f), new Vector2(1f, yTop), new Color(0.88f, 0.84f, 0.72f, 0.95f));
                 var dot = MakePanel(row.rectTransform, "Dt", new Vector2(0.015f, 0.22f), new Vector2(0.068f, 0.78f), new Color(0.98f, 0.97f, 0.92f, 1f));
                 var dOut = dot.gameObject.AddComponent<Outline>();
@@ -685,7 +687,7 @@ namespace CTCC
                 slipClaimRows.Add((row.gameObject, dot, lbl));
             }
 
-            slipBranchCFeedback = MakeText(RectOf(cRt, "FbC", new Vector2(0f, 0f), new Vector2(1f, 0.095f)),
+            slipBranchCFeedback = MakeText(RectOf(cRt, "FbC", new Vector2(0f, 0f), new Vector2(1f, 0.102f)),
                 "", 17, new Color(0.64f, 0.14f, 0.12f, 1f), TextAnchor.UpperLeft, bold: true);
 
             SetLayerRecursive(slipOffscreenRoot, OffscreenLayer);
@@ -844,9 +846,9 @@ namespace CTCC
                         row.row.SetActive(true);
                         row.mark.text = item.selected ? "✓" : "";
                         row.label.text = item.label;
-                        float yTop = 0.840f - i * 0.056f;
+                        float yTop = 0.850f - i * 0.044f;
                         AddZone("SRC_" + item.id, (item.selected ? "Gỡ nguồn: " : "Kẹp nguồn: ") + item.label,
-                            SubUv(0.05f, 0.04f, 0.90f, 0.82f, 0f, yTop - 0.050f, 1f, 0.050f), onSlip: true, marked: item.selected);
+                            SubUv(0.05f, 0.04f, 0.90f, 0.82f, 0f, yTop - 0.039f, 1f, 0.039f), onSlip: true, marked: item.selected);
                     }
                     else
                     {
@@ -864,7 +866,7 @@ namespace CTCC
                         row.row.SetActive(true);
                         row.dot.color = item.selected ? new Color(0.10f, 0.26f, 0.66f, 1f) : new Color(0.98f, 0.97f, 0.92f, 1f);
                         row.label.text = item.label;
-                        float yTop = 0.410f - i * 0.062f;
+                        float yTop = 0.416f - i * 0.062f;
                         AddZone("CLM_" + item.id, item.label,
                             SubUv(0.05f, 0.04f, 0.90f, 0.82f, 0f, yTop - 0.056f, 1f, 0.056f), onSlip: true, marked: item.selected);
                     }

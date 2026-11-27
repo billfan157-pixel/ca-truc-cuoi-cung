@@ -525,19 +525,41 @@ namespace CTCC
 
             SaveCheckpoint(() => ChapterFive.ObserveOptionalValveAsync(transaction), () =>
             {
-                string line = LineAtBeat("CH05-D08", 1, "B06");
-                PresentLine("CH05-D08", 1, "B06");
+                bool hasNewspaper = State.Happened(E10aParts.PublicReportSummary);
                 bool hasE09 = State.Has(EvidenceRegistry.DutyLog);
                 string e09Note = hasE09
                     ? "• Đối chiếu Sổ trực ca đêm E09 (02:58 báo cháy LOC09, ghi nhận mùi dung môi lạ): dấu vết cơ học củng cố nghi vấn vụ cháy có thể không phải sự cố ngẫu nhiên."
                     : "• Có thể quay lại Phòng trực tầng 2 (LOC06) đối chiếu thêm mục 02:58 ghi mùi dung môi lạ trong Sổ trực E09.";
 
+                var choices = new List<ActionChoice>();
+                string closingBlock;
+                if (hasNewspaper)
+                {
+                    // Core v3.6.2 (DEC-V36-CH01-01 / Phase 3): CH05-D08 requires ValveSabotageFound + E10a.Part.publicReportSummary (no E09 guard, INNER_SUB_SILENT, 0 VO).
+                    string line = LineAtBeat("CH05-D08", 1, "B06");
+                    PresentLine("CH05-D08", 1, "B06");
+                    closingBlock = $"Minh · “{line}”";
+                }
+                else
+                {
+                    closingBlock = "• Minh chưa đọc lại mẩu báo công khai 19/11/2005 trong phong bì mang theo, nên chưa có căn cứ đối chiếu kết luận vụ cháy ban đầu. Có thể mở phong bì đọc mẩu báo rồi kiểm tra lại cụm van này, hoặc bỏ qua.";
+                    if (InventoryService.HasPhysical(State, BackpackCatalog.E10aEnvelope))
+                    {
+                        choices.Add(new ActionChoice("Mở phong bì xem lại mẩu báo 2005", () =>
+                        {
+                            CloseModal();
+                            OpenPhysicalEnvelope3D(returnToBackpack: false);
+                        }));
+                    }
+                }
+                choices.Add(new ActionChoice("Ghi nhận nghi vấn & quay lại khoang B1", CloseModal));
+
                 ui.Show("QUAN SÁT TÙY CHỌN · LOC09 (DEC-V32-03)", "Van bồn chứa dung môi AS-05 & tấm chắn gió",
                     "Trên ổ khóa đồng thau rỉ sẫm của van xả bồn dung môi có vết cắt/cạy cơ học đã cũ và ám muội lâu năm. Ngay phía trên, một chốt kim loại gỉ đang chèn mở tấm chắn gió hướng về ống thông khí sang Khu C.\n\n" +
                     e09Note + "\n" +
                     "• Giới hạn chứng cứ: Chỉ từ dấu vết này KHÔNG đủ kết luận ai đã can thiệp, nguồn phát lửa là gì hay thời điểm chính xác.\n\n" +
-                    $"Minh · “{line}”",
-                    new[] { new ActionChoice("Ghi nhận nghi vấn & quay lại khoang B1", CloseModal) }, CloseModal);
+                    closingBlock,
+                    choices.ToArray(), CloseModal);
             });
         }
 
@@ -628,6 +650,7 @@ namespace CTCC
                     "Chương 06–08, câu đố PZ08, cổng G06 và các vật chứng E01 / E06 / E10b / E08 tiếp tục giữ khóa theo thiết kế.",
                     new[]
                     {
+                        new ActionChoice("Kiểm lại phong bì & điện thoại trên bàn", InteractLoc08RecoveryDesk),
                         new ActionChoice("Ở lại kiểm tra tầng 3", CloseModal),
                         new ActionChoice("Về màn hình đầu", MainMenu)
                     }, CloseModal);

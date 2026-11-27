@@ -225,6 +225,75 @@ def make_clock_0317_eeg_hum() -> np.ndarray:
     return hum + blips * 0.42
 
 
+def make_exit_boundary_hum() -> np.ndarray:
+    """Phase 3 B07 WR05: Seamless 4.0s loopable low atmospheric dread hum at outer gate threshold.
+
+    Uses exact integer cycle frequencies over 4.0s + circularly filtered muffled monsoon air so the loop
+    seam has zero click/discontinuity and swells/decays smoothly when pressing against WR05.
+    """
+    sec = 4.00
+    n = round(sec * RATE)
+    t = np.arange(n, dtype=np.float64) / RATE
+    # Exact integer harmonics over 4.0s (all multiples of 0.25 Hz)
+    breath = 0.78 + 0.22 * np.sin(2 * np.pi * 0.25 * t)
+    sub = (
+        0.48 * np.sin(2 * np.pi * 55.0 * t)
+        + 0.26 * np.sin(2 * np.pi * 82.5 * t + 0.4)
+        + 0.18 * np.sin(2 * np.pi * 110.0 * t + 1.1)
+        + 0.09 * np.sin(2 * np.pi * 165.0 * t + 2.0)
+    ) * breath
+    # Circular band-limited muffled air resonance (140-520 Hz) for seamless loop
+    freqs = np.fft.rfftfreq(n, 1.0 / RATE)
+    w = (freqs**2 / (freqs**2 + 140.0**2)) / (1.0 + (freqs / 520.0) ** 4)
+    w[0] = 0.0
+    air = np.fft.irfft(np.fft.rfft(RNG.normal(size=n)) * w, n=n)
+    air /= max(1e-6, float(np.std(air)))
+    return sub * 0.72 + air * 0.22 * breath
+
+
+def write_seamless_loop(path: Path, sig: np.ndarray, target_rms_db: float) -> None:
+    """Writes a click-free seamless loop WAV (no edge fade-to-zero that would cause pumping on loop)."""
+    sig = fft_highpass(sig - float(np.mean(sig)), 42.0, order=2)
+    rms = float(np.sqrt(np.mean(sig * sig)))
+    cur_rms_db = 20.0 * float(np.log10(max(rms, 1e-9)))
+    sig = sig * (10.0 ** ((target_rms_db - cur_rms_db) / 20.0))
+    tp_db = measure_true_peak_db(sig)
+    if tp_db > MAX_PEAK_DBTP:
+        sig *= 10.0 ** ((MAX_PEAK_DBTP - tp_db) / 20.0)
+        tp_db = measure_true_peak_db(sig)
+    sig = np.clip(sig, -0.98, 0.98)
+    pcm = np.round(sig * 32767.0).astype("<i2")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(path), "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(RATE)
+        wf.writeframes(pcm.tobytes())
+    final_rms_db = 20.0 * float(np.log10(max(float(np.sqrt(np.mean((pcm / 32768.0) ** 2))), 1e-9)))
+    print(f"Wrote {path.name} (loop): {len(pcm)/RATE:.2f}s | RMS {final_rms_db:.2f} dBFS | TP {tp_db:.2f} dBTP")
+
+
+def make_b08_echo_whisper() -> np.ndarray:
+    """Phase 3 B08 Perceptual Echo: Restrained archival paper brush + subtle glass harmonic resonance."""
+    sec = 2.65
+    t = t_arr(sec)
+    # 1) Delicate archival page turn / parchment brush (0.08 - 0.78s)
+    p_env = np.sin(np.clip((t - 0.08) / 0.68, 0.0, 1.0) * np.pi) ** 1.4 * ((t >= 0.08) & (t <= 0.76))
+    paper = band_noise(sec, 620.0, 3400.0) * p_env * 0.34 + band_noise(sec, 1800.0, 5600.0) * p_env * 0.16
+    # 2) Distant hollow lobby glass resonance (pure non-vocal harmonic sigh, never loud or melodramatic)
+    r_env = (1.0 - np.exp(-np.maximum(0.0, t - 0.12) * 3.8)) * np.exp(-np.maximum(0.0, t - 0.12) * 1.45) * (t >= 0.12)
+    glass_harm = (
+        0.38 * np.sin(2 * np.pi * 220.0 * t)
+        + 0.26 * np.sin(2 * np.pi * 329.63 * t + 0.5)
+        + 0.16 * np.sin(2 * np.pi * 493.88 * t + 1.2)
+        + 0.08 * np.sin(2 * np.pi * 659.25 * t + 0.8)
+    ) * r_env * 0.52
+    # 3) Very soft air breath behind the glass (0.20 - 1.75s)
+    air_env = np.sin(np.clip((t - 0.18) / 1.55, 0.0, 1.0) * np.pi) ** 1.6 * ((t >= 0.18) & (t <= 1.73))
+    air = band_noise(sec, 340.0, 1650.0) * air_env * 0.18
+    return add_exterior_tail(paper + glass_harm + air, decay=6.5, wet=0.22)
+
+
 def main() -> None:
     write_master(OUT_DIR / "CH01_MailboxLatch.wav", make_mailbox_latch(), target_rms_db=-20.0)
     write_master(OUT_DIR / "CH01_MailboxLidCreak.wav", make_mailbox_lid_creak(), target_rms_db=-21.0)
@@ -232,6 +301,8 @@ def main() -> None:
     write_master(OUT_DIR / "CH01_PhoneSmsChime.wav", make_phone_sms_chime(), target_rms_db=-22.0)
     write_master(OUT_DIR / "CH01_PhoneRingNoAnswer.wav", make_phone_ring_no_answer(), target_rms_db=-21.5)
     write_master(OUT_DIR / "CH01_Clock0317_EEGHum.wav", make_clock_0317_eeg_hum(), target_rms_db=-24.5)
+    write_seamless_loop(OUT_DIR / "CH01_ExitBoundaryHum.wav", make_exit_boundary_hum(), target_rms_db=-21.5)
+    write_master(OUT_DIR / "CH01_B08EchoWhisper.wav", make_b08_echo_whisper(), target_rms_db=-22.5)
 
 
 if __name__ == "__main__":

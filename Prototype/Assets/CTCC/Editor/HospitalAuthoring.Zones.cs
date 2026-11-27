@@ -285,8 +285,111 @@ namespace CTCC.Editor
                 loc02.region.phoneAnchor = phoneVoice;
                 loc02.region.spareBatteryProp = battRoot.gameObject;
                 loc02.region.receptionGlassSilhouette = glassSil.gameObject;
+                loc02.region.b08Echo = BuildB08PerceptualEcho(perm);
                 loc02.probes.Add(recProbe);
             }
+        }
+
+        private B08EchoController BuildB08PerceptualEcho(Transform perm)
+        {
+            var echoHolder = PlaceBlenderModel("CTCC_VFX_B08Echo", perm, new Vector3(2.02f, 1.125f, -3.24f), 0f,
+                pairRB: false, castShadows: false);
+            echoHolder.name = "B08_PerceptualEcho";
+
+            // Pure perceptual manifestation: strictly ZERO colliders and ZERO shadow casting!
+            foreach (var col in echoHolder.GetComponentsInChildren<Collider>(true))
+                UnityEngine.Object.DestroyImmediate(col);
+
+            Renderer trayRend = null, glassRend = null, haloRend = null;
+            foreach (var r in echoHolder.GetComponentsInChildren<Renderer>(true))
+            {
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+                if (r.gameObject.name.Contains("TrayImprint")) trayRend = r;
+                else if (r.gameObject.name.Contains("GlassImprint")) glassRend = r;
+                else if (r.gameObject.name.Contains("CounterAura")) haloRend = r;
+            }
+
+            var echoShader = Shader.Find("CTCC/PerceptualEcho") ?? Shader.Find("CTCC/ApparitionSoft");
+            if (!AssetDatabase.IsValidFolder($"{Root}/Art/Materials"))
+                AssetDatabase.CreateFolder($"{Root}/Art", "Materials");
+            Material MakeEchoMat(string matName, string texName, Color tint, Color rim, float pulseSpeed, float driftAmp, float feather)
+            {
+                string path = $"{Root}/Art/Materials/{matName}.mat";
+                var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
+                Material mat = existing != null ? existing : new Material(echoShader);
+                mat.shader = echoShader;
+                mat.name = matName;
+                if (!string.IsNullOrEmpty(texName))
+                {
+                    var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{Root}/Art/Textures/{texName}.png");
+                    if (tex != null) mat.SetTexture("_BaseMap", tex);
+                }
+                else
+                {
+                    mat.SetTexture("_BaseMap", Texture2D.whiteTexture);
+                }
+                mat.SetColor("_BaseColor", tint);
+                mat.SetColor("_RimColor", rim);
+                mat.SetFloat("_Alpha", 0.0f);
+                mat.SetFloat("_RimPower", 2.0f);
+                mat.SetFloat("_PulseSpeed", pulseSpeed);
+                mat.SetFloat("_DriftAmp", driftAmp);
+                mat.SetFloat("_EdgeFeather", feather);
+                mat.SetFloat("_ReduceMotion", 0.0f);
+                if (existing == null) AssetDatabase.CreateAsset(mat, path);
+                else EditorUtility.SetDirty(mat);
+                return mat;
+            }
+
+            var trayA = MakeEchoMat("CTCC_B08Echo_Tray_A", "EchoB08_Affirmed",
+                new Color(0.86f, 0.94f, 0.95f, 0.92f), new Color(0.76f, 0.95f, 0.96f, 1f), 0.85f, 0.004f, 0.12f);
+            var trayB = MakeEchoMat("CTCC_B08Echo_Tray_B", "EchoB08_Unverified",
+                new Color(0.96f, 0.90f, 0.78f, 0.92f), new Color(0.98f, 0.88f, 0.68f, 1f), 1.05f, 0.005f, 0.12f);
+            var trayC = MakeEchoMat("CTCC_B08Echo_Tray_C", "EchoB08_Refuted",
+                new Color(0.92f, 0.92f, 0.88f, 0.94f), new Color(0.92f, 0.74f, 0.66f, 1f), 0.95f, 0.005f, 0.12f);
+
+            var glassA = MakeEchoMat("CTCC_B08Echo_Glass_A", "EchoB08_Glass_Affirmed",
+                new Color(0.82f, 0.92f, 0.95f, 0.86f), new Color(0.76f, 0.94f, 0.98f, 1f), 0.75f, 0.004f, 0.16f);
+            var glassB = MakeEchoMat("CTCC_B08Echo_Glass_B", "EchoB08_Glass_Unverified",
+                new Color(0.95f, 0.88f, 0.74f, 0.84f), new Color(0.98f, 0.86f, 0.66f, 1f), 0.95f, 0.005f, 0.16f);
+            var glassC = MakeEchoMat("CTCC_B08Echo_Glass_C", "EchoB08_Glass_Refuted",
+                new Color(0.90f, 0.90f, 0.86f, 0.88f), new Color(0.94f, 0.74f, 0.64f, 1f), 0.88f, 0.005f, 0.16f);
+
+            var haloMat = MakeEchoMat("CTCC_B08Echo_Halo", null,
+                new Color(0.78f, 0.90f, 0.90f, 0.36f), new Color(0.84f, 0.96f, 0.95f, 1f), 0.65f, 0.006f, 0.34f);
+
+            if (trayRend != null) trayRend.sharedMaterial = trayB;
+            if (glassRend != null) glassRend.sharedMaterial = glassB;
+            if (haloRend != null) haloRend.sharedMaterial = haloMat;
+
+            // Gentle zero-shadow local perceptual fill light at the pass-through aperture (0 GPU shadow overhead).
+            var lightGo = new GameObject("B08EchoFillLight");
+            lightGo.transform.SetParent(echoHolder.transform, false);
+            lightGo.transform.localPosition = new Vector3(0.26f, 0.36f, 0.0f);
+            var fillLight = lightGo.AddComponent<Light>();
+            fillLight.type = LightType.Point;
+            fillLight.range = 2.45f;
+            fillLight.intensity = 0.56f;
+            fillLight.color = new Color(0.84f, 0.90f, 0.88f);
+            fillLight.shadows = LightShadows.None;
+            fillLight.enabled = false;
+
+            var ctrl = echoHolder.AddComponent<B08EchoController>();
+            ctrl.trayRenderer = trayRend;
+            ctrl.glassRenderer = glassRend;
+            ctrl.haloRenderer = haloRend;
+            ctrl.echoFillLight = fillLight;
+            ctrl.trayAffirmedMat = trayA;
+            ctrl.trayUnverifiedMat = trayB;
+            ctrl.trayRefutedMat = trayC;
+            ctrl.glassAffirmedMat = glassA;
+            ctrl.glassUnverifiedMat = glassB;
+            ctrl.glassRefutedMat = glassC;
+            ctrl.haloMat = haloMat;
+
+            echoHolder.SetActive(false);
+            return ctrl;
         }
 
         private void DressLoc03Ward101AndStore()

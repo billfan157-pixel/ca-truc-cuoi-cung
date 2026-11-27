@@ -114,6 +114,7 @@ namespace CTCC
         public const string SurfaceStaffDesk = "COMPARE_DESK_STAFF";
         public const string SurfaceReceptionDesk = "COMPARE_DESK_RECEPTION";
         public const string SurfaceWard101Table = "COMPARE_DESK_101";
+        public const string SurfaceLoc08Recovery = "LOC08_RECOVERY_DESK";
 
         public const string An02CompareClip = "AN02_CLIP";
         public const string StaffDeskLeft = "STAFF_DESK_L";
@@ -123,11 +124,21 @@ namespace CTCC
         public const string ReceptionDeskRight = "RECEPTION_SLOT_R";
         public const string Ward101TableLeft = "WARD101_TABLE_L";
         public const string Ward101TableRight = "WARD101_TABLE_R";
+        public const string Loc08DeskEnvelope = "LOC08_DESK_ENVELOPE";
+        public const string Loc08DeskPhone = "LOC08_DESK_PHONE";
 
         public static bool Known(string anchorId) =>
             anchorId is An02CompareClip or StaffDeskLeft or StaffDeskRight
                 or ReceptionDeskLeft or ReceptionDeskRight
-                or Ward101TableLeft or Ward101TableRight;
+                or Ward101TableLeft or Ward101TableRight
+                or Loc08DeskEnvelope or Loc08DeskPhone;
+
+        public static bool IsLoc08RecoveryAnchor(string anchorId) =>
+            anchorId is Loc08DeskEnvelope or Loc08DeskPhone;
+
+        public static bool IsRecoveryPair(string itemDefId, string anchorId) =>
+            (anchorId == Loc08DeskEnvelope && itemDefId == BackpackCatalog.E10aEnvelope) ||
+            (anchorId == Loc08DeskPhone && itemDefId == BackpackCatalog.MinhPhone);
 
         public static string Label(string anchorId) => anchorId switch
         {
@@ -138,6 +149,8 @@ namespace CTCC
             ReceptionDeskRight => "Quầy tiếp nhận · Ô phải",
             Ward101TableLeft => "Bàn đối chiếu Phòng 101 · Ô trái",
             Ward101TableRight => "Bàn đối chiếu Phòng 101 · Ô phải",
+            Loc08DeskEnvelope => "Bàn Phòng Hành chính · Ô phong bì",
+            Loc08DeskPhone => "Bàn Phòng Hành chính · Ô điện thoại",
             _ => ""
         };
 
@@ -146,6 +159,7 @@ namespace CTCC
             An02CompareClip or Ward101TableLeft or Ward101TableRight => "LOC03",
             StaffDeskLeft or StaffDeskRight => "STAFF",
             ReceptionDeskLeft or ReceptionDeskRight => "LOC02",
+            Loc08DeskEnvelope or Loc08DeskPhone => "LOC05",
             _ => ""
         };
 
@@ -155,6 +169,7 @@ namespace CTCC
             StaffDeskLeft or StaffDeskRight => layer == Reality.B,
             ReceptionDeskLeft or ReceptionDeskRight => layer is (Reality.R or Reality.B),
             Ward101TableLeft or Ward101TableRight => layer is (Reality.R or Reality.B),
+            Loc08DeskEnvelope or Loc08DeskPhone => layer == Reality.R,
             _ => false
         };
 
@@ -164,6 +179,7 @@ namespace CTCC
             "COMPARE_DESK_STAFF" => new[] { StaffDeskLeft, StaffDeskRight },
             "COMPARE_DESK_RECEPTION" => new[] { ReceptionDeskLeft, ReceptionDeskRight },
             "COMPARE_DESK_101" => new[] { Ward101TableLeft, Ward101TableRight },
+            "LOC08_RECOVERY_DESK" => new[] { Loc08DeskEnvelope, Loc08DeskPhone },
             _ => Array.Empty<string>()
         };
     }
@@ -909,8 +925,17 @@ namespace CTCC
             if (!WorldAnchors.AllowedInLayer(anchorId, candidate.layer)) return false;
             var def = BackpackCatalog.Get(itemDefId);
             var entry = FindByDef(candidate, itemDefId);
-            if (def == null || entry == null || !def.CanPlace || entry.status == BackpackItemStatus.MemoryRef)
+            if (def == null || entry == null || entry.status == BackpackItemStatus.MemoryRef)
                 return false;
+            if (WorldAnchors.IsLoc08RecoveryAnchor(anchorId))
+            {
+                if (candidate.chapter is not ("CH05" or "CH06") || !WorldAnchors.IsRecoveryPair(itemDefId, anchorId))
+                    return false;
+            }
+            else if (!def.CanPlace)
+            {
+                return false;
+            }
             if (def.Kind == ItemKind.LayerBoundPaper && candidate.layer != Reality.B)
                 return false;
 
@@ -1201,7 +1226,10 @@ namespace CTCC
                 {
                     Reality effectiveLayer = def.Kind == ItemKind.PersistentPhysical && state.layer == Reality.M
                         ? Reality.R : state.layer;
-                    if (!def.CanPlace || !WorldAnchors.Known(e.placedAnchorId) ||
+                    bool anchorAllowsItem = WorldAnchors.IsLoc08RecoveryAnchor(e.placedAnchorId)
+                        ? WorldAnchors.IsRecoveryPair(e.itemDefId, e.placedAnchorId)
+                        : def.CanPlace;
+                    if (!anchorAllowsItem || !WorldAnchors.Known(e.placedAnchorId) ||
                         !WorldAnchors.AllowedInLayer(e.placedAnchorId, effectiveLayer) ||
                         !usedAnchors.Add(e.placedAnchorId))
                         return false;
@@ -1328,6 +1356,12 @@ namespace CTCC
                         WorldUseOutcome.NotApplicableFeedback,
                         "Mặt bàn đối chiếu dùng để đặt giấy tờ hoặc vật chứng kiểm tra trong lớp hiện tại.");
                 }
+            }
+
+            if (targetId == WorldAnchors.SurfaceLoc08Recovery && state.chapter is ("CH05" or "CH06") && state.layer == Reality.R)
+            {
+                if (equippedItemDefId is (BackpackCatalog.E10aEnvelope or BackpackCatalog.MinhPhone))
+                    return new WorldUseResolution(WorldUseOutcome.PlacePaperOnAnchor);
             }
 
             if (targetId == "AN04" && state.chapter == "CH04" && equippedItemDefId == BackpackCatalog.Ch04Tape)

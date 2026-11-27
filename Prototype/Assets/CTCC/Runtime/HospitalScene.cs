@@ -126,6 +126,7 @@ namespace CTCC
         public Transform LanStepOutPoint { get; private set; }
         public GameObject ReceptionGlassSilhouette { get; private set; }
         public GameObject ReceptionBoard { get; private set; }
+        public B08EchoController B08Echo { get; private set; }
         public GameObject TrolleyShadowProp { get; private set; }
         public GameObject SpareBatteryProp { get; private set; }
         public Light[] EmergencyRedLights { get; private set; } = Array.Empty<Light>();
@@ -574,6 +575,7 @@ namespace CTCC
             if (region.spareBatteryProp != null) SpareBatteryProp = region.spareBatteryProp;
             if (region.receptionGlassSilhouette != null) ReceptionGlassSilhouette = region.receptionGlassSilhouette;
             if (region.receptionBoard != null) ReceptionBoard = region.receptionBoard;
+            if (region.b08Echo != null) B08Echo = region.b08Echo;
             if (region.trolleyShadowProp != null) TrolleyShadowProp = region.trolleyShadowProp;
             if (region.cabinet != null)
             {
@@ -678,6 +680,7 @@ namespace CTCC
             if (SpareBatteryProp == region.spareBatteryProp) SpareBatteryProp = null;
             if (ReceptionGlassSilhouette == region.receptionGlassSilhouette) ReceptionGlassSilhouette = null;
             if (ReceptionBoard == region.receptionBoard) ReceptionBoard = null;
+            if (B08Echo == region.b08Echo) B08Echo = null;
             if (TrolleyShadowProp == region.trolleyShadowProp) TrolleyShadowProp = null;
             if (LanActor == region.lanActor) LanActor = null;
             if (GatekeeperActor == region.gatekeeperActor) GatekeeperActor = null;
@@ -916,9 +919,10 @@ namespace CTCC
 
         public void PresentCheckpointProps(bool closeSeam, bool takeSpare)
         {
-            seamClosed = closeSeam;
+            seamClosed = false;
             spareTaken = takeSpare;
-            Toggle(seamBlocker, closeSeam);
+            // Core v3.6.2 Phase 3: WR05 uses swept-boundary displacement projection; invisible seamBlocker stays permanently off.
+            Toggle(seamBlocker, false);
             Toggle(SpareBatteryProp, !takeSpare);
         }
 

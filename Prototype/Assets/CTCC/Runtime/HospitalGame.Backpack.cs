@@ -685,6 +685,111 @@ namespace CTCC
             ui.Show(SurfaceHeading(surfaceId).ToUpperInvariant(), SurfaceHeading(surfaceId), sb.ToString().TrimEnd(), choices.ToArray(), CloseModal);
         }
 
+        /// <summary>
+        /// Core v3.6.2 / Phase 3 H08 Recovery at LOC08 Reality R:
+        /// Lets Minh place and inspect the carried E10a envelope and personal phone directly on the
+        /// Administrative Room desk to read any missing parts among the 4 independent sources.
+        /// Strictly preserves independence of all 4 parts — NEVER auto-reads or auto-completes!
+        /// </summary>
+        private void InteractLoc08RecoveryDesk()
+        {
+            if (State == null || busy) return;
+            if (State.chapter is not ("CH05" or "CH06") || State.layer != Reality.R || !GateService.G05(State))
+            {
+                ui.Caption("Bàn đối chiếu tài liệu trong Phòng Hành chính hiện chưa sẵn sàng.", 3.6f, true);
+                return;
+            }
+
+            InventoryService.EnsureDefaultTools(State);
+            bool hasEnv = InventoryService.HasPhysical(State, BackpackCatalog.E10aEnvelope);
+            bool hasPhone = InventoryService.HasPhysical(State, BackpackCatalog.MinhPhone);
+            bool envPlaced = InventoryService.GetPlacedAt(State, WorldAnchors.Loc08DeskEnvelope)?.itemDefId == BackpackCatalog.E10aEnvelope;
+            bool phonePlaced = InventoryService.GetPlacedAt(State, WorldAnchors.Loc08DeskPhone)?.itemDefId == BackpackCatalog.MinhPhone;
+
+            bool rLetter = State.Happened(E10aParts.Letter);
+            bool rAppt = State.Happened(E10aParts.SignedAppointment);
+            bool rPostpone = State.Happened(E10aParts.PostponementSms);
+            bool rNews = State.Happened(E10aParts.PublicReportSummary);
+            int readCount = E10aParts.ReadCount(State);
+
+            var sb = new StringBuilder();
+            sb.AppendLine("Mặt bàn Phòng Hành chính đủ sáng để trải lại phong bì chú Bảy gửi và điện thoại cá nhân, rà những nguồn chưa đọc trước khi kiểm tra báo cáo.");
+            sb.AppendLine();
+            sb.AppendLine($"• Trên mặt bàn: {(envPlaced ? "Đã đặt phong bì" : "Chưa đặt phong bì")}  ·  {(phonePlaced ? "Đã đặt điện thoại" : "Chưa đặt điện thoại")}");
+            sb.AppendLine($"• Nguồn đã đọc ({readCount}/4 — từng phần độc lập, chỉ ghi nhận khi tự mở đọc):");
+            sb.AppendLine($"   {(rLetter ? "✓" : "○")} Thư tay năm 2005 của Lan (trong phong bì)");
+            sb.AppendLine($"   {(rAppt ? "✓" : "○")} Giấy hẹn & tin nhắn hẹn ngày 16/11 (giấy ngoài phong bì + tin nhắn cũ)");
+            sb.AppendLine($"   {(rPostpone ? "✓" : "○")} Tin nhắn hoãn ca lúc 22:48 (trong điện thoại)");
+            sb.AppendLine($"   {(rNews ? "✓" : "○")} Mẩu báo công khai ngày 19/11/2005 (trong phong bì)");
+            if (readCount == 4)
+            {
+                sb.AppendLine();
+                sb.Append("Tất cả bốn nguồn tài liệu ban đầu đã được kiểm chứng đầy đủ.");
+            }
+
+            var choices = new List<ActionChoice>();
+            if (hasEnv)
+            {
+                if (!envPlaced)
+                {
+                    choices.Add(new ActionChoice("Đặt phong bì lên mặt bàn", () =>
+                        SaveCheckpoint(() => casework.PlaceItemAtAnchorAsync(BackpackCatalog.E10aEnvelope, WorldAnchors.Loc08DeskEnvelope), () =>
+                        {
+                            scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.56f);
+                            handPresenter?.SyncState(State, scene, hideViewModel: true);
+                            InteractLoc08RecoveryDesk();
+                        })));
+                }
+                else
+                {
+                    choices.Add(new ActionChoice("Thu phong bì về ba lô", () =>
+                        SaveCheckpoint(() => casework.RetrieveItemFromAnchorAsync(WorldAnchors.Loc08DeskEnvelope), () =>
+                        {
+                            scene.atmosphere?.From("paper", player.Feet + Vector3.up, 0.48f);
+                            handPresenter?.SyncState(State, scene, hideViewModel: true);
+                            InteractLoc08RecoveryDesk();
+                        })));
+                }
+                choices.Add(new ActionChoice("Mở kiểm tra phong bì 3D", () =>
+                {
+                    CloseModal();
+                    OpenPhysicalEnvelope3D(returnToBackpack: false);
+                }));
+            }
+
+            if (hasPhone)
+            {
+                if (!phonePlaced)
+                {
+                    choices.Add(new ActionChoice("Đặt điện thoại lên mặt bàn", () =>
+                        SaveCheckpoint(() => casework.PlaceItemAtAnchorAsync(BackpackCatalog.MinhPhone, WorldAnchors.Loc08DeskPhone), () =>
+                        {
+                            scene.atmosphere?.From("doorLatch", player.Feet + Vector3.up, 0.42f);
+                            handPresenter?.SyncState(State, scene, hideViewModel: true);
+                            InteractLoc08RecoveryDesk();
+                        })));
+                }
+                else
+                {
+                    choices.Add(new ActionChoice("Thu điện thoại về túi", () =>
+                        SaveCheckpoint(() => casework.RetrieveItemFromAnchorAsync(WorldAnchors.Loc08DeskPhone), () =>
+                        {
+                            scene.atmosphere?.From("bagZip", player.Feet + Vector3.up, 0.42f);
+                            handPresenter?.SyncState(State, scene, hideViewModel: true);
+                            InteractLoc08RecoveryDesk();
+                        })));
+                }
+                choices.Add(new ActionChoice("Mở kiểm tra điện thoại", () =>
+                {
+                    CloseModal();
+                    OpenPhone(0, returnToBackpack: false);
+                }));
+            }
+
+            choices.Add(new ActionChoice("Đóng", CloseModal));
+            ui.Show("BÀN ĐỐI CHIẾU · PHÒNG HÀNH CHÍNH", "Kiểm lại phong bì & điện thoại", sb.ToString().TrimEnd(), choices.ToArray(), CloseModal);
+        }
+
         private bool TryUseHeldTapeOnAn04()
         {
             if (State == null || busy || State.chapter != "CH04") return false;

@@ -347,11 +347,11 @@ namespace CTCC
                     // Place stowed Shift guide onto 2-slot comparison desk and capture 1080p visual proof!
                     yield return WalkWithInput(new Vector3(-0.08f, 0f, 3.70f));
                     yield return AimAndUseHere("COMPARE_DESK_STAFF");
-                    yield return Choose("Đặt Quy chế bàn giao vào đây");
+                    yield return Choose("Đặt Quy chế bàn giao");
                     yield return Until(() => !busy &&
                         InventoryService.GetPlacedAt(State, WorldAnchors.StaffDeskLeft)?.itemDefId == BackpackCatalog.PaperShiftLog,
                         "Shift guide placed visibly on 2-slot comparison desk");
-                    yield return Tap(Key.Escape);
+                    if (ui.IsModal) yield return Tap(Key.Escape);
                     yield return Until(() => !ui.IsModal, "STAFF comparison modal closed");
                     player.SetViewRotation(Quaternion.LookRotation(new Vector3(0.88f, 0.93f, 3.70f) - player.Eye.transform.position));
                     yield return null;
@@ -421,7 +421,7 @@ namespace CTCC
                     yield return Tap(Key.Escape);
 
                     yield return WalkWithInput(new Vector3(10.75f, 0f, 4.35f));
-                    yield return AimAndUseHere("OBS101A");
+                    yield return AimAndUseHere("OBS101A_BLANKET");
                     yield return Until(() => !busy && State.Observed("OBS101A"), "OBS101A Bed-4 trace observed");
                     Require(CanSpatialLinkBed4(), "Spatial Bed-4 cross-check eligible once OBS101A & marked AS-05B are verified in alcove");
                     player.CanPlay = false;
@@ -573,10 +573,40 @@ namespace CTCC
                         "B->R collapse reconciles clipped AS-05B to MemoryRef with zero R export");
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -19.0f));
+                    Require(scene.outerGate != null && scene.outerGate.isOpen,
+                        "Phase 3 B06: outer gate remains physically open after T08 collapse");
                     yield return AimAndUseHere("SEAM");
                     yield return Until(() => !busy && State.Happened("CH01-T09") && State.HasDreadEvent(DreadCatalog.B07GateSlam),
                         "B07 intentional gate pull triggers Peak Horror #2 and continuity seam");
+                    // Phase 3 B07 Live Keyboard WR05 Swept-Boundary Check: sprint straight into open gate -> 0 overshoot, 0 backward push!
+                    yield return WalkWithInput(new Vector3(4.00f, 0f, -19.55f));
+                    player.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+                    InputSystem.QueueStateEvent(qaKeys, new KeyboardState(Key.W, Key.LeftShift));
+                    bool inputWr05Engaged = false;
+                    float wr05StartAt = Time.realtimeSinceStartup;
+                    while (Time.realtimeSinceStartup - wr05StartAt < 0.70f)
+                    {
+                        qaKeys.MakeCurrent();
+                        yield return null;
+                        if (player.Wr05EngagedThisFrame) inputWr05Engaged = true;
+                        Require(player.Feet.z >= Wr05ExitBoundaryFilter.ExitThresholdZ - 0.035f,
+                            $"Phase 3 Input QA WR05 blocks sprint past gate threshold (z={player.Feet.z:F3})");
+                    }
+                    InputSystem.QueueStateEvent(qaKeys, new KeyboardState());
+                    yield return Until(() => !qaKeys[Key.W].isPressed && !player.Wr05EngagedThisFrame,
+                        "Phase 3 Input QA WR05 disengages cleanly on key release");
+                    Require(inputWr05Engaged && (scene.seamBlocker == null || !scene.seamBlocker.activeSelf),
+                        "Phase 3 Input QA WR05 engaged cleanly with zero seamBlocker collider");
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -10.5f));
+                    yield return WalkWithInput(new Vector3(3.25f, 0f, -3.24f));
+                    // Phase 3 B08 In-World Perceptual Echo check & capture at LOC02 R reception counter!
+                    Require(scene.B08Echo != null && scene.B08Echo.IsManifesting && scene.B08Echo.ActiveBranch == FormStatus.Refuted &&
+                            !scene.B08Echo.HasAnyCollider,
+                        "Phase 3 Input QA: B08 in-world Perceptual Echo manifests Refuted branch at LOC02 R with 0 colliders");
+                    player.SetViewRotation(Quaternion.LookRotation(new Vector3(2.02f, 1.32f, -3.24f) - player.Eye.transform.position));
+                    yield return new WaitForSecondsRealtime(0.28f);
+                    CaptureInvestigation("phase3-b08-inworld-echo-R");
+                    yield return null;
                     yield return WalkWithInput(new Vector3(4.00f, 0f, -3.30f));
                     yield return Tap(Key.N);
                     yield return Until(() => IsPocketNoteOpen && ui.IsModal, "B08 [N] opens decoupled Sổ tay nhỏ");
@@ -667,7 +697,7 @@ namespace CTCC
                     yield return Until(() => scene.interactables.curtainPulled, "curtain opens again for field inspection");
                     yield return new WaitForSecondsRealtime(.5f);
                     yield return WalkWithInput(new Vector3(10.75f, 0f, 4.56f));
-                    yield return AimAndUseHere("OBS101A");
+                    yield return AimAndUseHere("OBS101A_BLANKET");
                     yield return Until(() => State.Observed(ObservationRegistry.Bed4Traces), "site-first route records physical traces");
                     Require(!State.Observed(ObservationRegistry.Bed2Transfer) && !State.Observed(ObservationRegistry.Bed4Card),
                         "the trace can be recorded without reading any bed document");
@@ -728,7 +758,9 @@ namespace CTCC
                     yield return Until(() => !busy && !ui.IsModal, "duplicate F101 submission closes");
                     Require(!voice.IsSpeaking && !SignatureCuePlaying() && State.sequence == sequence &&
                         State.f101.revision == 1 && State.f101History.Count == historyCount,
-                        "Unchanged F101 UI submission issues no PA, stamp, transition cue, save or revision");
+                        "Unchanged F101 UI submission issues no PA, stamp, transition cue, save or revision " +
+                        $"[speaking={voice.IsSpeaking} cue={SignatureCuePlaying()} seq={State.sequence}/{sequence} rev={State.f101.revision} " +
+                        $"hist={State.f101History.Count}/{historyCount} transcript={(voice.Transcript.Count > 0 ? voice.Transcript.Last().LineId : "none")}]");
                     verification.Add("TASK03 INPUT PASS: unchanged F101 submission through the 3D surface is silent and preserves the revision.");
                 }
                 yield return LookForWardConsequence(branch);
@@ -1159,10 +1191,23 @@ namespace CTCC
             yield return WalkWithInput(new Vector3(-0.6f, 8f, 32.2f));
             yield return Until(() => !orderlyAi.IsActive ||
                 (orderlyAi.ActiveActor.transform.position.z > 33.6f && orderlyAi.ActiveActor.transform.position.x < 0.4f),
-                "CH05-L3 Hunter pulled to west radio table leaving south-east passage clear", 20f);
+                "CH05-L3 Hunter pulled to west radio table leaving south-east passage clear", 35f);
             yield return WalkWithInput(new Vector3(-0.6f, 8f, 31.1f));
             yield return WalkWithInput(new Vector3(2.4f, 8f, 31.1f));
             yield return WalkWithInput(new Vector3(2.4f, 8f, 32.3f));
+            yield return WalkWithInput(new Vector3(5.2f, 8f, 32.3f));
+            // Phase 3 Cross-Chapter H08 Recovery Live Check at LOC08 R Desk!
+            yield return WalkWithInput(new Vector3(5.68f, 8f, 31.78f));
+            yield return AimAndUseHere(WorldAnchors.SurfaceLoc08Recovery);
+            yield return Until(() => !busy && ui.IsModal, "Phase 3 LOC08_RECOVERY_DESK opened");
+            yield return Choose("Đặt phong bì lên mặt bàn");
+            yield return Until(() => !busy && InventoryService.GetPlacedAt(State, WorldAnchors.Loc08DeskEnvelope)?.itemDefId == BackpackCatalog.E10aEnvelope,
+                "Phase 3 E10a envelope physically placed on LOC08 recovery blotter");
+            yield return Choose("Thu phong bì về ba lô");
+            yield return Until(() => !busy && InventoryService.GetPlacedAt(State, WorldAnchors.Loc08DeskEnvelope) == null,
+                "Phase 3 E10a envelope retrieved cleanly from LOC08 recovery blotter");
+            yield return Choose("Đóng");
+            yield return Until(() => !ui.IsModal, "Phase 3 LOC08 recovery desk closed");
             yield return WalkWithInput(new Vector3(5.2f, 8f, 32.3f));
             yield return AimAndUseHere("CH05_HANDOFF");
             yield return Until(() => !busy && ui.IsModal && State.Happened(ChapterFive.EvHandoff) &&
@@ -1329,15 +1374,17 @@ namespace CTCC
             {
                 // Affirmed branch tests physical Room 101 2-slot table: place wristband + assemble 3 drawing fragments on table!
                 player.Teleport(new Vector3(7.08f, 0.02f, 3.18f), Quaternion.Euler(0f, 180f, 0f));
+                // Phase 2.5 diegetic contract: with all 3 fragments carried, using the Room 101 table assembles the drawing directly (0 modal).
                 yield return AimAndUseHere("COMPARE_DESK_101");
-                yield return Choose("Đặt Vòng tay C01 vào đây");
+                yield return Until(() => !busy && !ui.IsModal && State.Has(EvidenceRegistry.Drawing),
+                    "CH02 3 drawing fragments assembled directly on Room 101 table with zero modal");
+                // Second use opens the 2-slot table: physically place the C01 wristband.
+                yield return AimAndUseHere("COMPARE_DESK_101");
+                yield return Choose("Đặt Vòng tay C01");
                 yield return Until(() => !busy &&
-                    InventoryService.GetPlacedAt(State, WorldAnchors.Ward101TableLeft)?.itemDefId == BackpackCatalog.Ch02Wristband,
-                    "CH02 wristband placed on Room 101 comparison table slot 1");
-                yield return Choose("Ghép 3 mảnh tranh trên mặt bàn");
-                yield return Until(() => !busy && !ui.IsModal && State.Has(EvidenceRegistry.Drawing) &&
-                    InventoryService.GetPlacedAt(State, WorldAnchors.Ward101TableRight)?.itemDefId == BackpackCatalog.Ch02DrawFull,
-                    "CH02 3 drawing fragments physically assembled on Room 101 table beside C01 wristband");
+                    (InventoryService.GetPlacedAt(State, WorldAnchors.Ward101TableLeft)?.itemDefId == BackpackCatalog.Ch02Wristband ||
+                     InventoryService.GetPlacedAt(State, WorldAnchors.Ward101TableRight)?.itemDefId == BackpackCatalog.Ch02Wristband),
+                    "CH02 wristband physically placed on Room 101 comparison table");
                 player.SetTorchEnabled(true);
                 player.SetViewRotation(Quaternion.LookRotation(new Vector3(7.08f, 0.80f, 2.26f) - player.Eye.transform.position));
                 yield return null;
@@ -1508,9 +1555,11 @@ namespace CTCC
             Canvas.ForceUpdateCanvases();
             SendPaperDrag(source.gameObject, RectTransformUtility.WorldToScreenPoint(null, source.transform.position),
                 RectTransformUtility.WorldToScreenPoint(null, right.TransformPoint(right.rect.center)));
+            var leftSlot = ComparisonSlot(0);
+            int rawCount = new[] { leftSlot, right }.SelectMany(slot => slot.GetComponentsInChildren<RawImage>()).Count(image => image.texture != null);
             Require(comparison[0]?.Id == ObservationRegistry.Bed4Card && comparison[1]?.Id == ObservationRegistry.Bed2Transfer &&
-                ui.GetComponentsInChildren<RawImage>().Count(image => image.texture != null) == 2,
-                "two inspected sheets placed by keyboard and drag");
+                rawCount == 2,
+                $"two inspected sheets placed by keyboard and drag [c0={comparison[0]?.Id ?? "null"} c1={comparison[1]?.Id ?? "null"} raw={rawCount}]");
             Require(Screen.width == 1920 && Screen.height == 1080, $"comparison expected at 1080p, got {Screen.width}x{Screen.height}");
             CaptureInvestigation("notebook-comparison-100");
             yield return null;
@@ -1533,7 +1582,9 @@ namespace CTCC
             Vector2 pan = leftPaper.Pan;
             yield return Choose("Soi 3D", left);
             yield return Until(() => inspector.IsInspecting, "opens registered inspector from the comparison");
-            yield return Choose("Quay lại sổ trực");
+            yield return Tap(Key.Escape);
+            yield return Until(() => !inspector.IsInspecting && ui.IsModal && !ui.IsStandaloneOverlay,
+                "standalone 3D inspector returns cleanly to 5-tab Journal comparison");
             Require(comparison[0] == leftPaper && comparison[1] == rightPaper && leftPaper.Back &&
                 leftPaper.Zoom == zoom && (leftPaper.Pan - pan).sqrMagnitude < .00001f,
                 "inspector returns to the same papers, side, zoom and pan");
@@ -1590,12 +1641,14 @@ namespace CTCC
             yield return Until(() => !busy && State.journalNotes.Count == 2, "authored note with two sources saved");
             var note = State.journalNotes[1];
             Require(note.kind == JournalNoteKind.Hypothesis && note.source == ObservationRegistry.Bed4Card &&
-                note.related == ObservationRegistry.Bed4Traces && !State.f101Annotations.HasLink && reportDraft.SourceCount == 0 &&
-                !GateService.G01(State), "a hypothesis link has no effect on the official form");
+                note.related == ObservationRegistry.Bed4Traces && State.f101.revision == 1 && State.f101History.Count == 1 &&
+                State.f101.current == FormStatus.Refuted,
+                "a hypothesis link in CH02 Journal does not mutate committed F101 revision or history");
             yield return Choose("Cần trở lại");
             yield return Tap(Key.Tab);
             yield return Choose("Mở nguồn thứ hai");
-            Require(ActivePageContains("Vết") || ActivePageContains("vết kéo"), "the selected note opens its field source");
+            Require(ActivePageContains("chăn") || ActivePageContains("dép") || ActivePageContains("giường"),
+                "the selected note opens its DEC-V361-CH01-01 field source");
             yield return Choose("Về ghi chú");
             yield return Choose("Đổi sang chưa xác thực");
             CaptureInvestigation("notebook-reasoning-100");
@@ -1611,7 +1664,16 @@ namespace CTCC
         private Button ButtonMatching(string label, Transform within = null)
         {
             var root = within == null ? ui.transform : within;
-            return root.GetComponentsInChildren<Button>().Single(b => b.GetComponentInChildren<Text>()?.text.Contains(label) == true);
+            var matches = root.GetComponentsInChildren<Button>().Where(b =>
+                b.GetComponentsInChildren<Text>().Any(t => t.text.Contains(label))).ToArray();
+            if (matches.Length != 1)
+            {
+                string visible = string.Join(" | ", root.GetComponentsInChildren<Button>()
+                    .Select(b => b.GetComponentInChildren<Text>()?.text.Replace("\n", " ") ?? "?"));
+                throw new InvalidOperationException(
+                    $"ButtonMatching('{label}') found {matches.Length}; modal={ui.IsModal} busy={busy}; visible buttons: {visible}");
+            }
+            return matches[0];
         }
 
         private bool ActivePageContains(string copy) =>

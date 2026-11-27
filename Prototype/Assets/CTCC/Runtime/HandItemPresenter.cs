@@ -49,6 +49,7 @@ namespace CTCC
         private GameObject compareDeskStaffRoot;
         private GameObject compareDeskReceptionRoot;
         private GameObject compareDeskWard101Root;
+        private GameObject loc08RecoveryDeskRoot;
         private readonly Dictionary<string, AnchorSlotVisual> anchorSlots = new(StringComparer.Ordinal);
         private bool surfacesBuilt;
 
@@ -344,6 +345,51 @@ namespace CTCC
             RegisterFlatSlot(compareDeskWard101Root.transform, WorldAnchors.Ward101TableRight, new Vector3(0.155f, 0.800f, 0f), new Vector2(0.22f, 0.27f), lit);
             AddSurfaceTarget(compareDeskWard101Root.transform, "COMPARE_DESK_101", "Bàn đối chiếu & ghép hồ sơ (2 ô)",
                 new Vector3(0f, 0.86f, 0f), new Vector3(0.68f, 0.22f, 0.38f), frontOnly: false);
+
+            // 5) LOC08 R H08 Recovery Surface (seated flush atop CTCC_PROP_Loc08RecoveryBlotter at 6.81, 8.898, 31.78)
+            // Allows placing & inspecting E10A_ENVELOPE and MINH_PHONE independently in LOC08 Reality R.
+            loc08RecoveryDeskRoot = new GameObject("LOC08_RecoveryDeskAnchor");
+            loc08RecoveryDeskRoot.transform.SetParent(transform, false);
+            loc08RecoveryDeskRoot.transform.position = new Vector3(6.81f, 8.898f, 31.78f);
+            loc08RecoveryDeskRoot.transform.rotation = Quaternion.LookRotation(Vector3.left);
+            RegisterRecoveryPropSlot(loc08RecoveryDeskRoot.transform, WorldAnchors.Loc08DeskEnvelope,
+                new Vector3(-0.13f, 0.012f, 0.01f), scene.InspectTemplate("ENVELOPE_3D"), isPhone: false);
+            RegisterRecoveryPropSlot(loc08RecoveryDeskRoot.transform, WorldAnchors.Loc08DeskPhone,
+                new Vector3(0.14f, 0.014f, 0.02f), scene.InspectTemplate("PHONE"), isPhone: true);
+            AddSurfaceTarget(loc08RecoveryDeskRoot.transform, WorldAnchors.SurfaceLoc08Recovery,
+                "Bàn kiểm lại phong bì & điện thoại", new Vector3(0f, 0.09f, 0f), new Vector3(0.64f, 0.22f, 0.44f), frontOnly: false);
+        }
+
+        private void RegisterRecoveryPropSlot(Transform parent, string anchorId, Vector3 localPos, GameObject template, bool isPhone)
+        {
+            GameObject visual;
+            if (template != null)
+            {
+                visual = Instantiate(template, parent, false);
+                visual.name = "SlotRecovery_" + anchorId;
+                foreach (var col in visual.GetComponentsInChildren<Collider>(true)) Destroy(col);
+                foreach (var r in visual.GetComponentsInChildren<Renderer>(true))
+                    r.shadowCastingMode = ShadowCastingMode.Off;
+                visual.transform.localPosition = localPos;
+                visual.transform.localRotation = isPhone ? Quaternion.Euler(90f, 12f, 0f) : Quaternion.Euler(90f, -8f, 0f);
+                visual.transform.localScale = isPhone ? Vector3.one * 0.95f : Vector3.one * 0.90f;
+            }
+            else
+            {
+                visual = new GameObject("SlotRecovery_" + anchorId);
+                visual.transform.SetParent(parent, false);
+                visual.transform.localPosition = localPos;
+                if (isPhone)
+                    AddPart(visual, "FallbackPhone", PrimitiveType.Cube, Vector3.zero, new Vector3(0.055f, 0.016f, 0.115f), tapeMat);
+                else
+                    AddPart(visual, "FallbackEnvelope", PrimitiveType.Cube, Vector3.zero, new Vector3(0.22f, 0.010f, 0.15f), tagPaperMat);
+            }
+            visual.SetActive(false);
+            anchorSlots[anchorId] = new AnchorSlotVisual
+            {
+                AnchorId = anchorId,
+                PropFallbackVisual = visual
+            };
         }
 
         private void RegisterVerticalSlot(Transform parent, string anchorId, Vector3 localPos, Vector2 size, Shader lit)
@@ -428,6 +474,10 @@ namespace CTCC
                 compareDeskReceptionRoot.SetActive(hasLoc02 && ch01Or02 && state.Happened("CH01-T02"));
             if (compareDeskWard101Root != null)
                 compareDeskWard101Root.SetActive(hasLoc03 && ch01Or02);
+            bool hasLoc05 = scene.HasZone("LOC05") || !scene.IsAdditiveMode;
+            if (loc08RecoveryDeskRoot != null)
+                loc08RecoveryDeskRoot.SetActive(hasLoc05 && state.chapter is ("CH05" or "CH06") &&
+                    state.layer == Reality.R && GateService.G05(state));
 
             foreach (var kv in anchorSlots)
             {
@@ -448,7 +498,8 @@ namespace CTCC
                 else
                 {
                     var def = BackpackCatalog.Get(nextId);
-                    bool is3DProp = def != null && string.IsNullOrEmpty(def.FrontTexture) && slot.PropFallbackVisual != null;
+                    bool is3DProp = slot.PropFallbackVisual != null &&
+                        (WorldAnchors.IsLoc08RecoveryAnchor(slot.AnchorId) || (def != null && string.IsNullOrEmpty(def.FrontTexture)));
                     if (is3DProp)
                     {
                         if (slot.SheetRenderer != null) slot.SheetRenderer.enabled = false;
@@ -585,6 +636,7 @@ namespace CTCC
             if (compareDeskStaffRoot != null) Destroy(compareDeskStaffRoot);
             if (compareDeskReceptionRoot != null) Destroy(compareDeskReceptionRoot);
             if (compareDeskWard101Root != null) Destroy(compareDeskWard101Root);
+            if (loc08RecoveryDeskRoot != null) Destroy(loc08RecoveryDeskRoot);
             foreach (var kv in anchorSlots)
                 if (kv.Value.SheetMaterial != null) Destroy(kv.Value.SheetMaterial);
             DestroyMat(brassMat);
