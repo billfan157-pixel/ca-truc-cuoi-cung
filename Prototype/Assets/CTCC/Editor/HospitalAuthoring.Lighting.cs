@@ -67,14 +67,14 @@ namespace CTCC.Editor
             canopyLamp.spotAngle = 124f;
             canopyLamp.innerSpotAngle = 68f;
             canopyLamp.shadowStrength = 0.85f;
-            Lamp("Street wash at the gate", LightType.Point, new Vector3(6.03f, 3.60f, -20.55f), 3.9f, 14.2f, new Color(.82f, .83f, .78f), permanent);
+            Lamp("Street wash at the gate", LightType.Point, new Vector3(5.85f, 4.10f, -21.15f), 4.2f, 15.0f, new Color(.82f, .83f, .78f), permanent);
             if (art)
             {
                 Lamp("Sodium spill reflected by the wet court", LightType.Point, new Vector3(3.07f, 1.65f, -12.8f),
                     1.45f, 11.2f, new Color(.85f, .78f, .65f), real);
-                var threshold = Lamp("Street-side wash along gate ironwork", LightType.Spot, new Vector3(3.9f, 3.36f, -23.1f),
-                    3.4f, 9.3f, new Color(.82f, .80f, .72f), real);
-                threshold.transform.LookAt(new Vector3(4.3f, 1.06f, -19.8f));
+                var threshold = Lamp("Street-side wash along gate ironwork", LightType.Spot, new Vector3(3.9f, 3.85f, -23.3f),
+                    3.8f, 10.5f, new Color(.82f, .80f, .72f), real);
+                threshold.transform.LookAt(new Vector3(4.15f, 1.55f, -20.0f));
                 threshold.spotAngle = 91f;
                 threshold.innerSpotAngle = 51f;
                 Lamp("Return from under the entry eave", LightType.Point, new Vector3(5.42f, 1.53f, -10.8f),

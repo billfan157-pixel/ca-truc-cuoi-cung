@@ -26,10 +26,10 @@ namespace CTCC.Editor
                 Vector3.back, .30f, 2.52f, .12f, courtR, .83f);
             Decal("Uneven lime repair below the replacement sash", "CH01_LimeRunoff", new Vector3(11.4f, .59f, -8.032f),
                 Vector3.back, 1.18f, 1.13f, .20f, courtR, .59f, -4f);
-            Decal("Capillary rise along gate column", "CH01_Capillary", new Vector3(5.46f, .37f, -20.14f),
+            Decal("Capillary rise along gate column", "CH01_Capillary", new Vector3(5.43f, .38f, -20.23f),
                 Vector3.back, .87f, .75f, .13f, courtR);
-            Decal("Gate plaque edge chips", "CH01_EnamelChips", new Vector3(2.58f, 1.48f, -20.201f),
-                Vector3.back, .735f, .324f, .055f, courtR, .84f);
+            Decal("Gate plaque edge chips", "CH01_EnamelChips", new Vector3(2.57f, 1.56f, -20.245f),
+                Vector3.back, .40f, .17f, .055f, courtR, .84f);
             Decal("Canopy sign edge chips", "CH01_EnamelChips", new Vector3(4f, 3.44f, -11.052f),
                 Vector3.back, 2.50f, .836f, .067f, courtR, .63f);
 

@@ -117,6 +117,147 @@ def make_paper_base(
     return img
 
 
+def handwriting_font(size: int) -> ImageFont.FreeTypeFont:
+    """Authentic calligraphic Vietnamese-capable italic font (100% stacked diacritic coverage)."""
+    for candidate in (
+        r"C:\Windows\Fonts\palai.ttf",
+        r"C:\Windows\Fonts\SitkaVF-Italic.ttf",
+        r"C:\Windows\Fonts\cambriai.ttf",
+        r"C:\Windows\Fonts\timesi.ttf",
+    ):
+        if Path(candidate).exists():
+            return ImageFont.truetype(candidate, size)
+    return font(size, bold=False)
+
+
+def draw_vietnamese_handwriting(
+    img: Image.Image,
+    pos: tuple[int, int],
+    text: str,
+    size: int = 34,
+    color: tuple[int, int, int] = (34, 52, 92),
+    slant: float = -0.14,
+    base_angle: float = -0.45,
+    alpha: int = 224,
+    seed: int = 7700,
+    centered: bool = False,
+) -> None:
+    """Render authentic late-20th-century Vietnamese fountain/ballpoint pen handwriting
+    with word-level organic baseline/angle variation, paper fiber ink absorption, and gentle ink bleed."""
+    if not text or not text.strip():
+        return
+    f = handwriting_font(size)
+    rng = np.random.default_rng(seed)
+    words = text.split(" ")
+
+    # Measure total width if centered
+    probe = ImageDraw.Draw(Image.new("L", (4, 4), 0))
+    space_w = max(8, int(probe.textlength(" ", font=f) * 1.08))
+    word_widths = [int(math.ceil(probe.textlength(w, font=f))) for w in words]
+    total_w = sum(word_widths) + space_w * max(0, len(words) - 1)
+
+    cur_x = pos[0] - total_w // 2 if centered else pos[0]
+    base_y = pos[1]
+    pad = int(size * 0.65)
+
+    for idx, word in enumerate(words):
+        ww = word_widths[idx]
+        if ww <= 0:
+            cur_x += space_w
+            continue
+        cw = ww + pad * 2
+        ch = int(size * 2.5)
+        tmp = Image.new("RGBA", (cw, ch), (0, 0, 0, 0))
+        dt = ImageDraw.Draw(tmp)
+        # Subtle ink saturation variation per word (ballpoint / fountain pen pressure)
+        word_alpha = int(np.clip(alpha + rng.integers(-18, 14), 130, 245))
+        dt.text((pad, int(size * 0.45)), word, font=f, fill=(*color, word_alpha))
+        w_slant = slant + float(rng.uniform(-0.03, 0.03))
+        sheared = tmp.transform(
+            tmp.size,
+            Image.Transform.AFFINE,
+            (1.0, w_slant, -w_slant * size * 0.85, 0.0, 1.0, 0.0),
+            resample=Image.Resampling.BICUBIC,
+        )
+        ang = base_angle + float(rng.uniform(-0.75, 0.75))
+        if abs(ang) > 0.05:
+            sheared = sheared.rotate(ang, resample=Image.Resampling.BICUBIC, expand=False)
+        # Paper-grain modulation on ink alpha so ink sits inside paper fibers
+        s_arr = np.asarray(sheared, dtype=np.float32)
+        grain = fbm_2d(cw, ch, (8, 22), seed=seed + idx * 31)
+        s_arr[..., 3] *= np.clip(0.72 + 0.36 * grain, 0.45, 1.0)
+        sheared = Image.fromarray(np.uint8(np.clip(s_arr, 0, 255)), mode="RGBA")
+        sheared = sheared.filter(ImageFilter.GaussianBlur(0.28))
+
+        dy = int(round(rng.uniform(-1.8, 1.8) + math.sin(idx * 0.55) * 1.1))
+        img.paste(sheared, (cur_x - pad, base_y + dy - int(size * 0.45)), sheared)
+        cur_x += ww + space_w + int(rng.integers(-1, 3))
+
+
+def draw_circular_postmark(
+    img: Image.Image,
+    center: tuple[int, int],
+    radius: int,
+    top_label: str,
+    date_label: str,
+    color: tuple[int, int, int] = (78, 74, 68),
+    seed: int = 7810,
+) -> None:
+    """Authentic faded late-20th-century Vietnamese circular archival/postal ink stamp."""
+    sz = radius * 2 + 24
+    st = Image.new("RGBA", (sz, sz), (0, 0, 0, 0))
+    ds = ImageDraw.Draw(st)
+    c = (*color, 178)
+    cx = cy = sz // 2
+    ds.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), outline=c, width=3)
+    ds.ellipse((cx - radius + 12, cy - radius + 12, cx + radius - 12, cy + radius - 12), outline=c, width=1)
+    ds.line((cx - radius + 16, cy - 16, cx + radius - 16, cy - 16), fill=c, width=2)
+    ds.line((cx - radius + 16, cy + 18, cx + radius - 16, cy + 18), fill=c, width=2)
+    ds.text((cx, cy - 36), top_label, font=font(14, True), fill=c, anchor="mm")
+    ds.text((cx, cy + 1), date_label, font=font(18, True), fill=c, anchor="mm")
+    ds.text((cx, cy + 36), "VIỆT NAM", font=font(13, True), fill=c, anchor="mm")
+    arr = np.asarray(st, dtype=np.float32)
+    noise = fbm_2d(sz, sz, (10, 28, 64), seed=seed)
+    arr[..., 3] *= np.clip((noise - 0.18) * 1.75, 0.18, 0.92)
+    st = Image.fromarray(np.uint8(np.clip(arr, 0, 255)), mode="RGBA")
+    rot = st.rotate(-14.0, resample=Image.Resampling.BICUBIC, expand=True)
+    img.paste(rot, (center[0] - rot.width // 2, center[1] - rot.height // 2), rot)
+
+
+def draw_vintage_envelope_sprig(img: Image.Image, ox: int, oy: int, seed: int = 7820) -> None:
+    """Subtle faded vintage late-20th-century Vietnamese printed envelope botanical sprig (bottom-left)."""
+    sz = 340
+    sp = Image.new("RGBA", (sz, sz), (0, 0, 0, 0))
+    ds = ImageDraw.Draw(sp)
+    stem_c = (78, 94, 72, 165)
+    leaf_c = (72, 96, 70, 150)
+    petal_dark = (146, 52, 46, 175)
+    petal_mid = (168, 68, 58, 165)
+    center_c = (94, 42, 34, 185)
+    # Delicate curving stems
+    ds.line([(125, 295), (145, 230), (168, 155), (195, 108)], fill=stem_c, width=4, joint="curve")
+    ds.line([(145, 230), (112, 188), (94, 152)], fill=stem_c, width=3, joint="curve")
+    ds.line([(162, 185), (218, 148), (244, 118)], fill=stem_c, width=3, joint="curve")
+    # Small muted leaves
+    for lx, ly, rx, ry in [(118, 248, 22, 11), (186, 226, 24, 11), (96, 206, 20, 10), (206, 194, 22, 11), (154, 260, 18, 9)]:
+        ds.ellipse((lx - rx, ly - ry, lx + rx, ly + ry), fill=leaf_c)
+    # 3 muted vintage crimson-terracotta blossoms (echoing classic late-20th-century Vietnamese floral envelopes)
+    for bx, by, br in [(142, 148, 30), (228, 112, 24), (108, 198, 20)]:
+        for k in range(5):
+            ang = k * (2.0 * math.pi / 5.0) - 0.35
+            px = bx + int(math.cos(ang) * br * 0.68)
+            py = by + int(math.sin(ang) * br * 0.68)
+            pr = int(br * 0.56)
+            ds.ellipse((px - pr, py - pr, px + pr, py + pr), fill=petal_dark if k % 2 == 0 else petal_mid)
+        ds.ellipse((bx - br // 3, by - br // 3, bx + br // 3, by + br // 3), fill=center_c)
+    # Soft vintage litho fade + paper grain wear
+    arr = np.asarray(sp, dtype=np.float32)
+    wear = fbm_2d(sz, sz, (10, 32), seed=seed)
+    arr[..., 3] *= np.clip(0.38 + 0.58 * wear, 0.15, 0.82)
+    sp = Image.fromarray(np.uint8(np.clip(arr, 0, 255)), mode="RGBA").filter(ImageFilter.GaussianBlur(0.8))
+    img.paste(sp, (ox, oy), sp)
+
+
 def draw_handwritten(
     img: Image.Image,
     pos: tuple[int, int],
@@ -308,10 +449,10 @@ def make_back_sheet(front_img: Image.Image, seed: int, title_note: str, lines: l
 
 
 def build_f101_suite() -> None:
-    """Build F101 front, back, and signed A/B/C wall-clipboard overlay variants."""
+    """Build F101 front, back, and signed A/B/C wall-clipboard overlay variants (clean diegetic — no AS-05 leak!)."""
     img = make_paper_base(seed=7101, age=0.40, punch_holes=True, fold_y=0.50)
     d = ImageDraw.Draw(img)
-    y = draw_hospital_header(d, "AS-05", "101-181105", "PHIẾU BÀN GIAO CA ĐÊM", "Ngày 18/11/2005   ·   Phòng bệnh 101   ·   Mã phiếu: F101")
+    y = draw_hospital_header(d, "BC-101", "101-181105", "PHIẾU BÀN GIAO CA ĐÊM", "Ngày 18/11/2005   ·   Phòng bệnh 101   ·   Mã phiếu: F101")
 
     # Metadata block
     d.text((110, y), "Ca bàn giao:", font=font(23, True), fill=INK_PRINT)
@@ -370,7 +511,7 @@ def build_f101_suite() -> None:
     d.text((300, vy + 242), "N. H. Minh", font=font(22, True), fill=INK_SUB, anchor="mm")
 
     draw_rubber_stamp(img, (752, vy + 165), "BỆNH VIỆN AN SINH", "BÀN TRỰC NỘI TRÚ", "CA ĐÊM · 18/11/2005", INK_STAMP_RED, -5.5, seed=7102)
-    d.text((110, H - 82), "Bản lưu tại bàn trực · Quy chế bàn giao nội bộ AS-05 · Không tự hủy phiếu đã phát hành", font=font(17, False), fill=INK_SUB)
+    d.text((110, H - 82), "Bản lưu tại bàn trực · Quy chế bàn giao buồng bệnh · Không tự hủy phiếu đã phát hành", font=font(17, False), fill=INK_SUB)
 
     img.save(DEST / "F101.png")
 
@@ -407,19 +548,23 @@ def build_obs101b_bed4_card() -> None:
     d = ImageDraw.Draw(img)
     y = draw_hospital_header(d, "AS-05B", "101/04-1105", "THẺ BÀN GIAO GIƯỜNG", "Thẻ treo đầu giường / hốc kê tạm   ·   Khoa Nội trú")
 
-    # Form grid
+    # Form grid (authentic blank fields — ZERO bracketed developer stage directions!)
     fields = [
         ("Ngày lập thẻ:", "17/11/2005 (Chuyển sang ca đêm 18/11/2005)"),
         ("Phòng / Vị trí giường:", "Phòng 101   —   Giường số 4 (vị trí kê tạm cuối phòng)"),
         ("Lý do lưu tạm:", "Khám sốt tạm, theo dõi ngắn trong tối 17/11"),
-        ("Tên / Mã bệnh nhân:", "[Để trống — không ghi mã trên thẻ trực]"),
+        ("Tên / Mã bệnh nhân:", ""),
     ]
     cy = y + 8
     for idx, (lbl, val) in enumerate(fields):
         d.text((112, cy), lbl, font=font(22, True), fill=INK_PRINT)
         d.line((112, cy + 56, W - 72, cy + 56), fill=INK_RULE_FAINT, width=1)
-        col = INK_PENCIL if idx == 3 else INK_PEN
-        draw_handwritten(img, (375, cy - 2), val, size=23, color=col, angle_deg=-0.5 + idx * 0.2)
+        if val:
+            draw_handwritten(img, (375, cy - 2), val, size=23, color=INK_PEN, angle_deg=-0.5 + idx * 0.2)
+        else:
+            # Subtle dotted line on genuinely unfilled patient field
+            for dx in range(382, W - 92, 18):
+                d.ellipse((dx, cy + 28, dx + 3, cy + 31), fill=INK_RULE)
         cy += 78
 
     # Status checkboxes — CHƯA BÀN GIAO circled in blue ballpoint!
@@ -434,14 +579,16 @@ def build_obs101b_bed4_card() -> None:
     d.arc((498, by + 58, 884, by + 118), 15, 340, fill=INK_PEN, width=2)
     draw_handwritten(img, (150, by + 118), "Ghi chú trực: Kiểm tra lại vị trí chuyển trước khi chốt sổ.", size=22, color=INK_PEN, angle_deg=-0.4)
 
-    # Signature comparison block: Sender blank/smudged, Receiver completely blank!
+    # Signature comparison block: Sender faint rushed initials + thumb smudge; Receiver genuinely EMPTY!
     sy = by + 194
     d.rectangle((112, sy, 520, sy + 215), outline=INK_RULE, width=2)
     d.rectangle((536, sy, W - 72, sy + 215), outline=INK_RULE, width=2)
     d.text((316, sy + 26), "NGƯỜI GIAO CA", font=font(20, True), fill=INK_PRINT, anchor="mm")
     d.text((744, sy + 26), "NGƯỜI NHẬN BÀN GIAO", font=font(20, True), fill=INK_PRINT, anchor="mm")
-    draw_handwritten(img, (154, sy + 88), "T. N. L. (chưa ký đủ)", size=22, color=INK_PEN, alpha=175)
-    draw_handwritten(img, (578, sy + 96), "(Chưa có chữ ký nhận)", size=22, color=INK_PENCIL, alpha=185)
+    draw_handwritten(img, (218, sy + 96), "T. N. L.", size=28, color=INK_PEN, alpha=165)
+    # Dotted blank signature guide line on receiver box (physically unsigned!)
+    for dx in range(586, W - 122, 16):
+        d.ellipse((dx, sy + 148, dx + 3, sy + 151), fill=INK_RULE)
     # Ink thumb smudge across lower receiver/sender divider (Core 04 OBS101B: dấu tay mực nhòe)
     draw_ink_smudge(img, (515, sy + 162), radius=52, color=INK_PEN, seed=7205)
 
@@ -449,16 +596,20 @@ def build_obs101b_bed4_card() -> None:
     d.text((112, H - 82), "Thẻ lưu nội bộ · Chỉ dùng đối chiếu tại buồng bệnh, không thay hồ sơ ra viện", font=font(17, False), fill=INK_SUB)
     img.save(DEST / "ObsCard.png")
 
-    # Back of OBS101B: Crucial interpretation note (distinguishes fact from overclaim!)
+    # Back of OBS101B: Clean physical pencil note with genuinely smudged water-washed second line (ZERO stage directions!)
+    def draw_water_smudged_line(b_img: Image.Image, _: ImageDraw.ImageDraw) -> None:
+        draw_handwritten(b_img, (112, 331), "— Đã chuyển sang khu...", size=25, color=(112, 106, 92), slant=-0.18, angle_deg=-0.3, alpha=110)
+        draw_ink_smudge(b_img, (430, 345), radius=76, color=(118, 110, 88), seed=7209)
+        draw_ink_smudge(b_img, (585, 355), radius=68, color=(102, 94, 76), seed=7213)
+
     back = make_back_sheet(
         img,
         seed=7203,
-        title_note="Ghi nhanh mặt sau thẻ giường 4 (bút chì):",
+        title_note="17/11 — Giường 4 (tạm):",
         lines=[
-            "— Giường 4 mới kê tạm tối 17/11 cho ca khám sốt.",
-            "— (Đoạn dưới bị nước làm nhòe, không đọc được nơi chuyển.)",
+            "— Kê tạm tối 17/11 cho ca khám sốt, chờ ký nhận ca sau.",
         ],
-        extra_fn=lambda b_img, _: draw_ink_smudge(b_img, (690, 580), radius=64, color=(92, 86, 68), seed=7209),
+        extra_fn=draw_water_smudged_line,
     )
     back.save(DEST / "ObsCard_Back.png")
 
@@ -552,7 +703,7 @@ def build_bed3_medication_log() -> None:
     d.text((112, fy), "Trạng thái hồ sơ giường 03:", font=font(22, True), fill=INK_PRINT)
     draw_handwritten(img, (440, fy - 2), "Đã xuất viện sáng 17/11 — khóa hồ sơ thường lệ.", size=23, color=INK_PEN)
     draw_rubber_stamp(img, (750, fy + 160), "BỆNH VIỆN AN SINH", "ĐÃ KHÓA HỒ SƠ", "XUẤT VIỆN 17/11", INK_STAMP_PUR, -4.0, seed=7402)
-    d.text((112, H - 82), "Phiếu công khai thuốc chỉ ghi nhận điều trị của giường 03 · Không liên quan ca bàn giao đêm 18/11", font=font(17, False), fill=INK_SUB)
+    d.text((112, H - 82), "Phiếu công khai thuốc lưu hồ sơ điều trị nội trú · Bệnh viện Đa khoa An Sinh", font=font(17, False), fill=INK_SUB)
     img.save(DEST / "Doc_Bed3Meds.png")
 
     back = make_back_sheet(
@@ -598,26 +749,23 @@ def build_nursing_alcove_and_reception_docs() -> None:
     back = make_back_sheet(
         img,
         seed=7503,
-        title_note="Giấy kẹp tay ở mặt sau sổ (nét chữ Lan):",
+        title_note="Ghi chú bàn trực (bút chì):",
         lines=[
-            "Anh Minh,",
-            "Phòng 101 tối nay bảng tổng hợp ghi 0 nhưng sau rèm",
-            "vẫn còn một mục cũ từ tối 17/11 chưa khép chữ ký.",
-            "Anh đừng ký vội theo thói quen giấy tờ như mọi ca.",
-            "Cứ xem kỹ cả mặt trước lẫn mặt sau thẻ rồi hẳn chọn.",
-            "                                                      — Lan",
+            "Phòng 101 cuối ca nhớ kiểm lại đủ các thẻ đầu giường",
+            "trước khi chốt bản tổng hợp bàn giao.",
+            "                                                      — T. N. Lan",
         ],
     )
     back.save(DEST / "Doc_ShiftGuide_Back.png")
 
-    # 2. OBS_CORRIDOR_NOTICE: Ward 101 temporary 4th bed overflow memo
+    # 2. OBS_CORRIDOR_NOTICE: Ward 101 temporary 4th bed overflow memo (DEC-V361-CH01-01: no wall-socket #4 leak in B!)
     ov = make_paper_base(seed=7511, base_rgb=(225, 216, 186), age=0.50, punch_holes=False, fold_y=0.0)
     do = ImageDraw.Draw(ov)
     yo = draw_hospital_header(do, "TB-101", "NV-11/05", "THÔNG BÁO BỐ TRÍ GIƯỜNG", "Khoa Nội trú tầng trệt   ·   Áp dụng đợt trực tháng 11/2005")
     body_ov = [
         "• Phòng 101 bố trí cố định 03 giường điều trị (vị trí 1, 2, 3).",
         "",
-        "• Vị trí số 4 (hốc cuối phòng, có sẵn ổ cắm tường số 4 và thanh rèm)",
+        "• Vị trí số 4 (hốc cuối phòng sau thanh rèm ngăn)",
         "  chỉ dùng kê giường tạm cho ca khám sốt ngắn khi phòng trên đông.",
         "",
         "• Khi thu gọn giường tạm vào kho 101, điều dưỡng phải tháo thẻ treo",
@@ -629,15 +777,15 @@ def build_nursing_alcove_and_reception_docs() -> None:
     draw_rubber_stamp(ov, (748, H - 230), "KHOA NỘI TRÚ", "BẢNG THÔNG BÁO", "TẦNG TRỆT", INK_STAMP_RED, 3.8, seed=7512)
     ov.save(DEST / "Doc_WardOverflow.png")
 
-    # 3. OBS_RECEPTION_DRAWER: November 2005 Night Duty Roster (Lan & Minh shared history!)
+    # 3. OBS_RECEPTION_DRAWER: November 2005 Night Duty Roster (canon BS.TT N. H. Minh, real red strike, ZERO stage text!)
     dr = make_paper_base(seed=7521, base_rgb=(222, 213, 185), age=0.55, punch_holes=True, fold_y=0.50)
     ddr = ImageDraw.Draw(dr)
     ydr = draw_hospital_header(ddr, "PC-1105", "LT-2005", "LỊCH PHÂN CÔNG CA ĐÊM", "Tháng 11 năm 2005   ·   Tầng trệt & Khu Nội trú")
     rows_dr = (
-        ("15/11/2005", "ĐD. T. N. Lan", "NV. N. H. Minh", "Bình thường"),
-        ("16/11/2005", "ĐD. P. T. H.", "NV. N. H. Minh", "Bình thường"),
-        ("17/11/2005", "ĐD. T. N. Lan", "NV. N. H. Minh", "Tăng cường ca sốt"),
-        ("18/11/2005", "ĐD. T. N. Lan", "NV. N. H. Minh", "[Gạch ngang bằng mực đỏ]"),
+        ("15/11/2005", "ĐD. T. N. Lan", "BS.TT N. H. Minh", "Bình thường"),
+        ("16/11/2005", "ĐD. P. T. H.", "BS.TT N. H. Minh", "Bình thường"),
+        ("17/11/2005", "ĐD. T. N. Lan", "BS.TT N. H. Minh", "Tăng cường ca sốt"),
+        ("18/11/2005", "ĐD. T. N. Lan", "BS.TT N. H. Minh", "Tạm đình chỉ"),
     )
     cols = (110, 275, 485, 705, W - 70)
     ty = ydr + 20
@@ -663,29 +811,58 @@ def build_nursing_alcove_and_reception_docs() -> None:
 
 
 def build_bay_envelope_and_letter() -> None:
-    """Readable weathered kraft envelope front & Lan/Bảy letter sheets (replaces blank white block in 3D!)."""
-    # 1. Kraft Envelope Front (1024 x 700 landscape)
-    ew, eh = 1024, 700
-    env = make_paper_base(ew, eh, base_rgb=(176, 146, 102), seed=7601, age=0.68, punch_holes=False, fold_y=0.0, damp_corner=True)
+    """Authentic late-20th-century Vietnamese envelope & archival paper design (inspired by genuine 1970s–2000s Vietnamese stationery)."""
+    # 1. Vintage Vietnamese Envelope Front (1024 x 660 landscape — faded warm beige-cream paper, thin blue address lines,
+    #    circular ink postmark, vintage corner floral print, and natural Vietnamese blue-indigo ink handwriting!)
+    ew, eh = 1024, 660
+    env = make_paper_base(ew, eh, base_rgb=(206, 188, 164), seed=7601, age=0.66, punch_holes=False, fold_y=0.0, damp_corner=True)
+    # Soft worn dark patina along perimeter & fold edge (matches genuine aged Vietnamese envelope edges)
+    e_arr = np.asarray(env, dtype=np.float32) / 255.0
+    yy_e, xx_e = np.mgrid[0:eh, 0:ew].astype(np.float32)
+    edge_d = np.minimum(np.minimum(xx_e / 34.0, (ew - xx_e) / 34.0), np.minimum(yy_e / 28.0, (eh - yy_e) / 36.0))
+    edge_wear = np.clip(1.0 - edge_d, 0.0, 1.0)
+    e_arr -= edge_wear[..., None] * np.array([0.16, 0.15, 0.14], dtype=np.float32)
+    # Subtle warm rosy-beige age blush toward upper half
+    blush = np.exp(-(((xx_e / ew - 0.36) ** 2) / 0.18 + ((yy_e / eh - 0.30) ** 2) / 0.22))
+    e_arr += blush[..., None] * np.array([0.045, 0.012, 0.008], dtype=np.float32)
+    env = Image.fromarray(np.uint8(np.clip(e_arr, 0.0, 1.0) * 255.0), mode="RGB")
+
+    # Subtle vintage printed floral motif at bottom-left
+    draw_vintage_envelope_sprig(env, 32, 275, seed=7605)
+
     de = ImageDraw.Draw(env)
-    de.rectangle((24, 24, ew - 24, eh - 24), outline=(104, 82, 54), width=3)
-    # Postmark / sender upper-left
-    de.text((54, 48), "NGƯỜI GỬI:  ÔNG BẢY (TỔ BẢO VỆ THANH LÝ)", font=font(21, True), fill=(62, 46, 28))
-    de.text((54, 82), "Chốt cổng phụ — Bệnh viện An Sinh", font=font(19, False), fill=(76, 58, 36))
-    de.line((54, 118, 560, 118), fill=(116, 92, 60), width=2)
-    # Main recipient block
-    de.text((190, 224), "GỬI RIÊNG:", font=font(22, True), fill=(62, 46, 28))
-    draw_handwritten(env, (190, 268), "Anh Nguyễn Hoàng Minh", size=44, color=(24, 42, 84), slant=-0.16, angle_deg=-1.2)
-    draw_handwritten(env, (190, 342), "23g00 · Đêm 17/11/2012 · Chốt cổng phụ An Sinh", size=27, color=(42, 36, 28), slant=-0.12, angle_deg=-0.5)
-    draw_handwritten(env, (190, 396), "(Kèm thư cũ của Lan và 02 chìa thu hồi kho thanh lý)", size=23, color=(64, 52, 36), slant=-0.10, angle_deg=0.2)
-    draw_rubber_stamp(env, (815, 136), "THANH LÝ 18/11/2012", "CA TRỰC CUỐI", "KHÔNG PHÁT HÀNH", (118, 42, 34), 7.0, seed=7602)
+    guide_blue = (102, 134, 158)
+    ink_indigo = (32, 48, 86)
+
+    # Top-left: 3 classic thin blue printed sender lines + handwritten sender
+    for ly in (156, 204, 252):
+        de.line((68, ly, 392, ly), fill=guide_blue, width=2)
+    draw_vietnamese_handwriting(env, (74, 114), "Ông Bảy — Bảo vệ", size=30, color=ink_indigo, slant=-0.16, base_angle=-0.4, alpha=216, seed=7610)
+    draw_vietnamese_handwriting(env, (78, 162), "Bệnh viện An Sinh", size=28, color=ink_indigo, slant=-0.15, base_angle=-0.2, alpha=210, seed=7611)
+    draw_vietnamese_handwriting(env, (80, 210), "Chốt cổng phụ", size=27, color=ink_indigo, slant=-0.15, base_angle=0.1, alpha=206, seed=7612)
+
+    # Top-right: vintage archive/hospital stamp seal + circular ink postmark (matches reference layout!)
+    de.rectangle((866, 38, 976, 178), fill=(192, 186, 162), outline=(126, 120, 102), width=2)
+    de.rectangle((876, 48, 966, 168), fill=(72, 102, 74), outline=(188, 182, 154), width=2)
+    de.text((921, 70), "AN SINH", font=font(15, True), fill=(224, 218, 188), anchor="mm")
+    de.text((921, 108), "LƯU KHO", font=font(16, True), fill=(232, 224, 194), anchor="mm")
+    de.text((921, 146), "2012", font=font(16, True), fill=(220, 214, 182), anchor="mm")
+    draw_circular_postmark(env, (568, 226), 80, "AN SINH · CỔNG PHỤ", "17 · 11 · 12", color=(88, 84, 76), seed=7602)
+    draw_circular_postmark(env, (866, 146), 76, "GIAO TẬN TAY", "17 · 11 · 12", color=(74, 70, 64), seed=7603)
+
+    # Bottom-right: 3 classic thin blue printed recipient lines + handwritten address
+    for ly in (428, 488, 548):
+        de.line((454, ly, 946, ly), fill=guide_blue, width=2)
+    draw_vietnamese_handwriting(env, (458, 382), "Kính gửi:  Anh Nguyễn Hoàng Minh", size=34, color=(26, 44, 82), slant=-0.17, base_angle=-0.45, alpha=224, seed=7615)
+    draw_vietnamese_handwriting(env, (466, 442), "Đ/c:  Cổng phụ Bệnh viện An Sinh", size=30, color=(32, 50, 88), slant=-0.15, base_angle=-0.2, alpha=216, seed=7616)
+    draw_vietnamese_handwriting(env, (520, 502), "Đêm 17-11-2012  (Chống ẩm)", size=28, color=(38, 54, 86), slant=-0.14, base_angle=0.1, alpha=208, seed=7617)
     env.save(DEST / "Doc_BayEnvelopeFront.png")
 
-    # 2. Front of E10a letter sheet (old ink Lan letter + Bảy's 2012 appointment slip)
+    # 2. Legacy combined sheet (cleaned to 100% canon dates — no 2012 time-travel paradox or bracketed stage notes!)
     lt = make_paper_base(seed=7611, base_rgb=(218, 206, 174), age=0.68, punch_holes=False, fold_y=0.52, damp_corner=True)
     dl = ImageDraw.Draw(lt)
     dl.rectangle((54, 48, W - 54, 620), outline=(136, 122, 92), width=2)
-    dl.text((84, 72), "THƯ CŨ (MỰC XANH ĐÃ PHAI — TÌM THẤY TRONG KHO THANH LÝ)", font=font(20, True), fill=INK_SUB)
+    dl.text((84, 72), "THƯ GỬI NGUYỄN HOÀNG MINH", font=font(20, True), fill=INK_SUB)
     lan_lines = [
         "Anh Minh,",
         "",
@@ -698,106 +875,113 @@ def build_bay_envelope_and_letter() -> None:
     for i, ln in enumerate(lan_lines):
         draw_handwritten(lt, (104, 148 + i * 58), ln, size=29, color=(38, 62, 108), slant=-0.20, angle_deg=-0.6, alpha=210)
 
-    # Lower half: Bảy's fresh 2012 appointment slip + newspaper clipping summary
     dl.rectangle((54, 668, W - 54, H - 56), outline=INK_PRINT, width=3)
-    dl.text((84, 696), "GIẤY HẸN MỚI (MỰC ĐEN — 17/11/2012)", font=font(22, True), fill=INK_PRINT)
-    draw_handwritten(lt, (96, 756), "23 giờ, 17/11/2012, chốt cổng phụ. Tôi trực ca cuối.", size=28, color=(26, 28, 30), slant=-0.10, angle_deg=0.4)
-    draw_handwritten(lt, (96, 816), "Kèm chìa cổng phụ và chìa khu C cũ (đã thay khóa). — Bảy", size=24, color=(38, 40, 42), slant=-0.10)
+    dl.text((84, 696), "GIẤY NHẮN · ĐÊM 17/11/2012", font=font(22, True), fill=INK_PRINT)
+    draw_handwritten(lt, (96, 756), "Nếu chưa thấy tôi, vào quầy trực chờ. — Bảy", size=28, color=(26, 28, 30), slant=-0.10, angle_deg=0.4)
+    draw_handwritten(lt, (96, 816), "Chìa cổng phụ buộc ngoài bì; chìa cũ khu C đã thay khóa.", size=24, color=(38, 40, 42), slant=-0.10)
     dl.line((84, 892, W - 84, 892), fill=INK_RULE, width=2)
-    dl.text((84, 916), "TIN NHẮN SMS MỚI NHẬN (22:48 · TỪ CHÚ BẢY):", font=font(21, True), fill=INK_STAMP_RED)
-    dl.text((96, 962), "“Tôi đang ở viện. Hoãn nhé, cậu đừng vào trong.”", font=font(29, True), fill=INK_PRINT)
-    dl.line((84, 1036, W - 84, 1036), fill=INK_RULE_FAINT, width=1)
-    dl.text((84, 1062), "MẨU BÁO CŨ KẸP KÈM (11/2005 — GÓC DƯỚI RÁCH ẨM):", font=font(20, True), fill=INK_SUB)
-    dl.text((96, 1104), "Vụ cháy cục bộ ngày 18/11/2005 tại Bệnh viện Đa khoa An Sinh", font=font(22, False), fill=INK_SUB)
-    dl.text((96, 1142), "khiến 13 người tử vong. Cơ sở ngừng hoạt động và dự kiến", font=font(22, False), fill=INK_SUB)
-    dl.text((96, 1180), "tháo dỡ từ sáng 18/11/2012. Danh sách nạn nhân: [mép giấy rách…]", font=font(21, False), fill=INK_SUB)
-    # Visual torn/water-stained smudge obscuring the bottom-right victim list corner
-    draw_ink_smudge(lt, (780, 1205), radius=76, color=(94, 82, 62), seed=7619)
+    dl.text((84, 916), "TIN BÁO 19/11/2005:", font=font(21, True), fill=INK_SUB)
+    dl.text((96, 962), "Vụ cháy rạng sáng 18/11/2005 tại Bệnh viện từ thiện An Sinh", font=font(22, False), fill=INK_SUB)
+    dl.text((96, 1002), "xuất phát từ chập điện khu kỹ thuật lan sang khu lưu bệnh tạm thời,", font=font(22, False), fill=INK_SUB)
+    dl.text((96, 1042), "làm 13 người tử vong, trong đó có một nữ điều dưỡng trực đêm.", font=font(22, False), fill=INK_SUB)
+    draw_ink_smudge(lt, (780, 1185), radius=76, color=(94, 82, 62), seed=7619)
     lt.save(DEST / "Doc_BayLetter.png")
 
     back = make_back_sheet(
         lt,
         seed=7613,
-        title_note="Nhãn giấy buộc trên hai chìa khóa:",
+        title_note="Ghi chú kiểm kê (Bảy):",
         lines=[
-            "• Chìa thép sáng:  CỔNG PHỤ (chốt gác đêm 17/11/2012).",
-            "• Chìa đồng cũ:    KHU C — GHI CHÚ 'ĐÃ THAY KHÓA 2006'",
-            "  (chú Bảy thu hồi từ kho thanh lý, không mở được cửa hiện tại).",
-            "",
-            "Hai nét chữ trên thư cũ và giấy hẹn hoàn toàn khác thời điểm.",
+            "• Chìa đồng sáng: cổng phụ chốt gác đêm.",
+            "• Chìa sắt cũ: cửa sau khu C (ổ khóa đã thay từ 2006).",
         ],
     )
     back.save(DEST / "Doc_BayLetter_Back.png")
 
 
 def build_ch01_rebirth3_e10a_parts() -> None:
-    """Core v3.6.2 (DEC-V36-CH01-01) separated E10a physical artifacts + Minh's 2012 phone LCD screen.
-
-    Separates the 4 distinct E10a artifacts so Acquisition != Inspect != Read:
-    - Doc_BayNote.png: External folded appointment note tucked outside envelope in the gate mailbox.
-    - Doc_LanLetter2005.png / _Back.png: Pure 2005 faded blue-ballpoint Lan letter ONLY (no 2012 text mixed in).
-    - Doc_Newspaper2005.png: Torn 11/2005 Vietnamese local newspaper clipping (13 deaths, torn victim list).
-    - Doc_KeyCTag.png: Weathered manila key tag tied to Wing-C key ('KHU C — ĐÃ THAY KHÓA').
-    - Doc_PhoneScreen.png: Backlit 2012 monochrome-teal mobile screen showing 22:48 SMS arrival.
-    """
-    # 1. External Appointment Note outside envelope (Doc_BayNote.png — 1024 x 760 folded note)
+    """Core v3.6.2 (DEC-V36-CH01-01) separated E10a physical artifacts + clean 2012 phone LCD fallback.
+    100% diegetic — ZERO artist/material descriptions, ZERO PC keybinds, ZERO 2006/2012 newspaper time-travel paradoxes!"""
+    # 1. External Appointment Note outside envelope (Doc_BayNote.png — concise canon Core 07 Evidence Specs!14)
     nw, nh = 1024, 760
-    note = make_paper_base(nw, nh, base_rgb=(228, 222, 200), seed=7631, age=0.35, punch_holes=False, fold_y=0.48, damp_corner=True)
+    note = make_paper_base(nw, nh, base_rgb=(228, 220, 198), seed=7631, age=0.40, punch_holes=False, fold_y=0.48, damp_corner=True)
     dn = ImageDraw.Draw(note)
-    dn.rectangle((36, 36, nw - 36, nh - 36), outline=(112, 108, 92), width=2)
-    for gy in range(132, nh - 70, 56):
-        dn.line((64, gy, nw - 64, gy), fill=(182, 186, 174), width=1)
-    dn.text((74, 62), "GIẤY NHẮN NGOÀI BÌ  ·  ĐÊM 17/11/2012", font=font(22, True), fill=INK_PRINT)
-    draw_handwritten(note, (88, 152), "Minh à,", size=34, color=(26, 28, 32), slant=-0.12, angle_deg=-0.4)
-    draw_handwritten(note, (88, 226), "Nếu chưa thấy tôi, vào quầy trực chờ.", size=36, color=(22, 26, 30), slant=-0.12, angle_deg=-0.2)
-    draw_handwritten(note, (88, 308), "Chìa cổng phụ tôi buộc sẵn bên ngoài bì chống ẩm.", size=28, color=(38, 42, 46), slant=-0.10)
-    draw_handwritten(note, (88, 368), "Trong bì có lá thư cũ của cô Lan, mẩu báo 2005", size=28, color=(38, 42, 46), slant=-0.10)
-    draw_handwritten(note, (88, 426), "và chìa khu C (ổ khóa khu C đã thay từ 2006).", size=28, color=(38, 42, 46), slant=-0.10)
-    draw_handwritten(note, (540, 540), "23g00 · Cổng phụ An Sinh", size=24, color=INK_SUB, slant=-0.08)
-    draw_handwritten(note, (640, 600), "— Bảy", size=38, color=(24, 28, 34), slant=-0.14, angle_deg=-1.0)
-    draw_signature_flourish(dn, 735, 620, seed=7632, color=(30, 34, 40), scale=0.82)
+    for gy in range(132, nh - 70, 62):
+        dn.line((56, gy, nw - 56, gy), fill=(192, 188, 174), width=1)
+    draw_vietnamese_handwriting(note, (nw // 2, 72), "Cổng phụ An Sinh, đêm 17-11-2012", size=28, color=(52, 54, 58), slant=-0.12, base_angle=-0.3, alpha=208, seed=7630, centered=True)
+    draw_vietnamese_handwriting(note, (96, 152), "Minh à,", size=38, color=(28, 34, 48), slant=-0.14, base_angle=-0.4, alpha=224, seed=7631)
+    draw_vietnamese_handwriting(note, (96, 232), "Nếu chưa thấy tôi, vào quầy trực chờ.", size=40, color=(22, 30, 46), slant=-0.14, base_angle=-0.2, alpha=232, seed=7632)
+    draw_vietnamese_handwriting(note, (96, 326), "Chìa cổng phụ tôi buộc sẵn bên ngoài bì chống ẩm.", size=31, color=(34, 42, 56), slant=-0.12, base_angle=0.1, alpha=216, seed=7633)
+    draw_vietnamese_handwriting(note, (96, 396), "Thư cũ của cô Lan và giấy tờ liên quan nằm bên trong.", size=31, color=(34, 42, 56), slant=-0.12, base_angle=-0.2, alpha=216, seed=7634)
+    draw_vietnamese_handwriting(note, (710, 526), "Chú Bảy", size=40, color=(26, 34, 52), slant=-0.16, base_angle=-0.8, alpha=226, seed=7635, centered=True)
+    draw_signature_flourish(dn, 665, 586, seed=7632, color=(34, 44, 64), scale=0.86)
     note.save(DEST / "Doc_BayNote.png")
 
-    # 2. Pure 2005 Lan Letter (Doc_LanLetter2005.png + _Back.png)
-    lan = make_paper_base(seed=7641, base_rgb=(218, 206, 176), age=0.72, punch_holes=False, fold_y=0.50, damp_corner=True)
+    # 2. Authentic Late-20th-Century Vietnamese Handwritten Letter (Doc_LanLetter2005.png + _Back.png)
+    #    Modeled closely on authentic Vietnamese personal letter composition: warm aged cream paper, faint subtle lines,
+    #    quarter-fold creases, centered date & salutation, flowing faded blue-indigo pen handwriting, 2-line centered closing.
+    #    100% verbatim Core 07 Evidence Specs!14 text — ZERO spoilers, ZERO printed boxes, ZERO artist notes!
+    lan = make_paper_base(seed=7641, base_rgb=(224, 214, 192), age=0.66, punch_holes=False, fold_y=0.50, damp_corner=True)
+    # Add gentle vertical center fold crease (classic folded-in-quarters letter tucked inside an envelope)
+    l_arr = np.asarray(lan, dtype=np.float32) / 255.0
+    xx_l = np.linspace(0.0, 1.0, W, dtype=np.float32)[None, :]
+    v_dark = np.exp(-((xx_l - 0.50) * 135.0) ** 2)
+    v_hi = np.exp(-((xx_l - 0.504) * 175.0) ** 2)
+    l_arr -= v_dark[..., None] * 0.048
+    l_arr += v_hi[..., None] * 0.018
+    lan = Image.fromarray(np.uint8(np.clip(l_arr, 0.0, 1.0) * 255.0), mode="RGB")
+
     dl = ImageDraw.Draw(lan)
-    for gy in range(200, H - 140, 68):
-        dl.line((88, gy, W - 88, gy), fill=(176, 168, 144), width=1)
-    dl.text((92, 86), "ĐÊM TRỰC KHOA NỘI TRÚ  ·  THÁNG 11/2005", font=font(19, True), fill=(108, 102, 86))
-    dl.line((92, 122, W - 92, 122), fill=(148, 138, 112), width=2)
-    lan_body = [
-        "Anh Minh,",
-        "",
-        "Em cần nói với anh một chuyện ở bệnh viện.",
-        "Mấy hôm nay sổ sách ở tầng trệt và khu sau",
-        "cứ bị sửa lại mỗi lần giao ca.",
-        "",
-        "Anh có thể đến gặp em sau ca trực không?",
-        "Em không muốn để chuyện này qua thêm một ngày nữa.",
-        "",
-        "",
-        "                                                         — Lan",
+    # Very faint vintage notebook horizontal ruling lines (subtle, never overpowering the handwriting)
+    for gy in range(214, H - 150, 68):
+        dl.line((76, gy, W - 76, gy), fill=(196, 190, 172), width=1)
+
+    ink_lan = (34, 54, 96)
+    # Centered traditional Vietnamese date header & salutation (inspired by reference letter)
+    draw_vietnamese_handwriting(lan, (W // 2, 118), "An Sinh, ngày 17 tháng 11 năm 2005", size=34, color=ink_lan, slant=-0.16, base_angle=-0.4, alpha=214, seed=7640, centered=True)
+    # Subtle handwritten pen underline under day/month digits
+    dl.line((454, 162, 488, 161), fill=(*ink_lan,), width=2)
+    dl.line((586, 161, 616, 160), fill=(*ink_lan,), width=2)
+    draw_vietnamese_handwriting(lan, (W // 2, 194), "Anh Minh,", size=40, color=(28, 48, 92), slant=-0.17, base_angle=-0.5, alpha=224, seed=7641, centered=True)
+
+    # Natural indented paragraphs in flowing blue-indigo handwriting (100% Core 07 canon!)
+    lan_paragraphs = [
+        (168, 304, "Em cần nói với anh một chuyện ở bệnh viện."),
+        (118, 392, "Anh có thể đến gặp em sau ca trực không?"),
+        (118, 480, "Em không muốn để chuyện này qua thêm một ngày nữa."),
     ]
-    for i, ln in enumerate(lan_body):
-        draw_handwritten(lan, (104, 208 + i * 68), ln, size=31, color=(36, 62, 114), slant=-0.20, angle_deg=-0.5, alpha=208)
-    draw_ink_smudge(lan, (790, 960), radius=42, color=(48, 70, 112), seed=7644)
+    for idx, (lx, ly, line_txt) in enumerate(lan_paragraphs):
+        draw_vietnamese_handwriting(
+            lan,
+            (lx, ly),
+            line_txt,
+            size=38,
+            color=ink_lan,
+            slant=-0.17,
+            base_angle=-0.35 + (idx % 2) * 0.25,
+            alpha=218,
+            seed=7642 + idx * 17,
+            centered=False,
+        )
+
+    # Classic 2-line centered-right closing signature ("Em / Lan") matching late-20th-century Vietnamese letter style
+    draw_vietnamese_handwriting(lan, (648, 690), "Em", size=38, color=ink_lan, slant=-0.18, base_angle=-0.6, alpha=214, seed=7650, centered=True)
+    draw_vietnamese_handwriting(lan, (654, 764), "Lan", size=50, color=(26, 46, 90), slant=-0.19, base_angle=-1.0, alpha=226, seed=7651, centered=True)
+    draw_ink_smudge(lan, (790, 920), radius=38, color=(54, 72, 108), seed=7644)
     lan.save(DEST / "Doc_LanLetter2005.png")
 
-    lan_back = make_back_sheet(
-        lan,
-        seed=7645,
-        title_note="Nếp gấp và mặt sau tờ thư cũ (2005):",
-        lines=[
-            "Giấy vở kẻ ngang cũ, gấp làm tư từ năm 2005.",
-            "Mép phải có vết ố nâu do nằm lâu trong tủ hồ sơ thanh lý.",
-            "",
-            "Góc dưới ghi mờ bằng bút chì của chú Bảy (2012):",
-            "«Tìm thấy kẹp sau ngăn kéo tủ lưu trữ khi dọn kho.»",
-        ],
-    )
+    # Back of Lan's letter: subtle ink bleed-through + ONLY Bảy's brief pencil note at bottom (ZERO material/fold/artist notes!)
+    lan_back = make_paper_base(seed=7645, base_rgb=(222, 212, 190), age=0.66, punch_holes=False, fold_y=0.50, damp_corner=True)
+    mirrored_lan = lan.transpose(Image.Transpose.FLIP_LEFT_RIGHT).filter(ImageFilter.GaussianBlur(1.5))
+    lb_arr = np.asarray(lan_back, dtype=np.float32)
+    ml_arr = np.asarray(mirrored_lan, dtype=np.float32)
+    lb_arr = np.clip(lb_arr - np.clip((210.0 - ml_arr) / 210.0, 0.0, 1.0) * 14.0, 0.0, 255.0)
+    lan_back = Image.fromarray(np.uint8(lb_arr), mode="RGB")
+    draw_vietnamese_handwriting(lan_back, (132, 990), "Tìm thấy kẹp sau ngăn kéo tủ lưu trữ khi dọn kho.", size=28, color=INK_PENCIL, slant=-0.14, base_angle=-0.5, alpha=184, seed=7646)
+    draw_vietnamese_handwriting(lan_back, (670, 1054), "16-11-2012 — Bảy", size=27, color=INK_PENCIL, slant=-0.14, base_angle=-0.3, alpha=176, seed=7647, centered=True)
     lan_back.save(DEST / "Doc_LanLetter2005_Back.png")
 
-    # 3. Torn 11/2005 Newspaper Clipping (Doc_Newspaper2005.png — 1024 x 1180)
+    # 3. Torn 19/11/2005 Newspaper Clipping (Doc_Newspaper2005.png — strictly 19/11/2005 facts per Core 07, ZERO 2006/demolition/wrong-name paradox!)
     pw, ph = 1024, 1180
     news = make_paper_base(pw, ph, base_rgb=(196, 188, 166), seed=7651, age=0.80, punch_holes=False, fold_y=0.52, damp_corner=True)
     dnw = ImageDraw.Draw(news)
@@ -806,24 +990,24 @@ def build_ch01_rebirth3_e10a_parts() -> None:
     dnw.line((64, 102, pw - 64, 102), fill=(48, 46, 40), width=4)
     dnw.line((64, 112, pw - 64, 112), fill=(82, 78, 68), width=1)
     dnw.text((pw // 2, 176), "HỎA HOẠN RẠNG SÁNG TẠI", font=font(40, True), fill=(32, 30, 26), anchor="mm")
-    dnw.text((pw // 2, 232), "BỆNH VIỆN ĐA KHOA AN SINH:", font=font(42, True), fill=(32, 30, 26), anchor="mm")
+    dnw.text((pw // 2, 232), "BỆNH VIỆN TỪ THIỆN AN SINH:", font=font(42, True), fill=(32, 30, 26), anchor="mm")
     dnw.text((pw // 2, 290), "13 NGƯỜI TỬ VONG", font=font(46, True), fill=(116, 36, 30), anchor="mm")
     dnw.line((90, 336, pw - 90, 336), fill=(92, 88, 76), width=2)
 
     col_lines = [
-        "Rạng sáng ngày 18/11/2005, một vụ cháy cục bộ bùng phát tại khu",
-        "nội trú và cánh phía sau Bệnh viện Đa khoa An Sinh. Lực lượng",
-        "cứu hỏa tiếp cận hiện trường trong đêm mưa lớn nhưng khu vực",
-        "phía sau đã bị khói lửa cô lập nhiều giờ.",
+        "Rạng sáng ngày 18/11/2005, một vụ hỏa hoạn nghiêm trọng bùng phát",
+        "tại Bệnh viện từ thiện An Sinh trong cơn mưa lớn. Ngọn lửa lan nhanh",
+        "từ khu kỹ thuật sang khu lưu bệnh tạm thời thuộc diện bảo trợ nhân",
+        "đạo, khiến công tác tiếp cận gặp nhiều trở ngại.",
         "",
-        "Theo thông cáo ban đầu của cơ quan chức năng, vụ hỏa hoạn làm",
-        "13 người tử vong, trong đó có nhân viên trực ca đêm. Nguyên nhân",
-        "sơ bộ được ghi nhận là sự cố kỹ thuật — chập điện khu vực tầng",
-        "bán hầm và buồng lưu trữ.",
+        "Theo thông cáo sơ bộ của cơ quan chức năng trong sáng cùng ngày,",
+        "vụ cháy đã cướp đi sinh mạng của 13 người, trong đó có 01 nữ điều",
+        "dưỡng đang trực ca đêm. Nguyên nhân ban đầu được xác định là sự cố",
+        "chập điện hệ thống dây dẫn khu kỹ thuật.",
         "",
-        "Toàn bộ Bệnh viện Đa khoa An Sinh đã ngừng tiếp nhận bệnh nhân",
-        "từ đầu năm 2006 và nằm trong diện niêm phong chờ thanh lý,",
-        "tháo dỡ toàn bộ mặt bằng.",
+        "Cơ sở đã tạm đình chỉ tiếp nhận bệnh nhân để cơ quan công an phong",
+        "tỏa, khám nghiệm hiện trường và tiếp tục xác minh danh tính đầy đủ",
+        "các nạn nhân theo quy định.",
     ]
     y_cur = 374
     for ln in col_lines:
@@ -831,10 +1015,13 @@ def build_ch01_rebirth3_e10a_parts() -> None:
             dnw.text((76, y_cur), ln, font=font(24, False), fill=(44, 42, 36))
         y_cur += 40
     dnw.line((76, y_cur + 16, pw - 76, y_cur + 16), fill=(112, 108, 94), width=2)
-    dnw.text((76, y_cur + 38), "DANH SÁCH NẠN NHÂN ĐƯỢC CÔNG BỐ:", font=font(21, True), fill=(58, 54, 46))
-    dnw.text((76, y_cur + 78), "1. Điều dưỡng trực đêm: Trần Thị Lan (26 tuổi)...", font=font(22, False), fill=(62, 58, 50))
-    dnw.text((76, y_cur + 116), "2–13. [Mép báo rách ướt, chữ nhòe không đọc được...]", font=font(22, False), fill=(86, 78, 66))
-    draw_ink_smudge(news, (690, y_cur + 128), radius=110, color=(88, 78, 62), seed=7655)
+    dnw.text((76, y_cur + 38), "THÔNG TIN TIẾP THEO (TRANG 4):", font=font(20, True), fill=(58, 54, 46))
+    # Authentic faint water-smeared newsprint lines instead of bracketed "[Mép báo rách...]" text!
+    dnw.text((76, y_cur + 76), "Danh sách sơ bộ các nạn nhân và thân nhân liên hệ bàn tiếp...", font=font(21, False), fill=(76, 72, 62))
+    dnw.text((76, y_cur + 112), "1. Nữ điều dưỡng trực đêm khoa Nội trú · 2. Bệnh nhân lưu...", font=font(20, False), fill=(118, 110, 96))
+    # Heavy authentic damp/torn crease obscuring lower-right column
+    draw_ink_smudge(news, (640, y_cur + 108), radius=105, color=(138, 128, 106), seed=7655)
+    draw_ink_smudge(news, (790, y_cur + 122), radius=118, color=(98, 88, 70), seed=7659)
     news.save(DEST / "Doc_Newspaper2005.png")
 
     # 4. Wing-C Key Manila Tag (Doc_KeyCTag.png — 1024 x 620)
@@ -848,14 +1035,12 @@ def build_ch01_rebirth3_e10a_parts() -> None:
     dt.line((220, 174, tw - 80, 174), fill=(116, 98, 68), width=2)
     draw_handwritten(tag, (226, 224), "KHU C  —  CỬA SAU CŨ", size=46, color=INK_PRINT, slant=-0.10)
     draw_handwritten(tag, (226, 328), "ĐÃ THAY KHÓA (2006)", size=44, color=INK_STAMP_RED, slant=-0.12, angle_deg=-1.2)
-    draw_handwritten(tag, (226, 434), "Không dùng cho cổng phụ ngoài đường. — Bảy", size=27, color=INK_SUB, slant=-0.08)
+    draw_handwritten(tag, (226, 434), "Thu hồi từ kho lưu trữ · không dùng cho cổng phụ. — Bảy", size=25, color=INK_SUB, slant=-0.08)
     tag.save(DEST / "Doc_KeyCTag.png")
 
-    # 5. Minh's 2012 Mobile Phone LCD Screen (Doc_PhoneScreen.png — 512 x 680)
+    # 5. Minh's 2012 Mobile Phone LCD Screen (Doc_PhoneScreen.png — 512 x 680 — authentic 2012 softkeys, ZERO PC keybinds!)
     sw, sh = 512, 680
     scr = Image.new("RGB", (sw, sh), (18, 34, 36))
-    ds = ImageDraw.Draw(scr)
-    # Subtle retro LCD backlight gradient
     arr = np.asarray(scr, dtype=np.float32)
     yy = np.linspace(0.0, 1.0, sh, dtype=np.float32)[:, None]
     arr[..., 0] += 18.0 + 16.0 * (1.0 - yy)
@@ -867,10 +1052,10 @@ def build_ch01_rebirth3_e10a_parts() -> None:
     ds.rectangle((14, 14, sw - 14, 72), fill=(26, 56, 56))
     ds.text((34, 30), "VN-MOBI", font=font(22, True), fill=(182, 232, 214))
     ds.text((sw - 34, 30), "22:50", font=font(24, True), fill=(224, 244, 232), anchor="ra")
-    ds.text((sw // 2, 126), "TIN NHẮN ĐẾN (2)", font=font(24, True), fill=(216, 240, 224), anchor="mm")
+    ds.text((sw // 2, 126), "HỘP THƯ ĐẾN (2)", font=font(24, True), fill=(216, 240, 224), anchor="mm")
     ds.line((32, 162, sw - 32, 162), fill=(104, 152, 140), width=2)
     ds.rounded_rectangle((28, 190, sw - 28, 390), 10, fill=(24, 52, 52), outline=(136, 192, 174), width=2)
-    ds.text((48, 208), "Chú Bảy · 22:48 (MỚI)", font=font(22, True), fill=(244, 236, 178))
+    ds.text((48, 208), "Chú Bảy · 22:48", font=font(22, True), fill=(244, 236, 178))
     ds.text((48, 252), "Tôi đang ở viện.", font=font(26, True), fill=(238, 246, 238))
     ds.text((48, 292), "Hoãn nhé, cậu đừng", font=font(26, True), fill=(238, 246, 238))
     ds.text((48, 332), "vào trong.", font=font(26, True), fill=(238, 246, 238))
@@ -878,7 +1063,10 @@ def build_ch01_rebirth3_e10a_parts() -> None:
     ds.text((48, 432), "Chú Bảy · 16/11 19:15", font=font(20, True), fill=(176, 212, 198))
     ds.text((48, 468), "Minh à, dọn kho thanh lý", font=font(20, False), fill=(204, 224, 214))
     ds.text((48, 500), "tôi tìm thấy lá thư cũ...", font=font(20, False), fill=(204, 224, 214))
-    ds.text((sw // 2, 622), "[P] Mở điện thoại · Gọi lại", font=font(20, True), fill=(178, 224, 204), anchor="mm")
+    ds.rectangle((14, sh - 68, sw - 14, sh - 14), fill=(22, 48, 48))
+    ds.text((38, sh - 52), "Tùy chọn", font=font(22, True), fill=(192, 236, 218))
+    ds.text((sw // 2, sh - 52), "Đọc", font=font(22, True), fill=(244, 238, 186), anchor="ma")
+    ds.text((sw - 38, sh - 52), "Trở về", font=font(22, True), fill=(192, 236, 218), anchor="ra")
     scr.save(DEST / "Doc_PhoneScreen.png")
 
 
@@ -949,7 +1137,7 @@ def build_raking_indentation_maps() -> None:
             (
                 (140, 680, "03g17 · CHƯA CHỐT SỔ", 42, -0.16, -1.2),
                 (148, 764, "CHƯA CÓ NGƯỜI NHẬN — ĐỂ LẠI THẺ", 31, -0.14, -0.6),
-                (152, 838, "[Vết gạch xóa bút bi hằn sâu sang mặt sau]", 25, -0.12, 0.4),
+                (152, 838, "GIƯỜNG 04 · PHÒNG 101", 27, -0.12, 0.4),
             ),
             # Strike-through scratch lines over the first row to simulate frantic erasure
             ((135, 704, 835, 696), (140, 718, 820, 710)),
@@ -960,7 +1148,7 @@ def build_raking_indentation_maps() -> None:
             (
                 (128, 660, "GIƯỜNG 04 — CHƯA CHỐT SỔ", 40, -0.15, -1.0),
                 (136, 744, "GẠCH BỎ MỤC TẠM → GHI TRÒN: 0", 33, -0.16, -0.5),
-                (142, 822, "03g17 · LIÊN LẠC GIÁN ĐOẠN", 28, -0.12, 0.3),
+                (142, 822, "03g17 · CHƯA CHỐT BÀN GIAO", 28, -0.12, 0.3),
             ),
             ((120, 684, 820, 678), (128, 766, 840, 756)),
         ),

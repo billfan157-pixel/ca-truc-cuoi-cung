@@ -89,10 +89,10 @@ def draw_b1_plan(
         draw.text((cx, cy - 14), label, font=font(20, bold=True), fill=line_col, anchor="mm")
         draw.text((cx, cy + 14), sub, font=font(15, bold=False), fill=line_col, anchor="mm")
 
-    room_box(-1.5, 4.5, 36.0, 42.0, "LOC10", "NHÀ XÁC")
-    room_box(4.5, 10.5, 31.1, 45.5, "LOC09", "KỸ THUẬT B1")
-    room_box(10.5, 14.5, 39.0, 45.0, "LOC11", "SẢNH C")
-    room_box(14.5, 34.5, 35.0, 49.0, "LOC12 · KHU C", "BUỒNG ĐIỀU TRỊ CÁCH LY (12 GIƯỜNG)")
+    room_box(-1.5, 4.5, 36.0, 42.0, "NHÀ XÁC", "TẦNG B1 · CÁNH TÂY")
+    room_box(4.5, 10.5, 31.1, 45.5, "KỸ THUẬT B1", "BUỒNG BƠM & VAN")
+    room_box(10.5, 14.5, 39.0, 45.0, "SẢNH ĐỆM C", "HÀNH LANG CÁCH LY")
+    room_box(14.5, 34.5, 35.0, 49.0, "KHU C", "BUỒNG ĐIỀU TRỊ CÁCH LY (12 GIƯỜNG)")
 
     # Internal bays in LOC12
     for bx in (21.0, 27.0):
@@ -123,14 +123,14 @@ def draw_b1_plan(
     draw.ellipse((m2[0] - 18, m2[1] - 18, m2[0] + 18, m2[1] + 18), outline=marker_col, width=4)
     draw.line((m2[0] - 26, m2[1], m2[0] + 26, m2[1]), fill=marker_col, width=3)
     draw.line((m2[0], m2[1] - 26, m2[0], m2[1] + 26), fill=marker_col, width=3)
-    draw.text((m2[0] - 210, m2[1] - 34), "MỐC 2 · TRỤC CỘT ĐÔNG (X=34,5)", font=font(17, bold=True), fill=marker_col)
+    draw.text((m2[0] - 210, m2[1] - 34), "MỐC 2 · TRỤC CỘT ĐÔNG (TRỤC D)", font=font(17, bold=True), fill=marker_col)
 
-    # CRITICAL CONTRADICTION POINT: East Emergency Exit at (34.5, 42.0)
+    # CRITICAL CONTRADICTION POINT: East Emergency Exit
     ex_top = pt(34.5, 43.2)
     ex_bot = pt(34.5, 40.8)
     ex_mid = pt(34.5, 42.0)
     if not sealed_2004:
-        # 2005 Posted Diagram (Adversarial source): draws green open exit & arrow to east sunken court!
+        # 2005 Posted Diagram: draws green open exit & arrow to east sunken court!
         draw.line((ex_top, ex_bot), fill=(26, 134, 72), width=10)
         arrow_end = (ex_mid[0] + 82, ex_mid[1])
         draw.line((ex_mid[0] - 28, ex_mid[1], arrow_end[0], arrow_end[1]), fill=(26, 134, 72), width=6)
@@ -139,9 +139,9 @@ def draw_b1_plan(
             fill=(26, 134, 72),
         )
         draw.text((ex_mid[0] + 16, ex_mid[1] - 42), "LỐI THOÁT HIỂM ĐÔNG", font=font(17, bold=True), fill=(22, 118, 62))
-        draw.text((ex_mid[0] + 16, ex_mid[1] + 22), "Tọa độ (34.5, 42) → Sân trũng", font=font(14, bold=False), fill=(22, 118, 62))
+        draw.text((ex_mid[0] + 16, ex_mid[1] + 22), "Cửa D-04 → Sân trũng", font=font(14, bold=False), fill=(22, 118, 62))
     else:
-        # June 2004 As-Built Blueprint (E05): solid 220mm brick infill hatched red, door & handle removed!
+        # June 2004 As-Built Blueprint: solid 220mm brick infill hatched red, door & handle removed!
         bx0, by0 = ex_top[0] - 10, ex_top[1]
         bx1, by1 = ex_bot[0] + 14, ex_bot[1]
         draw.rectangle((bx0, by0, bx1, by1), fill=(176, 48, 42), outline=(255, 224, 210), width=3)
@@ -150,7 +150,7 @@ def draw_b1_plan(
         draw.ellipse((ex_mid[0] - 40, ex_mid[1] - 46, ex_mid[0] + 40, ex_mid[1] + 46), outline=(255, 116, 98), width=4)
         draw.text((ex_mid[0] + 48, ex_mid[1] - 46), "XÂY BÍT GẠCH ĐẶC 220mm", font=font(17, bold=True), fill=(255, 198, 180))
         draw.text((ex_mid[0] + 48, ex_mid[1] - 20), "TRÁT VỮA HAI MẶT · THÁO KHUNG", font=font(15, bold=True), fill=(255, 228, 212))
-        draw.text((ex_mid[0] + 48, ex_mid[1] + 6), "MỐC (34.5, 42) · HOÀN CÔNG 06/2004", font=font(14, bold=False), fill=(235, 240, 248))
+        draw.text((ex_mid[0] + 48, ex_mid[1] + 6), "CỬA D-04 · HOÀN CÔNG 06/2004", font=font(14, bold=False), fill=(235, 240, 248))
 
 
 def build_posted_map_2005() -> Path:
@@ -167,11 +167,11 @@ def build_posted_map_2005() -> Path:
     d.text((100, 84), "BỆNH VIỆN ĐA KHOA AN SINH  ·  KHỐI K-A (BÁN HẦM B1)", font=font(20, bold=True), fill=(46, 60, 52))
     d.text((100, 114), "SƠ ĐỒ THOÁT HIỂM NIÊM YẾT BẢNG TRỰC — LƯU HÀNH NĂM 2005", font=font(27, bold=True), fill=(26, 40, 34))
     d.rectangle((92, 855, 1268, 948), outline=(72, 82, 74), width=2, fill=(218, 212, 190))
-    d.text((112, 870), "GHI CHÚ NIÊM YẾT 2005 (NGUỒN ĐỐI NGHỊCH):", font=font(18, bold=True), fill=(138, 42, 34))
+    d.text((112, 870), "HƯỚNG DẪN THOÁT HIỂM TẦNG BÁN HẦM B1 (NIÊM YẾT 2005):", font=font(18, bold=True), fill=(138, 42, 34))
     d.text(
         (112, 898),
-        "Sơ đồ treo tại hành lang trực vẫn thể hiện cửa thoát hiểm phía Đông Khu C tại (34.5, 42) dẫn ra sân trũng -1,90 m.\n"
-        "Đối chiếu hai mốc kiến trúc (Mốc 1: Trục thang S2 · Mốc 2: Trục cột Đông X=34,5) với Bản hoàn công 06/2004 (E05).",
+        "Khi có sự cố, nhân viên trực hướng dẫn di tản theo trục cầu thang S2 hoặc lối thoát hiểm cửa D-04 phía Đông Khu C\n"
+        "dẫn thẳng ra sân trũng ngoài trời cao độ -1,90 m. Bản niêm yết lưu hành tại bảng trực hành lang tầng trệt.",
         font=font(16, bold=False),
         fill=(34, 46, 40),
     )
@@ -192,11 +192,11 @@ def build_asbuilt_2004_e05() -> Path:
         sealed_2004=True,
     )
     d.text((100, 82), "BỆNH VIỆN ĐA KHOA AN SINH  ·  HỒ SƠ HOÀN CÔNG CẢI TẠO BÁN HẦM KỸ THUẬT B1", font=font(20, bold=True), fill=(186, 216, 242))
-    d.text((100, 112), "BẢN VẼ HOÀN CÔNG B1 — THÁNG 06/2004  (VẬT CHỨNG E05)", font=font(27, bold=True), fill=(246, 248, 252))
+    d.text((100, 112), "BẢN VẼ HOÀN CÔNG CẢI TẠO B1 — THÁNG 06/2004  (MÃ HỒ SƠ: HC-B1/04)", font=font(27, bold=True), fill=(246, 248, 252))
 
     # Approval title block bottom-right & reason box bottom-left
     d.rectangle((92, 845, 865, 952), outline=(212, 228, 242), width=2, fill=(22, 50, 82))
-    d.text((108, 856), "HẠNG MỤC CẢI TẠO 06/2004 · TỌA ĐỘ CỬA ĐÔNG (34.5, 42):", font=font(17, bold=True), fill=(255, 206, 112))
+    d.text((108, 856), "HẠNG MỤC CẢI TẠO 06/2004 · CỬA ĐÔNG D-04 (TRỤC CỘT D):", font=font(17, bold=True), fill=(255, 206, 112))
     d.text(
         (108, 882),
         "• Xây bít vĩnh viễn cửa thoát hiểm Đông bằng gạch đặc 220 mm, trát vữa xi măng hai mặt, tháo tay nắm & khung.\n"

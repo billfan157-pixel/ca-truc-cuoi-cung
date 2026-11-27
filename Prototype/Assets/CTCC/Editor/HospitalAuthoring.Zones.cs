@@ -53,22 +53,23 @@ namespace CTCC.Editor
             Lamp("Exterior motorbike cool rim R", LightType.Point, new Vector3(1.25f, 2.35f, -22.85f), 1.25f, 6.8f,
                 new Color(0.52f, 0.72f, 0.88f), realRoot);
 
-            // Authentic An Sinh 1987 Enamel Gate Plaque on west gate pillar + Night Gate subtitle on east pillar
-            Sign("Hospital gate plaque", "Sign_HospitalGate", new Vector3(2.58f, 1.48f, -20.19f), Vector3.back,
-                new Vector2(0.76f, 0.34f), perm, metalBacking: true);
-            Sign("Night gate notice plaque", "Sign_NightGate", new Vector3(5.38f, 1.50f, -20.19f), Vector3.back,
-                new Vector2(0.74f, 0.24f), perm, metalBacking: true);
+            // Authentic An Sinh 1987 Enamel Gate Banner mounted centered on overhead gate lintel (zero doorway clipping!)
+            // + flush West-pillar Night Gate plaque sized inside [2.34..2.80]
+            Sign("Hospital gate plaque", "Sign_HospitalGate", new Vector3(4.00f, 3.08f, -20.235f), Vector3.back,
+                new Vector2(1.68f, 0.30f), perm, metalBacking: true);
+            Sign("Night gate notice plaque", "Sign_NightGate", new Vector3(2.57f, 1.56f, -20.235f), Vector3.back,
+                new Vector2(0.42f, 0.18f), perm, metalBacking: true);
 
-            // Core v3.6.2 (DEC-V36-CH01-01 / D4): Exterior iron hospital mailbox mounted flush on the South face (-Z)
-            // of the East Gate Pillar (x in [5.20..5.52], south face z = -20.17). Strictly clear of gate opening [2.80..5.20].
-            var mailbox = PlaceBlenderModel("CTCC_PROP_GateMailbox", perm, new Vector3(5.36f, 1.12f, -20.24f), 0f, pairRB: false);
+            // Core v3.6.2 (DEC-V36-CH01-01 / D4) + Phase 2.5 scale sync: Exterior iron hospital mailbox mounted flush
+            // on the South face (-Z, z=-20.22) of the East Gate Pillar (x in [5.20..5.66]), centered at x=5.36, y=1.18m.
+            var mailbox = PlaceBlenderModel("CTCC_PROP_GateMailbox", perm, new Vector3(5.36f, 1.18f, -20.29f), 0f, pairRB: false);
             if (mailbox.transform.childCount > 0)
             {
                 var prefabRoot = mailbox.transform.GetChild(0).gameObject;
                 if (PrefabUtility.IsPartOfAnyPrefab(prefabRoot))
                     PrefabUtility.UnpackPrefabInstance(prefabRoot, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
             }
-            var mailboxColGo = Box("Gate mailbox collider", new Vector3(5.36f, 1.12f, -20.24f), new Vector3(0.26f, 0.34f, 0.14f),
+            var mailboxColGo = Box("Gate mailbox collider", new Vector3(5.36f, 1.18f, -20.29f), new Vector3(0.26f, 0.34f, 0.14f),
                 Mat("MetalOld"), perm, solid: true);
             mailboxColGo.GetComponent<Renderer>().enabled = false;
             var mailboxLidTf = FindDescendant(mailbox.transform, "MailboxLid");
@@ -79,7 +80,7 @@ namespace CTCC.Editor
                 var lidRend = mailboxLidTf.GetComponentInChildren<Renderer>(true);
                 Vector3 hingeWorld = lidRend != null
                     ? new Vector3(lidRend.bounds.max.x, lidRend.bounds.center.y, lidRend.bounds.min.z)
-                    : new Vector3(5.48f, 1.10f, -20.305f);
+                    : new Vector3(5.486f, 1.162f, -20.376f);
                 mailboxLidPivot = new GameObject("MailboxLidPivot").transform;
                 mailboxLidPivot.SetParent(mailbox.transform.parent, false);
                 mailboxLidPivot.position = hingeWorld;
@@ -92,14 +93,14 @@ namespace CTCC.Editor
                 loc01.region.mailboxPackageVisual = mailboxPkgTf != null ? mailboxPkgTf.gameObject : null;
             }
             var mailboxMarker = CapsuleTarget("MAILBOX", "Hộp thư cũ cạnh trụ cổng",
-                new Vector3(5.36f, 1.12f, -20.30f), new Vector3(0.36f, 0.44f, 0.24f), perm);
+                new Vector3(5.36f, 1.18f, -20.34f), new Vector3(0.36f, 0.44f, 0.24f), perm);
             mailboxMarker.transform.rotation = Quaternion.LookRotation(Vector3.back);
             var mailboxTarget = mailboxMarker.GetComponent<SceneTarget>();
             mailboxTarget.handhold = mailboxMarker.transform;
             mailboxTarget.visibilitySurface = mailboxColGo.GetComponent<Collider>();
             mailboxTarget.frontOnly = true;
-            // Subtle warm grazing catch-light on the mailbox & night gate notice so B01 pickup is clearly readable in monsoon night!
-            Lamp("Mailbox warm rim R", LightType.Point, new Vector3(5.36f, 1.38f, -20.72f), 0.72f, 2.2f,
+            // Subtle warm grazing catch-light on the mailbox & east gate pillar so B01 pickup reads naturally in monsoon night!
+            Lamp("Mailbox warm rim R", LightType.Point, new Vector3(5.36f, 1.44f, -20.78f), 0.76f, 2.3f,
                 new Color(0.98f, 0.80f, 0.52f), perm);
 
             // Freestanding An Sinh Hospital 6-Block Campus Wayfinding Directory Board on west courtyard flank
@@ -120,12 +121,12 @@ namespace CTCC.Editor
                 staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(-5.0f, 0f, z), 90f, pairRB: false, castShadows: false));
                 staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(13.0f, 0f, z), -90f, pairRB: false, castShadows: false));
             }
-            // Front left wall (x=[-5.0..2.65]): piers at -5.20 & -1.35, clear beside west gate pillar at x=2.64
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(-3.20f, 0f, -20.0f), 0f, pairRB: false, castShadows: false));
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(0.65f, 0f, -20.0f), 0f, pairRB: false, castShadows: false));
-            // Front right wall (x=[5.35..13.20], yaw=180 puts piers at 9.35 & 13.20): open iron railings frame gatehouse & back Demolition board!
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(7.35f, 0f, -20.0f), 180f, pairRB: false, castShadows: false));
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(11.20f, 0f, -20.0f), 180f, pairRB: false, castShadows: false));
+            // Front left wall (abutting West gate pillar outer face x=2.34 with zero overlap!)
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(-3.52f, 0f, -20.0f), 0f, pairRB: false, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(0.34f, 0f, -20.0f), 0f, pairRB: false, castShadows: false));
+            // Front right wall (abutting East gate pillar outer face x=5.66 with zero overlap!)
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(7.66f, 0f, -20.0f), 180f, pairRB: false, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(11.52f, 0f, -20.0f), 180f, pairRB: false, castShadows: false));
 
             // Minh's Parked Commuter Motorbike outside outer gate (x = 1.45, z = -22.25 — completely clear of AP00 at 4, -21.2!)
             var bike = PlaceBlenderModel("CTCC_PROP_CommuterMotorbike", perm, new Vector3(1.45f, 0f, -22.25f), 42f, pairRB: false);
@@ -556,7 +557,7 @@ namespace CTCC.Editor
                 new Vector3(-2.25f, WardLevel + 1.05f, 36.85f), new Vector3(1.15f, 1.35f, 1.15f), ch05Mem);
             CapsuleTarget("CH05_M_PAIR2", "Nhóm 2 (2 bệnh nhân) · Gọi đồng nghiệp & vượt vật cản hành lang S1",
                 new Vector3(-12.2f, WardLevel + 1.05f, 21.5f), new Vector3(1.45f, 1.35f, 1.35f), ch05Mem);
-            CapsuleTarget("CH05_M_EXIT", "Xe bệnh nhân AN05 · Trạng thái sơ tán / Tái hiện cố định / Thoát M",
+            CapsuleTarget("CH05_M_EXIT", "Xe bệnh nhân Khu B",
                 new Vector3(-0.18f, WardLevel + 1.08f, 32.85f), new Vector3(1.18f, 1.25f, 0.98f), ch05Mem);
             ch05Mem.gameObject.SetActive(false);
 
@@ -564,7 +565,7 @@ namespace CTCC.Editor
             CapsuleTarget("E03", "Sổ đăng ký bệnh nhân 12 mã (E03)", new Vector3(-1.56f, 1.05f, 31.85f), new Vector3(0.55f, 0.29f, 0.40f), perm);
             Box("Folded note · B/2", new Vector3(-1.63f, .929f, 32.49f), new Vector3(.17f, .018f, .12f), Mat("Paper"), perm);
             CapsuleTarget("C02_NOTE", "Mảnh ghi chú kẹp sợi len đỏ", new Vector3(-1.57f, 1.04f, 32.57f), new Vector3(0.40f, 0.23f, 0.23f), perm);
-            CapsuleTarget("AN03", "Điểm neo phòng hồ sơ & Sổ tên (AN03 / PZ03)", new Vector3(-1.65f, 1.08f, 32.20f), new Vector3(0.55f, 0.48f, 0.65f), perm);
+            CapsuleTarget("AN03", "Bàn đọc kho hồ sơ tầng 3", new Vector3(-1.65f, 1.08f, 32.20f), new Vector3(0.55f, 0.48f, 0.65f), perm);
             CapsuleTarget("C02_BAG", "Túi vải ở kệ số 2", new Vector3(-2.62f, 1.20f, 31.15f), new Vector3(0.48f, 0.42f, 0.48f), perm);
             CapsuleTarget("C02_LETTER", "Phong thư thăm bệnh", new Vector3(-2.65f, 1.54f, 31.65f), new Vector3(0.42f, 0.35f, 0.42f), perm);
             CapsuleTarget("C12_BOX", "Hộp đồ cá nhân không tên", new Vector3(-2.62f, 1.20f, 33.45f), new Vector3(0.48f, 0.42f, 0.48f), perm);

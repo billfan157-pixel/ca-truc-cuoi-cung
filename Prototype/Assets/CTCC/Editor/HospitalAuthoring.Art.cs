@@ -490,23 +490,44 @@ namespace CTCC.Editor
                 var wantedType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
                 var wrap = repeat && !clampedAtlas ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
                 bool wantAlpha = !repeat || leafOrHairAlpha;
-                bool keepPaperSize = family is "Doc" or "F101" or "ObsCard" or "Calendar2005";
+                bool keepPaperSize = family is "Doc" or "F101" or "ObsCard" or "Calendar2005" or "BedList" or "Transfer" or "Drawing" or "DrawingPiece1" or "DrawingPiece2" or "DrawingPiece3" or "LanBadge" or "Sign";
                 var npotScale = keepPaperSize ? TextureImporterNPOTScale.None : importer.npotScale;
+                var wantFilter = keepPaperSize ? FilterMode.Trilinear : FilterMode.Bilinear;
+                int wantAniso = keepPaperSize ? 16 : 8;
+                float wantMipBias = keepPaperSize ? -0.5f : 0f;
+                var wantComp = keepPaperSize ? TextureImporterCompression.CompressedHQ : TextureImporterCompression.Compressed;
                 if (importer.textureType == wantedType && importer.sRGBTexture == !linearData &&
-                    importer.wrapMode == wrap && importer.anisoLevel == 8 && importer.maxTextureSize == 2048 &&
+                    importer.wrapMode == wrap && importer.anisoLevel == wantAniso && importer.maxTextureSize == 2048 &&
                     importer.alphaIsTransparency == wantAlpha && importer.streamingMipmaps == stream &&
-                    importer.npotScale == npotScale)
+                    importer.npotScale == npotScale && importer.filterMode == wantFilter &&
+                    Mathf.Approximately(importer.mipMapBias, wantMipBias) && importer.textureCompression == wantComp)
                     continue;
                 importer.textureType = wantedType;
                 importer.sRGBTexture = !linearData;
                 importer.wrapMode = wrap;
                 importer.maxTextureSize = 2048;
-                importer.anisoLevel = 8;
+                importer.anisoLevel = wantAniso;
+                importer.filterMode = wantFilter;
+                importer.mipMapBias = wantMipBias;
                 importer.alphaIsTransparency = wantAlpha;
                 importer.streamingMipmaps = stream;
                 importer.npotScale = npotScale;
-                importer.textureCompression = TextureImporterCompression.Compressed;
+                importer.textureCompression = wantComp;
                 importer.SaveAndReimport();
+            }
+
+            // Ensure Resources/CTCC/Calendar2005_Previous.png also gets crisp Trilinear + aniso 16 + NPOT None + BC7!
+            const string calPrevPath = Root + "/Art/Resources/CTCC/Calendar2005_Previous.png";
+            if (AssetImporter.GetAtPath(calPrevPath) is TextureImporter calImp &&
+                (calImp.anisoLevel != 16 || calImp.filterMode != FilterMode.Trilinear || calImp.npotScale != TextureImporterNPOTScale.None || !Mathf.Approximately(calImp.mipMapBias, -0.5f)))
+            {
+                calImp.wrapMode = TextureWrapMode.Clamp;
+                calImp.anisoLevel = 16;
+                calImp.filterMode = FilterMode.Trilinear;
+                calImp.mipMapBias = -0.5f;
+                calImp.npotScale = TextureImporterNPOTScale.None;
+                calImp.textureCompression = TextureImporterCompression.CompressedHQ;
+                calImp.SaveAndReimport();
             }
 
             foreach (var f in Directory.GetFiles(Models, "*.fbx"))
@@ -1577,19 +1598,28 @@ namespace CTCC.Editor
                 "DrawingPiece1", "DrawingPiece2", "DrawingPiece3"
             }, id => new InspectImage { id = id, image = Tex(id) });
 
-            // 3D Physical Inspector Model Templates (hidden container cloned on demand by PhysicalInspector!)
+            // 3D Physical Inspector / Inventory / Interactive Hardware Model Templates (hidden container cloned on demand!)
             var templates = Group("Inspect3DTemplates", world.transform);
             var envTmpl = PlaceBlenderModel("CTCC_PROP_BayEnvelope", templates, Vector3.zero, 0f, pairRB: false);
             envTmpl.SetActive(false);
+            var envInteractiveTmpl = PlaceBlenderModel("CTCC_PROP_EnvelopeInteractive", templates, Vector3.zero, 0f, pairRB: false);
+            envInteractiveTmpl.SetActive(false);
+            var gateKeyTmpl = PlaceBlenderModel("CTCC_PROP_GateKey", templates, Vector3.zero, 0f, pairRB: false);
+            gateKeyTmpl.SetActive(false);
+            var wingCKeyTmpl = PlaceBlenderModel("CTCC_PROP_WingCKey", templates, Vector3.zero, 0f, pairRB: false);
+            wingCKeyTmpl.SetActive(false);
             var wristTmpl = PlaceBlenderModel("CTCC_PROP_WristbandC01", templates, Vector3.zero, 0f, pairRB: false);
             wristTmpl.SetActive(false);
             var phoneTmpl = PlaceBlenderModel("CTCC_PROP_MinhPhone", templates, Vector3.zero, 0f, pairRB: false);
-            var phoneScreen = Flat("PhoneScreenFace", "Doc_PhoneScreen", new Vector3(0f, 0.022f, -0.0085f), Vector3.back, new Vector2(0.041f, 0.051f), phoneTmpl.transform);
+            var phoneScreen = Flat("PhoneScreenFace", "Doc_PhoneScreen", new Vector3(0f, 0.023f, -0.0082f), Vector3.back, new Vector2(0.041f, 0.051f), phoneTmpl.transform);
             if (phoneScreen != null) phoneScreen.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             phoneTmpl.SetActive(false);
             world.inspectModels = new[]
             {
                 new InspectModel { id = "E10a", template = envTmpl },
+                new InspectModel { id = "ENVELOPE_3D", template = envInteractiveTmpl },
+                new InspectModel { id = "GATE_KEY", template = gateKeyTmpl },
+                new InspectModel { id = "WINGC_KEY", template = wingCKeyTmpl },
                 new InspectModel { id = "WRIST", template = wristTmpl },
                 new InspectModel { id = "PHONE", template = phoneTmpl }
             };
@@ -1686,7 +1716,7 @@ namespace CTCC.Editor
             PlaceBlenderModel("CTCC_PROP_InteractiveDrawer", nurseDrawerRoot, Vector3.zero, 180f, pairRB: false, scale: new Vector3(0.88f, 0.88f, 0.88f), castShadows: false);
             Flat("ShiftGuideDrawerSheet", "Doc_ShiftGuide", new Vector3(0f, -0.025f, 0.01f), Vector3.up, new Vector2(0.21f, 0.27f), nurseDrawerRoot);
             CapsuleTarget("DRAWER-NURSE", "Ngăn bàn điều dưỡng", new Vector3(0f, -0.02f, -0.17f), new Vector3(0.42f, 0.14f, 0.08f), nurseDrawerRoot);
-            CapsuleTarget("OBS_SHIFT_LOG", "Quy chế bàn giao ca đêm AS-05", new Vector3(0f, 0.06f, 0.02f), new Vector3(0.32f, 0.14f, 0.24f), nurseDrawerRoot);
+            CapsuleTarget("OBS_SHIFT_LOG", "Quy chế bàn giao ca đêm", new Vector3(0f, 0.06f, 0.02f), new Vector3(0.32f, 0.14f, 0.24f), nurseDrawerRoot);
             if (multiScene)
             {
                 zones["LOC03"].region.drawerNurse = nurseDrawerRoot;
