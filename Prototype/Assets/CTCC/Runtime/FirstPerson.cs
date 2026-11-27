@@ -277,8 +277,8 @@ namespace CTCC
                 torchOn = !torchOn;
                 audioBus?.From("doorLatch", eye.transform.position);
             }
-            if (torchOn && battery > 0f) battery = Mathf.Max(0f, battery - dt);
-            bool activeTorch = torchOn && battery > 0f;
+            if (torchOn && !torchSuppressed && battery > 0f) battery = Mathf.Max(0f, battery - dt);
+            bool activeTorch = !torchSuppressed && torchOn && battery > 0f;
             torch.enabled = activeTorch;
             float flicker = (!settings.reduceMotion && battery < 45f)
                 ? 0.72f + 0.28f * Mathf.PerlinNoise(Time.unscaledTime * 14f, 2.3f)
@@ -372,6 +372,26 @@ namespace CTCC
             if (heldWeight > float.NegativeInfinity && heldWeight + 0.025f >= bestWeight)
                 return focusedTarget;
             return focusedTarget = best;
+        }
+
+        private bool torchSuppressed;
+        public bool TorchSuppressed
+        {
+            get => torchSuppressed;
+            set
+            {
+                if (torchSuppressed == value) return;
+                torchSuppressed = value;
+                SyncTorchVisuals();
+            }
+        }
+
+        private void SyncTorchVisuals()
+        {
+            bool activeTorch = !torchSuppressed && torchOn && battery > 0f;
+            if (torch != null) torch.enabled = activeTorch;
+            if (torchFlood != null) torchFlood.enabled = activeTorch;
+            if (torchSpill != null) torchSpill.enabled = activeTorch;
         }
 
         public void ClearFocus()

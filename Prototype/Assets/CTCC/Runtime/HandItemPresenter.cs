@@ -98,6 +98,34 @@ namespace CTCC
 
         public void SetReducedMotion(bool reduced) => reducedMotion = reduced;
 
+        /// <summary>
+        /// Phase 2.5: Upgrades first-person held keys & Physical Inspector key templates to the sculpted Blender 4.5 FBX meshes!
+        /// </summary>
+        public void SetBlenderKeyTemplates(GameObject gateKeyAsset, GameObject wingCKeyAsset)
+        {
+            if (gateKeyAsset != null)
+            {
+                if (gateKeyTemplate != null) Destroy(gateKeyTemplate);
+                gateKeyTemplate = Instantiate(gateKeyAsset, transform, false);
+                gateKeyTemplate.name = "KeyTemplate_Gate_Blender";
+                foreach (var col in gateKeyTemplate.GetComponentsInChildren<Collider>(true)) Destroy(col);
+                gateKeyTemplate.SetActive(false);
+            }
+            if (wingCKeyAsset != null)
+            {
+                if (wingCKeyTemplate != null) Destroy(wingCKeyTemplate);
+                wingCKeyTemplate = Instantiate(wingCKeyAsset, transform, false);
+                wingCKeyTemplate.name = "KeyTemplate_WingC_Blender";
+                foreach (var col in wingCKeyTemplate.GetComponentsInChildren<Collider>(true)) Destroy(col);
+                wingCKeyTemplate.SetActive(false);
+            }
+            if (!string.IsNullOrEmpty(currentItemDefId) &&
+                (currentItemDefId == BackpackCatalog.GateKey || currentItemDefId == BackpackCatalog.WingCKey))
+            {
+                RebuildHeldVisual();
+            }
+        }
+
         public GameObject GetInspectTemplate(string itemDefId) => itemDefId switch
         {
             BackpackCatalog.GateKey => gateKeyTemplate,

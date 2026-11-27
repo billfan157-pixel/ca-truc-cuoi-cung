@@ -1,8 +1,9 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 
 namespace CTCC
 {
@@ -10,11 +11,13 @@ namespace CTCC
     {
         public readonly string Id;
         public readonly Rect Uv;
+        public readonly string Label;
 
-        public InspectAnnotationField(string id, Rect uv)
+        public InspectAnnotationField(string id, Rect uv, string label = null)
         {
             Id = id;
             Uv = uv;
+            Label = label;
         }
     }
 
@@ -25,22 +28,48 @@ namespace CTCC
         public readonly Vector2 OffsetXY;
         public readonly float Zoom;
         public readonly bool OnBackSide;
+        public readonly Rect Uv;
 
-        public InspectDetailTarget(string id, string label, Vector2 offsetXY, float zoom = 0.27f, bool onBackSide = false)
+        public InspectDetailTarget(string id, string label, Vector2 offsetXY, float zoom = 0.27f,
+            bool onBackSide = false, Rect? uv = null)
         {
             Id = id;
             Label = label;
             OffsetXY = offsetXY;
             Zoom = zoom;
             OnBackSide = onBackSide;
+            // Derive a sensible interactive paper UV region from OffsetXY when an explicit UV rect isn't supplied.
+            Uv = uv ?? new Rect(
+                Mathf.Clamp01(0.5f - offsetXY.x * 2.2f - 0.16f),
+                Mathf.Clamp01(0.5f - offsetXY.y * 2.2f - 0.10f),
+                0.32f,
+                0.20f);
+        }
+    }
+
+    public readonly struct InspectPartHotspot
+    {
+        public readonly string Id;
+        public readonly string PartName;
+        public readonly string Label;
+        public readonly Action OnClick;
+
+        public InspectPartHotspot(string id, string partName, string label, Action onClick)
+        {
+            Id = id;
+            PartName = partName;
+            Label = label;
+            OnClick = onClick;
         }
     }
 
     /// <summary>
-    /// Diegetic 3D investigative evidence & dual-sided document viewer (CH01-R).
-    /// Supports calibrated lighting (zero washout), front/back physical flip (Space/R or button),
-    /// keyboard & mouse detail focus zoom, and optional stage callbacks while preserving full
-    /// accessibility through equivalent large-print text and zero-precision-mouse guarantees.
+    /// Phase 2.5 Physical Inspector 2.0 — Standalone 0-Sidebar 3D Evidence & Dual-Sided Document Viewer:
+    /// - Zero oblique-angle blur: eliminates macro 55mm f/4.2 Bokeh DoF (uses far-only Gaussian DoF >1.30m via InspectionSharpnessGuard),
+    ///   boosts URP renderScale to native 1.0x during inspection, suppresses player flashlight washout, and centers dead-on.
+    /// - Reusable 3D hotspot architecture: direct LMB click on paper UV hotspots (details & ballpoint marks) and 3D mesh colliders;
+    ///   LMB drag rotates smoothly (with fresh-press latch preventing opening-click jerk); RMB click / Space flips 2-sided paper;
+    ///   Scroll / Q-Z zooms; smooth fold-unfold animation for envelope sheets; full keyboard & opt-in Large-Print accessibility.
     /// </summary>
     public sealed class PhysicalInspector : MonoBehaviour
     {
@@ -57,18 +86,17 @@ namespace CTCC
         private Texture2D paperFiberNormal;
         private Material frontMaterial;
         private Material backMaterial;
-        private DepthOfField activeDof;
-        private float baseDofDist = 4.5f;
-        private bool baseDofActive;
 
-        private float rotX, rotY, zoom = 0.41f;
+        private float rotX, rotY, zoom = 0.39f;
         private float flipAngle, flipTarget;
         private Vector2 panOffset, panTarget;
-        private float zoomTarget = 0.41f;
+        private float zoomTarget = 0.39f;
         private bool active;
+        private bool standaloneCentered = true;
         private bool reducedMotion;
         private bool cameraAssist = true;
         private float openBlend, liftDuration;
+        private float unfoldProgress = 1f;
         private bool returning;
         private Vector3 openFrom;
         private float paperWidth, paperHeight;
@@ -78,14 +106,24 @@ namespace CTCC
         private GameObject worldProp;
         private Renderer worldSheet;
         private bool sheetWasEnabled;
-        private Vector2 markPointerStart;
-        private bool markClick;
+
+        // Fresh-press LMB drag vs click disambiguation + RMB flip/mark disambiguation
+        private int openedFrame = -1;
+        private bool lmbPressedInInspect;
+        private bool lmbDragging;
+        private Vector2 lmbDownPos;
+        private Vector2 rmbDownPos;
+        private bool rmbPressedInInspect;
+
         private InspectAnnotationField[] annotationFields = Array.Empty<InspectAnnotationField>();
+        private InspectPartHotspot[] partHotspots = Array.Empty<InspectPartHotspot>();
+        private readonly Dictionary<Collider, InspectPartHotspot> partColliders = new();
         private Action<string> onMarkField;
         private bool hasBackSide;
         private bool showingBack;
         private InspectDetailTarget[] details = Array.Empty<InspectDetailTarget>();
         private int activeDetailIndex = -1;
+        private string hoveredHotspotId;
         private Action<bool> onFlipped;
         private Action<string> onDetailFocused;
         private Action onRakingRevealed;
@@ -96,6 +134,8 @@ namespace CTCC
         private float rakingRevealFactor;
         private float rakingHoldSeconds;
         private bool rakingRevealed;
+        private bool sharpnessAcquired;
+
         private static readonly int RakingRevealId = Shader.PropertyToID("_RakingReveal");
         private static readonly int LightDirWsId = Shader.PropertyToID("_LightDirWS");
         private static readonly int RimDirWsId = Shader.PropertyToID("_RimDirWS");
@@ -108,7 +148,10 @@ namespace CTCC
         public bool RakingRevealed => rakingRevealed;
         public string CurrentObservationId => currentObservationId;
         public int ActiveDetailIndex => activeDetailIndex;
+        public string HoveredHotspotId => hoveredHotspotId;
         public InspectDetailTarget[] Details => details;
+        public Transform HolderTransform => holder;
+        public GameObject CurrentModelRoot => currentModel;
         public bool InputBlocked { get; set; }
 
         public event Action<string> InspectOpened;
@@ -122,29 +165,29 @@ namespace CTCC
             paperFiberNormal = Resources.Load<Texture2D>("CTCC/PaperFiber_Normal");
             stage = new GameObject("Physical Inspector Stage").transform;
             stage.SetParent(eye.transform, false);
-            stage.localPosition = new Vector3(-0.085f, -0.01f, 0.41f);
+            stage.localPosition = new Vector3(0f, 0.005f, 0.39f);
 
             holder = new GameObject("Inspect Holder").transform;
             holder.SetParent(stage, false);
 
             var keyGo = new GameObject("Inspect Key Light");
             keyGo.transform.SetParent(eye.transform, false);
-            keyGo.transform.localPosition = new Vector3(0.22f, 0.24f, 0.06f);
+            keyGo.transform.localPosition = new Vector3(0.24f, 0.24f, 0.08f);
             keyLight = keyGo.AddComponent<Light>();
             keyLight.type = LightType.Point;
-            keyLight.range = 1.6f;
-            keyLight.intensity = 0.58f;
-            keyLight.color = new Color(1.0f, 0.95f, 0.87f);
+            keyLight.range = 1.8f;
+            keyLight.intensity = 0.60f;
+            keyLight.color = new Color(1.0f, 0.96f, 0.90f);
             keyLight.shadows = LightShadows.None;
 
             var rimGo = new GameObject("Inspect Rim Light");
             rimGo.transform.SetParent(eye.transform, false);
-            rimGo.transform.localPosition = new Vector3(-0.26f, -0.10f, 0.34f);
+            rimGo.transform.localPosition = new Vector3(-0.26f, -0.08f, 0.34f);
             rimLight = rimGo.AddComponent<Light>();
             rimLight.type = LightType.Point;
-            rimLight.range = 1.4f;
-            rimLight.intensity = 0.24f;
-            rimLight.color = new Color(0.72f, 0.84f, 0.90f);
+            rimLight.range = 1.6f;
+            rimLight.intensity = 0.28f;
+            rimLight.color = new Color(0.76f, 0.86f, 0.92f);
             rimLight.shadows = LightShadows.None;
 
             stage.gameObject.SetActive(false);
@@ -154,6 +197,20 @@ namespace CTCC
 
         public void SetReducedMotion(bool reduced) => reducedMotion = reduced;
         public void SetCameraAssist(bool enabled) => cameraAssist = enabled;
+
+        internal void SetInspectAnglesForQA(float xDeg, float yDeg, float zoomDist)
+        {
+            if (!active) return;
+            rotX = Mathf.Clamp(xDeg, -82f, 82f);
+            rotY = Mathf.Clamp(yDeg, -175f, 175f);
+            zoom = zoomTarget = Mathf.Clamp(zoomDist, 0.19f, 0.62f);
+            openBlend = 1f;
+            unfoldProgress = 1f;
+            if (stage != null)
+                stage.localPosition = new Vector3(standaloneCentered ? 0f : -0.095f, -0.008f, zoom);
+            if (holder != null)
+                holder.localRotation = Quaternion.Euler(rotX, rotY + flipAngle, 0f);
+        }
 
         public void Open(
             GameObject prefabOrTemplate,
@@ -174,24 +231,37 @@ namespace CTCC
             Action<string> onMark = null,
             bool liftModel = false,
             Renderer liftSheet = null,
-            float pickupSeconds = .22f)
+            float pickupSeconds = .22f,
+            bool standaloneCenter = true,
+            bool animateUnfold = false,
+            InspectPartHotspot[] modelHotspots = null,
+            Vector3? initialModelEuler = null)
         {
             Close();
             active = true;
+            standaloneCentered = standaloneCenter;
+            openedFrame = Time.frameCount;
+            lmbPressedInInspect = false;
+            lmbDragging = false;
+            rmbPressedInInspect = false;
+            hoveredHotspotId = null;
+
             currentObservationId = observationId ?? "";
             liftDuration = Mathf.Max(.08f, pickupSeconds);
             openBlend = reducedMotion || !cameraAssist ? 1f : 0f;
-            openFrom = new Vector3(-0.095f, -0.20f, 0.41f);
+            unfoldProgress = animateUnfold && !reducedMotion ? 0f : 1f;
+            float baseX = standaloneCentered ? 0f : -0.095f;
+            openFrom = new Vector3(baseX, -0.20f, 0.40f);
             if (source.HasValue && cameraAssist && !reducedMotion)
             {
                 Vector3 local = eye.transform.InverseTransformPoint(source.Value);
                 openFrom = new Vector3(Mathf.Clamp(local.x, -0.30f, 0.30f),
-                    Mathf.Clamp(local.y, -0.24f, 0.19f), Mathf.Clamp(local.z, 0.48f, 0.86f));
+                    Mathf.Clamp(local.y, -0.24f, 0.19f), Mathf.Clamp(local.z, 0.46f, 0.86f));
             }
             rotX = 0f;
             rotY = 0f;
-            zoom = 0.41f;
-            zoomTarget = 0.41f;
+            zoom = standaloneCentered ? 0.38f : 0.41f;
+            zoomTarget = zoom;
             flipAngle = 0f;
             flipTarget = 0f;
             showingBack = false;
@@ -208,8 +278,9 @@ namespace CTCC
             onDetailFocused = onDetail;
             onRakingRevealed = onRakingReveal;
             this.annotationFields = annotationFields ?? Array.Empty<InspectAnnotationField>();
+            partHotspots = modelHotspots ?? Array.Empty<InspectPartHotspot>();
+            partColliders.Clear();
             onMarkField = onMark;
-            markClick = false;
 
             if (prefabOrTemplate != null)
             {
@@ -227,9 +298,12 @@ namespace CTCC
                     r.shadowCastingMode = ShadowCastingMode.Off;
 
                 NormalizeModelScale(inst, 0.25f);
-                pivot.transform.localRotation = Quaternion.Euler(-58f, 14f, -8f);
+                pivot.transform.localRotation = initialModelEuler.HasValue
+                    ? Quaternion.Euler(initialModelEuler.Value)
+                    : Quaternion.Euler(-14f, 10f, -3f);
                 currentModel = pivot;
-                keyLight.intensity = 0.68f;
+                BindModelPartHotspots(inst);
+                keyLight.intensity = 0.72f;
                 if (liftModel && prefabOrTemplate.activeSelf)
                 {
                     worldProp = prefabOrTemplate;
@@ -240,7 +314,7 @@ namespace CTCC
             {
                 currentModel = BuildDualSidedPaperSheet(documentTexture, backTexture, aspect, backIndentNormal, backIndentMask);
                 currentModel.transform.SetParent(holder, false);
-                keyLight.intensity = 0.40f;
+                keyLight.intensity = 0.44f;
                 SetMarkedField(markedField);
                 if (liftSheet != null)
                 {
@@ -250,16 +324,11 @@ namespace CTCC
                 }
             }
 
-            if (activeGrade != null && activeGrade.sharedProfile != null &&
-                activeGrade.sharedProfile.TryGet<DepthOfField>(out var dof))
-            {
-                activeDof = dof;
-                baseDofDist = dof.focusDistance.value;
-                baseDofActive = dof.active;
-                activeDof.active = cameraAssist && !reducedMotion;
-            }
+            // Acquire Phase 2.5 Visual Clarity Guard: native 1.0x renderScale + far-only Gaussian DoF (>1.30m, 0 near blur!)
+            InspectionSharpnessGuard.Acquire(activeGrade, allowBackgroundSoften: cameraAssist && !reducedMotion);
+            sharpnessAcquired = true;
 
-            stage.localPosition = new Vector3(-0.085f, -0.01f, zoom);
+            stage.localPosition = new Vector3(baseX, 0.005f, zoom);
             stage.gameObject.SetActive(true);
             keyLight.enabled = true;
             rimLight.enabled = true;
@@ -267,9 +336,37 @@ namespace CTCC
             InspectOpened?.Invoke(currentObservationId);
         }
 
+        private void BindModelPartHotspots(GameObject inst)
+        {
+            partColliders.Clear();
+            if (partHotspots == null || partHotspots.Length == 0 || inst == null) return;
+            foreach (var hs in partHotspots)
+            {
+                if (string.IsNullOrEmpty(hs.PartName)) continue;
+                Transform match = null;
+                foreach (var t in inst.GetComponentsInChildren<Transform>(true))
+                {
+                    if (string.Equals(t.name, hs.PartName, StringComparison.OrdinalIgnoreCase) ||
+                        t.name.StartsWith(hs.PartName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        match = t;
+                        break;
+                    }
+                }
+                if (match == null) continue;
+                var mf = match.GetComponentInChildren<MeshFilter>(true);
+                var host = mf != null ? mf.gameObject : match.gameObject;
+                var col = host.GetComponent<BoxCollider>();
+                if (col == null) col = host.AddComponent<BoxCollider>();
+                col.enabled = true;
+                col.isTrigger = true;
+                partColliders[col] = hs;
+            }
+        }
+
         /// <summary>
-        /// Accessible keyboard/button shortcut that tilts the flipped sheet directly into the 25-40 deg
-        /// keyLight grazing sweet spot so hidden ballpoint indentations catch light cleanly without fine mouse work.
+        /// Accessible keyboard shortcut tilting the reverse sheet into the 25-40 deg keyLight grazing sweet spot.
+        /// Remains 100% razor sharp because far-only Gaussian DoF never blurs objects within 1.25m!
         /// </summary>
         public void TiltForRakingLight()
         {
@@ -298,7 +395,7 @@ namespace CTCC
             rotX = 0f;
             rotY = 0f;
             panTarget = Vector2.zero;
-            zoomTarget = 0.40f;
+            zoomTarget = standaloneCentered ? 0.38f : 0.40f;
             activeDetailIndex = -1;
             if (eye != null) audioBus?.From("paperFlip", eye.transform.position + eye.transform.forward * 0.35f, 0.85f);
             UpdateTransform();
@@ -314,7 +411,7 @@ namespace CTCC
             rotX = 0f;
             rotY = 0f;
             panTarget = d.OffsetXY;
-            zoomTarget = Mathf.Clamp(d.Zoom, 0.25f, 0.55f);
+            zoomTarget = Mathf.Clamp(d.Zoom, 0.24f, 0.55f);
             if (reducedMotion)
             {
                 panOffset = panTarget;
@@ -330,7 +427,7 @@ namespace CTCC
             rotX = 0f;
             rotY = 0f;
             panTarget = Vector2.zero;
-            zoomTarget = 0.41f;
+            zoomTarget = standaloneCentered ? 0.38f : 0.41f;
             activeDetailIndex = -1;
             if (reducedMotion)
             {
@@ -366,6 +463,62 @@ namespace CTCC
                 inkMesh = BuildInkStroke(field.Uv);
                 ink.sharedMesh = inkMesh;
                 break;
+            }
+        }
+
+        /// <summary>
+        /// Projects all currently visible paper & 3D-mesh hotspots into screen coordinates for diegetic 3D marker rendering.
+        /// </summary>
+        public void ProjectHotspots(List<ProjectedHotspot3D> output, Func<string, bool> isMarked = null)
+        {
+            output.Clear();
+            if (!active || eye == null || holder == null || currentModel == null || returning) return;
+            if (Mathf.Abs(flipAngle - flipTarget) > 20f) return;
+
+            // 1. 3D model part hotspots
+            foreach (var kv in partColliders)
+            {
+                var col = kv.Key;
+                if (col == null || !col.gameObject.activeInHierarchy) continue;
+                Vector3 wp = col.bounds.center;
+                Vector3 sp = eye.WorldToScreenPoint(wp);
+                if (sp.z <= 0.05f) continue;
+                output.Add(new ProjectedHotspot3D(kv.Value.Id, kv.Value.Label, sp,
+                    hoveredHotspotId == kv.Value.Id, isMarked != null && isMarked(kv.Value.Id)));
+            }
+
+            // 2. Document UV hotspots (annotation fields + detail focus regions)
+            if (paperWidth > 0.001f && paperHeight > 0.001f)
+            {
+                if (!showingBack)
+                {
+                    for (int i = 0; i < annotationFields.Length; i++)
+                    {
+                        var f = annotationFields[i];
+                        Vector3 local = SheetPoint(paperWidth, paperHeight, f.Uv.center.x, f.Uv.center.y, -0.002f);
+                        Vector3 sp = eye.WorldToScreenPoint(holder.TransformPoint(local));
+                        if (sp.z <= 0.05f) continue;
+                        bool marked = isMarked != null && isMarked(f.Id);
+                        string lbl = !string.IsNullOrEmpty(f.Label) ? f.Label : (marked ? "Bỏ đánh dấu" : "Đánh dấu mục này");
+                        output.Add(new ProjectedHotspot3D(f.Id, lbl, sp, hoveredHotspotId == f.Id, marked));
+                    }
+                }
+                for (int i = 0; i < details.Length; i++)
+                {
+                    var d = details[i];
+                    if (d.OnBackSide != showingBack) continue;
+                    // Skip if an annotation field already covers the exact same Id on the front
+                    bool covered = false;
+                    if (!showingBack)
+                        for (int k = 0; k < annotationFields.Length; k++)
+                            if (annotationFields[k].Id == d.Id) { covered = true; break; }
+                    if (covered) continue;
+                    float u = showingBack ? (1f - d.Uv.center.x) : d.Uv.center.x;
+                    Vector3 local = SheetPoint(paperWidth, paperHeight, u, d.Uv.center.y, showingBack ? 0.002f : -0.002f);
+                    Vector3 sp = eye.WorldToScreenPoint(holder.TransformPoint(local));
+                    if (sp.z <= 0.05f) continue;
+                    output.Add(new ProjectedHotspot3D(d.Id, d.Label, sp, hoveredHotspotId == d.Id, activeDetailIndex == i));
+                }
             }
         }
 
@@ -422,13 +575,16 @@ namespace CTCC
             paperEdgeMaterial = null;
             frontMaterial = null;
             backMaterial = null;
-            if (activeDof != null)
+            if (sharpnessAcquired)
             {
-                activeDof.focusDistance.value = baseDofDist;
-                activeDof.active = baseDofActive;
-                activeDof = null;
+                InspectionSharpnessGuard.Release();
+                sharpnessAcquired = false;
             }
             active = false;
+            lmbPressedInInspect = false;
+            lmbDragging = false;
+            rmbPressedInInspect = false;
+            hoveredHotspotId = null;
             currentObservationId = "";
             hasBackSide = false;
             hasRakingIndent = false;
@@ -436,7 +592,11 @@ namespace CTCC
             rakingHoldSeconds = 0f;
             rakingRevealed = false;
             showingBack = false;
+            paperWidth = 0f;
+            paperHeight = 0f;
             details = Array.Empty<InspectDetailTarget>();
+            partHotspots = Array.Empty<InspectPartHotspot>();
+            partColliders.Clear();
             activeDetailIndex = -1;
             onFlipped = null;
             onDetailFocused = null;
@@ -483,6 +643,7 @@ namespace CTCC
 
             float dt = Time.unscaledDeltaTime;
             openBlend = Mathf.MoveTowards(openBlend, 1f, dt / liftDuration);
+            unfoldProgress = Mathf.MoveTowards(unfoldProgress, 1f, dt * (reducedMotion ? 8f : 3.2f));
             flipAngle = Mathf.MoveTowards(flipAngle, flipTarget, dt * (reducedMotion ? 1400f : 540f));
             panOffset = Vector2.MoveTowards(panOffset, panTarget, dt * (reducedMotion ? 5f : 0.65f));
             zoom = Mathf.MoveTowards(zoom, zoomTarget, dt * (reducedMotion ? 5f : 0.85f));
@@ -496,33 +657,79 @@ namespace CTCC
             var mouse = Mouse.current;
             var keys = Keyboard.current;
 
-            if (mouse != null)
+            if (mouse != null && Time.frameCount != openedFrame)
             {
                 Vector2 pointer = mouse.position.ReadValue();
-                bool overPaperSide = pointer.x < Screen.width * 0.625f;
-                if (mouse.rightButton.wasPressedThisFrame)
+                bool overUiButton = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+                bool overInspectArea = (standaloneCentered || pointer.x < Screen.width * 0.625f) && !overUiButton;
+
+                hoveredHotspotId = overInspectArea ? HitTestHotspotId(pointer) : null;
+
+                // Fresh-press LMB: short click interacts with 3D hotspot; drag >6px orbits smoothly (zero opening-click jerk!)
+                if (mouse.leftButton.wasPressedThisFrame && overInspectArea)
                 {
-                    markClick = overPaperSide && !showingBack && annotationFields.Length != 0;
-                    markPointerStart = pointer;
+                    lmbPressedInInspect = true;
+                    lmbDragging = false;
+                    lmbDownPos = pointer;
                 }
-                if (markClick && (pointer - markPointerStart).sqrMagnitude > 64f) markClick = false;
-                if (markClick && mouse.rightButton.wasReleasedThisFrame)
+                if (lmbPressedInInspect && mouse.leftButton.isPressed)
                 {
-                    markClick = false;
-                    MarkAtPointer(pointer);
-                    if (InputBlocked) return;
+                    if (!lmbDragging && (pointer - lmbDownPos).sqrMagnitude > 36f)
+                        lmbDragging = true;
+                    if (lmbDragging)
+                    {
+                        Vector2 d = mouse.delta.ReadValue();
+                        rotY -= d.x * 0.32f;
+                        rotX = Mathf.Clamp(rotX + d.y * 0.26f, -52f, 52f);
+                        activeDetailIndex = -1;
+                    }
                 }
-                if (overPaperSide && (mouse.leftButton.isPressed || mouse.rightButton.isPressed && !markClick))
+                if (lmbPressedInInspect && mouse.leftButton.wasReleasedThisFrame)
+                {
+                    bool wasClick = !lmbDragging;
+                    lmbPressedInInspect = false;
+                    lmbDragging = false;
+                    if (wasClick && overInspectArea)
+                    {
+                        ClickHotspotAt(pointer);
+                        if (InputBlocked || !active) return;
+                    }
+                }
+
+                // RMB short click flips 2-sided document (or marks field if single-sided); RMB drag also rotates smoothly
+                if (mouse.rightButton.wasPressedThisFrame && overInspectArea)
+                {
+                    rmbPressedInInspect = true;
+                    rmbDownPos = pointer;
+                }
+                if (rmbPressedInInspect && mouse.rightButton.isPressed && (pointer - rmbDownPos).sqrMagnitude > 64f)
                 {
                     Vector2 d = mouse.delta.ReadValue();
                     rotY -= d.x * 0.32f;
                     rotX = Mathf.Clamp(rotX + d.y * 0.26f, -52f, 52f);
                     activeDetailIndex = -1;
                 }
-                float scroll = mouse.scroll.ReadValue().y;
-                if (overPaperSide && Mathf.Abs(scroll) > 0.01f)
+                if (rmbPressedInInspect && mouse.rightButton.wasReleasedThisFrame)
                 {
-                    zoomTarget = Mathf.Clamp(zoomTarget - Mathf.Sign(scroll) * 0.03f, 0.24f, 0.60f);
+                    bool shortRmb = (pointer - rmbDownPos).sqrMagnitude <= 64f;
+                    rmbPressedInInspect = false;
+                    if (shortRmb && overInspectArea)
+                    {
+                        if (!showingBack && annotationFields.Length != 0 && TryMarkAtPointer(pointer))
+                        {
+                            if (InputBlocked || !active) return;
+                        }
+                        else if (hasBackSide)
+                        {
+                            Flip();
+                        }
+                    }
+                }
+
+                float scroll = mouse.scroll.ReadValue().y;
+                if (overInspectArea && Mathf.Abs(scroll) > 0.01f)
+                {
+                    zoomTarget = Mathf.Clamp(zoomTarget - Mathf.Sign(scroll) * 0.028f, 0.22f, 0.58f);
                     zoom = zoomTarget;
                 }
             }
@@ -533,8 +740,8 @@ namespace CTCC
                 if (keys.dKey.isPressed) rotY -= 90f * dt;
                 if (keys.wKey.isPressed) rotX = Mathf.Clamp(rotX + 70f * dt, -52f, 52f);
                 if (keys.sKey.isPressed) rotX = Mathf.Clamp(rotX - 70f * dt, -52f, 52f);
-                if (keys.qKey.isPressed) { zoomTarget = Mathf.Clamp(zoomTarget - 0.34f * dt, 0.24f, 0.60f); zoom = zoomTarget; }
-                if (keys.zKey.isPressed) { zoomTarget = Mathf.Clamp(zoomTarget + 0.34f * dt, 0.24f, 0.60f); zoom = zoomTarget; }
+                if (keys.qKey.isPressed) { zoomTarget = Mathf.Clamp(zoomTarget - 0.34f * dt, 0.22f, 0.58f); zoom = zoomTarget; }
+                if (keys.zKey.isPressed) { zoomTarget = Mathf.Clamp(zoomTarget + 0.34f * dt, 0.22f, 0.58f); zoom = zoomTarget; }
                 if (hasBackSide && (keys.spaceKey.wasPressedThisFrame || keys.rKey.wasPressedThisFrame))
                     Flip();
                 if (hasRakingIndent && showingBack && keys.tKey.wasPressedThisFrame)
@@ -576,7 +783,6 @@ namespace CTCC
                 return;
             }
 
-            // Sweet spot: tilting rotX or rotY into 25..40 degrees toward keyLight catches grazing specular light!
             float maxTilt = Mathf.Max(Mathf.Abs(rotX), Mathf.Abs(rotY));
             float rise = Mathf.InverseLerp(16f, 26f, maxTilt);
             float fall = 1f - Mathf.InverseLerp(41f, 52f, maxTilt);
@@ -609,32 +815,130 @@ namespace CTCC
 
         private void UpdateTransform()
         {
-            // Tilt a sheet for reading without rotating past the edge of the selected side.
             if (hasBackSide) rotY = Mathf.Clamp(rotY, -52f, 52f);
             float ease = 1f - Mathf.Pow(1f - openBlend, 3f);
-            stage.localPosition = Vector3.Lerp(openFrom, new Vector3(-0.095f + panOffset.x, 0.01f + panOffset.y, zoom), ease);
-            if (activeDof != null && activeDof.active)
-                activeDof.focusDistance.value = zoom;
-            float idleSway = reducedMotion || !cameraAssist ? 0f : Mathf.Sin(Time.unscaledTime * 1.05f) * 1.1f;
+            float baseX = standaloneCentered ? 0f : -0.095f;
+            float baseY = standaloneCentered ? 0.005f : 0.01f;
+            stage.localPosition = Vector3.Lerp(openFrom, new Vector3(baseX + panOffset.x, baseY + panOffset.y, zoom), ease);
+            float idleSway = reducedMotion || !cameraAssist ? 0f : Mathf.Sin(Time.unscaledTime * 1.05f) * 0.9f;
             holder.localRotation = Quaternion.Euler(rotX + idleSway * 0.35f, rotY + flipAngle + idleSway, 0f);
+            if (currentModel != null && paperWidth > 0.001f)
+            {
+                // Subtle physical paper unfold animation when lifted from envelope
+                float uf = 1f - Mathf.Pow(1f - unfoldProgress, 3f);
+                currentModel.transform.localScale = new Vector3(1f, Mathf.Lerp(0.52f, 1f, uf), 1f);
+            }
         }
 
-        private void MarkAtPointer(Vector2 pointer)
+        private bool TryRayPaperUv(Vector2 pointer, out Vector2 uv)
         {
-            if (showingBack || Mathf.Abs(flipAngle) > 8f) return;
+            uv = default;
+            if (eye == null || holder == null || paperWidth <= 0.001f || paperHeight <= 0.001f) return false;
+            if (Mathf.Abs(flipAngle - flipTarget) > 12f) return false;
             Ray ray = eye.ScreenPointToRay(pointer);
-            var plane = new Plane(-holder.forward, holder.position);
-            if (!plane.Raycast(ray, out float distance)) return;
+            var plane = new Plane(showingBack ? holder.forward : -holder.forward, holder.position);
+            if (!plane.Raycast(ray, out float distance) || distance < 0.05f) return false;
             Vector3 hit = holder.InverseTransformPoint(ray.GetPoint(distance));
-            Vector2 uv = new(hit.x / paperWidth + 0.5f, hit.y / paperHeight + 0.5f);
+            float u = hit.x / paperWidth + 0.5f;
+            float v = hit.y / paperHeight + 0.5f;
+            if (showingBack) u = 1f - u;
+            if (u < 0f || u > 1f || v < 0f || v > 1f) return false;
+            uv = new Vector2(u, v);
+            return true;
+        }
+
+        private string HitTestHotspotId(Vector2 pointer)
+        {
+            if (eye == null) return null;
+            if (partColliders.Count > 0)
+            {
+                Ray ray = eye.ScreenPointToRay(pointer);
+                float bestDist = float.MaxValue;
+                string bestId = null;
+                foreach (var kv in partColliders)
+                {
+                    if (kv.Key == null || !kv.Key.gameObject.activeInHierarchy) continue;
+                    if (kv.Key.Raycast(ray, out var hit, 2.5f) && hit.distance < bestDist)
+                    {
+                        bestDist = hit.distance;
+                        bestId = kv.Value.Id;
+                    }
+                }
+                if (bestId != null) return bestId;
+            }
+            if (TryRayPaperUv(pointer, out Vector2 uv))
+            {
+                if (!showingBack)
+                {
+                    for (int i = 0; i < annotationFields.Length; i++)
+                        if (annotationFields[i].Uv.Contains(uv)) return annotationFields[i].Id;
+                }
+                for (int i = 0; i < details.Length; i++)
+                    if (details[i].OnBackSide == showingBack && details[i].Uv.Contains(uv)) return details[i].Id;
+            }
+            return null;
+        }
+
+        private void ClickHotspotAt(Vector2 pointer)
+        {
+            if (eye == null) return;
+            if (partColliders.Count > 0)
+            {
+                Ray ray = eye.ScreenPointToRay(pointer);
+                float bestDist = float.MaxValue;
+                InspectPartHotspot? hitPart = null;
+                foreach (var kv in partColliders)
+                {
+                    if (kv.Key == null || !kv.Key.gameObject.activeInHierarchy) continue;
+                    if (kv.Key.Raycast(ray, out var hit, 2.5f) && hit.distance < bestDist)
+                    {
+                        bestDist = hit.distance;
+                        hitPart = kv.Value;
+                    }
+                }
+                if (hitPart.HasValue)
+                {
+                    hitPart.Value.OnClick?.Invoke();
+                    return;
+                }
+            }
+            if (TryRayPaperUv(pointer, out Vector2 uv))
+            {
+                if (!showingBack)
+                {
+                    for (int i = 0; i < annotationFields.Length; i++)
+                    {
+                        if (annotationFields[i].Uv.Contains(uv))
+                        {
+                            MarkField(annotationFields[i].Id);
+                            return;
+                        }
+                    }
+                }
+                for (int i = 0; i < details.Length; i++)
+                {
+                    if (details[i].OnBackSide == showingBack && details[i].Uv.Contains(uv))
+                    {
+                        FocusDetail(i);
+                        return;
+                    }
+                }
+            }
+        }
+
+        private bool TryMarkAtPointer(Vector2 pointer)
+        {
+            if (showingBack || Mathf.Abs(flipAngle) > 8f) return false;
+            if (!TryRayPaperUv(pointer, out Vector2 uv)) return false;
             foreach (var field in annotationFields)
-                if (field.Uv.Contains(uv)) { MarkField(field.Id); return; }
+                if (field.Uv.Contains(uv)) { MarkField(field.Id); return true; }
+            return false;
         }
 
         private void MarkField(string id)
         {
             if (onMarkField == null) return;
-            audioBus?.From("signaturePen", holder.position, 0.40f);
+            audioBus?.From("signaturePen", holder.position, 0.44f);
             onMarkField(id);
         }
 
@@ -724,7 +1028,7 @@ namespace CTCC
                 return MakePaperMaterial(name, tex, doubleSided: false);
             var mat = new Material(rakingShader) { name = name };
             mat.SetTexture("_BaseMap", tex);
-            mat.SetColor("_BaseColor", new Color(0.84f, 0.83f, 0.80f, 1f));
+            mat.SetColor("_BaseColor", new Color(0.86f, 0.85f, 0.82f, 1f));
             mat.SetTexture("_IndentNormalMap", indentNormal);
             if (indentMask != null) mat.SetTexture("_IndentMaskMap", indentMask);
             mat.SetFloat("_IndentScale", 1.85f);
@@ -739,9 +1043,8 @@ namespace CTCC
         {
             var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = name };
             mat.SetTexture("_BaseMap", tex);
-            // Slightly restrained albedo tint keeps ink typography rich under URP tonemapping with zero highlight washout
-            mat.SetColor("_BaseColor", new Color(0.84f, 0.83f, 0.80f, 1f));
-            mat.SetFloat("_Smoothness", 0.06f);
+            mat.SetColor("_BaseColor", new Color(0.86f, 0.85f, 0.82f, 1f));
+            mat.SetFloat("_Smoothness", 0.05f);
             mat.SetFloat("_Metallic", 0f);
             mat.SetFloat("_Cull", doubleSided ? 0f : 2f);
             return mat;
@@ -751,7 +1054,7 @@ namespace CTCC
         {
             if (paperFiberNormal == null) return;
             material.SetTexture("_BumpMap", paperFiberNormal);
-            material.SetFloat("_BumpScale", .20f);
+            material.SetFloat("_BumpScale", .16f);
             material.EnableKeyword("_NORMALMAP");
         }
 
@@ -831,7 +1134,7 @@ namespace CTCC
 
         private static Vector3 SheetPoint(float w, float h, float u, float v, float zOffset)
         {
-            float curl = Mathf.Pow(u - 0.5f, 2f) * 0.026f + Mathf.Sin(v * Mathf.PI * 2f) * 0.0035f;
+            float curl = Mathf.Pow(u - 0.5f, 2f) * 0.022f + Mathf.Sin(v * Mathf.PI * 2f) * 0.0028f;
             return new Vector3((u - 0.5f) * w, (v - 0.5f) * h, -curl + zOffset);
         }
     }
