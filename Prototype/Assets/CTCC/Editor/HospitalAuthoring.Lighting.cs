@@ -24,8 +24,8 @@ namespace CTCC.Editor
             RenderSettings.ambientGroundColor = new Color(0.068f, 0.064f, 0.055f);
             RenderSettings.fog = art;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogDensity = 0.0082f;
-            RenderSettings.reflectionIntensity = 0.82f;
+            RenderSettings.fogDensity = 0.0072f;
+            RenderSettings.reflectionIntensity = 0.88f;
 
             // Camera stays in Bootstrap persistent scene (positioned at AP00); farClipPlane 190m covers full 100x110m campus!
             Vector3 ap00Pos = layout.pads.Single(p => p.id == "AP00") is var p0 ? new Vector3(p0.x, 0.015f, p0.z) : new Vector3(4f, 0.015f, -21.2f);
@@ -33,8 +33,8 @@ namespace CTCC.Editor
             var camera = rig.gameObject.AddComponent<Camera>();
             rig.tag = "MainCamera";
             camera.clearFlags = CameraClearFlags.SolidColor;
-            // Match R horizon fog (0.068, 0.105, 0.132) so 3-story An Sinh roofline, corrugated roof & water tower silhouette cleanly!
-            camera.backgroundColor = new Color(0.066f, 0.098f, 0.128f);
+            // Atmospheric stormy indigo-slate monsoon night sky so 3-story An Sinh K-A roofline, corrugated roof & water tower silhouette dramatically!
+            camera.backgroundColor = new Color(0.088f, 0.132f, 0.172f);
             camera.fieldOfView = 62f;
             camera.nearClipPlane = 0.055f;
             camera.farClipPlane = 190f;
@@ -62,7 +62,7 @@ namespace CTCC.Editor
             var warmSodium = new Color(0.95f, 0.72f, 0.44f);
             var subtleBounce = new Color(.65f, .73f, .76f);
 
-            var canopyLamp = Lamp("Key below entry canopy", LightType.Spot, new Vector3(4.0f, 2.68f, -8.65f), 5.2f, 12.0f, warmSodium, permanent, shadow: art);
+            var canopyLamp = Lamp("Key below entry canopy", LightType.Spot, new Vector3(4.0f, 2.68f, -8.65f), 4.1f, 12.0f, warmSodium, permanent, shadow: art);
             canopyLamp.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
             canopyLamp.spotAngle = 124f;
             canopyLamp.innerSpotAngle = 68f;

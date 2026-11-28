@@ -27,42 +27,45 @@ namespace CTCC.Editor
             Transform perm = loc01 != null ? loc01.permanent : permanent;
             Transform realRoot = loc01 != null ? loc01.real : real;
 
-            // Replace flat exterior approach ground with gleaming rain-soaked wet asphalt surface
+            // Rain-soaked weathered wet asphalt in R (2012) <-> dry operational tarmac / large concrete paving slabs in B (2005)!
             var wet = CreateCh01Asphalt();
             Surface("Exterior wet asphalt approach", new Vector3(4.0f, -0.095f, -23.0f),
-                new Vector3(18.0f, 0.20f, 7.2f), wet.name, "ConcretePavingB", solid: true,
-                tile: 3.2f, parent: perm);
+                new Vector3(18.0f, 0.20f, 7.2f), wet.name, "CH01_AsphaltDryB", solid: true,
+                tile: 3.0f, parent: perm);
             Surface("Courtyard wet concrete apron", new Vector3(4.0f, -0.092f, -14.0f),
-                new Vector3(17.8f, 0.20f, 11.8f), wet.name, "ConcretePavingB", tile: 3.6f, parent: perm);
+                new Vector3(17.8f, 0.20f, 11.8f), wet.name, "ConcretePavingB", tile: 1.55f, parent: perm);
 
-            // Note: Full 3-story grounded K-A 1987 hospital elevation (33m wide x 11.7m tall + roof) is built
-            // in Campus_Grounds (HospitalAuthoring.Campus.cs) so it never floats above the courtyard canopy!
-
-            // Brick Security Gatehouse flanking east side of outer gate (strictly outside walking lane x in [2.8..5.2]!)
-            var gatehouse = PlaceBlenderModel("CTCC_ENV_Gatehouse", perm, new Vector3(8.55f, 0f, -18.55f), 0f, pairRB: false);
+            // Hero Cycles-Baked 1987 Brick Security Guardhouse w/ rich visible interior (strictly outside walking lane x in [2.8..5.2]!)
+            var gatehouse = PlaceBlenderModel("CTCC_ENV_Gatehouse", perm, new Vector3(8.55f, 0f, -18.55f), 0f, pairRB: true, castShadows: true);
             Box("Gatehouse collider", new Vector3(8.55f, 1.35f, -18.55f), new Vector3(2.85f, 2.70f, 2.55f),
                 Mat("WeatheredBrick"), perm, solid: true).GetComponent<Renderer>().enabled = false;
             staticArchitecture.Add(gatehouse);
-            // Warm tungsten security gatehouse porch spill anchored outside the gate-facing WEST (-X) caged lamp globe
-            // plus soft abandoned guardhouse interior spill so the booth windows read warmly without blowing out the wall!
-            Lamp("Gatehouse warm porch light", LightType.Point, new Vector3(6.85f, 2.22f, -19.45f), 1.65f, 7.8f,
+            // Warm tungsten security gatehouse porch spill anchored outside the gate-facing WEST (-X) caged bulkhead lamp
+            // + warm banker-lamp interior desk spill illuminating open ledger, notice board, calendar & key cabinet through the windows!
+            Lamp("Gatehouse warm porch light", LightType.Point, new Vector3(6.72f, 2.22f, -19.35f), 1.85f, 6.8f,
                 new Color(0.98f, 0.72f, 0.40f), perm);
-            Lamp("Gatehouse interior desk glow", LightType.Point, new Vector3(8.35f, 1.48f, -18.75f), 0.95f, 4.2f,
-                new Color(0.96f, 0.76f, 0.44f), perm);
-            // Subtle cool monsoon moonlight rim illuminating Minh's motorbike & west brick gate flank (prevents black crush!)
-            Lamp("Exterior motorbike cool rim R", LightType.Point, new Vector3(1.25f, 2.35f, -22.85f), 1.25f, 6.8f,
-                new Color(0.52f, 0.72f, 0.88f), realRoot);
+            Lamp("Gatehouse interior desk glow", LightType.Point, new Vector3(8.85f, 1.52f, -18.72f), 1.65f, 4.2f,
+                new Color(1.0f, 0.78f, 0.44f), perm);
+            // Warm paired glow from the twin sculpted cast-iron gate pillar lanterns illuminating lintel banner & wet ironwork!
+            Lamp("Gate arch twin lantern warm wash", LightType.Point, new Vector3(4.00f, 3.82f, -20.38f), 1.55f, 6.8f,
+                new Color(1.0f, 0.78f, 0.46f), perm);
+            // Balanced cool monsoon moonlight rim + low streetlamp rebound sculpting Minh's Super-Dream plum lacquer, chrome rims/spokes, silver crankcase & exhaust!
+            Lamp("Exterior motorbike cool rim R", LightType.Point, new Vector3(2.45f, 1.38f, -23.35f), 2.05f, 5.8f,
+                new Color(0.76f, 0.86f, 0.95f), realRoot);
+            Lamp("Exterior motorbike warm fill R", LightType.Point, new Vector3(2.35f, 0.78f, -21.55f), 0.95f, 3.8f,
+                new Color(0.96f, 0.82f, 0.58f), realRoot);
 
             // Authentic An Sinh 1987 Enamel Gate Banner mounted centered on overhead gate lintel (zero doorway clipping!)
             // + flush West-pillar Night Gate plaque sized inside [2.34..2.80]
-            Sign("Hospital gate plaque", "Sign_HospitalGate", new Vector3(4.00f, 3.08f, -20.235f), Vector3.back,
+            Sign("Hospital gate plaque", "Sign_HospitalGate", new Vector3(4.00f, 3.11f, -20.235f), Vector3.back,
                 new Vector2(1.68f, 0.30f), perm, metalBacking: true);
             Sign("Night gate notice plaque", "Sign_NightGate", new Vector3(2.57f, 1.56f, -20.235f), Vector3.back,
                 new Vector2(0.42f, 0.18f), perm, metalBacking: true);
 
-            // Core v3.6.2 (DEC-V36-CH01-01 / D4) + Phase 2.5 scale sync: Exterior iron hospital mailbox mounted flush
+            // Core v3.6.2 (DEC-V36-CH01-01 / D4) + Hero Overhaul: Cycles-baked weathered iron mailbox mounted flush
             // on the South face (-Z, z=-20.22) of the East Gate Pillar (x in [5.20..5.66]), centered at x=5.36, y=1.18m.
-            var mailbox = PlaceBlenderModel("CTCC_PROP_GateMailbox", perm, new Vector3(5.36f, 1.18f, -20.29f), 0f, pairRB: false);
+            // Preserves EXACT MailboxBody / MailboxLid / MailboxPackageVisual names, MailboxLidPivot hinge & E10a/key pickup!
+            var mailbox = PlaceBlenderModel("CTCC_PROP_GateMailbox", perm, new Vector3(5.36f, 1.18f, -20.29f), 0f, pairRB: true, castShadows: false);
             if (mailbox.transform.childCount > 0)
             {
                 var prefabRoot = mailbox.transform.GetChild(0).gameObject;
@@ -100,70 +103,93 @@ namespace CTCC.Editor
             mailboxTarget.visibilitySurface = mailboxColGo.GetComponent<Collider>();
             mailboxTarget.frontOnly = true;
             // Subtle warm grazing catch-light on the mailbox & east gate pillar so B01 pickup reads naturally in monsoon night!
-            Lamp("Mailbox warm rim R", LightType.Point, new Vector3(5.36f, 1.44f, -20.78f), 0.76f, 2.3f,
+            Lamp("Mailbox warm rim R", LightType.Point, new Vector3(5.36f, 1.44f, -20.78f), 0.92f, 2.5f,
                 new Color(0.98f, 0.80f, 0.52f), perm);
 
-            // Freestanding An Sinh Hospital 6-Block Campus Wayfinding Directory Board on west courtyard flank
-            // Placed cleanly at x=-3.65, z=-14.8 (well outside walking axis x=[1.5..6.5] and clear of terrazzo benches at x=-1.35!)
+            // Hero Cycles-Baked Glass-Front Roofed Campus Wayfinding Directory Kiosk (facing inward Southeast toward GATE-CONG & courtyard!)
             var mapBoard = Group("Campus wayfinding directory board", perm, new Vector3(-3.65f, 0f, -14.8f));
-            mapBoard.localRotation = Quaternion.Euler(0f, 55f, 0f);
-            Box("Map post L", new Vector3(-0.78f, 0.96f, 0f), new Vector3(0.08f, 1.92f, 0.08f), Mat("MetalOld"), mapBoard, solid: true, isStatic: true);
-            Box("Map post R", new Vector3(0.78f, 0.96f, 0f), new Vector3(0.08f, 1.92f, 0.08f), Mat("MetalOld"), mapBoard, solid: true, isStatic: true);
-            Box("Map backing", new Vector3(0f, 1.38f, 0f), new Vector3(1.66f, 1.24f, 0.06f), Mat("MetalOld"), mapBoard, solid: true, isStatic: true);
-            Box("Map rain cap", new Vector3(0f, 2.02f, -0.04f), new Vector3(1.80f, 0.08f, 0.34f), Mat("CorrugatedRoofR"), mapBoard, isStatic: true);
+            mapBoard.localRotation = Quaternion.Euler(0f, -55f, 0f);
+            var dirKiosk = PlaceBlenderModel("CTCC_LOC01_CampusDirectoryBoard", mapBoard, Vector3.zero, 0f, pairRB: true, castShadows: true);
+            Box("Map kiosk col", new Vector3(0f, 1.05f, 0f), new Vector3(1.86f, 2.10f, 0.26f), Mat("MetalOld"), mapBoard, solid: true, isStatic: true)
+                .GetComponent<Renderer>().enabled = false;
             Flat("Campus directory graphic", "Sign_CampusMap", new Vector3(0f, 1.38f, -0.036f), Vector3.back, new Vector2(1.56f, 1.16f), mapBoard);
-            staticArchitecture.Add(mapBoard.gameObject);
+            staticArchitecture.Add(dirKiosk);
+            // Warm localized hooded vitrine cabinet glow positioned cleanly in front of map face illuminating directory & terrazzo benches!
+            Lamp("Directory kiosk cabinet glow", LightType.Point, new Vector3(-3.20f, 1.92f, -15.11f), 1.55f, 4.8f,
+                new Color(0.98f, 0.84f, 0.58f), perm);
 
-            // Perimeter Iron Fence Bays seated cleanly on ground y=0 (each module already includes 0.90m brick plinth,
-            // coping, iron spear railings & 2.28m masonry pier matching the 2.14m outer gate pillars — zero 4m double-stacking!).
+            // Hero Cycles-Baked Perimeter Brick & Forged-Iron Fence Bays seated cleanly on ground y=0 (zero overlap!)
             foreach (float z in new[] { -18.0f, -14.0f, -10.0f })
             {
-                staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(-5.0f, 0f, z), 90f, pairRB: false, castShadows: false));
-                staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(13.0f, 0f, z), -90f, pairRB: false, castShadows: false));
+                staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(-5.0f, 0f, z), 90f, pairRB: true, castShadows: false));
+                staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(13.0f, 0f, z), -90f, pairRB: true, castShadows: false));
             }
-            // Front left wall (abutting West gate pillar outer face x=2.34 with zero overlap!)
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(-3.52f, 0f, -20.0f), 0f, pairRB: false, castShadows: false));
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(0.34f, 0f, -20.0f), 0f, pairRB: false, castShadows: false));
-            // Front right wall (abutting East gate pillar outer face x=5.66 with zero overlap!)
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(7.66f, 0f, -20.0f), 180f, pairRB: false, castShadows: false));
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(11.52f, 0f, -20.0f), 180f, pairRB: false, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(-3.52f, 0f, -20.0f), 0f, pairRB: true, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(0.34f, 0f, -20.0f), 0f, pairRB: true, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(7.66f, 0f, -20.0f), 180f, pairRB: true, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CourtyardFenceBay", perm, new Vector3(11.52f, 0f, -20.0f), 180f, pairRB: true, castShadows: false));
 
-            // Minh's Parked Commuter Motorbike outside outer gate (x = 1.45, z = -22.25 — completely clear of AP00 at 4, -21.2!)
-            var bike = PlaceBlenderModel("CTCC_PROP_CommuterMotorbike", perm, new Vector3(1.45f, 0f, -22.25f), 42f, pairRB: false);
+            // Hero Cycles-Baked Minh's Parked Commuter Motorbike outside outer gate (x = 1.45, z = -22.25 — completely clear of AP00!)
+            var bike = PlaceBlenderModel("CTCC_PROP_CommuterMotorbike", perm, new Vector3(1.45f, 0f, -22.25f), 42f, pairRB: true, castShadows: true);
             Box("Motorbike collider", new Vector3(1.45f, 0.55f, -22.25f), new Vector3(0.82f, 1.10f, 1.95f),
                 Mat("Black"), perm, solid: true).GetComponent<Renderer>().enabled = false;
             staticArchitecture.Add(bike);
             // Soft amber motorbike headlamp cone sweeping across wet asphalt & outer gate bars!
-            var headlamp = Lamp("Motorbike headlamp cone", LightType.Spot, new Vector3(1.85f, 0.96f, -21.75f), 5.6f, 12.0f,
+            var headlamp = Lamp("Motorbike headlamp cone", LightType.Spot, new Vector3(1.85f, 0.96f, -21.75f), 5.8f, 12.0f,
                 new Color(1.0f, 0.88f, 0.62f), realRoot, shadow: false);
             headlamp.transform.LookAt(new Vector3(4.35f, 0.25f, -18.8f));
             headlamp.spotAngle = 56f;
             headlamp.innerSpotAngle = 24f;
 
-            // Cast Terrazzo Courtyard Benches along courtyard edges (clear of central walking axis x = 4!)
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_TerrazzoBench", perm, new Vector3(-1.35f, 0f, -13.2f), 90f, pairRB: false));
+            // Hero Cycles-Baked Curved Vietnamese Hospital Terrazzo Courtyard Benches (fine aggregate + An Sinh 1987 stencil!)
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_TerrazzoBench", perm, new Vector3(-1.35f, 0f, -13.2f), 90f, pairRB: true, castShadows: true));
             Box("Courtyard bench L col", new Vector3(-1.35f, 0.42f, -13.2f), new Vector3(0.60f, 0.84f, 1.56f),
                 Mat("TerrazzoBench"), perm, solid: true).GetComponent<Renderer>().enabled = false;
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_TerrazzoBench", perm, new Vector3(-1.35f, 0f, -16.4f), 90f, pairRB: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_PROP_TerrazzoBench", perm, new Vector3(-1.35f, 0f, -16.4f), 90f, pairRB: true, castShadows: true));
             Box("Courtyard bench L2 col", new Vector3(-1.35f, 0.42f, -16.4f), new Vector3(0.60f, 0.84f, 1.56f),
                 Mat("TerrazzoBench"), perm, solid: true).GetComponent<Renderer>().enabled = false;
 
-            // Concrete Storm Drain Grates & Curbs flanking the rain-drenched walkway
+            // Hero Cycles-Baked Cast-Iron Monsoon Storm Drain Grates & Precast Walkway Curb Runs framing central walking lane!
             foreach (float z in new[] { -17.2f, -13.8f, -10.4f })
             {
-                staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_DrainGrateAndCurb", perm, new Vector3(1.75f, 0f, z), 90f, pairRB: false, castShadows: false));
-                staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_DrainGrateAndCurb", perm, new Vector3(6.25f, 0f, z), -90f, pairRB: false, castShadows: false));
+                staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_DrainGrateAndCurb", perm, new Vector3(1.75f, 0f, z), 90f, pairRB: true, castShadows: false));
+                staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_DrainGrateAndCurb", perm, new Vector3(6.25f, 0f, z), -90f, pairRB: true, castShadows: false));
+            }
+            foreach (float cz in new[] { -17.4f, -13.8f })
+            {
+                staticArchitecture.Add(PlaceBlenderModel("CTCC_LOC01_WalkwayCurbRun", perm, new Vector3(1.42f, 0f, cz), 0f, pairRB: true, castShadows: false));
+                staticArchitecture.Add(PlaceBlenderModel("CTCC_LOC01_WalkwayCurbRun", perm, new Vector3(6.56f, 0f, cz), 180f, pairRB: true, castShadows: false));
             }
 
-            // Lush Tropical Elephant-Ear Shrubs (cây ráy / chuối cảnh) framing courtyard planters & trees
+            // Cohesive Exterior Storytelling Yard Props (TrashBin by West portico, Approach Bollards clear of WR05, ElectricalCabinet on East wall)
+            void PlaceYardProp(string partName, Vector3 pos, float yaw, bool addCol = false, Vector3 colSize = default)
+            {
+                var go = PlaceBlenderModel("CTCC_LOC01_CourtyardProps", perm, pos, yaw, pairRB: true, castShadows: false);
+                foreach (var hide in new[] { "TrashBin", "Bollard", "ElectricalCabinet" })
+                {
+                    if (hide == partName) continue;
+                    var tf = FindDescendant(go.transform, hide);
+                    if (tf != null) tf.gameObject.SetActive(false);
+                }
+                if (addCol)
+                    Box("YardPropCol_" + partName, pos + Vector3.up * (colSize.y * 0.5f), colSize, Mat("MetalOld"), perm, solid: true)
+                        .GetComponent<Renderer>().enabled = false;
+                staticArchitecture.Add(go);
+            }
+            PlaceYardProp("TrashBin", new Vector3(0.55f, 0f, -10.95f), 25f, addCol: true, colSize: new Vector3(0.42f, 0.95f, 0.42f));
+            PlaceYardProp("Bollard", new Vector3(2.04f, 0f, -20.68f), 0f, addCol: true, colSize: new Vector3(0.24f, 0.72f, 0.24f));
+            PlaceYardProp("Bollard", new Vector3(5.96f, 0f, -20.68f), 0f, addCol: true, colSize: new Vector3(0.24f, 0.72f, 0.24f));
+            PlaceYardProp("ElectricalCabinet", new Vector3(12.78f, 1.38f, -12.60f), -90f);
+
+            // Lush Tropical Elephant-Ear Shrubs (cây ráy / chuối cảnh) seated naturally in raised wet planter mound & corners
             var shrubSpots = new (Vector3 p, float yaw, float s)[]
             {
-                (new Vector3(7.45f, 0.16f, -14.2f), 18f, 1.05f),
-                (new Vector3(9.65f, 0.16f, -15.6f), 132f, 0.92f),
-                (new Vector3(7.85f, 0.16f, -16.2f), 245f, 0.88f),
-                (new Vector3(-3.35f, 0f, -11.4f), 55f, 1.10f),
-                (new Vector3(-3.65f, 0f, -18.2f), 210f, 0.95f),
-                (new Vector3(10.8f, 0f, -10.8f), 310f, 1.00f),
+                (new Vector3(7.45f, 0.24f, -14.2f), 18f, 1.08f),
+                (new Vector3(9.65f, 0.24f, -15.6f), 132f, 0.96f),
+                (new Vector3(7.85f, 0.24f, -16.1f), 245f, 0.92f),
+                (new Vector3(-3.35f, 0f, -11.4f), 55f, 1.12f),
+                (new Vector3(-3.65f, 0f, -18.2f), 210f, 0.98f),
+                (new Vector3(10.8f, 0f, -10.8f), 310f, 1.02f),
             };
             foreach (var sp in shrubSpots)
             {
@@ -171,14 +197,20 @@ namespace CTCC.Editor
                     pairRB: false, scale: Vector3.one * sp.s, castShadows: false));
             }
 
-            // The crossfall sheds water toward the drain grates and the canopy pipe.
-            Decal("CourtyardPuddle_1", "DampFloor", new Vector3(2.28f, 0.01f, -17.00f), Vector3.up, 1.98f, 1.0f, .12f, realRoot, .76f, 31);
-            Decal("CourtyardPuddle_2", "DampFloor", new Vector3(5.62f, 0.01f, -13.79f), Vector3.up, 1.78f, .76f, .12f, realRoot, .71f, -23);
-            Decal("ApproachPuddle", "DampFloor", new Vector3(5.09f, 0.01f, -21.50f), Vector3.up, 1.45f, .72f, .12f, realRoot, .74f, 24);
+            // The crossfall sheds water toward the drain grates and the canopy downspout splash block.
+            Decal("CourtyardPuddle_1", "DampFloor", new Vector3(2.28f, 0.01f, -17.00f), Vector3.up, 2.25f, 1.25f, .12f, realRoot, .82f, 31);
+            Decal("CourtyardPuddle_2", "DampFloor", new Vector3(5.62f, 0.01f, -13.79f), Vector3.up, 2.10f, .96f, .12f, realRoot, .78f, -23);
+            Decal("ApproachPuddle", "DampFloor", new Vector3(5.09f, 0.01f, -21.50f), Vector3.up, 1.85f, .92f, .12f, realRoot, .78f, 24);
+            Decal("DownspoutSplashDamp", "DampFloor", new Vector3(6.42f, 0.01f, -10.84f), Vector3.up, 1.45f, 1.15f, .12f, realRoot, .84f, -14);
 
-            // Exterior reflection probe for glistening wet asphalt reflections
-            var extProbe = CreateReflectionProbe("Local reflection · LOC01", new Vector3(4.0f, 2.1f, -14.5f), new Vector3(18.0f, 7.0f, 16.0f), perm);
-            if (loc01 != null) loc01.probes.Add(extProbe);
+            // Dual Box-Projected Exterior Reflection Probes (Courtyard/Canopy + Outer Gate/Approach) for realistic wet reflections!
+            var extProbeCourt = CreateReflectionProbe("Local reflection · LOC01 Courtyard", new Vector3(4.0f, 2.1f, -13.8f), new Vector3(18.0f, 7.2f, 13.0f), perm);
+            var extProbeApproach = CreateReflectionProbe("Local reflection · LOC01 Approach", new Vector3(4.0f, 2.1f, -22.2f), new Vector3(18.0f, 7.2f, 9.5f), perm);
+            if (loc01 != null)
+            {
+                loc01.probes.Add(extProbeCourt);
+                loc01.probes.Add(extProbeApproach);
+            }
         }
 
         private void DressLoc02Reception()

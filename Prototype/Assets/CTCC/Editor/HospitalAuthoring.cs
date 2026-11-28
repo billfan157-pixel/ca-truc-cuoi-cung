@@ -803,8 +803,8 @@ namespace CTCC.Editor
 
         private DoorPose HingedExteriorGate(string name, Aperture a, float angle)
         {
-            // Phase 2.5 institutional Vietnamese hospital gate scale: 2.52m gate collider / 2.48m frame (2.62m finials)
-            // framed by 2.88m masonry pillars (0.46x0.44m, inner edges locked at x=2.80 & 5.20) + 3.08m overhead lintel beam!
+            // Phase 2.5 + LOC01 Hero Overhaul: Cycles-baked wrought-iron gate leaf (2.36x2.48m / 2.62m finials)
+            // framed by sculpted 1987 masonry piers + forged lanterns + overhead architrave (inner clear width LOCKED 2.40m: x=[2.80..5.20]!)
             if (!art) return Hinged(name, a, 2.52f, Mat("MetalPaint"), angle, false);
             var pos = new Vector3(a.x, 0, a.z);
             var parent = ResolveParent(null, pos);
@@ -812,20 +812,19 @@ namespace CTCC.Editor
             Transform pivot = Group(name + " · hinge", parent, pos + offset);
             var proxy = Box("Gate collider", new Vector3(a.width / 2f, 1.26f, 0), new Vector3(a.width - 0.025f, 2.52f, 0.08f), Mat("MetalOld"), pivot, solid: true);
             proxy.GetComponent<Renderer>().enabled = false;
-            PlaceBlenderModel("CTCC_PROP_ExteriorGate", pivot, Vector3.zero, 0f, pairRB: true);
+            PlaceBlenderModel("CTCC_PROP_ExteriorGate", pivot, Vector3.zero, 0f, pairRB: true, castShadows: true);
+
+            // Hero sculpted masonry gate arch, brick plinths, coping & forged iron pier lanterns (replaces primitive cubes!)
+            var gateArch = PlaceBlenderModel("CTCC_LOC01_GateArchAndPillars", parent, pos, 0f, pairRB: true, castShadows: true);
+            staticArchitecture.Add(gateArch);
             foreach (int s in new[] { -1, 1 })
             {
                 float px = a.x + s * (a.width * 0.5f + 0.23f); // West=2.57, East=5.43 (inner edges locked at 2.80 & 5.20)
-                Box("Gate pillar", new Vector3(px, 1.44f, a.z), new Vector3(0.46f, 2.88f, 0.44f), Mat("PlasterR"), parent, solid: true, tile: 1.5f, isStatic: true);
-                Box("Gate pillar plinth", new Vector3(px, 0.16f, a.z), new Vector3(0.52f, 0.32f, 0.50f), Mat("BaseTrim"), parent, isStatic: true);
-                Box("Gate pillar cap", new Vector3(px, 2.93f, a.z), new Vector3(0.54f, 0.10f, 0.52f), Mat("BaseTrim"), parent, isStatic: true);
-                // Institutional pillar lantern base + frosted globe atop caps
-                Box("Gate pillar lamp neck", new Vector3(px, 3.36f, a.z), new Vector3(0.16f, 0.10f, 0.16f), Mat("MetalOld"), parent, isStatic: true);
-                Box("Gate pillar lamp globe", new Vector3(px, 3.50f, a.z), new Vector3(0.18f, 0.20f, 0.18f), Mat("WarmGlow"), parent, isStatic: true);
+                Box($"Gate pillar col {(s < 0 ? "W" : "E")}", new Vector3(px, 1.48f, a.z), new Vector3(0.46f, 2.96f, 0.44f),
+                    Mat("PlasterR"), parent, solid: true, isStatic: true).GetComponent<Renderer>().enabled = false;
             }
-            // Overhead concrete hospital gate transom beam spanning [2.34..5.66] at y=2.90..3.26 (28cm clearance above 2.62m finials)
-            Box("Gate lintel beam", new Vector3(a.x, 3.08f, a.z), new Vector3(a.width + 0.96f, 0.36f, 0.44f), Mat("PlasterR"), parent, solid: true, tile: 1.5f, isStatic: true);
-            Box("Gate lintel coping", new Vector3(a.x, 3.30f, a.z), new Vector3(a.width + 1.06f, 0.08f, 0.52f), Mat("BaseTrim"), parent, isStatic: true);
+            Box("Gate lintel beam", new Vector3(a.x, 3.16f, a.z), new Vector3(a.width + 1.04f, 0.44f, 0.44f),
+                Mat("PlasterR"), parent, solid: true, isStatic: true).GetComponent<Renderer>().enabled = false;
             return new DoorPose { pivot = pivot, openAngle = angle };
         }
 

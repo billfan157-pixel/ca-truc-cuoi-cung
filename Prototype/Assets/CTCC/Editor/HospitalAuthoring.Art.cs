@@ -188,6 +188,37 @@ namespace CTCC.Editor
             HeroAtlasMat("STAFF_WallFan", hasR: true, bump: 0.74f, ao: 0.90f);
             HeroAtlasMat("STAFF_LinenBin", hasR: true, bump: 0.76f, ao: 0.90f);
 
+            // LOC01 Exterior & Entrance Hero Asset Kit + Block K-A 1987 Facade (Blender 4.5 Cycles-Baked PBR, Paired B 2005 <-> R 2012)
+            HeroAtlasMat("LOC01_FacadeBay", hasR: true, bump: 0.80f, ao: 0.90f);
+            HeroAtlasMat("LOC01_BreezeBay", hasR: true, bump: 0.82f, ao: 0.92f);
+            HeroAtlasMat("LOC01_KAGroundFacade", hasR: true, bump: 0.82f, ao: 0.92f);
+            HeroAtlasMat("LOC01_KAGroundPrints", hasR: true, bump: 0.28f, ao: 0.78f);
+            HeroAtlasMat("LOC01_EntryCanopy", hasR: true, bump: 0.80f, ao: 0.92f);
+            HeroAtlasMat("LOC01_GateArch", hasR: true, bump: 0.82f, ao: 0.92f);
+            HeroAtlasMat("LOC01_ExteriorGate", hasR: true, bump: 0.78f, ao: 0.90f);
+            HeroAtlasMat("LOC01_Mailbox", hasR: true, bump: 0.72f, ao: 0.90f);
+            HeroAtlasMat("LOC01_MailboxLid", hasR: true, bump: 0.58f, ao: 0.86f);
+            HeroAtlasMat("LOC01_FenceBay", hasR: true, bump: 0.80f, ao: 0.90f);
+            HeroAtlasMat("LOC01_Gatehouse", hasR: true, bump: 0.78f, ao: 0.92f);
+            HeroAtlasMat("LOC01_GatehousePrints", hasR: true, bump: 0.24f, ao: 0.76f);
+            HeroAtlasMat("LOC01_Motorbike", hasR: true, bump: 0.72f, ao: 0.90f);
+            HeroAtlasMat("LOC01_MotorbikeDecals", hasR: true, bump: 0.22f, ao: 0.74f);
+            HeroAtlasMat("LOC01_DirectoryBoard", hasR: true, bump: 0.76f, ao: 0.90f);
+            HeroAtlasMat("LOC01_TerrazzoBench", hasR: true, bump: 0.74f, ao: 0.90f);
+            HeroAtlasMat("LOC01_DrainGrate", hasR: true, bump: 0.82f, ao: 0.92f);
+            HeroAtlasMat("LOC01_Planter", hasR: true, bump: 0.84f, ao: 0.92f);
+            HeroAtlasMat("LOC01_CurbRun", hasR: true, bump: 0.78f, ao: 0.90f);
+            HeroAtlasMat("LOC01_UtilityPole", hasR: true, bump: 0.78f, ao: 0.90f);
+            HeroAtlasMat("LOC01_YardProps", hasR: true, bump: 0.76f, ao: 0.90f);
+            HeroAtlasMat("LOC01_TreeBark", hasR: true, bump: 0.84f, ao: 0.92f);
+
+            // Clean weathered structural concrete for K-A parapets/slabs (replaces oversized spotted TerrazzoBench BaseTrim outside!)
+            Lit("ExteriorConcrete", 0.76f, 0.78f, 0.73f, maps: "CampusStuccoR", tint: true, bump: 0.44f, ao: 0.80f);
+            // Dry operational 2005 street asphalt (avoids turning outer street into square paving tiles in Layer B!)
+            Lit("CH01_AsphaltDryB", 1.18f, 1.16f, 1.10f, maps: "WetAsphalt", tint: true, bump: 0.44f, ao: 0.74f);
+            Mat("CH01_AsphaltDryB").SetFloat("_Smoothness", 0.24f);
+            EditorUtility.SetDirty(Mat("CH01_AsphaltDryB"));
+
             Lit("MonitorScreen", 1f, 1f, 1f, smooth: 0.65f);
             if (art)
             {
@@ -584,9 +615,12 @@ namespace CTCC.Editor
                 bool clampedAtlas = leafOrHairAlpha || family is "LanSkin" or "AnSkin" or "GatekeeperSkin"
                     or "LanEye" or "LanTeeth" or "LanTongue" or "LanBadge" or "LanHair" or "AnHair"
                     or "GatekeeperHair" or "HairCards" or "LanEyebrow" or "LanEyelash" or "ObscuredFace"
-                    or "ObsCard" or "F101" or "LOC02" or "LOC03" or "HALL" or "STAFF";
-                bool heroAtlas = family is "LOC02" or "LOC03" or "HALL" or "STAFF";
-                bool stream = repeat && (!clampedAtlas || heroAtlas) && family is not ("WaterRun" or "PaintLoss" or "DampFloor" or "RustRun" or "WallBaseGrime" or "SkinMicroPore" or "TubeYellowStain" or "StretcherDragTrack" or "TerrazzoRainSeep");
+                    or "ObsCard" or "F101" or "LOC01" or "LOC02" or "LOC03" or "HALL" or "STAFF";
+                bool heroAtlas = family is "LOC01" or "LOC02" or "LOC03" or "HALL" or "STAFF";
+                bool noStreamCloseupHero = path.Contains("LOC01_Mailbox") || path.Contains("LOC01_Gatehouse")
+                    || path.Contains("LOC01_Motorbike") || path.Contains("LOC01_KAGroundPrints")
+                    || path.Contains("LOC01_TerrazzoBench") || path.Contains("LOC01_UtilityPole");
+                bool stream = repeat && (!clampedAtlas || heroAtlas) && !noStreamCloseupHero && family is not ("WaterRun" or "PaintLoss" or "DampFloor" or "RustRun" or "WallBaseGrime" or "SkinMicroPore" or "TubeYellowStain" or "StretcherDragTrack" or "TerrazzoRainSeep");
                 var wantedType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
                 var wrap = repeat && !clampedAtlas ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
                 bool wantAlpha = !repeat || leafOrHairAlpha;
@@ -1570,20 +1604,34 @@ namespace CTCC.Editor
                 .GetComponent<Renderer>().enabled = false;
             Decal("WardSinkFloorAO", "BedContact", new Vector3(13.44f, 0.01f, 6.57f), Vector3.up, 0.66f, 0.96f, 0.22f, permanent, 0.68f);
 
-            // Courtyard Entry Canopy (stepped 1987 concrete portico slab seated flush on exterior wall z=-8.10 + green fascia + brick column plinths & concrete capitals)
-            Box("Courtyard entry canopy", new Vector3(4, 2.85f, -9.56f), new Vector3(4.55f, 0.22f, 2.92f), Mat("BaseTrim"), tile: 2f, isStatic: true);
-            Surface("Canopy fascia band", new Vector3(4, 2.94f, -11.02f), new Vector3(4.66f, 0.30f, 0.08f), "DadoR", "DadoB", tile: 2.0f, isStatic: true);
-            Box("Canopy drip lip", new Vector3(4, 3.10f, -11.03f), new Vector3(4.74f, 0.055f, 0.14f), Mat("BaseTrim"), tile: 1.5f, isStatic: true);
-            Box("Canopy column L", new Vector3(1.88f, 1.39f, -10.5f), new Vector3(0.29f, 2.78f, 0.29f), Mat("ExteriorFacade"), solid: true, tile: 2f, isStatic: true);
-            Box("Canopy column R", new Vector3(6.12f, 1.39f, -10.5f), new Vector3(0.29f, 2.78f, 0.29f), Mat("ExteriorFacade"), solid: true, tile: 2f, isStatic: true);
-            foreach (float cx in new[] { 1.88f, 6.12f })
+            // Hero Cycles-Baked 1987 Block K-A Ground-Floor Reception Facade Cladding & Monumental Entry Portico Canopy
+            // (Replaces ALL legacy primitive canopy cubes & seals the S1/Floor-2 gap while preserving exact ENTRY 1.80x2.42m clearance!)
+            if (art)
             {
-                Box($"Canopy col plinth {cx:0.0}", new Vector3(cx, 0.34f, -10.5f), new Vector3(0.36f, 0.68f, 0.36f), Mat("WeatheredBrick"), tile: 1.2f, isStatic: true);
-                Box($"Canopy col cap {cx:0.0}", new Vector3(cx, 2.69f, -10.5f), new Vector3(0.37f, 0.12f, 0.37f), Mat("BaseTrim"), isStatic: true);
+                var loc01Perm = multiScene ? zones["LOC01"].permanent : permanent;
+                var kaGround = PlaceBlenderModel("CTCC_LOC01_KAGroundFacade", loc01Perm, new Vector3(4.0f, 0f, -8.06f), 0f, pairRB: true, castShadows: false);
+                staticArchitecture.Add(kaGround);
+                var entryCanopy = PlaceBlenderModel("CTCC_LOC01_EntryCanopy", loc01Perm, new Vector3(4.0f, 0f, -8.08f), 0f, pairRB: true, castShadows: true);
+                staticArchitecture.Add(entryCanopy);
+                // Solid hidden colliders for the two structural portico columns (world x=1.88 & 6.12, z=-10.50)
+                foreach (float cx in new[] { 1.88f, 6.12f })
+                {
+                    Box($"Canopy column col {cx:0.0}", new Vector3(cx, 1.40f, -10.50f), new Vector3(0.38f, 2.80f, 0.38f),
+                        Mat("ExteriorConcrete"), loc01Perm, solid: true, isStatic: true).GetComponent<Renderer>().enabled = false;
+                }
+                // Hero Cycles-Baked Raised Brick Courtyard Planter & Organic Wet Tropical Soil Mound (replaces flat timber-bark boxes!)
+                var planter = PlaceBlenderModel("CTCC_LOC01_PlanterCurbAndWalkway", loc01Perm, new Vector3(8.40f, 0f, -15.02f), 0f, pairRB: true, castShadows: false);
+                staticArchitecture.Add(planter);
+                Box("East planter collider", new Vector3(8.40f, 0.20f, -15.02f), new Vector3(4.56f, 0.40f, 3.94f),
+                    Mat("WeatheredBrick"), loc01Perm, solid: true, isStatic: true).GetComponent<Renderer>().enabled = false;
             }
-            PlaceBlenderModel("CTCC_PROP_BulkheadLamp", permanent, new Vector3(4.0f, 2.66f, -8.12f), 0f, pairRB: false, castShadows: false);
-            Box("Path edge", new Vector3(8.40f, 0.08f, -15.02f), new Vector3(4.5f, 0.17f, 3.89f), Mat("Exterior"), solid: true, isStatic: true);
-            Box("Garden soil", new Vector3(8.40f, 0.182f, -15.02f), new Vector3(4.30f, 0.043f, 3.69f), Mat("Bark"), isStatic: true);
+            else
+            {
+                Box("Courtyard entry canopy", new Vector3(4, 2.85f, -9.56f), new Vector3(4.55f, 0.22f, 2.92f), Mat("BaseTrim"), tile: 2f, isStatic: true);
+                Box("Canopy column L", new Vector3(1.88f, 1.39f, -10.5f), new Vector3(0.29f, 2.78f, 0.29f), Mat("ExteriorFacade"), solid: true, tile: 2f, isStatic: true);
+                Box("Canopy column R", new Vector3(6.12f, 1.39f, -10.5f), new Vector3(0.29f, 2.78f, 0.29f), Mat("ExteriorFacade"), solid: true, tile: 2f, isStatic: true);
+                Box("Path edge", new Vector3(8.40f, 0.08f, -15.02f), new Vector3(4.5f, 0.17f, 3.89f), Mat("Exterior"), solid: true, isStatic: true);
+            }
             // Inner Light Court (Sân sáng north of Room 101: x=[5.6..14.2], z=[8.1..14.1]) wet concrete paving & garden border
             Surface("Inner light court floor", new Vector3(9.9f, -0.14f, 11.1f), new Vector3(8.8f, 0.20f, 6.2f), "ConcretePavingR", "ConcretePavingB", solid: false, tile: 2.2f, isStatic: true);
             Box("Light court planter curb", new Vector3(9.9f, 0.06f, 11.6f), new Vector3(5.6f, 0.22f, 2.4f), Mat("WeatheredBrick"), isStatic: true);
@@ -1594,12 +1642,12 @@ namespace CTCC.Editor
             {
                 (new Vector3(8.6f, 0.12f, 11.7f), 28f, 0.72f, true),
                 (new Vector3(11.6f, 0.12f, 11.5f), 142f, 0.76f, false),
-                (new Vector3(8.75f, 0.14f, -14.8f), 45f, 1.05f, true),
+                (new Vector3(8.75f, 0.24f, -14.8f), 45f, 1.08f, true),
             };
             foreach (var tr in treeSpots)
             {
                 var tree = PlaceBlenderModel(tr.variantA ? "CTCC_ENV_CourtyardTree_A" : "CTCC_ENV_CourtyardTree_B",
-                    permanent, tr.pos, tr.yaw, pairRB: false, scale: Vector3.one * tr.scale, castShadows: false);
+                    permanent, tr.pos, tr.yaw, pairRB: tr.variantA, scale: Vector3.one * tr.scale, castShadows: false);
                 staticArchitecture.Add(tree);
             }
 

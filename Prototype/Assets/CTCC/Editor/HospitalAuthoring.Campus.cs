@@ -346,9 +346,9 @@ namespace CTCC.Editor
             Box("K-A Roof slab East-2F terrace", new Vector3(14.2f, 7.82f, 27.0f), new Vector3(8.0f, 0.28f, 26.2f), Mat("BaseTrim"), g, isStatic: true);
             Box("K-A Roof slab North-2F wing", new Vector3(2.0f, 7.82f, 45.0f), new Vector3(16.4f, 0.28f, 10.4f), Mat("BaseTrim"), g, isStatic: true);
 
-            // Rooftop parapet trim around South 3F main roofline
+            // Rooftop parapet trim around South 3F main roofline (weathered ExteriorConcrete — zero Dalmatian terrazzo!)
             Box("K-A Parapet South", new Vector3(1.5f, 12.18f, -8.05f), new Vector3(33.4f, 0.65f, 0.30f), Mat("ExteriorFacade"), g, isStatic: true);
-            Box("K-A Parapet Copings", new Vector3(1.5f, 12.54f, -8.05f), new Vector3(33.6f, 0.12f, 0.42f), Mat("BaseTrim"), g, isStatic: true);
+            Box("K-A Parapet Copings", new Vector3(1.5f, 12.54f, -8.05f), new Vector3(33.6f, 0.14f, 0.44f), Mat("ExteriorConcrete"), g, isStatic: true);
 
             if (art)
             {
@@ -701,13 +701,34 @@ namespace CTCC.Editor
                 };
                 foreach (var pl in poles)
                 {
-                    staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_UtilityPoleAndLamp", g, pl.pos, pl.yaw, pairRB: false, castShadows: false));
+                    staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_UtilityPoleAndLamp", g, pl.pos, pl.yaw, pairRB: true, castShadows: false));
                     if (pl.addLight)
                     {
                         Vector3 lampPos = pl.pos + Quaternion.Euler(0, pl.yaw, 0) * new Vector3(0, 6.6f, 2.0f);
                         Lamp("Campus sodium streetlamp", LightType.Point, lampPos, 7.8f, 22f, new Color(0.98f, 0.72f, 0.38f), perm);
                     }
                 }
+                // Sagging overhead catenary street power wires spanning south avenue utility poles (visible looking out gate in B07!)
+                var wirePoles = new[] { new Vector3(-18.0f, 8.18f, -31.0f), new Vector3(-7.0f, 8.18f, -28.0f), new Vector3(16.0f, 8.18f, -29.0f), new Vector3(34.0f, 8.18f, -31.0f) };
+                for (int wi = 0; wi < wirePoles.Length - 1; wi++)
+                {
+                    Vector3 a = wirePoles[wi], b = wirePoles[wi + 1];
+                    foreach (float zOff in new[] { -0.32f, 0.32f })
+                    {
+                        for (int seg = 0; seg < 6; seg++)
+                        {
+                            float t0 = seg / 6f, t1 = (seg + 1) / 6f;
+                            Vector3 p0 = Vector3.Lerp(a, b, t0) + new Vector3(0f, -0.58f * Mathf.Sin(t0 * Mathf.PI), zOff);
+                            Vector3 p1 = Vector3.Lerp(a, b, t1) + new Vector3(0f, -0.58f * Mathf.Sin(t1 * Mathf.PI), zOff);
+                            Vector3 mid = (p0 + p1) * 0.5f;
+                            var segGo = Box($"OverheadWire_{wi}_{seg}", mid, new Vector3(0.022f, 0.022f, Vector3.Distance(p0, p1)), Mat("Black"), g, isStatic: true);
+                            segGo.transform.LookAt(p1);
+                            segGo.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                        }
+                    }
+                }
+                // Warm sodium road pool & wet asphalt glow across outer street outside GATE-CONG (grounds B07 look-back!)
+                Lamp("Outer avenue B07 sodium wash", LightType.Point, new Vector3(4.0f, 5.4f, -27.5f), 6.2f, 19f, new Color(0.96f, 0.70f, 0.36f), perm);
 
                 // Tropical Hospital Campus Trees (cây bàng / xà cừ / phượng vĩ) framing courtyards & avenues
                 // Carefully placed outside every doorway, road lane, sightline cone to K-B/K-A/K-D signs, and locked core!
@@ -729,16 +750,18 @@ namespace CTCC.Editor
                     (new Vector3(-22.0f, 0f, 74.5f), 195f, 1.40f, false),
                     (new Vector3(34.0f, 0f, 74.0f), 305f, 1.35f, true),
                     (new Vector3(53.0f, 0f, 68.0f), 120f, 1.40f, false),
-                    // Outer avenue flanking trees across the street
+                    // Outer avenue flanking trees across the street (grounds B07 gate return horizon!)
                     (new Vector3(-36.0f, 0f, -38.5f), 15f, 1.50f, true),
                     (new Vector3(-12.0f, 0f, -38.5f), 145f, 1.45f, false),
+                    (new Vector3(-1.5f, 0f, -35.8f), 75f, 1.38f, true),
+                    (new Vector3(9.2f, 0f, -35.5f), 205f, 1.42f, true),
                     (new Vector3(18.0f, 0f, -38.5f), 260f, 1.50f, true),
                     (new Vector3(44.0f, 0f, -38.5f), 60f, 1.45f, false),
                 };
                 foreach (var t in campusTrees)
                 {
                     staticArchitecture.Add(PlaceBlenderModel(t.varA ? "CTCC_ENV_CourtyardTree_A" : "CTCC_ENV_CourtyardTree_B",
-                        g, t.pos, t.yaw, pairRB: false, scale: Vector3.one * t.scale, castShadows: false));
+                        g, t.pos, t.yaw, pairRB: t.varA, scale: Vector3.one * t.scale, castShadows: false));
                 }
 
                 // Courtyard elephant-ear shrubs lining K-A front planters & Inner Light Court

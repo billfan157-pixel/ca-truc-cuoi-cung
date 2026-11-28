@@ -65,7 +65,7 @@ namespace CTCC
             {
                 if (tf.name == "Gate collider") gateCol = tf.GetComponent<BoxCollider>();
                 if (tf.name == "Gate lintel beam") foundLintelBeam = true;
-                if (tf.name == "Gate pillar" && tf.TryGetComponent<Renderer>(out var pr))
+                if ((tf.name == "Gate pillar" || tf.name.Contains("CTCC_LOC01_GateArchAndPillars")) && tf.TryGetComponent<Renderer>(out var pr))
                     maxPillarHeight = Mathf.Max(maxPillarHeight, pr.bounds.size.y);
                 if (tf.name.Contains("CTCC_PROP_ExteriorGate") && tf.TryGetComponent<Renderer>(out var gr))
                     gateModelRend = gr;

@@ -15,8 +15,7 @@ namespace CTCC.Editor
             Transform wardR = zones["LOC03"].real;
             Transform deskR = zones["LOC02"].real;
 
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CH01CanopyDrain", court,
-                new Vector3(6.14f, 0f, -10.64f), 0, castShadows: false));
+            // Note: CTCC_LOC01_EntryCanopy now integrates a Cycles-baked galvanized gutter, collector hopper, downspout & splash block!
             staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CH01ReplacementShutter", court,
                 new Vector3(11.50f, 1.99f, -8.014f), 0, castShadows: false));
             staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_CH01ReplacementShutter", court,
@@ -152,17 +151,19 @@ namespace CTCC.Editor
             var shader = Shader.Find("CTCC/RainRipples");
             if (shader == null) throw new System.InvalidOperationException("Missing CTCC/RainRipples.");
             var ripple = MaterialAsset("CH01_RainRipples", shader);
-            ripple.SetColor("_Glint", new Color(.55f, .63f, .69f, .31f));
+            ripple.SetColor("_Glint", new Color(.52f, .64f, .72f, .62f));
             EditorUtility.SetDirty(ripple);
 
+            // Reflective organic monsoon puddles positioned along drainage lows & storm grates (leaving dry portico z > -10.95 dry!)
             var pockets = new (Vector3 position, Vector2 size, float yaw)[]
             {
-                (new Vector3(5.09f, .020f, -21.50f), new Vector2(1.19f, .53f), 31),
-                (new Vector3(2.28f, .021f, -17.00f), new Vector2(1.86f, .81f), 29),
-                (new Vector3(5.71f, .021f, -13.72f), new Vector2(1.67f, .52f), -23),
-                (new Vector3(6.10f, .021f, -10.96f), new Vector2(1.06f, .48f), -12),
-                (new Vector3(11.15f, -.029f, 9.92f), new Vector2(1.75f, .81f), 14),
-                (new Vector3(7.15f, -.029f, 10.21f), new Vector2(1.10f, .56f), -21)
+                (new Vector3(5.05f, .016f, -21.55f), new Vector2(1.95f, 1.15f), 26),
+                (new Vector3(2.90f, .016f, -23.10f), new Vector2(2.30f, 1.20f), -18),
+                (new Vector3(2.38f, .017f, -16.95f), new Vector2(2.35f, 1.25f), 24),
+                (new Vector3(5.58f, .017f, -13.75f), new Vector2(2.15f, 1.05f), -21),
+                (new Vector3(6.48f, .017f, -10.88f), new Vector2(1.45f, .92f), -12),
+                (new Vector3(11.15f, -.029f, 9.92f), new Vector2(1.85f, .92f), 14),
+                (new Vector3(7.15f, -.029f, 10.21f), new Vector2(1.25f, .68f), -21)
             };
             foreach (var pocket in pockets)
             {
