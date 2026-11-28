@@ -158,6 +158,7 @@ namespace CTCC.Editor
         private readonly List<Transform> movingFans = new();
         private readonly List<ParticleSystem> atmosphericParticles = new();
         private readonly List<GameObject> staticArchitecture = new();
+        private readonly List<GameObject> probeAnchoredStatic = new();
         private readonly Scene bootstrapScene;
         private readonly HospitalScene world;
         private readonly Transform permanent, real, report, memory;
@@ -515,6 +516,15 @@ namespace CTCC.Editor
                 if (go == null) continue;
                 ApplyStaticRecursive(go, flags);
             }
+            // Probe-anchored corridor walls keep GI/occlusion/reflection static flags WITHOUT BatchingStatic
+            // so Unity evaluates each wall segment's exact interior LightProbe anchor cleanly!
+            var anchoredFlags = StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic |
+                                StaticEditorFlags.ReflectionProbeStatic | StaticEditorFlags.ContributeGI;
+            foreach (var go in probeAnchoredStatic)
+            {
+                if (go == null) continue;
+                ApplyStaticRecursive(go, anchoredFlags);
+            }
         }
 
         private static void ApplyStaticRecursive(GameObject go, StaticEditorFlags flags)
@@ -608,7 +618,7 @@ namespace CTCC.Editor
                     new Vector3(a.w, 0.22f, a.d), "PlasterR", "PlasterB", true, 2.2f, isStatic: true);
         }
 
-        private void Wall(bool alongX, float axis, float from, float to, float bottom = 0, float top = 3.6f)
+        private void Wall(bool alongX, float axis, float from, float to, float bottom = 0, float top = 3.6f, float? probeX = null)
         {
             if (to - from < 0.02f || top - bottom < 0.01f) return;
             const float thickness = 0.20f;
@@ -617,7 +627,16 @@ namespace CTCC.Editor
                 var middle = (from + to) * 0.5f;
                 var point = alongX ? new Vector3(middle, (low + high) * 0.5f, axis) : new Vector3(axis, (low + high) * 0.5f, middle);
                 var scale = alongX ? new Vector3(to - from, high - low, thickness) : new Vector3(thickness, high - low, to - from);
-                Surface(name, point, scale, r, b, solid, 2.4f, isStatic: true);
+                bool customAnchor = art && !alongX && probeX.HasValue;
+                var go = Surface(name, point, scale, r, b, solid, 2.4f, isStatic: !customAnchor);
+                if (customAnchor)
+                {
+                    var anchor = new GameObject(name + " · probeAnchor").transform;
+                    anchor.SetParent(go.transform.parent, false);
+                    anchor.position = new Vector3(probeX.Value, (low + high) * 0.5f, middle);
+                    go.GetComponent<MeshRenderer>().probeAnchor = anchor;
+                    probeAnchoredStatic.Add(go);
+                }
             }
 
             float split = Mathf.Clamp(1.15f, bottom, top);
@@ -642,12 +661,12 @@ namespace CTCC.Editor
             }
         }
 
-        private void WallOpening(bool alongX, float axis, float from, float to, float opening, float width, float clear)
+        private void WallOpening(bool alongX, float axis, float from, float to, float opening, float width, float clear, float? probeX = null)
         {
             float half = width * 0.5f;
-            Wall(alongX, axis, from, opening - half);
-            Wall(alongX, axis, opening + half, to);
-            Wall(alongX, axis, opening - half, opening + half, clear, layout.wallHeight);
+            Wall(alongX, axis, from, opening - half, probeX: probeX);
+            Wall(alongX, axis, opening + half, to, probeX: probeX);
+            Wall(alongX, axis, opening - half, opening + half, clear, layout.wallHeight, probeX: probeX);
         }
 
         private Aperture Opening(string id) => layout.openings.Single(e => e.id == id);
@@ -698,10 +717,15 @@ namespace CTCC.Editor
             WallOpening(true, -8, -1, 9, 4, 1.8f, 2.42f);
             Wall(true, 0, 1.1f, 2.5f);
             Wall(true, 0, 5.5f, 9);
-            Wall(false, -1.1f, 0, 16);
+            // STAFF West wall split cleanly behind pilasters (z=4.90, 8.95) & probe-anchored inside STAFF air (x=-0.55)
+            // so LightProbe GI never extrapolates outside the west building shell!
+            Wall(false, -1.1f, 0, 4.90f, probeX: -0.55f);
+            Wall(false, -1.1f, 4.90f, 8.95f, probeX: -0.55f);
+            Wall(false, -1.1f, 8.95f, 16, probeX: -0.55f);
             // CH01-R compact nonlinear loop: Staff Cross-Passage at z = 7.50 connecting STAFF Nursing Alcove <-> HALL Corridor
-            WallOpening(false, 1.2f, 0, 16, 7.50f, 1.04f, 2.22f);
-            WallOpening(false, 2.4f, 0, 16, 7.50f, 1.04f, 2.22f);
+            // Interior probe anchors (STAFF x=+0.65, HALL x=+3.00) keep doorway lintels 100% GI-seamless with adjacent corridor walls!
+            WallOpening(false, 1.2f, 0, 16, 7.50f, 1.04f, 2.22f, probeX: 0.65f);
+            WallOpening(false, 2.4f, 0, 16, 7.50f, 1.04f, 2.22f, probeX: 3.00f);
             Wall(true, 6.94f, 1.2f, 2.4f, 0f, 2.22f);
             Wall(true, 8.06f, 1.2f, 2.4f, 0f, 2.22f);
             Surface("Staff cross threshold", new Vector3(1.80f, -0.1f, 7.50f), new Vector3(1.42f, 0.20f, 1.04f),
@@ -711,6 +735,11 @@ namespace CTCC.Editor
             var staffDoor = HingedStaffCrossDoor("DOOR-STAFF", new Vector3(2.36f, 0f, 7.03f), 0.94f, -96f);
             if (multiScene) zones["LOC03"].region.staffCrossDoor = staffDoor;
             else world.staffCrossDoor = staffDoor;
+            if (art)
+            {
+                var scFrame = PlaceBlenderModel("CTCC_ENV_StaffCrossDoorFrame", ResolveParent(null, new Vector3(1.80f, 0f, 7.50f)), new Vector3(1.80f, 0f, 7.50f), 0f, pairRB: true, castShadows: false);
+                staticArchitecture.Add(scFrame);
+            }
 
             WallOpening(false, 5.60f, 0, 16, 4.75f, 1.2f, art ? 2.84f : 2.22f);
             var room = Opening("GATE-101");
@@ -844,9 +873,12 @@ namespace CTCC.Editor
 
             var proxy = Box("ER door collider", new Vector3(a.width / 2f, 1.09f, 0), new Vector3(a.width - 0.025f, 2.18f, 0.065f), Mat("MetalPaint"), leaf, solid: true);
             proxy.GetComponent<Renderer>().enabled = false;
-            // Two side-by-side Blender Emergency Swing Door leaves spanning the 1.40m ER doorway!
-            PlaceBlenderModel("CTCC_ENV_EmergencySwingDoorLeaf", leaf, new Vector3(a.width * 0.25f, 0f, 0f), 0f, pairRB: true);
-            PlaceBlenderModel("CTCC_ENV_EmergencySwingDoorLeaf", leaf, new Vector3(a.width * 0.75f, 0f, 0f), 180f, pairRB: true);
+            // Heavy molded institutional ER doorway frame & stretcher threshold wrapping the 1.40 x 2.20m opening!
+            var erFrame = PlaceBlenderModel("CTCC_ENV_EmergencyDoorFrame", ResolveParent(null, pos), pos, a.alongX ? 0f : -90f, pairRB: true, castShadows: false);
+            staticArchitecture.Add(erFrame);
+            // Paired 0.692m leaves spanning [0.004..0.696] & [1.396..0.704] — meeting flush at center 0.700 with ZERO side gaps!
+            PlaceBlenderModel("CTCC_ENV_EmergencySwingDoorLeaf", leaf, new Vector3(0.004f, 0f, 0f), 0f, pairRB: true, castShadows: false);
+            PlaceBlenderModel("CTCC_ENV_EmergencySwingDoorLeaf", leaf, new Vector3(a.width - 0.004f, 0f, 0f), 180f, pairRB: true, castShadows: false);
             return new DoorPose { pivot = pivot, openAngle = angle };
         }
 

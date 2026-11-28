@@ -161,6 +161,33 @@ namespace CTCC.Editor
             HeroAtlasMat("LOC03_StorePayoff", hasR: true, bump: 0.80f, ao: 0.92f);
             HeroAtlasMat("LOC03_PatientBag", hasR: true, bump: 0.80f, ao: 0.90f);
 
+            // HALL & STAFF Architectural Modular Kit + Nursing Workstation Kit (Blender 4.5 Cycles-Baked PBR, Paired B 2005 <-> R 2012)
+            HeroAtlasMat("HALL_Pilaster", hasR: true, bump: 0.80f, ao: 0.92f);
+            HeroAtlasMat("HALL_CeilingArch", hasR: true, bump: 0.82f, ao: 0.90f);
+            HeroAtlasMat("STAFF_CeilingArch", hasR: true, bump: 0.82f, ao: 0.90f);
+            HeroAtlasMat("HALL_Handrail", hasR: true, bump: 0.78f, ao: 0.90f);
+            HeroAtlasMat("HALL_HandrailShort", hasR: true, bump: 0.78f, ao: 0.90f);
+            HeroAtlasMat("HALL_Conduit", hasR: true, bump: 0.76f, ao: 0.90f);
+            HeroAtlasMat("HALL_StaffDoorFrame", hasR: true, bump: 0.82f, ao: 0.92f);
+            HeroAtlasMat("HALL_StaffDoorLeaf", hasR: true, bump: 0.82f, ao: 0.92f);
+            HeroAtlasMat("HALL_ERDoorFrame", hasR: true, bump: 0.80f, ao: 0.92f);
+            HeroAtlasMat("HALL_ERDoorLeaf", hasR: true, bump: 0.80f, ao: 0.92f);
+            HeroAtlasMat("HALL_ERLightBox", hasR: true, bump: 0.74f, ao: 0.90f);
+            HeroAtlasMat("HALL_PASpeaker", hasR: true, bump: 0.78f, ao: 0.90f);
+            HeroAtlasMat("HALL_FireStation", hasR: true, bump: 0.78f, ao: 0.92f);
+            HeroAtlasMat("HALL_FloorMap", hasR: true, bump: 0.56f, ao: 0.88f);
+            HeroAtlasMat("HALL_BladeSign", hasR: true, bump: 0.56f, ao: 0.88f);
+            HeroAtlasMat("HALL_Sanitizer", hasR: true, bump: 0.70f, ao: 0.88f);
+            HeroAtlasMat("HALL_BreakerPanel", hasR: true, bump: 0.76f, ao: 0.90f);
+            HeroAtlasMat("HALL_VentGrille", hasR: true, bump: 0.76f, ao: 0.90f);
+            HeroAtlasMat("STAFF_NursingDesk", hasR: true, bump: 0.78f, ao: 0.92f);
+            HeroAtlasMat("STAFF_NurseDrawer", hasR: true, bump: 0.76f, ao: 0.90f);
+            HeroAtlasMat("STAFF_NurseChair", hasR: true, bump: 0.80f, ao: 0.90f);
+            HeroAtlasMat("STAFF_WallCabinet", hasR: true, bump: 0.76f, ao: 0.92f);
+            HeroAtlasMat("STAFF_BedBoard", hasR: true, bump: 0.56f, ao: 0.88f);
+            HeroAtlasMat("STAFF_WallFan", hasR: true, bump: 0.74f, ao: 0.90f);
+            HeroAtlasMat("STAFF_LinenBin", hasR: true, bump: 0.76f, ao: 0.90f);
+
             Lit("MonitorScreen", 1f, 1f, 1f, smooth: 0.65f);
             if (art)
             {
@@ -460,7 +487,7 @@ namespace CTCC.Editor
                 {
                     var m = Lit(name, 1f, 1f, 1f, smooth: name is "Room101" or "Welcome" or "Emergency" or "Sign_HospitalGate" or "Sign_ReceptionWindow" or "Sign_NursingAlcove" or "Sign_MainArch" or "Sign_KB_Outpatient" or "Sign_KC_Inpatient" or "Sign_CampusMap" ? 0.42f : 0.14f, twoSided: true);
                     m.SetTexture("_BaseMap", Tex(name));
-                    m.SetColor("_BaseColor", Color.white);
+                    m.SetColor("_BaseColor", name == "Sign_NursingAlcove" ? new Color(0.84f, 0.83f, 0.79f) : Color.white);
                     if (name == "Sign_EmergencyBox" || name == "Sign_KD_Emergency")
                     {
                         m.SetTexture("_EmissionMap", Tex(name));
@@ -557,8 +584,8 @@ namespace CTCC.Editor
                 bool clampedAtlas = leafOrHairAlpha || family is "LanSkin" or "AnSkin" or "GatekeeperSkin"
                     or "LanEye" or "LanTeeth" or "LanTongue" or "LanBadge" or "LanHair" or "AnHair"
                     or "GatekeeperHair" or "HairCards" or "LanEyebrow" or "LanEyelash" or "ObscuredFace"
-                    or "ObsCard" or "F101" or "LOC02" or "LOC03";
-                bool heroAtlas = family is "LOC02" or "LOC03";
+                    or "ObsCard" or "F101" or "LOC02" or "LOC03" or "HALL" or "STAFF";
+                bool heroAtlas = family is "LOC02" or "LOC03" or "HALL" or "STAFF";
                 bool stream = repeat && (!clampedAtlas || heroAtlas) && family is not ("WaterRun" or "PaintLoss" or "DampFloor" or "RustRun" or "WallBaseGrime" or "SkinMicroPore" or "TubeYellowStain" or "StretcherDragTrack" or "TerrazzoRainSeep");
                 var wantedType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
                 var wrap = repeat && !clampedAtlas ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
@@ -1140,7 +1167,8 @@ namespace CTCC.Editor
 
         private static string ReportKey(string key)
         {
-            if ((key.StartsWith("LOC02_", StringComparison.Ordinal) || key.StartsWith("LOC03_", StringComparison.Ordinal))
+            if ((key.StartsWith("LOC02_", StringComparison.Ordinal) || key.StartsWith("LOC03_", StringComparison.Ordinal) ||
+                 key.StartsWith("HALL_", StringComparison.Ordinal) || key.StartsWith("STAFF_", StringComparison.Ordinal))
                 && key.EndsWith("R", StringComparison.Ordinal))
                 return key.Substring(0, key.Length - 1) + "B";
             return key switch
@@ -1167,7 +1195,8 @@ namespace CTCC.Editor
 
         private static string AgedKey(string reportKey)
         {
-            if ((reportKey.StartsWith("LOC02_", StringComparison.Ordinal) || reportKey.StartsWith("LOC03_", StringComparison.Ordinal))
+            if ((reportKey.StartsWith("LOC02_", StringComparison.Ordinal) || reportKey.StartsWith("LOC03_", StringComparison.Ordinal) ||
+                 reportKey.StartsWith("HALL_", StringComparison.Ordinal) || reportKey.StartsWith("STAFF_", StringComparison.Ordinal))
                 && reportKey.EndsWith("B", StringComparison.Ordinal))
                 return reportKey.Substring(0, reportKey.Length - 1) + "R";
             return reportKey switch
@@ -1471,26 +1500,62 @@ namespace CTCC.Editor
 
         private void DetailArchitecture()
         {
-            // Corridor Reinforced-Concrete Structural Bays: 4 Chamfered Pilasters w/ Stainless Corner Guards + Beams!
+            // HALL & STAFF Hero 1987 Structural RC Ceiling Girders, Portals, Cove Cornices & Galvanized Conduit Spines!
+            // Flush ceiling/wall architectural trims rely on baked Cycles AO + URP SSAO + Dual GI (castShadows: false matches WardArch & avoids 4x shadow-pass amplification!)
+            var hallBeams = PlaceBlenderModel("CTCC_HALL_CorridorBeams", permanent, new Vector3(4.0f, 0f, 8.0f), 0f, pairRB: true, castShadows: false);
+            staticArchitecture.Add(hallBeams);
+            var staffArch = PlaceBlenderModel("CTCC_STAFF_CorridorArch", permanent, new Vector3(0.05f, 0f, 8.0f), 0f, pairRB: true, castShadows: false);
+            staticArchitecture.Add(staffArch);
+
+            // Paired Chamfered RC Pilasters w/ Terrazzo Plinths, Hardwood Dado Rails & Riveted Satin-Inox Corner Guards
+            // West wall (4 full pilasters); East wall (3 full pilasters — z=5.25 uses overhead EastDoor101Corbel to clear Door 101 & Form A/B/C!)
             foreach (float z in new[] { 1.0f, 5.25f, 9.50f, 13.75f })
             {
-                Surface("Longitudinal lintel", new Vector3(4, 3.41f, z), new Vector3(3.04f, 0.36f, 0.32f), "PlasterR", "PlasterB", tile: 2.3f, isStatic: true);
-                var pil = PlaceBlenderModel("CTCC_ENV_ColumnPilaster", permanent, new Vector3(2.64f, 0f, z), 0f, pairRB: true, castShadows: false);
-                staticArchitecture.Add(pil);
+                var pilW = PlaceBlenderModel("CTCC_ENV_ColumnPilaster", permanent, new Vector3(2.63f, 0f, z), 0f, pairRB: true, castShadows: false);
+                staticArchitecture.Add(pilW);
+            }
+            foreach (float z in new[] { 1.0f, 9.50f, 13.75f })
+            {
+                var pilE = PlaceBlenderModel("CTCC_ENV_ColumnPilaster", permanent, new Vector3(5.37f, 0f, z), 180f, pairRB: true, castShadows: false);
+                staticArchitecture.Add(pilE);
             }
 
-            // Corridor West-Wall Hardwood Handrail & Stretcher Crash Bumpers (clear of z=7.50 STAFF Cross-Door!) + East-Wall Conduits
-            foreach (float z in new[] { 2.60f, 11.65f })
+            // Symmetric Hospital Hardwood Handrails & Stretcher Crash Bumpers on BOTH West & East HALL Walls (clear of doors & pilasters!)
+            foreach (float z in new[] { 3.12f, 11.62f })
             {
-                var rail = PlaceBlenderModel("CTCC_ENV_HandrailBay", permanent, new Vector3(2.50f, 0f, z), 0f, pairRB: true, scale: new Vector3(1f, 1f, 0.85f), castShadows: false);
-                staticArchitecture.Add(rail);
+                var railW = PlaceBlenderModel("CTCC_ENV_HandrailBay", permanent, new Vector3(2.50f, 0f, z), 0f, pairRB: true, castShadows: false);
+                staticArchitecture.Add(railW);
             }
-            for (int i = 0; i < 3; i++)
+            foreach (float z in new[] { 2.55f, 7.92f })
             {
-                float z = i * 4.22f + 1.65f;
-                var cond = PlaceBlenderModel("CTCC_ENV_ConduitRun", permanent, new Vector3(5.50f, 2.86f, z), 180f, pairRB: true, castShadows: false);
-                staticArchitecture.Add(cond);
+                var railES = PlaceBlenderModel("CTCC_ENV_HandrailBay_Short", permanent, new Vector3(5.50f, 0f, z), 180f, pairRB: true, castShadows: false);
+                staticArchitecture.Add(railES);
             }
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_HandrailBay", permanent, new Vector3(5.50f, 0f, 11.62f), 180f, pairRB: true, castShadows: false));
+
+            // Elevated Modular Surface MEP Conduit Runs (y=3.16m cleanly CLEARS Room 101 transom 2.84m & enamel sign 3.08m!)
+            foreach (float z in new[] { 3.10f, 7.30f, 11.50f })
+            {
+                var condE = PlaceBlenderModel("CTCC_ENV_ConduitRun", permanent, new Vector3(5.50f, 3.16f, z), 180f, pairRB: true, castShadows: false);
+                staticArchitecture.Add(condE);
+            }
+            foreach (float z in new[] { 3.10f, 7.30f, 11.50f })
+            {
+                var condW = PlaceBlenderModel("CTCC_ENV_ConduitRun", permanent, new Vector3(2.50f, 3.14f, z), 0f, pairRB: true, castShadows: false);
+                staticArchitecture.Add(condW);
+            }
+
+            // Reusable HALL Wayfinding, Directory & Utility MEP Fittings (each standalone FBX w/ pure self-AO & crisp atlas!)
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_HALL_FloorMapBoard", permanent, new Vector3(5.49f, 1.62f, 11.45f), 180f, pairRB: true, castShadows: false));
+            // Dual-sided hanging BladeSign dropped cleanly from ceiling at z=9.00 (50cm south of girder -> BOTH faces evenly lit!)
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_HALL_BladeSign", permanent, new Vector3(4.00f, 3.59f, 9.00f), 0f, pairRB: true, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_HALL_BreakerPanel", permanent, new Vector3(2.50f, 1.60f, 11.65f), 0f, pairRB: true, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_HALL_HandSanitizer", permanent, new Vector3(5.49f, 1.28f, 3.80f), 180f, pairRB: true, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_HALL_HandSanitizer", permanent, new Vector3(1.10f, 1.28f, 6.20f), 180f, pairRB: true, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_HALL_WallVentGrille", permanent, new Vector3(2.50f, 2.98f, 3.10f), 0f, pairRB: true, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_HALL_WallVentGrille", permanent, new Vector3(2.50f, 2.98f, 14.75f), 0f, pairRB: true, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_HALL_WallVentGrille", permanent, new Vector3(-0.99f, 2.98f, 6.80f), 0f, pairRB: true, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_HALL_WallVentGrille", permanent, new Vector3(-0.99f, 2.98f, 13.80f), 0f, pairRB: true, castShadows: false));
 
             // Hero Cycles-Baked Room 101 Structural Ceiling Beams, Corner Pilasters & Continuous Galvanized Conduits (replaces legacy primitive cubes!)
             var wardArch = PlaceBlenderModel("CTCC_LOC03_WardArch", permanent, new Vector3(9.70f, 0f, 5.00f), 0f, pairRB: true, castShadows: false);
@@ -1544,6 +1609,7 @@ namespace CTCC.Editor
             Sign("Phòng 101 inside", "Room101", new Vector3(5.715f, 3.06f, 4.74f), Vector3.right, new Vector2(0.54f, 0.205f));
             if (!art) Sign("Main emergency sign", "Emergency", new Vector3(4, 2.60f, 15.885f), Vector3.back, new Vector2(1.16f, 0.435f));
             Sign("Staff sign", "Staff", new Vector3(0, 2.67f, 0.29f), Vector3.back, new Vector2(0.97f, 0.365f));
+            Sign("Staff cross door plaque HALL", "Staff", new Vector3(2.51f, 2.52f, 7.50f), Vector3.right, new Vector2(0.76f, 0.26f), permanent, metalBacking: true);
             Sign("Canopy letterboard", "Welcome", new Vector3(4, 3.44f, -11.04f), Vector3.back, new Vector2(2.62f, 0.88f));
             Sign("Demolition board", "Demolition", new Vector3(6.76f, 1.20f, -20.115f), Vector3.back, new Vector2(1.48f, 0.557f), real);
             Sign("Demolition marker return", "Demolition", new Vector3(6.76f, 1.20f, -19.885f), Vector3.forward, new Vector2(1.48f, 0.557f), real);
@@ -1575,12 +1641,12 @@ namespace CTCC.Editor
                     rotated ? len + 0.20f : 0.78f, rotated ? 0.78f : len + 0.20f, 0.22f, permanent, 0.78f);
             }
 
-            // Corridor PA Intercom Speaker outside Room 101 (visually anchors CH01-PA01..03 broadcasts!)
+            // Corridor PA Intercom Speaker outside Room 101 (visually anchors CH01-PA01..03 broadcasts; riser meets y=3.16m conduit!)
             var pa = PlaceBlenderModel("CTCC_PROP_PASpeaker", permanent, new Vector3(5.50f, 2.62f, 3.35f), 90f, pairRB: true, castShadows: false);
             staticArchitecture.Add(pa);
 
-            // Corridor Wall-Mounted Fire Extinguisher beside Pier 2
-            var ext = PlaceBlenderModel("CTCC_PROP_FireExtinguisher", permanent, new Vector3(2.64f, 0.95f, 5.56f), 180f, pairRB: true, castShadows: false);
+            // Corridor Wall-Mounted PCCC Fire Extinguisher & Alarm Bell Station (mounted flush on West wall x=2.50, cleanly clear of z=5.25 pilaster!)
+            var ext = PlaceBlenderModel("CTCC_PROP_FireExtinguisher", permanent, new Vector3(2.592f, 0.95f, 5.66f), -90f, pairRB: true, castShadows: false);
             staticArchitecture.Add(ext);
 
             // Medical Foot-Pedal Waste Bin inside Room 101 near entrance corner
@@ -1631,7 +1697,8 @@ namespace CTCC.Editor
                 ("RecE", new Vector3(6.32f, 3.595f, -4.58f), 0f),
                 ("R101W", new Vector3(7.70f, 3.595f, 6.55f), 90f),
                 ("R101E", new Vector3(11.65f, 3.595f, 3.45f), 90f),
-                ("Staff", new Vector3(0.05f, 3.595f, 3.85f), 0f),
+                ("StaffS", new Vector3(0.05f, 3.595f, 3.85f), 0f),
+                ("StaffN", new Vector3(0.05f, 3.595f, 11.80f), 0f),
             };
             foreach (var ts in tubeSpots)
             {
@@ -1646,7 +1713,8 @@ namespace CTCC.Editor
                 ("HallS", new Vector3(4.00f, 0.01f, 2.55f), 1.45f, 4.10f, 0f),
                 ("HallMid", new Vector3(4.02f, 0.01f, 7.65f), 1.45f, 4.40f, -2f),
                 ("HallN", new Vector3(3.98f, 0.01f, 12.60f), 1.45f, 4.10f, 1f),
-                ("StaffLane", new Vector3(0.05f, 0.01f, 5.45f), 1.25f, 4.00f, 0f),
+                ("StaffLaneS", new Vector3(0.05f, 0.01f, 5.45f), 1.25f, 4.00f, 0f),
+                ("StaffLaneN", new Vector3(0.05f, 0.01f, 11.80f), 1.25f, 4.20f, 1f),
             };
             foreach (var ds in dragSpots)
             {
@@ -1659,10 +1727,12 @@ namespace CTCC.Editor
             {
                 ("RecEast", new Vector3(8.48f, 0.36f, -5.20f), Vector3.left, 4.60f, 0.34f, 0.84f),
                 ("RecWest", new Vector3(-0.98f, 0.36f, -6.20f), Vector3.right, 3.40f, 0.32f, 0.82f),
-                ("HallWestS", new Vector3(2.50f, 0.36f, 3.60f), Vector3.right, 4.40f, 0.36f, 0.88f),
-                ("HallWestN", new Vector3(2.50f, 0.36f, 9.60f), Vector3.right, 5.20f, 0.36f, 0.88f),
-                ("HallEastN", new Vector3(5.50f, 0.36f, 10.60f), Vector3.left, 4.80f, 0.34f, 0.86f),
-                ("StaffWest", new Vector3(-0.98f, 0.36f, 5.20f), Vector3.right, 5.60f, 0.34f, 0.85f),
+                ("HallWestS", new Vector3(2.50f, 0.36f, 3.60f), Vector3.right, 4.40f, 0.34f, 0.86f),
+                ("HallWestN", new Vector3(2.50f, 0.36f, 11.40f), Vector3.right, 5.20f, 0.34f, 0.86f),
+                ("HallEastN", new Vector3(5.50f, 0.36f, 11.40f), Vector3.left, 4.80f, 0.32f, 0.85f),
+                ("StaffWestS", new Vector3(-0.98f, 0.36f, 5.20f), Vector3.right, 5.40f, 0.32f, 0.84f),
+                ("StaffWestN", new Vector3(-0.98f, 0.36f, 12.20f), Vector3.right, 5.20f, 0.30f, 0.85f),
+                ("StaffEastN", new Vector3(1.10f, 0.36f, 12.00f), Vector3.left, 4.60f, 0.28f, 0.82f),
                 ("R101South", new Vector3(9.75f, 0.36f, 2.00f), Vector3.forward, 6.20f, 0.32f, 0.86f),
                 ("R101NorthB", new Vector3(9.75f, 0.36f, 8.00f), Vector3.back, 6.80f, 0.34f, 0f),
             };
@@ -1873,22 +1943,33 @@ namespace CTCC.Editor
             }
             world.interactables?.ConfigureDrawer("DRAWER-DESK", deskDrawerRoot, deskDrawerRoot.localPosition, new Vector3(0.28f, 0f, 0f));
 
-            // CH01-R Compact STAFF Nursing / Admin Alcove (x=0.92 against east wall -> preserves 1.72m Door-B escape lane!)
+            // CH01-R Hero STAFF Nursing / Admin Alcove (x=0.92 against east wall -> preserves >=1.72m Door-B escape lane!)
             var staffPermRoot = ResolveParent(permanent, new Vector3(0.92f, 0f, 3.65f));
             var staffRepRoot = ResolveParent(report, new Vector3(0.92f, 0f, 3.65f));
-            if (art && multiScene) zones["LOC03"].region.staffChair = MakeStaffChair(staffPermRoot);
+            if (art && multiScene) zones["LOC03"].region.staffChair = MakeStaffChair(staffPermRoot, zones["LOC03"].region);
             var nursingDesk = PlaceBlenderModel("CTCC_PROP_NursingFilingDesk", staffPermRoot, new Vector3(0.92f, 0f, 3.65f), 90f, pairRB: true);
+            // Gooseneck desk bulb glows warm ONLY in 2005 Layer B (dead glass in 2012 Layer R!)
+            var deskBulbTf = FindDescendant(nursingDesk.transform, "DeskBulb");
+            if (deskBulbTf != null && deskBulbTf.GetComponent<MeshRenderer>() is { } deskBulbMr)
+            {
+                deskBulbMr.sharedMaterial = Mat("DeadTube");
+                AddFinish(new LayerFinish { renderer = deskBulbMr, real = Mat("DeadTube"), report = Mat("WarmGlow") });
+            }
             Box("Nursing desk col", new Vector3(0.92f, 0.46f, 3.65f), new Vector3(0.36f, 0.92f, 1.18f), Mat("CabinetPaint"), staffPermRoot, solid: true).GetComponent<Renderer>().enabled = false;
             staticArchitecture.Add(nursingDesk);
             Decal("StaffDeskAO", "BedContact", new Vector3(0.84f, 0.01f, 3.52f), Vector3.up, 0.85f, 1.65f, 0.22f, staffPermRoot, 0.78f);
-            // Wall light switch beside STAFF cross-door frame
-            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_WallOutlet", staffPermRoot, new Vector3(1.10f, 1.24f, 6.66f), -90f, pairRB: true, castShadows: false));
-            Sign("Nursing alcove plaque", "Sign_NursingAlcove", new Vector3(1.09f, 2.50f, 3.65f), Vector3.left, new Vector2(0.84f, 0.28f), staffPermRoot, metalBacking: true);
-            CapsuleTarget("OBS_CORRIDOR_NOTICE", "Thông báo kê giường tạm phòng 101", new Vector3(0.92f, 1.88f, 3.65f), new Vector3(0.32f, 0.62f, 0.64f), staffRepRoot);
+            // Wall light switch beside STAFF cross-door frame (yaw=+90 faces -X into STAFF, meeting StaffSwitchDrop conduit!)
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_ENV_WallOutlet", staffPermRoot, new Vector3(1.095f, 1.24f, 6.66f), 90f, pairRB: true, castShadows: false));
+            Sign("Nursing alcove plaque", "Sign_NursingAlcove", new Vector3(1.09f, 2.54f, 3.65f), Vector3.left, new Vector2(0.84f, 0.28f), staffPermRoot, metalBacking: true);
+            // Layer-B readable Ward Overflow Notice sheet pinned cleanly atop desk corkboard (absent in 2012 R, revealing ghost mark!)
+            Flat("OBS_CorridorNotice_SheetB", "Doc_WardOverflow", new Vector3(1.066f, 1.945f, 3.65f), Vector3.left, new Vector2(0.40f, 0.52f), staffRepRoot);
+            CapsuleTarget("OBS_CORRIDOR_NOTICE", "Thông báo kê giường tạm phòng 101", new Vector3(0.92f, 1.94f, 3.65f), new Vector3(0.32f, 0.62f, 0.64f), staffRepRoot);
 
-            var nurseDrawerRoot = Group("Drawer_NurseDesk_Root", staffRepRoot, new Vector3(0.90f, 0.77f, 3.92f));
+            // Bespoke Cycles-baked interactive nursing desk drawer (permanent physical drawer paired R/B -> zero empty hole in 2012 R;
+            // flush closed at x=0.922 inside desk bay; HospitalGame still gates DRAWER-NURSE & OBS_SHIFT_LOG interaction strictly to B!)
+            var nurseDrawerRoot = Group("Drawer_NurseDesk_Root", staffPermRoot, new Vector3(0.922f, 0.77f, 3.92f));
             nurseDrawerRoot.localRotation = Quaternion.Euler(0f, 90f, 0f);
-            PlaceBlenderModel("CTCC_PROP_InteractiveDrawer", nurseDrawerRoot, Vector3.zero, 180f, pairRB: false, scale: new Vector3(0.88f, 0.88f, 0.88f), castShadows: false);
+            PlaceBlenderModel("CTCC_STAFF_NurseDrawer", nurseDrawerRoot, Vector3.zero, 0f, pairRB: true, castShadows: false);
             Flat("ShiftGuideDrawerSheet", "Doc_ShiftGuide", new Vector3(0f, -0.025f, 0.01f), Vector3.up, new Vector2(0.21f, 0.27f), nurseDrawerRoot);
             CapsuleTarget("DRAWER-NURSE", "Ngăn bàn điều dưỡng", new Vector3(0f, -0.02f, -0.17f), new Vector3(0.42f, 0.14f, 0.08f), nurseDrawerRoot);
             CapsuleTarget("OBS_SHIFT_LOG", "Quy chế bàn giao ca đêm", new Vector3(0f, 0.06f, 0.02f), new Vector3(0.32f, 0.14f, 0.24f), nurseDrawerRoot);
@@ -1899,6 +1980,16 @@ namespace CTCC.Editor
                 zones["LOC03"].region.drawerNurseOpenOffset = new Vector3(-0.28f, 0f, 0f);
             }
             world.interactables?.ConfigureDrawer("DRAWER-NURSE", nurseDrawerRoot, nurseDrawerRoot.localPosition, new Vector3(-0.28f, 0f, 0f));
+
+            // STAFF Opposite-Wall & North Utility Kit (preserves full >=1.74m Door-B escape clearance; wall-flush props rely on baked AO + SSAO!)
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_STAFF_BedStatusBoard", staffPermRoot, new Vector3(-0.99f, 1.62f, 3.85f), 0f, pairRB: true, castShadows: false));
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_STAFF_WallOscFan", staffPermRoot, new Vector3(-0.99f, 2.52f, 2.75f), 0f, pairRB: true, castShadows: false));
+            // North STAFF wall-hung glazed medicine cabinet (zero floor footprint!) + compact linen bin tucked tightly beneath!
+            var staffMedCab = PlaceBlenderModel("CTCC_STAFF_WallMedCabinet", staffPermRoot, new Vector3(0.98f, 1.22f, 10.65f), 90f, pairRB: true, castShadows: false);
+            staticArchitecture.Add(staffMedCab);
+            staticArchitecture.Add(PlaceBlenderModel("CTCC_STAFF_LinenBin", staffPermRoot, new Vector3(0.94f, 0f, 10.65f), 90f, pairRB: true, castShadows: false));
+            Box("Staff linen bin col", new Vector3(0.94f, 0.35f, 10.65f), new Vector3(0.30f, 0.70f, 0.42f), Mat("CabinetPaint"), staffPermRoot, solid: true).GetComponent<Renderer>().enabled = false;
+            Decal("StaffLinenBinAO", "BedContact", new Vector3(0.92f, 0.01f, 10.65f), Vector3.up, 0.48f, 0.62f, 0.20f, staffPermRoot, 0.72f);
 
             Flat("Bản kê", "BedList", new Vector3(6.65f, 1.34f, 2.025f), Vector3.forward, new Vector2(0.31f, 0.41f), real);
             Flat("Transfer paper", "Transfer", new Vector3(16.13f, 0.868f, 2.75f), Vector3.up, new Vector2(0.224f, 0.30f), store);

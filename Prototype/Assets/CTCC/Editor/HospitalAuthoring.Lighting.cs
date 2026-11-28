@@ -92,9 +92,13 @@ namespace CTCC.Editor
             corrSpill.transform.LookAt(new Vector3(3.1f, 0.35f, 4.75f));
             corrSpill.spotAngle = 82f;
             corrSpill.innerSpotAngle = 42f;
-            Lamp("Corridor ambient depth R", LightType.Point, new Vector3(4.0f, 2.55f, 4.95f), 0.84f, 8.4f, coolNight, real);
-            Lamp("Corridor mid bounce R", LightType.Point, new Vector3(4.0f, 2.55f, 10.6f), 0.96f, 8.2f, coolNight, real);
-            Lamp("Corridor far red emergency hint R", LightType.Point, new Vector3(4.2f, 2.75f, 14.2f), 1.05f, 8.5f, new Color(0.88f, 0.28f, 0.22f), real);
+            Lamp("Corridor south spill R", LightType.Point, new Vector3(4.0f, 2.55f, 2.45f), 0.92f, 5.8f, coolNight, real);
+            Lamp("Corridor ambient depth R", LightType.Point, new Vector3(4.0f, 2.55f, 5.25f), 1.12f, 7.6f, coolNight, real);
+            Lamp("Corridor mid bounce R", LightType.Point, new Vector3(4.0f, 2.55f, 10.6f), 1.10f, 7.2f, coolNight, real);
+            Lamp("Corridor far red emergency hint R", LightType.Point, new Vector3(4.0f, 2.75f, 14.15f), 1.15f, 7.2f, new Color(0.88f, 0.28f, 0.22f), real);
+            // STAFF Corridor R (2012): tightly clustered ranges (<=5.4m) so STAFF lights never bleed into HALL Forward+ tiles!
+            Lamp("Staff desk ambient R", LightType.Point, new Vector3(-0.12f, 2.15f, 3.55f), 0.78f, 5.2f, new Color(0.52f, 0.68f, 0.78f), real);
+            Lamp("Staff north red emergency hint R", LightType.Point, new Vector3(0.05f, 2.68f, 13.65f), 0.96f, 5.4f, new Color(0.88f, 0.28f, 0.22f), real);
             Lamp("Desk readable spill R", LightType.Point, new Vector3(2.90f, 2.26f, -3.86f), 1.45f, 8.05f, new Color(0.66f, 0.76f, 0.78f), real);
             // Focused warm tungsten desk lamp cone emanating directly from inside the sculpted green-enamel bell shade!
             var deskConeR = Lamp("Reception desk lamp warm glow", LightType.Spot, new Vector3(1.56f, 1.50f, -3.94f), 2.15f, 3.60f, new Color(1.0f, 0.78f, 0.48f), permanent, shadow: false);
@@ -113,23 +117,33 @@ namespace CTCC.Editor
             // Subtle warm lobby floor/apron bounce in B so carved ironwood wainscot, brass kickplate & built-in drawer read with 3D depth
             Lamp("Reception counter front fill B", LightType.Point, new Vector3(3.15f, 0.98f, -3.95f), 0.78f, 5.8f, new Color(0.92f, 0.90f, 0.80f), report);
             // Warm localized gooseneck reading lamp pool over STAFF nursing desk in 2005 B (dark & cold in 2012 R!)
-            Lamp("Staff desk sconce B", LightType.Point, new Vector3(0.54f, 1.56f, 3.22f), 1.35f, 4.2f, new Color(0.98f, 0.88f, 0.68f), report);
+            var staffSconceB = Lamp("Staff desk sconce B", LightType.Spot, new Vector3(0.68f, 1.56f, 3.30f), 2.35f, 3.8f, new Color(1.0f, 0.86f, 0.62f), report, shadow: false);
+            staffSconceB.transform.LookAt(new Vector3(0.88f, 0.90f, 3.45f));
+            staffSconceB.spotAngle = 112f;
+            staffSconceB.innerSpotAngle = 46f;
 
             // --- B (2005) Institutional Operational Fluorescent T8 Fixtures ---
             var cleanTube = new Color(.94f, .97f, .89f);
             Tube(new Vector3(4.00f, 3.59f, 4.75f), 0f, cleanTube, 3.1f, castShadow: art);
-            Tube(new Vector3(4.00f, 3.59f, 10.60f), 0f, cleanTube, 2.3f, castShadow: false);
+            Tube(new Vector3(4.00f, 3.59f, 10.60f), 0f, cleanTube, 2.5f, castShadow: false);
             Tube(new Vector3(1.28f, 3.59f, -3.21f), 0f, cleanTube, 2.35f, castShadow: art);
             Tube(new Vector3(6.32f, 3.59f, -4.58f), 0f, cleanTube, 2.75f, castShadow: false);
             // Room 101 T8 fluorescent fixtures offset cleanly clear of ceiling fan sweep circles (West N bay & East S Bed-4 bay!)
             Tube(new Vector3(7.70f, 3.59f, 6.55f), 90f, cleanTube, 3.4f, castShadow: art);
             var bed4Tube = Tube(new Vector3(11.65f, 3.59f, 3.45f), 90f, cleanTube, 3.1f, castShadow: art);
-            Tube(new Vector3(0.05f, 3.59f, 3.85f), 0f, cleanTube, 2.1f, castShadow: false);
+            Tube(new Vector3(0.05f, 3.59f, 3.85f), 0f, cleanTube, 2.15f, castShadow: false, range: 5.4f);
+            Tube(new Vector3(0.05f, 3.59f, 11.80f), 0f, cleanTube, 2.05f, castShadow: false, range: 5.4f);
             if (multiScene && bed4Tube != null) zones["LOC03"].region.bed4TubeLight = bed4Tube;
             else if (bed4Tube != null) world.bed4TubeLight = bed4Tube;
 
             Lamp("Room 101 GI bounce B", LightType.Point, new Vector3(9.65f, 0.92f, 5.0f), 0.88f, 7.2f, new Color(0.76f, 0.82f, 0.72f), report);
-            Lamp("Corridor GI bounce B", LightType.Point, new Vector3(4.0f, 0.95f, 5.5f), 0.65f, 8.8f, new Color(0.74f, 0.80f, 0.72f), report);
+            Lamp("Corridor GI bounce B", LightType.Point, new Vector3(4.0f, 0.95f, 5.2f), 0.68f, 7.4f, new Color(0.74f, 0.80f, 0.72f), report);
+            Lamp("Corridor GI bounce N B", LightType.Point, new Vector3(4.0f, 0.98f, 11.6f), 0.62f, 6.2f, new Color(0.74f, 0.80f, 0.72f), report);
+            Lamp("Staff GI bounce B", LightType.Point, new Vector3(0.05f, 1.02f, 7.60f), 0.58f, 5.6f, new Color(0.76f, 0.82f, 0.74f), report);
+            // Soft operational B-only threshold fills at north ER Door A & Door B so sage enamel & stainless kickplates read crisply in 2005 B
+            // while keeping 2012 R purely crimson-dramatic (tight Forward+ ranges prevent cross-corridor tile overlap)!
+            Lamp("Hall north ER threshold fill B", LightType.Point, new Vector3(4.00f, 3.05f, 14.35f), 0.95f, 4.4f, new Color(0.90f, 0.95f, 0.88f), report);
+            Lamp("Staff north ER threshold fill B", LightType.Point, new Vector3(0.05f, 3.05f, 14.35f), 0.82f, 3.8f, new Color(0.90f, 0.95f, 0.88f), report);
             Lamp("Reception GI bounce B", LightType.Point, new Vector3(3.35f, 1.10f, -3.5f), .83f, 7.4f, new Color(.86f, .87f, .81f), report);
 
             if (!art)
@@ -168,13 +182,15 @@ namespace CTCC.Editor
             }
             Lamp("Courtyard distant amber glow", LightType.Point, new Vector3(10.2f, 3.2f, 13.8f), 6.8f, 16f, new Color(0.92f, 0.64f, 0.36f), real);
 
-            // --- Zone-Owned Box-Projected Reflection Probes (LOC03 Ward + Corridor; LOC01/02/04 added in Zones.cs!) ---
+            // --- Zone-Owned Box-Projected Reflection Probes (LOC03 Ward + HALL + STAFF; LOC01/02/04 added in Zones.cs!) ---
             var rp101 = CreateReflectionProbe("Local reflection · LOC03", new Vector3(9.71f, 1.75f, 5.05f), new Vector3(8.4f, 3.65f, 6.2f), ResolveParent(permanent, new Vector3(9.71f, 0, 5.05f)));
-            var rpHall = CreateReflectionProbe("Local reflection · HALL", new Vector3(4.0f, 1.75f, 5.8f), new Vector3(3.3f, 3.65f, 14.0f), ResolveParent(permanent, new Vector3(4.0f, 0, 5.8f)));
+            var rpHall = CreateReflectionProbe("Local reflection · HALL", new Vector3(4.0f, 1.75f, 8.0f), new Vector3(3.3f, 3.65f, 16.0f), ResolveParent(permanent, new Vector3(4.0f, 0, 8.0f)));
+            var rpStaff = CreateReflectionProbe("Local reflection · STAFF", new Vector3(0.05f, 1.75f, 8.0f), new Vector3(2.35f, 3.65f, 16.0f), ResolveParent(permanent, new Vector3(0.05f, 0, 8.0f)));
             if (multiScene)
             {
                 zones["LOC03"].probes.Add(rp101);
                 zones["LOC03"].probes.Add(rpHall);
+                zones["LOC03"].probes.Add(rpStaff);
             }
             else
             {
@@ -258,9 +274,11 @@ namespace CTCC.Editor
             // Four levels of falloff across the glass and the chair, shared between the R/B bakes.
             AddGrid(.32f, 2.28f, 3, -3.94f, -2.66f, 3, new[] { 1.20f, 1.94f });
             AddGrid(2.05f, 5.98f, 3, -11.05f, -10.44f, 2, new[] { .44f, 1.42f });
-            // LOC03 Main Corridor + Staff Corridor
-            AddGrid(3.0f, 5.0f, 2, 0.8f, 15.2f, 6, interiorHeights);
-            AddGrid(-0.5f, 0.8f, 2, 1.0f, 15.0f, 4, new[] { 0.7f, 1.8f });
+            // LOC03 Main Corridor + Staff Corridor (dense 3-tier Dual GI sampling across HALL & STAFF + DOOR-STAFF cross-passage!)
+            AddGrid(3.0f, 5.0f, 2, 0.8f, 15.2f, 7, interiorHeights);
+            AddGrid(-0.55f, 0.72f, 2, 0.9f, 15.1f, 6, interiorHeights);
+            pts.Add(new Vector3(1.80f, 1.35f, 7.50f));
+            pts.Add(new Vector3(1.80f, 2.10f, 7.50f));
             // LOC03 Room 101 + Store Room (Kho giường)
             AddGrid(6.2f, 13.2f, 5, 2.5f, 7.5f, 4, interiorHeights);
             AddGrid(14.3f, 16.6f, 2, 2.5f, 5.0f, 2, new[] { 0.75f, 1.85f });
@@ -471,10 +489,10 @@ namespace CTCC.Editor
             return l;
         }
 
-        private Light Tube(Vector3 p, float yaw, Color clean, float intensity, bool castShadow = false)
+        private Light Tube(Vector3 p, float yaw, Color clean, float intensity, bool castShadow = false, float range = 7.8f)
         {
             var lit = Lamp("Mains tube pool", castShadow ? LightType.Spot : LightType.Point,
-                p + Vector3.down * 0.14f, castShadow ? intensity * 2.2f : intensity, 7.8f, clean, report, shadow: castShadow);
+                p + Vector3.down * 0.14f, castShadow ? intensity * 2.2f : intensity, range, clean, report, shadow: castShadow);
             if (castShadow)
             {
                 lit.transform.rotation = Quaternion.Euler(90f, 0f, 0f);

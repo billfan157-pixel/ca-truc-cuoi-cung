@@ -333,9 +333,9 @@ namespace CTCC.Editor
                 Bay1987(new Vector3(7.9f, y, 8.1f), 180f);
                 Bay1987(new Vector3(11.9f, y, 8.1f), 180f);
             }
-            // Dark structural corner seals around the 4 light-court corners so zero light leaks through seams
-            foreach (var c in new[] { (5.6f, 8.1f), (14.2f, 8.1f), (5.6f, 14.1f), (14.2f, 14.1f) })
-                Box("LightCourt corner pier", new Vector3(c.Item1, 6.0f, c.Item2), new Vector3(0.45f, 12.0f, 0.45f), Mat("BaseTrim"), g, isStatic: true);
+            // Dark structural corner seals around the 4 light-court corners (west piers start above ground-floor ceiling y=3.70 so ZERO bleed into HALL east wall!)
+            foreach (var c in new[] { (5.6f, 8.1f, true), (14.2f, 8.1f, false), (5.6f, 14.1f, true), (14.2f, 14.1f, false) })
+                Box("LightCourt corner pier", new Vector3(c.Item1, c.Item3 ? 7.85f : 6.0f, c.Item2), new Vector3(0.45f, c.Item3 ? 8.30f : 12.0f, 0.45f), Mat("BaseTrim"), g, isStatic: true);
 
             // --- F. K-A ROOF SLAB (+11.70m), PARAPET, PITCHED CORRUGATED OVER-ROOF & ROOFTOP WATER TANKS ---
             // Split flat roof slabs around the open Inner Light Court (x=[5.6..14.2], z=[8.1..14.1]) so sky & rain enter!

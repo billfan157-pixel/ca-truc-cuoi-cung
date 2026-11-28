@@ -436,12 +436,12 @@ namespace CTCC.Editor
             var redLights = new List<Light>();
             foreach (float x in new[] { 4.0f, 0.05f })
             {
-                var box = PlaceBlenderModel("CTCC_PROP_EmergencyLightBox", perm, new Vector3(x, 2.94f, 15.84f), 0f, pairRB: false, castShadows: false);
+                var box = PlaceBlenderModel("CTCC_PROP_EmergencyLightBox", perm, new Vector3(x, 2.94f, 15.84f), 0f, pairRB: true, castShadows: false);
                 staticArchitecture.Add(box);
-                Sign("EmergencyBoxFace_" + x.ToString("0"), "Sign_EmergencyBox", new Vector3(x, 2.94f, 15.72f), Vector3.back,
-                    new Vector2(0.76f, 0.24f), perm, metalBacking: false);
+                Sign("EmergencyBoxFace_" + x.ToString("0"), "Sign_EmergencyBox", new Vector3(x, 2.94f, 15.762f), Vector3.back,
+                    new Vector2(1.06f, 0.30f), perm, metalBacking: false);
                 var rl = Lamp("Emergency crimson glow " + x.ToString("0"), LightType.Point, new Vector3(x, 2.74f, 15.35f),
-                    1.10f, 6.8f, new Color(0.92f, 0.22f, 0.16f), perm);
+                    1.15f, 7.2f, new Color(0.92f, 0.22f, 0.16f), perm);
                 redLights.Add(rl);
             }
 

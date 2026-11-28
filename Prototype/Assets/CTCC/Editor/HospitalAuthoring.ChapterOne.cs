@@ -27,28 +27,41 @@ namespace CTCC.Editor
             {
                 var root = region.transform.Find("Physical continuity");
                 if (root == null) throw new InvalidOperationException("Missing ward scene root.");
-                region.staffChair = MakeStaffChair(root);
+                region.staffChair = MakeStaffChair(root, region);
                 EditorSceneManager.SaveScene(ward);
             }
             Debug.Log("CTCC_CH01_PROPS Updated envelope and STAFF chair.");
         }
 
-        private static Transform MakeStaffChair(Transform parent)
+        private static Transform MakeStaffChair(Transform parent, ZoneRegion region = null)
         {
             var chair = new GameObject("Ghế gỗ bàn điều dưỡng").transform;
             chair.SetParent(parent, false);
             chair.localPosition = new Vector3(.87f, 0f, 2.83f);
             chair.localRotation = Quaternion.Euler(0, 257f, 0);
-            var model = AssetDatabase.LoadAssetAtPath<GameObject>(Models + "CTCC_PROP_ArchiveChair.fbx");
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(Models + "CTCC_STAFF_NurseChair.fbx")
+                ?? AssetDatabase.LoadAssetAtPath<GameObject>(Models + "CTCC_PROP_ArchiveChair.fbx");
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, chair);
-            instance.transform.localScale = Vector3.one * .86f;
-            var wood = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Generated/Materials/Reference_Wood.mat");
-            if (wood == null) throw new InvalidOperationException("Missing chair material.");
-            foreach (var mesh in instance.GetComponentsInChildren<MeshRenderer>())
+            instance.transform.localPosition = Vector3.zero;
+            instance.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            var matB = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Generated/Materials/Reference_STAFF_NurseChairB.mat");
+            var matR = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Generated/Materials/Reference_STAFF_NurseChairR.mat");
+            var fallback = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Generated/Materials/Reference_Wood.mat");
+            if (matB == null && fallback == null) throw new InvalidOperationException("Missing chair material.");
+            foreach (var mesh in instance.GetComponentsInChildren<MeshRenderer>(true))
             {
-                var surfaces = mesh.sharedMaterials;
-                for (int i = 0; i < surfaces.Length; i++) surfaces[i] = wood;
-                mesh.sharedMaterials = surfaces;
+                var realM = matR ?? matB ?? fallback;
+                var repM = matB ?? fallback;
+                var realArr = new Material[mesh.sharedMaterials.Length];
+                var repArr = new Material[mesh.sharedMaterials.Length];
+                for (int i = 0; i < realArr.Length; i++)
+                {
+                    realArr[i] = realM;
+                    repArr[i] = repM;
+                }
+                mesh.sharedMaterials = realArr;
+                if (region != null && realM != repM)
+                    region.finishes.Add(new LayerFinish { renderer = mesh, realMaterials = realArr, reportMaterials = repArr });
             }
             var seat = new GameObject("Chair clearance") { layer = HospitalScene.SolidLayer };
             seat.transform.SetParent(chair, false);
